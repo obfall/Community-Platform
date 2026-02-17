@@ -1,0 +1,195 @@
+@startuml 全体画面遷移図
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam roundcorner 10
+
+skinparam state {
+    BackgroundColor #E3F2FD
+    BorderColor #1976D2
+}
+
+title 全体画面遷移図
+
+state "トップページ" as TOP
+
+state "認証" as AUTH {
+    state "ログイン画面" as LOGIN
+    state "新規登録画面" as REGISTER
+    state "パスワードリセット" as PW_RESET
+}
+
+state "コミュニティ選択" as COM_SELECT
+state "コミュニティ作成" as COM_CREATE
+
+TOP --> LOGIN
+TOP --> REGISTER
+TOP --> COM_SELECT
+LOGIN --> PW_RESET
+PW_RESET --> LOGIN
+LOGIN --> COM_SELECT
+REGISTER --> COM_SELECT
+COM_SELECT --> COM_CREATE
+COM_CREATE --> COMMUNITY
+
+state "コミュニティ画面" as COMMUNITY {
+
+    state "ホーム" as HOME {
+        state "ホーム画面" as H
+        state "コミュニティ詳細" as H1
+        state "新着通知一覧" as H2
+        state "カレンダー" as H3
+
+        H --> H1
+        H --> H2
+        H --> H3
+    }
+
+    state "メンバー" as MEMBER {
+        state "メンバー一覧" as M
+        state "メンバー詳細" as M1
+        state "チャット" as M2
+        state "メンバー管理" as M3
+        state "ステータス変更" as M4
+
+        M --> M1
+        M1 --> M2
+        M --> M3
+        M3 --> M4
+    }
+
+    state "メール配信" as MAIL {
+        state "配信一覧" as ML
+        state "メール作成" as ML1
+        state "配信履歴" as ML2
+
+        ML --> ML1
+        ML --> ML2
+    }
+
+    state "掲示板" as BOARD {
+        state "掲示板一覧" as B
+        state "投稿詳細" as B1
+        state "コメント" as B2
+        state "投稿作成" as B3
+
+        B --> B1
+        B1 --> B2
+        B --> B3
+    }
+
+    state "設定" as SETTING {
+        state "設定画面" as S
+        state "コミュニティ設定" as S1
+        state "権限設定" as S2
+        state "デザイン設定" as S3
+
+        S --> S1
+        S --> S2
+        S --> S3
+    }
+
+    state "プロジェクト" as PROJECT {
+        state "プロジェクト一覧" as P
+        state "プロジェクト詳細" as P1
+        state "プロジェクト掲示板" as P2
+        state "プロジェクト登録" as P3
+
+        P --> P1
+        P1 --> P2
+        P --> P3
+    }
+
+    state "イベント" as EVENT {
+        state "イベント一覧" as E
+        state "イベント詳細" as E1
+        state "参加者一覧" as E2
+        state "決済画面" as E3
+        state "イベント登録" as E4
+        state "イベントカレンダー" as E5
+
+        E --> E1
+        E1 --> E2
+        E1 --> E3
+        E --> E4
+        E --> E5
+        E5 --> E1
+    }
+
+    state "動画" as VIDEO {
+        state "動画一覧" as V
+        state "動画視聴" as V1
+        state "動画登録" as V2
+        state "カテゴリ管理" as V3
+
+        V --> V1
+        V --> V2
+        V --> V3
+    }
+
+    state "アナリティクス" as ANALYTICS {
+        state "ダッシュボード" as A
+        state "メンバー活動分析" as A1
+        state "イベント参加分析" as A2
+
+        A --> A1
+        A --> A2
+    }
+
+    state "ポイント" as POINT {
+        state "ポイント一覧" as PT
+        state "ポイント履歴" as PT1
+        state "ポイント発行" as PT2
+
+        PT --> PT1
+        PT --> PT2
+    }
+
+    state "アンケート" as SURVEY {
+        state "アンケート一覧" as Q
+        state "アンケート回答" as Q1
+        state "アンケート登録" as Q2
+        state "アンケート結果" as Q3
+
+        Q --> Q1
+        Q --> Q2
+        Q --> Q3
+    }
+
+    state "スキルシェア" as SKILL {
+        state "スキルシェア一覧" as SK
+        state "スキルシェア詳細" as SK1
+        state "コメント画面" as SK2
+        state "スキルシェア登録" as SK3
+
+        SK --> SK1
+        SK1 --> SK2
+        SK --> SK3
+    }
+
+    state "ショップ" as SHOP {
+        state "ショップ一覧" as SH
+        state "商品詳細" as SH1
+        state "商品登録" as SH2
+
+        SH --> SH1
+        SH --> SH2
+    }
+}
+
+COM_SELECT --> COMMUNITY
+
+COMMUNITY --> HOME
+COMMUNITY --> MEMBER
+COMMUNITY --> MAIL
+COMMUNITY --> BOARD
+COMMUNITY --> SETTING
+COMMUNITY --> PROJECT
+COMMUNITY --> EVENT
+COMMUNITY --> VIDEO
+COMMUNITY --> ANALYTICS
+COMMUNITY --> POINT
+COMMUNITY --> SURVEY
+COMMUNITY --> SKILL
+COMMUNITY --> SHOP
+
+@enduml

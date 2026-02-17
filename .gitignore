@@ -1,0 +1,17 @@
+# 認証情報が含まれるファイル
+README.md
+
+# OS生成ファイル
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# 依存関係
+node_modules/
+
+# 環境変数
+.env
+.env.local
+.env.*.local
