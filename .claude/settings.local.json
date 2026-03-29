@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(node scripts/generate-feature-list.js:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(java -version:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(python -m pip:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(md-to-pdf:*)",
+      "Bash(node:*)",
+      "Bash(where:*)"
+    ]
+  }
+}
