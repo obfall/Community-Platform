@@ -12,7 +12,8 @@
       "Bash(python3 -m pip:*)",
       "Bash(md-to-pdf:*)",
       "Bash(node:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(git -C \"C:\\\\Users\\\\81801\\\\work\\\\Community-Platform\" log --all --oneline)"
     ]
   }
 }
