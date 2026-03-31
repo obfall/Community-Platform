@@ -3,6 +3,10 @@ README.md
 
 # OS生成ファイル
 .DS_Store
+Thumbs.db
+
+# Windows
+nul
 
 # IDE
 .idea/
@@ -15,3 +19,20 @@ node_modules/
 .env
 .env.local
 .env.*.local
+
+# ビルド出力
+dist/
+.next/
+out/
+
+# Turborepo
+.turbo/
+
+# pnpm
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# テスト
+coverage/

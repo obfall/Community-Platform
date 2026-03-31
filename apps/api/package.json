@@ -1,0 +1,16 @@
+{
+  "name": "@community-platform/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"NestJS initialized in Phase 0.3\"",
+    "build": "echo \"NestJS initialized in Phase 0.3\"",
+    "lint": "echo \"NestJS initialized in Phase 0.3\"",
+    "test": "echo \"NestJS initialized in Phase 0.3\"",
+    "type-check": "echo \"NestJS initialized in Phase 0.3\"",
+    "clean": "rm -rf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@community-platform/shared": "workspace:*"
+  }
+}
