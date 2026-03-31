@@ -1,0 +1,16 @@
+{
+  "name": "@community-platform/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"Next.js initialized in Phase 0.2\"",
+    "build": "echo \"Next.js initialized in Phase 0.2\"",
+    "lint": "echo \"Next.js initialized in Phase 0.2\"",
+    "test": "echo \"Next.js initialized in Phase 0.2\"",
+    "type-check": "echo \"Next.js initialized in Phase 0.2\"",
+    "clean": "rm -rf .next .turbo node_modules"
+  },
+  "dependencies": {
+    "@community-platform/shared": "workspace:*"
+  }
+}
