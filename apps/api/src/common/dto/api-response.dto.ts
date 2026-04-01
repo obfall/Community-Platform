@@ -1,6 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type {
+  ApiResponse,
+  ApiErrorResponse,
+} from "@community-platform/shared";
 
-export class ApiResponseDto<T> {
+export class ApiResponseDto<T> implements ApiResponse<T> {
   @ApiProperty()
   data!: T;
 
@@ -11,7 +15,7 @@ export class ApiResponseDto<T> {
   timestamp!: string;
 }
 
-export class ApiErrorResponseDto {
+export class ApiErrorResponseDto implements ApiErrorResponse {
   @ApiProperty()
   statusCode!: number;
 
