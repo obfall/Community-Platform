@@ -2,13 +2,35 @@
   "name": "@community-platform/shared",
   "version": "0.0.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
-    "build": "echo \"build configured in Phase 0.4 (tsup)\"",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "echo \"lint configured in Phase 0.6\"",
     "test": "echo \"test configured in Phase 0.6\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
   }
 }

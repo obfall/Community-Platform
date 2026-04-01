@@ -1,3 +1,1 @@
-export const APP_NAME = "Community Platform";
-export const DEFAULT_PAGE_SIZE = 20;
-export const MAX_PAGE_SIZE = 100;
+export { APP_NAME, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@community-platform/shared";

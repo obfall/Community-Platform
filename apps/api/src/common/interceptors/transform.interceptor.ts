@@ -6,12 +6,7 @@ import {
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-
-export interface ApiResponse<T> {
-  data: T;
-  statusCode: number;
-  timestamp: string;
-}
+import type { ApiResponse } from "@community-platform/shared";
 
 @Injectable()
 export class TransformInterceptor<T>
