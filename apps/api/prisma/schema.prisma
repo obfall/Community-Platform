@@ -8,5 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Models will be added starting in Phase 0.5
+// Models will be added starting in Phase 1
 // See docs/テーブル定義書.md for the full 116-table schema
+// Migration policy: one migration per phase (prisma migrate dev --name phaseN_description)
