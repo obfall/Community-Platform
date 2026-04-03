@@ -1,10 +1,12 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { SentryModule, SentryGlobalFilter } from "@sentry/nestjs/setup";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
+import { AuthModule } from "./auth/auth.module";
+import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
 @Module({
@@ -20,6 +22,9 @@ import { validateEnv } from "./config/env.config";
 
     // Database
     PrismaModule,
+
+    // Auth
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
@@ -27,6 +32,11 @@ import { validateEnv } from "./config/env.config";
     {
       provide: APP_FILTER,
       useClass: SentryGlobalFilter,
+    },
+    // Global JWT auth guard (use @Public() to skip)
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
     AppService,
   ],
