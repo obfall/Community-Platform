@@ -24,6 +24,9 @@ export const envSchema = z.object({
   // Sentry (optional - auto-disabled when not set)
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_AUTH_TOKEN: z.string().optional(),
+
+  // Resend (optional - mock when not set)
+  RESEND_API_KEY: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
