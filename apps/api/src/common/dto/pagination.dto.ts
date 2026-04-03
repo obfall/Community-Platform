@@ -1,14 +1,8 @@
 import { ApiPropertyOptional, ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsInt, IsOptional, Min, Max } from "class-validator";
-import {
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
-} from "@community-platform/shared";
-import type {
-  PaginationMeta,
-  PaginatedResponse,
-} from "@community-platform/shared";
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@community-platform/shared";
+import type { PaginationMeta, PaginatedResponse } from "@community-platform/shared";
 
 export class PaginationQueryDto {
   @ApiPropertyOptional({ default: 1, minimum: 1 })

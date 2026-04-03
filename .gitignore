@@ -36,3 +36,6 @@ pnpm-debug.log*
 
 # テスト
 coverage/
+
+# Docker
+docker-compose.override.yml

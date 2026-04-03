@@ -20,11 +20,13 @@ disable-model-invocation: true
 ## バックエンド（`apps/api/` 配下）
 
 ### 対象ファイル
+
 - `*.service.ts` — サービスのユニットテスト
 - `*.controller.ts` — コントローラのユニットテスト
 - `*.gateway.ts` — WebSocketゲートウェイのテスト
 
 ### テストツール
+
 - Jest
 - `@nestjs/testing` の `Test.createTestingModule`
 - Prisma Client モック（`jest-mock-extended` の `DeepMockProxy<PrismaClient>`）
@@ -32,56 +34,74 @@ disable-model-invocation: true
 ### テスト構造
 
 ```typescript
-import { Test, TestingModule } from '@nestjs/testing';
-import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { PrismaClient } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { DeepMockProxy, mockDeep } from "jest-mock-extended";
+import { PrismaClient } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 // 対象サービスのインポート
 
-describe('XxxService', () => {
+describe("XxxService", () => {
   let service: XxxService;
   let prisma: DeepMockProxy<PrismaClient>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        XxxService,
-        { provide: PrismaService, useValue: mockDeep<PrismaClient>() },
-      ],
+      providers: [XxxService, { provide: PrismaService, useValue: mockDeep<PrismaClient>() }],
     }).compile();
 
     service = module.get<XxxService>(XxxService);
     prisma = module.get(PrismaService);
   });
 
-  describe('findAll', () => {
-    it('should return paginated results', async () => { /* ... */ });
-    it('should filter by deleted_at IS NULL', async () => { /* ... */ });
+  describe("findAll", () => {
+    it("should return paginated results", async () => {
+      /* ... */
+    });
+    it("should filter by deleted_at IS NULL", async () => {
+      /* ... */
+    });
   });
 
-  describe('findOne', () => {
-    it('should return entity by id', async () => { /* ... */ });
-    it('should throw NotFoundException when not found', async () => { /* ... */ });
+  describe("findOne", () => {
+    it("should return entity by id", async () => {
+      /* ... */
+    });
+    it("should throw NotFoundException when not found", async () => {
+      /* ... */
+    });
   });
 
-  describe('create', () => {
-    it('should create entity with valid data', async () => { /* ... */ });
-    it('should throw on duplicate (if applicable)', async () => { /* ... */ });
+  describe("create", () => {
+    it("should create entity with valid data", async () => {
+      /* ... */
+    });
+    it("should throw on duplicate (if applicable)", async () => {
+      /* ... */
+    });
   });
 
-  describe('update', () => {
-    it('should update entity', async () => { /* ... */ });
-    it('should throw NotFoundException when entity does not exist', async () => { /* ... */ });
+  describe("update", () => {
+    it("should update entity", async () => {
+      /* ... */
+    });
+    it("should throw NotFoundException when entity does not exist", async () => {
+      /* ... */
+    });
   });
 
-  describe('remove', () => {
-    it('should soft-delete by setting deleted_at', async () => { /* ... */ });
-    it('should throw NotFoundException when entity does not exist', async () => { /* ... */ });
+  describe("remove", () => {
+    it("should soft-delete by setting deleted_at", async () => {
+      /* ... */
+    });
+    it("should throw NotFoundException when entity does not exist", async () => {
+      /* ... */
+    });
   });
 });
 ```
 
 ### 必須テスト項目
+
 - 各CRUDメソッドの正常系
 - `NotFoundException` — 存在しないIDへのアクセス
 - `ConflictException` — 重複データの作成（該当する場合）
@@ -95,10 +115,12 @@ describe('XxxService', () => {
 ## フロントエンド（`apps/web/` 配下）
 
 ### 対象ファイル
+
 - `page.tsx` — ページコンポーネント
 - `components/*.tsx` — UIコンポーネント
 
 ### テストツール
+
 - Vitest
 - `@testing-library/react`
 - `@testing-library/user-event`
@@ -129,6 +151,7 @@ describe('XxxPage', () => {
 ```
 
 ### 必須テスト項目
+
 - 初期レンダリング（ローディング状態の表示）
 - データ取得成功後の表示
 - エラー状態の表示
@@ -140,30 +163,36 @@ describe('XxxPage', () => {
 ## 共有パッケージ（`packages/shared/` 配下）
 
 ### 対象ファイル
+
 - `validators/*.ts` — Zodスキーマ
 - `utils/*.ts` — ユーティリティ関数
 
 ### テストツール
+
 - Vitest or Jest
 
 ### テスト構造
 
 ```typescript
-import { createXxxSchema, updateXxxSchema } from '../xxx';
+import { createXxxSchema, updateXxxSchema } from "../xxx";
 
-describe('createXxxSchema', () => {
-  it('should accept valid input', () => {
-    const result = createXxxSchema.safeParse({ /* valid data */ });
+describe("createXxxSchema", () => {
+  it("should accept valid input", () => {
+    const result = createXxxSchema.safeParse({
+      /* valid data */
+    });
     expect(result.success).toBe(true);
   });
 
-  it('should reject missing required fields', () => {
+  it("should reject missing required fields", () => {
     const result = createXxxSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 
-  it('should reject invalid field values', () => {
-    const result = createXxxSchema.safeParse({ /* invalid data */ });
+  it("should reject invalid field values", () => {
+    const result = createXxxSchema.safeParse({
+      /* invalid data */
+    });
     expect(result.success).toBe(false);
     // エラーメッセージの確認
   });

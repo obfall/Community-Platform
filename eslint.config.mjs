@@ -1,0 +1,28 @@
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+import eslintConfigPrettier from "eslint-config-prettier";
+import globals from "globals";
+
+export default tseslint.config(
+  {
+    ignores: ["apps/", "packages/", "scripts/", "node_modules/", "dist/", ".turbo/"],
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  eslintConfigPrettier,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+    },
+  },
+);

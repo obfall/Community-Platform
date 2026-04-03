@@ -2,9 +2,7 @@ import { z } from "zod";
 
 export const envSchema = z.object({
   // App
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
 
   // Database (Supabase PostgreSQL)
