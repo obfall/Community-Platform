@@ -83,3 +83,122 @@ export interface UpdatePermissionInput {
   allowedRoles?: string[];
   requiredRankId?: string | null;
 }
+
+// --- Pagination ---
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+// --- Users ---
+
+export interface UserListItem {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  avatarUrl: string | null;
+  bio: string | null;
+  phone: string | null;
+  birthday: string | null;
+  website: string | null;
+  nameKana: string | null;
+  gender: string | null;
+  occupation: string | null;
+  countryOfOrigin: string | null;
+  allowDirectMessages: boolean;
+  headerImageUrl: string | null;
+}
+
+export interface UserPublicInfo {
+  nickname: string | null;
+  nicknameKana: string | null;
+  specialty: string | null;
+  prefecture: string | null;
+  city: string | null;
+  foreignCountry: string | null;
+  foreignCity: string | null;
+  introduction: string | null;
+  eventRole: string | null;
+  publicStatus: "public" | "private";
+}
+
+export interface UserInterestItem {
+  id: string;
+  categoryId: string;
+  categoryName?: string;
+}
+
+export interface UserLanguageItem {
+  id: string;
+  languageCode: string;
+  proficiency: string | null;
+  sortOrder: number;
+}
+
+export interface UserAffiliationItem {
+  id: string;
+  organizationName: string;
+  title: string | null;
+  roleDescription: string | null;
+  sortOrder: number;
+}
+
+export interface UserDetail extends UserListItem {
+  profile: UserProfile | null;
+  publicInfo: UserPublicInfo | null;
+  interests: UserInterestItem[];
+  languages: UserLanguageItem[];
+  affiliations: UserAffiliationItem[];
+}
+
+export interface UserListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+}
+
+export interface UpdateProfileInput {
+  bio?: string;
+  phone?: string;
+  birthday?: string;
+  website?: string;
+  nameKana?: string;
+  gender?: string;
+  occupation?: string;
+  countryOfOrigin?: string;
+  allowDirectMessages?: boolean;
+  avatarUrl?: string;
+  headerImageUrl?: string;
+}
+
+export interface UpdatePublicInfoInput {
+  nickname?: string;
+  nicknameKana?: string;
+  specialty?: string;
+  prefecture?: string;
+  city?: string;
+  foreignCountry?: string;
+  foreignCity?: string;
+  introduction?: string;
+  eventRole?: string;
+  publicStatus?: "public" | "private";
+}
