@@ -35,3 +35,51 @@ export interface FeatureSetting {
   description: string | null;
   sortOrder: number;
 }
+
+// --- App Settings ---
+
+export interface AppSetting {
+  id: string;
+  key: string;
+  value: string;
+  valueType: "string" | "integer" | "boolean" | "json";
+  description: string | null;
+}
+
+export interface UpdateAppSettingInput {
+  value: string;
+}
+
+export interface ToggleFeatureInput {
+  isEnabled: boolean;
+}
+
+// --- Permissions ---
+
+export interface PermissionSetting {
+  id: string;
+  featureKey: string;
+  action: string;
+  allowedRoles: string[];
+  requiredRankId: string | null;
+  featureSetting: {
+    featureName: string;
+    category: "common" | "optional";
+  };
+  requiredRank: {
+    name: string;
+    slug: string;
+  } | null;
+}
+
+export interface CreatePermissionInput {
+  featureKey: string;
+  action: string;
+  allowedRoles: string[];
+  requiredRankId?: string;
+}
+
+export interface UpdatePermissionInput {
+  allowedRoles?: string[];
+  requiredRankId?: string | null;
+}
