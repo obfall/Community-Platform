@@ -6,6 +6,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
+import { UsersModule } from "./users/users.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -25,6 +26,9 @@ import { validateEnv } from "./config/env.config";
 
     // Auth
     AuthModule,
+
+    // Users
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
