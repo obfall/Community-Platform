@@ -25,12 +25,17 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "echo \"lint configured in Phase 0.6\"",
+    "lint": "eslint . --max-warnings 0",
     "test": "echo \"test configured in Phase 0.6\"",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
   "devDependencies": {
-    "tsup": "^8.5.1"
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "globals": "^17.0.0",
+    "tsup": "^8.5.1",
+    "typescript-eslint": "^8.0.0"
   }
 }

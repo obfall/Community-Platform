@@ -78,8 +78,7 @@ export const LanguageProficiency = {
   ADVANCED: "advanced",
   NATIVE: "native",
 } as const;
-export type LanguageProficiency =
-  (typeof LanguageProficiency)[keyof typeof LanguageProficiency];
+export type LanguageProficiency = (typeof LanguageProficiency)[keyof typeof LanguageProficiency];
 
 // ============================================================
 // Cross-cutting

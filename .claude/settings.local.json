@@ -13,7 +13,8 @@
       "Bash(md-to-pdf:*)",
       "Bash(node:*)",
       "Bash(where:*)",
-      "Bash(git -C \"C:\\\\Users\\\\81801\\\\work\\\\Community-Platform\" log --all --oneline)"
+      "Bash(git -C \"C:\\\\Users\\\\81801\\\\work\\\\Community-Platform\" log --all --oneline)",
+      "Bash(git stash drop:*)"
     ]
   }
 }
