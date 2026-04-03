@@ -26,3 +26,12 @@ export interface ResetPasswordInput {
   token: string;
   newPassword: string;
 }
+
+export interface FeatureSetting {
+  featureKey: string;
+  featureName: string;
+  category: "common" | "optional";
+  isEnabled: boolean;
+  description: string | null;
+  sortOrder: number;
+}
