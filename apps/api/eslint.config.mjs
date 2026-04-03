@@ -5,7 +5,7 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/", "dist/", ".turbo/", "eslint.config.mjs"],
+    ignores: ["node_modules/", "dist/", ".turbo/", "eslint.config.mjs", "prisma/seed.ts"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
