@@ -7,6 +7,7 @@ import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
+import { SettingsModule } from "./settings/settings.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -29,6 +30,9 @@ import { validateEnv } from "./config/env.config";
 
     // Users
     UsersModule,
+
+    // Settings
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [
