@@ -202,3 +202,147 @@ export interface UpdatePublicInfoInput {
   eventRole?: string;
   publicStatus?: "public" | "private";
 }
+
+// --- Board ---
+
+export interface BoardCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  postCount: number;
+  createdAt: string;
+}
+
+export interface BoardPostAuthor {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface BoardTag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface BoardPost {
+  id: string;
+  title: string;
+  body: string;
+  publishStatus: "draft" | "published" | "archived";
+  isPinned: boolean;
+  viewCount: number;
+  commentCount: number;
+  likeCount: number;
+  author: BoardPostAuthor;
+  category: { id: string; name: string } | null;
+  tags: BoardTag[];
+  isLiked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardPostAttachment {
+  id: string;
+  fileId: string;
+  url: string | null;
+  fileName: string | null;
+  sortOrder: number;
+}
+
+export interface BoardPostDetail extends BoardPost {
+  attachments: BoardPostAttachment[];
+}
+
+export interface PostListQuery {
+  page?: number;
+  limit?: number;
+  categoryId?: string;
+  tagId?: string;
+  authorId?: string;
+  status?: string;
+}
+
+export interface CreatePostInput {
+  title: string;
+  body: string;
+  categoryId?: string;
+  publishStatus?: "draft" | "published";
+  tagIds?: string[];
+  fileIds?: string[];
+}
+
+export interface UpdatePostInput {
+  title?: string;
+  body?: string;
+  categoryId?: string;
+  publishStatus?: "draft" | "published" | "archived";
+  tagIds?: string[];
+  fileIds?: string[];
+}
+
+export interface BoardComment {
+  id: string;
+  body: string;
+  likeCount: number;
+  isLiked: boolean;
+  author: BoardPostAuthor;
+  childComments?: BoardComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommentInput {
+  body: string;
+  parentCommentId?: string;
+}
+
+export interface LikeResponse {
+  liked: boolean;
+  likeCount: number;
+}
+
+// --- Notifications ---
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+  actor: BoardPostAuthor | null;
+}
+
+export interface NotificationQuery {
+  page?: number;
+  limit?: number;
+  unreadOnly?: boolean;
+}
+
+export interface UnreadCount {
+  count: number;
+}
+
+export interface NotificationPreference {
+  id: string;
+  notificationType: string;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+  lineEnabled: boolean;
+}
+
+export interface PreferenceItem {
+  notificationType: string;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+  lineEnabled: boolean;
+}
+
+export interface UpdatePreferencesInput {
+  preferences: PreferenceItem[];
+}

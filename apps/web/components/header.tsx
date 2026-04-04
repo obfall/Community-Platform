@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, LogOut, Settings, User } from "lucide-react";
+import { Menu, LogOut, Settings, User, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUnreadCount } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,8 @@ import { Sidebar } from "./sidebar";
 export function Header() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = unreadData?.count ?? 0;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -66,6 +69,19 @@ export function Header() {
       </Link>
 
       <div className="flex-1" />
+
+      {/* 通知ベル */}
+      <Button variant="ghost" size="icon" className="relative" asChild>
+        <Link href="/notifications">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+          <span className="sr-only">通知</span>
+        </Link>
+      </Button>
 
       {/* ユーザーメニュー */}
       <DropdownMenu>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -39,6 +39,14 @@ const resetPasswordSchema = z
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const [isSubmitted, setIsSubmitted] = useState(false);
