@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { io, type Socket } from "socket.io-client";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatRooms, useChatMessages, useCreateChatRoom, useMarkAsRead } from "@/hooks/use-chat";
-import { chatApi } from "@/lib/api/chat";
+import { usersApi } from "@/lib/api/users";
+import { getAccessToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,8 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Send, Plus, Users } from "lucide-react";
-import type { ChatRoom, ChatMessage } from "@/lib/api/types";
+import { MessageCircle, Send, Plus, Users, X } from "lucide-react";
+import type { ChatRoom, ChatMessage, UserListItem } from "@/lib/api/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function ChatPage() {
@@ -36,8 +38,17 @@ export default function ChatPage() {
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newRoomType, setNewRoomType] = useState<"dm" | "group">("dm");
   const [newRoomName, setNewRoomName] = useState("");
-  const [newRoomMemberIds, setNewRoomMemberIds] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<UserListItem[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<UserListItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [realtimeMessages, setRealtimeMessages] = useState<ChatMessage[]>([]);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const prevRoomIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: messagesData } = useChatMessages(selectedRoomId ?? undefined, {
@@ -47,60 +58,150 @@ export default function ChatPage() {
   const markAsRead = useMarkAsRead();
 
   const selectedRoom = rooms?.find((r: ChatRoom) => r.id === selectedRoomId);
-  const messages = messagesData?.data ?? [];
+  const historyMessages = messagesData?.data ?? [];
+  // 履歴 + リアルタイムメッセージを結合（重複排除）
+  const historyIds = new Set(historyMessages.map((m) => m.id));
+  const newMessages = realtimeMessages.filter((m) => !historyIds.has(m.id));
+  const messages = [...historyMessages, ...newMessages];
 
-  // 選択ルーム変更時に既読更新
+  // --- Socket.IO 接続 ---
   useEffect(() => {
-    if (selectedRoomId) {
-      markAsRead.mutate(selectedRoomId);
+    const token = getAccessToken();
+    if (!token) return;
+
+    // NEXT_PUBLIC_WS_URL が明示されていればそちらを使う。なければ API URL から導出
+    const wsUrl =
+      process.env.NEXT_PUBLIC_WS_URL ||
+      (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace(/\/api\/?$/, "");
+    const socket = io(`${wsUrl}/chat`, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      // connected
+    });
+
+    socket.on("chat:message", (msg: ChatMessage) => {
+      setRealtimeMessages((prev) => [...prev, msg]);
+      // ルーム一覧も更新
+      queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
+    });
+
+    socket.on("chat:typing", (data: { roomId: string; userName: string }) => {
+      if (data.roomId === selectedRoomId) {
+        setTypingUser(data.userName);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+      }
+    });
+
+    socket.on("chat:error", (data: { message: string }) => {
+      console.error("Chat error:", data.message);
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // --- ルーム切替時に join + リアルタイムメッセージリセット ---
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !selectedRoomId) return;
+
+    // 前のルームから離脱（サーバー側で自動管理されるが明示的に）
+    if (prevRoomIdRef.current && prevRoomIdRef.current !== selectedRoomId) {
+      setRealtimeMessages([]);
+      setTypingUser(null);
     }
+
+    socket.emit("chat:join", { roomId: selectedRoomId });
+    prevRoomIdRef.current = selectedRoomId;
+
+    markAsRead.mutate(selectedRoomId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomId]);
+
+  // ユーザー検索（デバウンス）
+  useEffect(() => {
+    if (!memberSearch.trim()) {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      return;
+    }
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await usersApi.getUsers({ search: memberSearch, limit: 10 });
+        const selectedIds = new Set(selectedMembers.map((m) => m.id));
+        const filtered = res.data.filter((u) => u.id !== user?.id && !selectedIds.has(u.id));
+        setSearchResults(filtered);
+        setShowSuggestions(true);
+      } catch {
+        setSearchResults([]);
+      }
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [memberSearch, selectedMembers, user?.id]);
+
+  const handleSelectMember = (member: UserListItem) => {
+    setSelectedMembers((prev) => [...prev, member]);
+    setMemberSearch("");
+    setSearchResults([]);
+    setShowSuggestions(false);
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    setSelectedMembers((prev) => prev.filter((m) => m.id !== memberId));
+  };
 
   // メッセージ追加時に自動スクロール
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!messageText.trim() || !selectedRoomId) return;
-    try {
-      await chatApi.getMessages(selectedRoomId, { limit: 1 }); // 接続確認
-      // REST APIで送信（WebSocketは将来対応）
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chat/rooms/${selectedRoomId}/messages`,
-        { method: "GET" },
-      );
-      // 暫定: REST経由ではメッセージ送信エンドポイントがないため、
-      // WebSocket経由での送信を想定。ここではchatApi経由でrefetchのみ。
-      void response;
-    } catch {
-      // ignore
-    }
-    // メッセージリストを再取得
-    queryClient.invalidateQueries({ queryKey: ["chat", "messages", selectedRoomId] });
+  // --- メッセージ送信（WebSocket経由） ---
+  const handleSendMessage = useCallback(() => {
+    if (!messageText.trim() || !selectedRoomId || !socketRef.current) return;
+
+    socketRef.current.emit("chat:message", {
+      roomId: selectedRoomId,
+      body: messageText.trim(),
+      messageType: "text",
+    });
+
     setMessageText("");
-  }, [messageText, selectedRoomId, queryClient]);
+  }, [messageText, selectedRoomId]);
+
+  // --- タイピング通知 ---
+  const handleTyping = useCallback(() => {
+    if (!selectedRoomId || !socketRef.current) return;
+    socketRef.current.emit("chat:typing", { roomId: selectedRoomId });
+  }, [selectedRoomId]);
 
   const handleCreateRoom = () => {
-    const memberIds = newRoomMemberIds
-      .split(",")
-      .map((id) => id.trim())
-      .filter(Boolean);
-    if (memberIds.length === 0) return;
+    if (selectedMembers.length === 0) return;
 
     createRoom.mutate(
       {
         type: newRoomType,
         name: newRoomType === "group" ? newRoomName : undefined,
-        memberIds,
+        memberIds: selectedMembers.map((m) => m.id),
       },
       {
         onSuccess: (room) => {
           setSelectedRoomId(room.id);
           setNewRoomOpen(false);
           setNewRoomName("");
-          setNewRoomMemberIds("");
+          setSelectedMembers([]);
+          setMemberSearch("");
         },
       },
     );
@@ -158,14 +259,66 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div>
-                  <Label>メンバーID（カンマ区切り）</Label>
-                  <Input
-                    value={newRoomMemberIds}
-                    onChange={(e) => setNewRoomMemberIds(e.target.value)}
-                    placeholder="ユーザーIDを入力"
-                  />
+                  <Label>メンバー</Label>
+                  {/* 選択済みメンバー */}
+                  {selectedMembers.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {selectedMembers.map((m) => (
+                        <Badge key={m.id} variant="secondary" className="gap-1 pr-1">
+                          {m.name}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMember(m.id)}
+                            className="ml-1 rounded-full hover:bg-muted-foreground/20"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {/* 検索入力 */}
+                  <div className="relative">
+                    <Input
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      onFocus={() => searchResults.length > 0 && setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      placeholder="名前を入力して検索..."
+                    />
+                    {/* 候補リスト */}
+                    {showSuggestions && searchResults.length > 0 && (
+                      <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+                        {searchResults.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectMember(u)}
+                            className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">
+                                {u.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{u.name}</span>
+                            <span className="ml-auto text-xs text-muted-foreground">{u.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showSuggestions && memberSearch.trim() && searchResults.length === 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-center text-sm text-muted-foreground shadow-md">
+                        該当するユーザーが見つかりません
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Button onClick={handleCreateRoom} disabled={createRoom.isPending}>
+                <Button
+                  onClick={handleCreateRoom}
+                  disabled={createRoom.isPending || selectedMembers.length === 0}
+                >
                   作成
                 </Button>
               </div>
@@ -283,18 +436,24 @@ export default function ChatPage() {
               </div>
             </ScrollArea>
 
-            {/* メッセージ入力 */}
-            <div className="border-t p-4">
+            {/* タイピングインジケーター + メッセージ入力 */}
+            <div className="border-t">
+              {typingUser && (
+                <p className="px-4 pt-2 text-xs text-muted-foreground">{typingUser} が入力中...</p>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleSendMessage();
                 }}
-                className="flex gap-2"
+                className="flex gap-2 p-4 pt-2"
               >
                 <Input
                   value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
+                  onChange={(e) => {
+                    setMessageText(e.target.value);
+                    handleTyping();
+                  }}
                   placeholder="メッセージを入力..."
                   className="flex-1"
                 />
