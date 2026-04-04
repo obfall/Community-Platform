@@ -9,6 +9,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { FilesModule } from "./files/files.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -37,6 +38,9 @@ import { validateEnv } from "./config/env.config";
 
     // Files
     FilesModule,
+
+    // Notifications
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
