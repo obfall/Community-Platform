@@ -309,6 +309,91 @@ async function main() {
   } else {
     console.log("Skipped board categories (no owner user found)");
   }
+
+  // --- Mail Templates ---
+  const mailTemplates = [
+    {
+      name: "イベント案内",
+      category: "event" as const,
+      subjectTemplate: "【{{site_name}}】{{event_title}} のご案内",
+      bodyHtmlTemplate: `<h1>{{event_title}}</h1>
+<p>{{user_name}} 様</p>
+<p>以下のイベントが公開されました。</p>
+<ul>
+  <li>日時: {{start_at}}</li>
+  <li>会場: {{venue_name}}</li>
+  <li>住所: {{venue_address}}</li>
+</ul>
+<p>キャンセルポリシー: {{cancellation_policy}}</p>`,
+      bodyTextTemplate: `{{event_title}}
+
+{{user_name}} 様
+
+以下のイベントが公開されました。
+
+日時: {{start_at}}
+会場: {{venue_name}}
+住所: {{venue_address}}
+
+キャンセルポリシー: {{cancellation_policy}}`,
+      availableVariables: [
+        "site_name",
+        "user_name",
+        "event_title",
+        "start_at",
+        "venue_name",
+        "venue_address",
+        "cancellation_policy",
+      ],
+      sortOrder: 0,
+    },
+    {
+      name: "一般配信",
+      category: "general" as const,
+      subjectTemplate: "【{{site_name}}】{{subject}}",
+      bodyHtmlTemplate: `<p>{{user_name}} 様</p>
+<div>{{body}}</div>`,
+      bodyTextTemplate: `{{user_name}} 様
+
+{{body}}`,
+      availableVariables: ["site_name", "user_name", "subject", "body"],
+      sortOrder: 1,
+    },
+    {
+      name: "イベントリマインダー",
+      category: "event" as const,
+      subjectTemplate: "【リマインド】{{event_title}} は明日開催です",
+      bodyHtmlTemplate: `<h1>{{event_title}} リマインダー</h1>
+<p>{{user_name}} 様</p>
+<p>明日開催予定のイベントをお知らせします。</p>
+<ul>
+  <li>日時: {{start_at}}</li>
+  <li>会場: {{venue_name}}</li>
+  <li>住所: {{venue_address}}</li>
+</ul>`,
+      bodyTextTemplate: `{{event_title}} リマインダー
+
+{{user_name}} 様
+
+明日開催予定のイベントをお知らせします。
+
+日時: {{start_at}}
+会場: {{venue_name}}
+住所: {{venue_address}}`,
+      availableVariables: ["user_name", "event_title", "start_at", "venue_name", "venue_address"],
+      sortOrder: 2,
+    },
+  ];
+
+  for (const tmpl of mailTemplates) {
+    const existing = await prisma.mailTemplate.findFirst({
+      where: { name: tmpl.name },
+    });
+    if (!existing) {
+      await prisma.mailTemplate.create({ data: tmpl });
+    }
+  }
+  console.log(`Seeded ${mailTemplates.length} mail templates`);
 }
 
 main()
