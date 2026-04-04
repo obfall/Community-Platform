@@ -1,4 +1,17 @@
-import { Controller, Get, Patch, Put, Body, Param, Query, ParseUUIDPipe } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Patch,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
 import {
@@ -8,8 +21,11 @@ import {
   UpdateInterestsDto,
   UpdateLanguagesDto,
   UpdateAffiliationsDto,
+  UpdateUserRoleDto,
+  UpdateUserStatusDto,
 } from "./dto";
-import { CurrentUser } from "@/common/decorators";
+import { CurrentUser, Roles } from "@/common/decorators";
+import { RolesGuard } from "@/common/guards/roles.guard";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -63,5 +79,41 @@ export class UsersController {
   @ApiOperation({ summary: "自分の所属を一括設定" })
   replaceAffiliations(@CurrentUser("id") userId: string, @Body() dto: UpdateAffiliationsDto) {
     return this.usersService.replaceAffiliations(userId, dto);
+  }
+
+  @Patch(":id/role")
+  @Roles("owner", "admin")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "ユーザーロール変更（管理者専用）" })
+  updateRole(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Body() dto: UpdateUserRoleDto,
+  ) {
+    return this.usersService.updateRole(id, currentUser, dto);
+  }
+
+  @Patch(":id/status")
+  @Roles("owner", "admin")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "ユーザーステータス変更（管理者専用）" })
+  updateStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Body() dto: UpdateUserStatusDto,
+  ) {
+    return this.usersService.updateStatus(id, currentUser, dto);
+  }
+
+  @Delete(":id")
+  @Roles("owner", "admin")
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "ユーザー削除（ソフトデリート、管理者専用）" })
+  async remove(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: { id: string; role: string },
+  ) {
+    await this.usersService.softDelete(id, currentUser);
   }
 }
