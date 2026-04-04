@@ -110,6 +110,14 @@ model User {
   files                  File[]
   updatedFeatureSettings FeatureSetting[]    @relation("FeatureUpdatedBy")
   updatedAppSettings     AppSetting[]        @relation("AppSettingUpdatedBy")
+  // Phase 2
+  notifications           Notification[]           @relation("NotificationRecipient")
+  actedNotifications      Notification[]           @relation("NotificationActor")
+  notificationPreferences NotificationPreference[]
+  boardCategories         BoardCategory[]
+  boardPosts              BoardPost[]
+  boardComments           BoardComment[]
+  boardLikes              BoardLike[]
 
   @@index([role])
   @@index([status])
@@ -219,6 +227,8 @@ model MemberRank {
   users              User[]
   permissionSettings PermissionSetting[]
   categories         Category[]
+  // Phase 2
+  boardPosts BoardPost[]
 
   @@index([sortOrder])
   @@map("member_ranks")
@@ -292,6 +302,9 @@ model Tag {
   usageCount Int      @default(0) @map("usage_count")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
+  // Phase 2
+  boardPostTags BoardPostTag[]
+
   @@map("tags")
 }
 
@@ -315,6 +328,8 @@ model File {
 
   // Relations
   uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
+  // Phase 2
+  boardPostAttachments BoardPostAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -414,4 +429,179 @@ model UserPublicInfo {
 
   @@index([publicStatus])
   @@map("user_public_info")
+}
+
+// ============================================================
+// Phase 2: 掲示板・通知
+// ============================================================
+
+// --- Enums ---
+
+enum BoardPublishStatus {
+  draft
+  published
+  archived
+}
+
+enum BoardViewPermission {
+  all
+  rank_restricted
+}
+
+// --- Models ---
+
+model Notification {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  type          String    @db.VarChar(30)
+  title         String    @db.VarChar(200)
+  body          String?   @db.Text
+  referenceType String?   @map("reference_type") @db.VarChar(30)
+  referenceId   String?   @map("reference_id") @db.Uuid
+  actorUserId   String?   @map("actor_user_id") @db.Uuid
+  isRead        Boolean   @default(false) @map("is_read")
+  readAt        DateTime? @map("read_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  notificationType String   @map("notification_type") @db.VarChar(30)
+  emailEnabled     Boolean  @default(true) @map("email_enabled")
+  inAppEnabled     Boolean  @default(true) @map("in_app_enabled")
+  lineEnabled      Boolean  @default(false) @map("line_enabled")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@map("notification_preferences")
+}
+
+model BoardCategory {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String    @db.VarChar(100)
+  description     String?   @db.Text
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdByUser User        @relation(fields: [createdByUserId], references: [id])
+  posts         BoardPost[]
+
+  @@index([sortOrder])
+  @@map("board_categories")
+}
+
+model BoardPost {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String?             @map("category_id") @db.Uuid
+  authorUserId    String              @map("author_user_id") @db.Uuid
+  language        String?             @default("ja") @db.VarChar(20)
+  title           String              @db.VarChar(200)
+  body            String              @db.Text
+  publishStatus   BoardPublishStatus  @default(draft) @map("publish_status")
+  sortOrder       Int                 @default(0) @map("sort_order")
+  isPinned        Boolean             @default(false) @map("is_pinned")
+  viewCount       Int                 @default(0) @map("view_count")
+  commentCount    Int                 @default(0) @map("comment_count")
+  likeCount       Int                 @default(0) @map("like_count")
+  reactionCount   Int                 @default(0) @map("reaction_count")
+  viewPermission  BoardViewPermission @default(all) @map("view_permission")
+  requiredRankId  String?             @map("required_rank_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category     BoardCategory?        @relation(fields: [categoryId], references: [id])
+  author       User                  @relation(fields: [authorUserId], references: [id])
+  requiredRank MemberRank?           @relation(fields: [requiredRankId], references: [id])
+  attachments  BoardPostAttachment[]
+  tags         BoardPostTag[]
+  comments     BoardComment[]
+
+  @@index([publishStatus, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
+  @@index([categoryId])
+  @@index([authorUserId])
+  @@map("board_posts")
+}
+
+model BoardPostAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  post BoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file File      @relation(fields: [fileId], references: [id])
+
+  @@index([postId, sortOrder])
+  @@map("board_post_attachments")
+}
+
+model BoardPostTag {
+  postId String @map("post_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+
+  // Relations
+  post BoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("board_post_tags")
+}
+
+model BoardComment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  body            String    @db.Text
+  likeCount       Int       @default(0) @map("like_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  post          BoardPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorUserId], references: [id])
+  parentComment BoardComment? @relation("CommentHierarchy", fields: [parentCommentId], references: [id])
+  childComments BoardComment[] @relation("CommentHierarchy")
+
+  @@index([postId, createdAt])
+  @@index([parentCommentId])
+  @@index([authorUserId])
+  @@map("board_comments")
+}
+
+model BoardLike {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(20)
+  targetId   String   @map("target_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("board_likes")
 }
