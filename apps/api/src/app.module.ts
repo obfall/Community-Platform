@@ -10,6 +10,7 @@ import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { FilesModule } from "./files/files.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { BoardModule } from "./board/board.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -41,6 +42,9 @@ import { validateEnv } from "./config/env.config";
 
     // Notifications
     NotificationsModule,
+
+    // Board
+    BoardModule,
   ],
   controllers: [AppController],
   providers: [
