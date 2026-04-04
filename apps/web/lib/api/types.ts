@@ -434,3 +434,169 @@ export interface PreferenceItem {
 export interface UpdatePreferencesInput {
   preferences: PreferenceItem[];
 }
+
+// --- Chat ---
+
+export interface ChatRoomMember {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+  joinedAt: string;
+}
+
+export interface ChatLastMessage {
+  id: string;
+  body: string | null;
+  messageType: string;
+  senderName: string;
+  createdAt: string;
+}
+
+export interface ChatRoom {
+  id: string;
+  type: "dm" | "group";
+  name: string | null;
+  description: string | null;
+  iconUrl: string | null;
+  maxMembers: number | null;
+  lastMessageAt: string | null;
+  memberCount: number;
+  unreadCount: number;
+  lastMessage: ChatLastMessage | null;
+  members: ChatRoomMember[];
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  chatRoomId: string;
+  messageType: string;
+  body: string | null;
+  fileId: string | null;
+  sender: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateChatRoomInput {
+  type: "dm" | "group";
+  name?: string;
+  description?: string;
+  memberIds: string[];
+}
+
+export interface UpdateChatRoomInput {
+  name?: string;
+  description?: string;
+}
+
+// --- Mail ---
+
+export interface MailMessage {
+  id: string;
+  subject: string;
+  bodyHtml: string;
+  bodyText: string | null;
+  targetType: string;
+  targetFilter: Record<string, unknown> | null;
+  templateId: string | null;
+  status: "draft" | "scheduled" | "sending" | "sent" | "failed";
+  scheduledAt: string | null;
+  sentAt: string | null;
+  totalRecipients: number;
+  sentCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MailMessageRecipient {
+  id: string;
+  userId: string;
+  email: string;
+  status: string;
+  sentAt: string | null;
+  openedAt: string | null;
+  clickedAt: string | null;
+}
+
+export interface MailMessageDetail extends MailMessage {
+  recipients: MailMessageRecipient[];
+}
+
+export interface CreateMailMessageInput {
+  subject: string;
+  bodyHtml: string;
+  bodyText?: string;
+  targetType: string;
+  targetFilter?: Record<string, unknown>;
+  templateId?: string;
+  scheduledAt?: string;
+}
+
+export interface UpdateMailMessageInput {
+  subject?: string;
+  bodyHtml?: string;
+  bodyText?: string;
+  targetType?: string;
+  targetFilter?: Record<string, unknown>;
+  templateId?: string;
+  scheduledAt?: string;
+}
+
+export interface MailTemplate {
+  id: string;
+  name: string;
+  category: string;
+  subjectTemplate: string;
+  bodyHtmlTemplate: string;
+  bodyTextTemplate: string | null;
+  availableVariables: string[] | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMailTemplateInput {
+  name: string;
+  category: "event" | "general";
+  subjectTemplate: string;
+  bodyHtmlTemplate: string;
+  bodyTextTemplate?: string;
+  availableVariables?: string[];
+}
+
+export interface UpdateMailTemplateInput {
+  name?: string;
+  category?: "event" | "general";
+  subjectTemplate?: string;
+  bodyHtmlTemplate?: string;
+  bodyTextTemplate?: string;
+  availableVariables?: string[];
+}
+
+export interface MailSuppression {
+  id: string;
+  email: string;
+  reason: string;
+  createdAt: string;
+}
+
+export interface CreateMailSuppressionInput {
+  email: string;
+  reason: "unsubscribe" | "bounce" | "complaint" | "manual";
+}
+
+export interface MailMessageQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
