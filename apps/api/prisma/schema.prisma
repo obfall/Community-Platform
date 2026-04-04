@@ -118,6 +118,9 @@ model User {
   boardPosts              BoardPost[]
   boardComments           BoardComment[]
   boardLikes              BoardLike[]
+  boardTopics             BoardTopic[]
+  boardTopicPosts         BoardTopicPost[]
+  boardTopicPostComments  BoardTopicPostComment[]
 
   @@index([role])
   @@index([status])
@@ -492,15 +495,17 @@ model BoardCategory {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String    @db.VarChar(100)
   description     String?   @db.Text
-  sortOrder       Int       @default(0) @map("sort_order")
-  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  sortOrder            Int       @default(0) @map("sort_order")
+  allowTopicCreation   Boolean   @default(true) @map("allow_topic_creation")
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  createdByUser User        @relation(fields: [createdByUserId], references: [id])
+  createdByUser User         @relation(fields: [createdByUserId], references: [id])
   posts         BoardPost[]
+  topics        BoardTopic[]
 
   @@index([sortOrder])
   @@map("board_categories")
@@ -604,4 +609,74 @@ model BoardLike {
   @@unique([userId, targetType, targetId])
   @@index([targetType, targetId])
   @@map("board_likes")
+}
+
+model BoardTopic {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String              @map("category_id") @db.Uuid
+  authorUserId    String              @map("author_user_id") @db.Uuid
+  title           String              @db.VarChar(200)
+  body            String              @db.Text
+  publishStatus   BoardPublishStatus  @default(published) @map("publish_status")
+  isPinned        Boolean             @default(false) @map("is_pinned")
+  sortOrder       Int                 @default(0) @map("sort_order")
+  viewCount       Int                 @default(0) @map("view_count")
+  postCount       Int                 @default(0) @map("post_count")
+  likeCount       Int                 @default(0) @map("like_count")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category BoardCategory       @relation(fields: [categoryId], references: [id])
+  author   User                @relation(fields: [authorUserId], references: [id])
+  posts    BoardTopicPost[]
+
+  @@index([categoryId, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@map("board_topics")
+}
+
+model BoardTopicPost {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topicId         String    @map("topic_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  body            String    @db.Text
+  likeCount       Int       @default(0) @map("like_count")
+  commentCount    Int       @default(0) @map("comment_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  topic    BoardTopic             @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author   User                   @relation(fields: [authorUserId], references: [id])
+  comments BoardTopicPostComment[]
+
+  @@index([topicId, createdAt])
+  @@index([authorUserId])
+  @@map("board_topic_posts")
+}
+
+model BoardTopicPostComment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  body            String    @db.Text
+  likeCount       Int       @default(0) @map("like_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  post          BoardTopicPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                   @relation(fields: [authorUserId], references: [id])
+  parentComment BoardTopicPostComment? @relation("TopicPostCommentHierarchy", fields: [parentCommentId], references: [id])
+  childComments BoardTopicPostComment[] @relation("TopicPostCommentHierarchy")
+
+  @@index([postId, createdAt])
+  @@index([parentCommentId])
+  @@index([authorUserId])
+  @@map("board_topic_post_comments")
 }

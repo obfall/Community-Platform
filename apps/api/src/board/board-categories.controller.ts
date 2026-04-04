@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { BoardCategoriesService } from "./board-categories.service";
-import { CreateCategoryDto, UpdateCategoryDto } from "./dto";
+import { CreateCategoryDto, UpdateCategoryDto, ReorderItemsDto } from "./dto";
 import { CurrentUser, FeatureEnabled, Roles } from "@/common/decorators";
 import { FeatureEnabledGuard, RolesGuard } from "@/common/guards";
 
@@ -37,6 +37,14 @@ export class BoardCategoriesController {
   @ApiOperation({ summary: "カテゴリ作成" })
   create(@CurrentUser("id") userId: string, @Body() dto: CreateCategoryDto) {
     return this.categoriesService.create(userId, dto);
+  }
+
+  @Patch("reorder")
+  @Roles("owner", "admin", "moderator")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "カテゴリ並び替え" })
+  reorder(@Body() dto: ReorderItemsDto) {
+    return this.categoriesService.reorder(dto.items);
   }
 
   @Patch(":id")
