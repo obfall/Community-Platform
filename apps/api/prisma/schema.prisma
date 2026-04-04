@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// Phase 1: 認証・コアシェル
+// ============================================================
+
+// --- Enums ---
+
+enum UserRole {
+  owner
+  admin
+  moderator
+  member
+}
+
+enum UserStatus {
+  active
+  suspended
+  withdrawn
+}
+
+enum SocialProvider {
+  google
+  apple
+}
+
+enum LoginStatus {
+  success
+  failure
+}
+
+enum FeatureCategory {
+  common
+  optional
+}
+
+enum SettingValueType {
+  string
+  integer
+  boolean
+  json
+}
+
+enum FileCategory {
+  avatar
+  image
+  video
+  document
+  general
+}
+
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+
+enum LanguageProficiency {
+  beginner
+  intermediate
+  advanced
+  native
+}
+
+enum PublicStatus {
+  public
+  private
+}
+
+// --- Models ---
+
+model User {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  passwordHash     String    @map("password_hash") @db.VarChar(255)
+  name             String    @db.VarChar(100)
+  role             UserRole  @default(member)
+  status           UserStatus @default(active)
+  rankId           String?   @map("rank_id") @db.Uuid
+  availablePoints  Int       @default(0) @map("available_points")
+  emailVerifiedAt  DateTime? @map("email_verified_at") @db.Timestamptz()
+  isAdmin          Boolean   @default(false) @map("is_admin")
+  isActive         Boolean   @default(true) @map("is_active")
+  lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz()
+  joinedAt         DateTime? @map("joined_at") @db.Timestamptz()
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  rank                   MemberRank?         @relation(fields: [rankId], references: [id])
+  socialAccounts         SocialAccount[]
+  loginHistories         LoginHistory[]
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
+  profile                UserProfile?
+  interests              UserInterest[]
+  languages              UserLanguage[]
+  affiliations           UserAffiliation[]
+  publicInfo             UserPublicInfo?
+  files                  File[]
+  updatedFeatureSettings FeatureSetting[]    @relation("FeatureUpdatedBy")
+  updatedAppSettings     AppSetting[]        @relation("AppSettingUpdatedBy")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model SocialAccount {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  provider       SocialProvider
+  providerUserId String         @map("provider_user_id") @db.VarChar(255)
+  accessToken    String?        @map("access_token") @db.Text
+  refreshToken   String?        @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime?      @map("token_expires_at") @db.Timestamptz()
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("social_accounts")
+}
+
+model LoginHistory {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  ipAddress     String      @map("ip_address") @db.Inet
+  userAgent     String?     @map("user_agent") @db.Text
+  status        LoginStatus
+  failureReason String?     @map("failure_reason") @db.VarChar(50)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("login_histories")
+}
+
+model RefreshToken {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(255)
+  deviceInfo String?   @map("device_info") @db.VarChar(255)
+  ipAddress  String?   @map("ip_address") @db.Inet
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz()
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz()
+  usedAt    DateTime? @map("used_at") @db.Timestamptz()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model FeatureSetting {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  featureKey      String          @unique @map("feature_key") @db.VarChar(50)
+  featureName     String          @map("feature_name") @db.VarChar(100)
+  category        FeatureCategory
+  isEnabled       Boolean         @default(true) @map("is_enabled")
+  description     String?         @db.Text
+  sortOrder       Int             @default(0) @map("sort_order")
+  enabledAt       DateTime?       @map("enabled_at") @db.Timestamptz()
+  disabledAt      DateTime?       @map("disabled_at") @db.Timestamptz()
+  updatedByUserId String?         @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  updatedByUser       User?               @relation("FeatureUpdatedBy", fields: [updatedByUserId], references: [id])
+  permissionSettings  PermissionSetting[]
+
+  @@index([category])
+  @@index([isEnabled])
+  @@map("feature_settings")
+}
+
+model MemberRank {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.VarChar(50)
+  slug      String   @unique @db.VarChar(50)
+  color     String?  @db.VarChar(7)
+  sortOrder Int      @default(0) @map("sort_order")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  users              User[]
+  permissionSettings PermissionSetting[]
+  categories         Category[]
+
+  @@index([sortOrder])
+  @@map("member_ranks")
+}
+
+model PermissionSetting {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  featureKey     String  @map("feature_key") @db.VarChar(50)
+  action         String  @db.VarChar(50)
+  allowedRoles   Json    @default("[\"owner\",\"admin\"]") @map("allowed_roles") @db.JsonB
+  requiredRankId String? @map("required_rank_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  featureSetting FeatureSetting @relation(fields: [featureKey], references: [featureKey], onDelete: Cascade)
+  requiredRank   MemberRank?    @relation(fields: [requiredRankId], references: [id])
+
+  @@unique([featureKey, action])
+  @@index([featureKey])
+  @@map("permission_settings")
+}
+
+model AppSetting {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String          @unique @db.VarChar(100)
+  value           String          @db.Text
+  valueType       SettingValueType @default(string) @map("value_type")
+  description     String?         @db.Text
+  updatedByUserId String?         @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  updatedByUser User? @relation("AppSettingUpdatedBy", fields: [updatedByUserId], references: [id])
+
+  @@map("app_settings")
+}
+
+model Category {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId          String?   @map("parent_id") @db.Uuid
+  scope             String    @db.VarChar(30)
+  name              String    @db.VarChar(100)
+  slug              String    @db.VarChar(100)
+  description       String?   @db.Text
+  iconUrl           String?   @map("icon_url") @db.VarChar(500)
+  sortOrder         Int       @default(0) @map("sort_order")
+  allowPostCreation Boolean   @default(true) @map("allow_post_creation")
+  requiredRankId    String?   @map("required_rank_id") @db.Uuid
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  parent        Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[]     @relation("CategoryHierarchy")
+  requiredRank  MemberRank?    @relation(fields: [requiredRankId], references: [id])
+  userInterests UserInterest[]
+
+  @@unique([scope, slug])
+  @@index([scope, sortOrder])
+  @@index([requiredRankId])
+  @@map("categories")
+}
+
+model Tag {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String   @db.VarChar(50)
+  slug       String   @unique @db.VarChar(50)
+  usageCount Int      @default(0) @map("usage_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("tags")
+}
+
+model File {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  uploadedByUserId    String       @map("uploaded_by_user_id") @db.Uuid
+  originalName        String       @map("original_name") @db.VarChar(255)
+  storageKey          String       @unique @map("storage_key") @db.VarChar(500)
+  storageBucket       String       @map("storage_bucket") @db.VarChar(100)
+  contentType         String       @map("content_type") @db.VarChar(100)
+  fileSizeBytes       BigInt       @map("file_size_bytes")
+  fileCategory        FileCategory @default(general) @map("file_category")
+  imageWidth          Int?         @map("image_width")
+  imageHeight         Int?         @map("image_height")
+  thumbnailStorageKey String?      @map("thumbnail_storage_key") @db.VarChar(500)
+  checksumSha256      String?      @map("checksum_sha256") @db.VarChar(64)
+  isPublic            Boolean      @default(false) @map("is_public")
+  publicUrl           String?      @map("public_url") @db.VarChar(500)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  deletedAt           DateTime?    @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
+
+  @@index([uploadedByUserId])
+  @@index([storageKey])
+  @@index([createdAt(sort: Desc)])
+  @@map("files")
+}
+
+model UserProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String    @unique @map("user_id") @db.Uuid
+  avatarUrl           String?   @map("avatar_url") @db.VarChar(500)
+  bio                 String?   @db.Text
+  phone               String?   @db.VarChar(20)
+  birthday            DateTime? @db.Date
+  website             String?   @db.VarChar(500)
+  memberCardBarcode   String?   @unique @map("member_card_barcode") @db.VarChar(100)
+  nameKana            String?   @map("name_kana") @db.VarChar(100)
+  gender              Gender?
+  occupation          String?   @db.VarChar(100)
+  countryOfOrigin     String?   @map("country_of_origin") @db.VarChar(100)
+  allowDirectMessages Boolean   @default(true) @map("allow_direct_messages")
+  headerImageUrl      String?   @map("header_image_url") @db.VarChar(500)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserInterest {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+  @@index([categoryId])
+  @@map("user_interests")
+}
+
+model UserLanguage {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String               @map("user_id") @db.Uuid
+  languageCode String               @map("language_code") @db.VarChar(10)
+  proficiency  LanguageProficiency?
+  sortOrder    Int                  @default(0) @map("sort_order")
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, languageCode])
+  @@map("user_languages")
+}
+
+model UserAffiliation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  organizationName String   @map("organization_name") @db.VarChar(200)
+  title            String?  @db.VarChar(100)
+  roleDescription  String?  @map("role_description") @db.VarChar(200)
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
+  @@map("user_affiliations")
+}
+
+model UserPublicInfo {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String       @unique @map("user_id") @db.Uuid
+  nickname       String?      @db.VarChar(100)
+  nicknameKana   String?      @map("nickname_kana") @db.VarChar(100)
+  specialty      String?      @db.VarChar(200)
+  prefecture     String?      @db.VarChar(50)
+  city           String?      @db.VarChar(100)
+  foreignCountry String?     @map("foreign_country") @db.VarChar(100)
+  foreignCity    String?      @map("foreign_city") @db.VarChar(100)
+  introduction   String?      @db.Text
+  eventRole      String?      @map("event_role") @db.VarChar(50)
+  publicStatus   PublicStatus @default(private) @map("public_status")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([publicStatus])
+  @@map("user_public_info")
+}

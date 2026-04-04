@@ -1,0 +1,65 @@
+name: CI
+
+# ─── いつ実行するか ───
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev]
+
+# ─── 並行PRで同じブランチの古い実行をキャンセル ───
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ─── ジョブ定義 ───
+jobs:
+  ci:
+    name: Lint, Type Check & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ① リポジトリのコードを取得
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ② pnpm をセットアップ
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # ③ Node.js をセットアップ（pnpm キャッシュ付き）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "package.json"
+          cache: "pnpm"
+
+      # ④ 依存関係インストール
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ⑤ Turbo キャッシュ（CI 間で共有）
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      # ⑥ Prettier フォーマットチェック
+      - name: Check formatting
+        run: pnpm run format:check
+
+      # ⑦ ESLint
+      - name: Lint
+        run: pnpm run lint
+
+      # ⑧ TypeScript 型チェック
+      - name: Type check
+        run: pnpm run type-check
+
+      # ⑨ テスト
+      - name: Test
+        run: pnpm run test
