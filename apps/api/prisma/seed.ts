@@ -278,6 +278,37 @@ async function main() {
     });
   }
   console.log(`Seeded ${appSettings.length} app settings`);
+
+  // --- Board Categories ---
+  // createdByUserId が必要なため、最初のユーザーを探すか、存在しなければスキップ
+  const firstUser = await prisma.user.findFirst({
+    where: { role: "owner", deletedAt: null },
+    select: { id: true },
+  });
+
+  if (firstUser) {
+    const boardCategories = [
+      { name: "お知らせ", description: "運営からのお知らせ", sortOrder: 0 },
+      { name: "雑談", description: "自由な話題", sortOrder: 1 },
+      { name: "質問・相談", description: "質問や相談を投稿できます", sortOrder: 2 },
+      { name: "イベント関連", description: "イベントに関する話題", sortOrder: 3 },
+      { name: "自己紹介", description: "自己紹介をしましょう", sortOrder: 4 },
+    ];
+
+    for (const category of boardCategories) {
+      const existing = await prisma.boardCategory.findFirst({
+        where: { name: category.name, deletedAt: null },
+      });
+      if (!existing) {
+        await prisma.boardCategory.create({
+          data: { ...category, createdByUserId: firstUser.id },
+        });
+      }
+    }
+    console.log(`Seeded ${boardCategories.length} board categories`);
+  } else {
+    console.log("Skipped board categories (no owner user found)");
+  }
 }
 
 main()
