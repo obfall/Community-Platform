@@ -11,6 +11,8 @@ import { SettingsModule } from "./settings/settings.module";
 import { FilesModule } from "./files/files.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { BoardModule } from "./board/board.module";
+import { ChatModule } from "./chat/chat.module";
+import { MailModule } from "./mail/mail.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -45,6 +47,12 @@ import { validateEnv } from "./config/env.config";
 
     // Board
     BoardModule,
+
+    // Chat
+    ChatModule,
+
+    // Mail
+    MailModule,
   ],
   controllers: [AppController],
   providers: [

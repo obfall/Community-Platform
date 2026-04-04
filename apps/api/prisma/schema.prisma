@@ -121,6 +121,12 @@ model User {
   boardTopics             BoardTopic[]
   boardTopicPosts         BoardTopicPost[]
   boardTopicPostComments  BoardTopicPostComment[]
+  // Phase 3
+  createdChatRooms        ChatRoom[]               @relation("ChatRoomCreator")
+  chatRoomMemberships     ChatRoomMember[]
+  chatMessages            ChatMessage[]            @relation("ChatMessageSender")
+  createdMailMessages     MailMessage[]             @relation("MailMessageCreator")
+  mailRecipients          MailMessageRecipient[]    @relation("MailRecipient")
 
   @@index([role])
   @@index([status])
@@ -333,6 +339,9 @@ model File {
   uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
   // Phase 2
   boardPostAttachments BoardPostAttachment[]
+  // Phase 3
+  chatMessages             ChatMessage[]
+  mailMessageAttachments   MailMessageAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -679,4 +688,220 @@ model BoardTopicPostComment {
   @@index([parentCommentId])
   @@index([authorUserId])
   @@map("board_topic_post_comments")
+}
+
+// ============================================================
+// Phase 3: チャット・メール配信
+// ============================================================
+
+// --- Enums ---
+
+enum ChatRoomType {
+  dm
+  group
+}
+
+enum ChatRoomMemberRole {
+  admin
+  member
+}
+
+enum ChatMessageType {
+  text
+  image
+  file
+}
+
+enum MailTargetType {
+  all
+  rank
+  custom
+  event
+}
+
+enum MailStatus {
+  draft
+  scheduled
+  sending
+  sent
+  failed
+}
+
+enum MailRecipientStatus {
+  pending
+  sent
+  delivered
+  bounced
+  opened
+  clicked
+  failed
+}
+
+enum MailSuppressionReason {
+  unsubscribe
+  bounce
+  complaint
+  manual
+}
+
+enum MailTemplateCategory {
+  event
+  general
+}
+
+// --- Models ---
+
+model ChatRoom {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type            ChatRoomType @default(dm)
+  name            String?      @db.VarChar(100)
+  description     String?      @db.Text
+  iconUrl         String?      @map("icon_url") @db.VarChar(500)
+  createdByUserId String?      @map("created_by_user_id") @db.Uuid
+  maxMembers      Int?         @map("max_members")
+  lastMessageAt   DateTime?    @map("last_message_at") @db.Timestamptz()
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  createdByUser User?            @relation("ChatRoomCreator", fields: [createdByUserId], references: [id])
+  members       ChatRoomMember[]
+  messages      ChatMessage[]
+
+  @@index([lastMessageAt(sort: Desc)])
+  @@index([type])
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id         String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatRoomId String             @map("chat_room_id") @db.Uuid
+  userId     String             @map("user_id") @db.Uuid
+  role       ChatRoomMemberRole @default(member)
+  lastReadAt DateTime?          @map("last_read_at") @db.Timestamptz()
+  isMuted    Boolean            @default(false) @map("is_muted")
+  joinedAt   DateTime           @default(now()) @map("joined_at") @db.Timestamptz()
+  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatRoomId, userId])
+  @@index([userId])
+  @@map("chat_room_members")
+}
+
+model ChatMessage {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chatRoomId   String          @map("chat_room_id") @db.Uuid
+  senderUserId String          @map("sender_user_id") @db.Uuid
+  messageType  ChatMessageType @default(text) @map("message_type")
+  body         String?         @db.Text
+  fileId       String?         @map("file_id") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime?       @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  sender   User     @relation("ChatMessageSender", fields: [senderUserId], references: [id])
+  file     File?    @relation(fields: [fileId], references: [id])
+
+  @@index([chatRoomId, createdAt(sort: Desc)])
+  @@index([senderUserId])
+  @@map("chat_messages")
+}
+
+model MailMessage {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subject         String         @db.VarChar(200)
+  bodyHtml        String         @map("body_html") @db.Text
+  bodyText        String?        @map("body_text") @db.Text
+  targetType      MailTargetType @map("target_type")
+  targetFilter    Json?          @map("target_filter") @db.JsonB
+  templateId      String?        @map("template_id") @db.Uuid
+  status          MailStatus     @default(draft)
+  scheduledAt     DateTime?      @map("scheduled_at") @db.Timestamptz()
+  sentAt          DateTime?      @map("sent_at") @db.Timestamptz()
+  totalRecipients Int            @default(0) @map("total_recipients")
+  sentCount       Int            @default(0) @map("sent_count")
+  deliveredCount  Int            @default(0) @map("delivered_count")
+  failedCount     Int            @default(0) @map("failed_count")
+  lineSentCount   Int            @default(0) @map("line_sent_count")
+  createdByUserId String         @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  createdByUser User                   @relation("MailMessageCreator", fields: [createdByUserId], references: [id])
+  template      MailTemplate?          @relation(fields: [templateId], references: [id])
+  recipients    MailMessageRecipient[]
+  attachments   MailMessageAttachment[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@map("mail_messages")
+}
+
+model MailMessageRecipient {
+  id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String              @map("message_id") @db.Uuid
+  userId    String              @map("user_id") @db.Uuid
+  email     String              @db.VarChar(255)
+  status    MailRecipientStatus @default(pending)
+  sentAt    DateTime?           @map("sent_at") @db.Timestamptz()
+  openedAt  DateTime?           @map("opened_at") @db.Timestamptz()
+  clickedAt DateTime?           @map("clicked_at") @db.Timestamptz()
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  message MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation("MailRecipient", fields: [userId], references: [id])
+
+  @@unique([messageId, userId])
+  @@index([messageId, status])
+  @@map("mail_message_recipients")
+}
+
+model MailMessageAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  message MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  file    File        @relation(fields: [fileId], references: [id])
+
+  @@index([messageId, sortOrder])
+  @@map("mail_message_attachments")
+}
+
+model MailSuppression {
+  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String                @unique @db.VarChar(255)
+  reason    MailSuppressionReason
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("mail_suppressions")
+}
+
+model MailTemplate {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String               @db.VarChar(100)
+  category           MailTemplateCategory
+  subjectTemplate    String               @map("subject_template") @db.VarChar(200)
+  bodyHtmlTemplate   String               @map("body_html_template") @db.Text
+  bodyTextTemplate   String?              @map("body_text_template") @db.Text
+  availableVariables Json?                @map("available_variables") @db.JsonB
+  sortOrder          Int                  @default(0) @map("sort_order")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  mailMessages MailMessage[]
+
+  @@index([category, sortOrder])
+  @@map("mail_templates")
 }
