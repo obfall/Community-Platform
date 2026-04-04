@@ -78,7 +78,7 @@ export class BoardLikesService {
 
   private async incrementLikeCount(targetType: string, targetId: string) {
     const model = this.getModel(targetType);
-    await (model as { update: Function }).update({
+    await (model as { update: (args: unknown) => Promise<unknown> }).update({
       where: { id: targetId },
       data: { likeCount: { increment: 1 } },
     });
@@ -86,7 +86,7 @@ export class BoardLikesService {
 
   private async decrementLikeCount(targetType: string, targetId: string) {
     const model = this.getModel(targetType);
-    await (model as { update: Function }).update({
+    await (model as { update: (args: unknown) => Promise<unknown> }).update({
       where: { id: targetId },
       data: { likeCount: { decrement: 1 } },
     });
@@ -94,7 +94,7 @@ export class BoardLikesService {
 
   private async getLikeCount(targetType: string, targetId: string) {
     const model = this.getModel(targetType);
-    const record = await (model as { findUnique: Function }).findUnique({
+    const record = await (model as { findUnique: (args: unknown) => Promise<unknown> }).findUnique({
       where: { id: targetId },
       select: { likeCount: true },
     });
