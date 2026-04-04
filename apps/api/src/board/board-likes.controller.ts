@@ -23,4 +23,25 @@ export class BoardLikesController {
   toggleCommentLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {
     return this.likesService.toggleCommentLike(userId, id);
   }
+
+  @Post("topics/:id/like")
+  @ApiOperation({ summary: "トピックいいねトグル" })
+  toggleTopicLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {
+    return this.likesService.toggleTopicLike(userId, id);
+  }
+
+  @Post("topic-posts/:id/like")
+  @ApiOperation({ summary: "トピック投稿いいねトグル" })
+  toggleTopicPostLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {
+    return this.likesService.toggleTopicPostLike(userId, id);
+  }
+
+  @Post("topic-post-comments/:id/like")
+  @ApiOperation({ summary: "トピック投稿コメントいいねトグル" })
+  toggleTopicPostCommentLike(
+    @CurrentUser("id") userId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.likesService.toggleTopicPostCommentLike(userId, id);
+  }
 }

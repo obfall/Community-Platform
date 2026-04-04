@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateCategoryDto {
   @ApiProperty({ description: "カテゴリ名", maxLength: 100, example: "お知らせ" })
@@ -17,4 +17,9 @@ export class CreateCategoryDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  @ApiPropertyOptional({ description: "トピック作成を許可するか", default: true })
+  @IsOptional()
+  @IsBoolean()
+  allowTopicCreation?: boolean;
 }

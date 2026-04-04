@@ -50,7 +50,7 @@ export function PostForm({ defaultValues, onSubmit, isPending, submitLabel }: Po
       title: "",
       body: "",
       categoryId: undefined,
-      publishStatus: "draft",
+      publishStatus: "published",
       ...defaultValues,
     },
   });

@@ -210,8 +210,22 @@ export interface BoardCategory {
   name: string;
   description: string | null;
   sortOrder: number;
+  allowTopicCreation: boolean;
   postCount: number;
   createdAt: string;
+}
+
+export interface CreateCategoryInput {
+  name: string;
+  description?: string;
+  sortOrder?: number;
+  allowTopicCreation?: boolean;
+}
+
+export interface UpdateCategoryInput {
+  name?: string;
+  description?: string;
+  allowTopicCreation?: boolean;
 }
 
 export interface BoardPostAuthor {
@@ -301,6 +315,80 @@ export interface CreateCommentInput {
 export interface LikeResponse {
   liked: boolean;
   likeCount: number;
+}
+
+// --- Board Topics ---
+
+export interface BoardTopic {
+  id: string;
+  title: string;
+  body: string;
+  publishStatus: string;
+  isPinned: boolean;
+  sortOrder: number;
+  viewCount: number;
+  postCount: number;
+  likeCount: number;
+  author: BoardPostAuthor;
+  category: { id: string; name: string };
+  isLiked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardTopicPost {
+  id: string;
+  body: string;
+  likeCount: number;
+  commentCount: number;
+  isLiked: boolean;
+  author: BoardPostAuthor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardTopicPostComment {
+  id: string;
+  body: string;
+  likeCount: number;
+  isLiked: boolean;
+  author: BoardPostAuthor;
+  childComments?: BoardTopicPostComment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TopicListQuery {
+  page?: number;
+  limit?: number;
+  categoryId?: string;
+}
+
+export interface CreateTopicInput {
+  title: string;
+  body: string;
+  categoryId: string;
+  publishStatus?: "draft" | "published";
+}
+
+export interface UpdateTopicInput {
+  title?: string;
+  body?: string;
+  categoryId?: string;
+  publishStatus?: "draft" | "published";
+}
+
+export interface CreateTopicPostInput {
+  body: string;
+}
+
+export interface CreateTopicPostCommentInput {
+  body: string;
+  parentCommentId?: string;
+}
+
+export interface ReorderInput {
+  items: { id: string; sortOrder: number }[];
 }
 
 // --- Notifications ---

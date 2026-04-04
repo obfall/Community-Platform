@@ -25,6 +25,7 @@ export class BoardCategoriesService {
       name: c.name,
       description: c.description,
       sortOrder: c.sortOrder,
+      allowTopicCreation: c.allowTopicCreation,
       postCount: c._count.posts,
       createdAt: c.createdAt,
     }));
@@ -36,6 +37,7 @@ export class BoardCategoriesService {
         name: dto.name,
         description: dto.description,
         sortOrder: dto.sortOrder ?? 0,
+        allowTopicCreation: dto.allowTopicCreation ?? true,
         createdByUserId: userId,
       },
     });
@@ -53,8 +55,22 @@ export class BoardCategoriesService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
+        ...(dto.allowTopicCreation !== undefined && {
+          allowTopicCreation: dto.allowTopicCreation,
+        }),
       },
     });
+  }
+
+  async reorder(items: { id: string; sortOrder: number }[]) {
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.boardCategory.update({
+          where: { id: item.id },
+          data: { sortOrder: item.sortOrder },
+        }),
+      ),
+    );
   }
 
   async softDelete(id: string) {
