@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
 import type { UserListQueryDto } from "./dto/user-list-query.dto";
@@ -7,6 +7,8 @@ import type { UpdatePublicInfoDto } from "./dto/update-public-info.dto";
 import type { UpdateInterestsDto } from "./dto/update-interests.dto";
 import type { UpdateLanguagesDto } from "./dto/update-languages.dto";
 import type { UpdateAffiliationsDto } from "./dto/update-affiliations.dto";
+import type { UpdateUserRoleDto } from "./dto/update-user-role.dto";
+import type { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 
 @Injectable()
 export class UsersService {
@@ -238,6 +240,72 @@ export class UsersService {
       where: { userId },
       orderBy: { sortOrder: "asc" },
     });
+  }
+
+  async updateRole(
+    targetUserId: string,
+    currentUser: { id: string; role: string },
+    dto: UpdateUserRoleDto,
+  ) {
+    const target = await this.validateAdminAction(targetUserId, currentUser);
+
+    if (currentUser.role === "admin") {
+      if (dto.role === "owner" || dto.role === "admin") {
+        throw new ForbiddenException("管理者はオーナーや管理者に昇格させることはできません");
+      }
+    }
+
+    return this.prisma.user.update({
+      where: { id: target.id },
+      data: { role: dto.role },
+      select: { id: true, email: true, name: true, role: true, status: true },
+    });
+  }
+
+  async updateStatus(
+    targetUserId: string,
+    currentUser: { id: string; role: string },
+    dto: UpdateUserStatusDto,
+  ) {
+    const target = await this.validateAdminAction(targetUserId, currentUser);
+
+    return this.prisma.user.update({
+      where: { id: target.id },
+      data: { status: dto.status },
+      select: { id: true, email: true, name: true, role: true, status: true },
+    });
+  }
+
+  async softDelete(targetUserId: string, currentUser: { id: string; role: string }) {
+    const target = await this.validateAdminAction(targetUserId, currentUser);
+
+    return this.prisma.user.update({
+      where: { id: target.id },
+      data: { deletedAt: new Date(), status: "withdrawn", isActive: false },
+      select: { id: true, email: true, name: true, role: true, status: true },
+    });
+  }
+
+  private async validateAdminAction(
+    targetUserId: string,
+    currentUser: { id: string; role: string },
+  ) {
+    if (targetUserId === currentUser.id) {
+      throw new ForbiddenException("自分自身に対してこの操作は実行できません");
+    }
+
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId, deletedAt: null },
+      select: { id: true, role: true },
+    });
+
+    if (!target) throw new NotFoundException("ユーザーが見つかりません");
+
+    if (currentUser.role === "admin" && (target.role === "owner" || target.role === "admin")) {
+      throw new ForbiddenException("管理者はオーナーや他の管理者を操作できません");
+    }
+
+    return target;
   }
 
   private async ensureUserExists(userId: string) {
