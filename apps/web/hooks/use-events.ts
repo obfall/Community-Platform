@@ -24,6 +24,7 @@ export function useEvent(id: string | undefined) {
     queryKey: ["events", id],
     queryFn: () => eventsApi.getEvent(id!),
     enabled: !!id,
+    refetchInterval: 15 * 1000, // 15秒ごとに自動リフレッシュ（残数リアルタイム把握）
   });
 }
 

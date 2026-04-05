@@ -256,6 +256,23 @@ export class EventsService {
       throw new BadRequestException("申込締切を過ぎています");
     }
 
+    const quantity = dto.quantity ?? 1;
+
+    // 定員チェック（チケット指定時）
+    if (dto.ticketId) {
+      const ticket = event.tickets.find((t) => t.id === dto.ticketId);
+      if (!ticket) throw new BadRequestException("チケットが見つかりません");
+      if (!ticket.isActive) throw new BadRequestException("このチケットは販売停止中です");
+      if (ticket.capacity !== null && ticket.soldCount + quantity > ticket.capacity) {
+        throw new BadRequestException(
+          `定員に達しています（残り${ticket.capacity - ticket.soldCount}枚）`,
+        );
+      }
+      if (quantity > ticket.purchaseLimit) {
+        throw new BadRequestException(`購入上限は${ticket.purchaseLimit}枚です`);
+      }
+    }
+
     // 割引コード処理
     let discountCodeId: string | undefined;
     if (dto.discountCode && dto.ticketId) {
@@ -276,24 +293,43 @@ export class EventsService {
       discountCodeId = code.id;
     }
 
-    const participant = await this.prisma.eventParticipant.create({
-      data: {
-        eventId,
-        userId,
-        ticketId: dto.ticketId,
-        quantity: dto.quantity ?? 1,
-        paymentMethod: dto.paymentMethod,
-        discountCodeId,
-      },
-    });
-
-    // 割引コード使用数を更新
-    if (discountCodeId) {
-      await this.prisma.eventDiscountCode.update({
-        where: { id: discountCodeId },
-        data: { usedCount: { increment: 1 } },
+    // トランザクションで参加登録 + カウント更新を一括実行
+    const participant = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.eventParticipant.create({
+        data: {
+          eventId,
+          userId,
+          ticketId: dto.ticketId,
+          quantity,
+          paymentMethod: dto.paymentMethod,
+          discountCodeId,
+        },
       });
-    }
+
+      // チケットの soldCount を更新
+      if (dto.ticketId) {
+        await tx.eventTicket.update({
+          where: { id: dto.ticketId },
+          data: { soldCount: { increment: quantity } },
+        });
+      }
+
+      // イベントの participantCount を更新
+      await tx.event.update({
+        where: { id: eventId },
+        data: { participantCount: { increment: 1 } },
+      });
+
+      // 割引コード使用数を更新
+      if (discountCodeId) {
+        await tx.eventDiscountCode.update({
+          where: { id: discountCodeId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      return p;
+    });
 
     return participant;
   }
@@ -304,10 +340,29 @@ export class EventsService {
     });
     if (!participant) throw new NotFoundException("参加登録が見つかりません");
 
-    return this.prisma.eventParticipant.update({
-      where: { id: participant.id },
-      data: { status: "canceled", canceledAt: new Date() },
+    // トランザクションでキャンセル + カウント戻しを一括実行
+    await this.prisma.$transaction(async (tx) => {
+      await tx.eventParticipant.update({
+        where: { id: participant.id },
+        data: { status: "canceled", canceledAt: new Date() },
+      });
+
+      // チケットの soldCount を戻す
+      if (participant.ticketId) {
+        await tx.eventTicket.update({
+          where: { id: participant.ticketId },
+          data: { soldCount: { decrement: participant.quantity } },
+        });
+      }
+
+      // イベントの participantCount を戻す
+      await tx.event.update({
+        where: { id: eventId },
+        data: { participantCount: { decrement: 1 } },
+      });
     });
+
+    return { canceled: true };
   }
 
   async getParticipants(eventId: string, query: { page?: number; limit?: number }) {
