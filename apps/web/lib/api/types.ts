@@ -706,6 +706,7 @@ export interface EventDetail extends EventListItem {
   participationMethod: string | null;
   contactInfo: string | null;
   cancellationPolicy: string | null;
+  language: string | null;
   isAttendeeVisible: boolean;
   isCalendarVisible: boolean;
   requiredRank: { id: string; name: string } | null;
