@@ -794,3 +794,83 @@ export interface ParticipateEventInput {
   discountCode?: string;
   paymentMethod?: string;
 }
+
+// --- Projects ---
+
+export interface ProjectListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  status: string;
+  publishStatus: string;
+  memberCount: number;
+  category: { id: string; name: string } | null;
+  startDate: string | null;
+  endDate: string | null;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+}
+
+export interface ProjectMember {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string;
+  joinedAt: string;
+}
+
+export interface ProjectDetail extends ProjectListItem {
+  inviteToken: string;
+  inviteLinkEnabled: boolean;
+  threadCount: number;
+  taskCount: number;
+  event: { id: string; title: string } | null;
+  members: ProjectMember[];
+  tags: { id: string; name: string; slug: string }[];
+  updatedAt: string;
+}
+
+export interface ProjectThread {
+  id: string;
+  title: string;
+  isPinned: boolean;
+  replyCount: number;
+  likeCount: number;
+  lastReplyAt: string | null;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+}
+
+export interface ProjectTask {
+  id: string;
+  title: string;
+  description: string | null;
+  progress: number;
+  requestedDate: string | null;
+  dueDate: string | null;
+  sortOrder: number;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  assignees: { id: string; userId: string; name: string; avatarUrl: string | null }[];
+  createdAt: string;
+}
+
+export interface ProjectQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  publishStatus?: string;
+  search?: string;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+  categoryId?: string;
+  eventId?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+}
