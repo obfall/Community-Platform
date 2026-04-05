@@ -172,19 +172,102 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 左: メイン情報 */}
         <div className="space-y-6 lg:col-span-2">
-          {/* 概要 */}
-          {event.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle>概要</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                  {event.description}
+          {/* 基本情報 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>基本情報</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 日時 */}
+              <div className="flex items-start gap-3 text-sm">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">
+                    {new Date(event.startAt).toLocaleString("ja-JP", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      weekday: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  <p className="text-muted-foreground">
+                    〜{" "}
+                    {new Date(event.endAt).toLocaleString("ja-JP", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      weekday: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+
+              {event.registrationDeadlineAt && (
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p>
+                    申込締切:{" "}
+                    {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              )}
+
+              {/* 会場 */}
+              <div className="flex items-start gap-3 text-sm">
+                {event.locationType === "online" ? (
+                  <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                ) : (
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="font-medium">{event.venueName ?? event.locationType}</p>
+                  {event.venueAddress && (
+                    <p className="text-muted-foreground">{event.venueAddress}</p>
+                  )}
+                  {event.onlineUrl && <p className="text-muted-foreground">{event.onlineUrl}</p>}
+                </div>
+              </div>
+
+              {/* 参加者数 */}
+              <div className="flex items-center gap-3 text-sm">
+                <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="font-medium">{event.participantCount}人参加</p>
+              </div>
+
+              {/* 企画役割 */}
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-muted-foreground">企画:</span>
+                <span>{event.planningRole}</span>
+                {event.eventType && (
+                  <>
+                    <span className="text-muted-foreground">種別:</span>
+                    <span>{event.eventType}</span>
+                  </>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* 概要 */}
+              {event.description && (
+                <div>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">概要</p>
+                  <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                    {event.description}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* 登壇者 */}
           {event.speakers && event.speakers.length > 0 && (
@@ -249,47 +332,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* 右: サイドバー */}
         <div className="space-y-4">
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="flex items-center gap-2 text-sm">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p>{new Date(event.startAt).toLocaleString("ja-JP")}</p>
-                  <p className="text-muted-foreground">
-                    〜 {new Date(event.endAt).toLocaleString("ja-JP")}
-                  </p>
-                </div>
-              </div>
-
-              {event.registrationDeadlineAt && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    締切: {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP")}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 text-sm">
-                {event.locationType === "online" ? (
-                  <Monitor className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span>{event.venueName ?? event.locationType}</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>{event.participantCount}人参加</span>
-              </div>
-
-              <Separator />
-
-              <p className="text-xs text-muted-foreground">企画: {event.planningRole}</p>
-            </CardContent>
-          </Card>
-
           {/* チケット */}
           <TicketSection eventId={id} tickets={event.tickets} isAdmin={isAdmin} />
         </div>

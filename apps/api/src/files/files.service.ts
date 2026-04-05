@@ -74,7 +74,7 @@ export class FilesService {
 
     const publicUrl = await this.storage.upload(storageKey, file.buffer, file.mimetype);
 
-    return this.prisma.file.create({
+    const created = await this.prisma.file.create({
       data: {
         originalName: file.originalname,
         storageKey,
@@ -91,6 +91,11 @@ export class FilesService {
         uploadedByUser: { connect: { id: userId } },
       },
     });
+
+    return {
+      ...created,
+      fileSizeBytes: Number(created.fileSizeBytes),
+    };
   }
 
   async findAll(query: FileQueryDto, userId: string) {

@@ -15,10 +15,6 @@ export const filesApi = {
     formData.append("file", file);
     formData.append("fileCategory", fileCategory);
     formData.append("isPublic", String(isPublic));
-    return apiClient
-      .post<UploadedFile>("/files/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      .then((r) => r.data);
+    return apiClient.post<UploadedFile>("/files/upload", formData).then((r) => r.data);
   },
 };

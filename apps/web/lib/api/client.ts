@@ -9,11 +9,15 @@ export const apiClient = axios.create({
   },
 });
 
-// リクエスト: Authorization ヘッダー付与
+// リクエスト: Authorization ヘッダー付与 + FormData 対応
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  // FormData 送信時は Content-Type を削除（axios が boundary 付きで自動設定）
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
   }
   return config;
 });
