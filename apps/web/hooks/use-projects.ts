@@ -102,6 +102,7 @@ export function useCreateTask() {
         dueDate?: string;
         requestedDate?: string;
         assigneeIds?: string[];
+        fileIds?: string[];
       };
     }) => projectsApi.createTask(projectId, data),
     onSuccess: () => {

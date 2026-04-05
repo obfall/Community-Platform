@@ -299,6 +299,7 @@ export class ProjectsService {
       dueDate?: string;
       requestedDate?: string;
       assigneeIds?: string[];
+      fileIds?: string[];
     },
   ) {
     const task = await this.prisma.projectTask.create({
@@ -314,10 +315,19 @@ export class ProjectsService {
             create: data.assigneeIds.map((uid) => ({ userId: uid })),
           },
         }),
+        ...(data.fileIds?.length && {
+          attachments: {
+            create: data.fileIds.map((fileId, i) => ({ fileId, sortOrder: i })),
+          },
+        }),
       },
       include: {
         createdBy: { select: AUTHOR_SELECT },
         assignees: { include: { user: { select: AUTHOR_SELECT } } },
+        attachments: {
+          include: { file: { select: { id: true, originalName: true, publicUrl: true } } },
+          orderBy: { sortOrder: "asc" },
+        },
       },
     });
 

@@ -53,6 +53,7 @@ export const projectsApi = {
       dueDate?: string;
       requestedDate?: string;
       assigneeIds?: string[];
+      fileIds?: string[];
     },
   ) => apiClient.post(`/projects/${projectId}/tasks`, data).then((r) => r.data),
 

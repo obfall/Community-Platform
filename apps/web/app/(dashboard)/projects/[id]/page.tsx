@@ -25,7 +25,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Users, MessageSquare, CheckSquare, Plus, CalendarDays } from "lucide-react";
+import {
+  ArrowLeft,
+  Users,
+  MessageSquare,
+  CheckSquare,
+  Plus,
+  CalendarDays,
+  Paperclip,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { filesApi, type UploadedFile } from "@/lib/api/files";
 import Link from "next/link";
 import type {
   ProjectThread,
@@ -272,6 +283,8 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
   const [requestedDate, setRequestedDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const resetForm = () => {
     setTitle("");
@@ -279,6 +292,28 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
     setRequestedDate("");
     setDueDate("");
     setSelectedAssignees([]);
+    setUploadedFiles([]);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const result = await filesApi.upload(file, "document", true);
+        setUploadedFiles((prev) => [...prev, result]);
+      }
+    } catch {
+      toast.error("ファイルのアップロードに失敗しました");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeFile = (fileId: string) => {
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   const handleCreate = () => {
@@ -291,6 +326,7 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
           requestedDate: requestedDate || undefined,
           dueDate: dueDate || undefined,
           assigneeIds: selectedAssignees.length > 0 ? selectedAssignees : undefined,
+          fileIds: uploadedFiles.length > 0 ? uploadedFiles.map((f) => f.id) : undefined,
         },
       },
       {
@@ -380,9 +416,41 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
                   <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
               </div>
+              <div>
+                <Label>ファイル添付</Label>
+                <div className="mt-1">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-sm transition-colors hover:bg-accent">
+                    <Paperclip className="h-4 w-4" />
+                    {uploading ? "アップロード中..." : "ファイルを選択"}
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {uploadedFiles.map((f) => (
+                      <div
+                        key={f.id}
+                        className="flex items-center gap-2 rounded bg-muted px-2 py-1 text-xs"
+                      >
+                        <Paperclip className="h-3 w-3 shrink-0" />
+                        <span className="flex-1 truncate">{f.originalName}</span>
+                        <button type="button" onClick={() => removeFile(f.id)}>
+                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button
                 onClick={handleCreate}
-                disabled={!title || createTask.isPending}
+                disabled={!title || createTask.isPending || uploading}
                 className="w-full"
               >
                 追加
