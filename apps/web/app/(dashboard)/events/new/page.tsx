@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateEvent } from "@/hooks/use-events";
+import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +44,7 @@ const schema = z.object({
   participationMethod: z.string().optional(),
   contactInfo: z.string().optional(),
   cancellationPolicy: z.string().optional(),
+  coverImageUrl: z.string().nullable().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -69,6 +71,7 @@ export default function NewEventPage() {
       participationMethod: "",
       contactInfo: "",
       cancellationPolicy: "",
+      coverImageUrl: null,
     },
   });
 
@@ -84,6 +87,7 @@ export default function NewEventPage() {
         participationMethod: data.participationMethod || undefined,
         contactInfo: data.contactInfo || undefined,
         cancellationPolicy: data.cancellationPolicy || undefined,
+        coverImageUrl: data.coverImageUrl || undefined,
       },
       {
         onSuccess: (event) => router.push(`/events/${event.id}`),
@@ -135,6 +139,18 @@ export default function NewEventPage() {
                           <Textarea {...field} placeholder="イベントの説明" rows={6} />
                         </FormControl>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="coverImageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>カバー画像</FormLabel>
+                        <FormControl>
+                          <ImageUpload value={field.value} onChange={field.onChange} />
+                        </FormControl>
                       </FormItem>
                     )}
                   />

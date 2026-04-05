@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEvent, useUpdateEvent, useDeleteEvent } from "@/hooks/use-events";
+import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,6 +56,7 @@ const schema = z.object({
   participationMethod: z.string().optional(),
   contactInfo: z.string().optional(),
   cancellationPolicy: z.string().optional(),
+  coverImageUrl: z.string().nullable().optional(),
   status: z.enum(["draft", "recruiting", "closed", "canceled", "ended"]),
   isCalendarVisible: z.boolean().optional(),
 });
@@ -94,6 +96,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       participationMethod: "",
       contactInfo: "",
       cancellationPolicy: "",
+      coverImageUrl: null,
       status: "draft",
       isCalendarVisible: true,
     },
@@ -117,6 +120,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         participationMethod: event.participationMethod ?? "",
         contactInfo: event.contactInfo ?? "",
         cancellationPolicy: event.cancellationPolicy ?? "",
+        coverImageUrl: event.coverImageUrl ?? null,
         status: event.status as FormValues["status"],
         isCalendarVisible: event.isCalendarVisible,
       });
@@ -137,6 +141,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
           participationMethod: data.participationMethod || undefined,
           contactInfo: data.contactInfo || undefined,
           cancellationPolicy: data.cancellationPolicy || undefined,
+          coverImageUrl: data.coverImageUrl || undefined,
         },
       },
       {
@@ -222,6 +227,18 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         <FormLabel>概要</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={6} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="coverImageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>カバー画像</FormLabel>
+                        <FormControl>
+                          <ImageUpload value={field.value} onChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}
