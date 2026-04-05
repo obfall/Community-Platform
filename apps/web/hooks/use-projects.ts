@@ -174,6 +174,32 @@ export function useUpdateTask() {
 
 // ========== Board（Phase 2 と同じ構造） ==========
 
+export function useProjectBoardCategories(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["projects", projectId, "board", "categories"],
+    queryFn: () => projectsApi.getBoardCategories(projectId!),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateBoardCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      data,
+    }: {
+      projectId: string;
+      data: { name: string; description?: string };
+    }) => projectsApi.createBoardCategory(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("カテゴリを作成しました");
+    },
+    onError: () => toast.error("カテゴリの作成に失敗しました"),
+  });
+}
+
 export function useProjectBoardTopics(
   projectId: string | undefined,
   query?: { page?: number; limit?: number; categoryId?: string },
@@ -201,7 +227,7 @@ export function useCreateBoardTopic() {
       data,
     }: {
       projectId: string;
-      data: { title: string; body: string };
+      data: { title: string; body: string; categoryId?: string };
     }) => projectsApi.createBoardTopic(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });

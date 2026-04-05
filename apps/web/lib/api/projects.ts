@@ -73,6 +73,15 @@ export const projectsApi = {
     apiClient.patch(`/projects/tasks/${taskId}`, data).then((r) => r.data),
 
   // Board（Phase 2 と同じ構造）
+  getBoardCategories: (projectId: string) =>
+    apiClient.get(`/projects/${projectId}/board/categories`).then((r) => r.data),
+
+  createBoardCategory: (projectId: string, data: { name: string; description?: string }) =>
+    apiClient.post(`/projects/${projectId}/board/categories`, data).then((r) => r.data),
+
+  deleteBoardCategory: (categoryId: string) =>
+    apiClient.delete(`/projects/board/categories/${categoryId}`),
+
   getBoardTopics: (
     projectId: string,
     params?: { page?: number; limit?: number; categoryId?: string },
@@ -81,8 +90,10 @@ export const projectsApi = {
   getBoardTopic: (topicId: string) =>
     apiClient.get(`/projects/board/topics/${topicId}`).then((r) => r.data),
 
-  createBoardTopic: (projectId: string, data: { title: string; body: string }) =>
-    apiClient.post(`/projects/${projectId}/board/topics`, data).then((r) => r.data),
+  createBoardTopic: (
+    projectId: string,
+    data: { title: string; body: string; categoryId?: string },
+  ) => apiClient.post(`/projects/${projectId}/board/topics`, data).then((r) => r.data),
 
   deleteBoardTopic: (topicId: string) => apiClient.delete(`/projects/board/topics/${topicId}`),
 

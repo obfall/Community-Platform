@@ -11,6 +11,8 @@ import {
   useCreateReply,
   useToggleThreadLike,
   useToggleReplyLike,
+  useProjectBoardCategories,
+  useCreateBoardCategory,
   useProjectBoardTopics,
   useProjectBoardTopic,
   useProjectBoardPosts,
@@ -26,6 +28,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -642,132 +650,231 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
 // ========== 掲示板（Phase 2 と同じ構造） ==========
 
 function BoardTab({ projectId }: { projectId: string }) {
-  const { data } = useProjectBoardTopics(projectId);
+  const { data: categories } = useProjectBoardCategories(projectId);
+  const createCategory = useCreateBoardCategory();
   const createTopic = useCreateBoardTopic();
-  const toggleLike = useToggleBoardLike();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [catName, setCatName] = useState("");
+  const [topicDialogOpen, setTopicDialogOpen] = useState(false);
+  const [topicCategoryId, setTopicCategoryId] = useState<string | null>(null);
   const [topicTitle, setTopicTitle] = useState("");
   const [topicBody, setTopicBody] = useState("");
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+
+  type CategoryItem = {
+    id: string;
+    name: string;
+    description: string | null;
+    sortOrder: number;
+    topicCount: number;
+  };
+  const cats = (categories as CategoryItem[] | undefined) ?? [];
+
+  // トピック詳細表示
+  if (selectedTopicId) {
+    return <BoardTopicDetail topicId={selectedTopicId} onBack={() => setSelectedTopicId(null)} />;
+  }
+
+  const openTopicDialog = (categoryId: string) => {
+    setTopicCategoryId(categoryId);
+    setTopicDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* ヘッダー */}
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={() => setCatDialogOpen(true)}>
+          <Plus className="mr-1 h-3 w-3" />
+          カテゴリ追加
+        </Button>
+      </div>
+
+      {/* カテゴリアコーディオン */}
+      {cats.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          カテゴリがありません。まずカテゴリを作成してください。
+        </p>
+      ) : (
+        <Accordion type="multiple" className="space-y-2">
+          {cats.map((cat) => (
+            <AccordionItem key={cat.id} value={cat.id} className="rounded-lg border">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{cat.name}</span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {cat.topicCount}
+                  </Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-3">
+                <CategoryTopicList
+                  projectId={projectId}
+                  categoryId={cat.id}
+                  onSelectTopic={setSelectedTopicId}
+                  onNewTopic={() => openTopicDialog(cat.id)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      )}
+
+      {/* カテゴリ作成ダイアログ */}
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>カテゴリ作成</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>カテゴリ名</Label>
+              <Input
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+                placeholder="カテゴリ名"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                createCategory.mutate(
+                  { projectId, data: { name: catName } },
+                  {
+                    onSuccess: () => {
+                      setCatDialogOpen(false);
+                      setCatName("");
+                    },
+                  },
+                );
+              }}
+              disabled={!catName || createCategory.isPending}
+              className="w-full"
+            >
+              作成
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* トピック作成ダイアログ */}
+      <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新規トピック</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>タイトル</Label>
+              <Input
+                value={topicTitle}
+                onChange={(e) => setTopicTitle(e.target.value)}
+                placeholder="トピックのタイトル"
+              />
+            </div>
+            <div>
+              <Label>本文</Label>
+              <Textarea
+                value={topicBody}
+                onChange={(e) => setTopicBody(e.target.value)}
+                rows={6}
+                placeholder="トピックの内容"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                createTopic.mutate(
+                  {
+                    projectId,
+                    data: {
+                      title: topicTitle,
+                      body: topicBody,
+                      categoryId: topicCategoryId ?? undefined,
+                    },
+                  },
+                  {
+                    onSuccess: () => {
+                      setTopicDialogOpen(false);
+                      setTopicTitle("");
+                      setTopicBody("");
+                    },
+                  },
+                );
+              }}
+              disabled={!topicTitle || !topicBody || createTopic.isPending}
+              className="w-full"
+            >
+              作成
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/** カテゴリ内のトピック一覧 */
+function CategoryTopicList({
+  projectId,
+  categoryId,
+  onSelectTopic,
+  onNewTopic,
+}: {
+  projectId: string;
+  categoryId: string;
+  onSelectTopic: (id: string) => void;
+  onNewTopic: () => void;
+}) {
+  const { data } = useProjectBoardTopics(projectId, { categoryId });
 
   type TopicItem = {
     id: string;
     title: string;
-    body: string;
     isPinned: boolean;
-    viewCount: number;
     commentCount: number;
     likeCount: number;
-    category: { id: string; name: string } | null;
     author: { id: string; name: string; avatarUrl: string | null };
     createdAt: string;
   };
   const topics = (data as { data: TopicItem[] } | undefined)?.data ?? [];
 
-  // トピック詳細が選択されている場合はトピック詳細を表示
-  if (selectedTopicId) {
-    return <BoardTopicDetail topicId={selectedTopicId} onBack={() => setSelectedTopicId(null)} />;
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-1 h-3 w-3" />
-              新規トピック
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>トピック作成</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>タイトル</Label>
-                <Input
-                  value={topicTitle}
-                  onChange={(e) => setTopicTitle(e.target.value)}
-                  placeholder="トピックのタイトル"
-                />
-              </div>
-              <div>
-                <Label>本文</Label>
-                <Textarea
-                  value={topicBody}
-                  onChange={(e) => setTopicBody(e.target.value)}
-                  rows={6}
-                  placeholder="トピックの内容"
-                />
-              </div>
-              <Button
-                onClick={() => {
-                  createTopic.mutate(
-                    { projectId, data: { title: topicTitle, body: topicBody } },
-                    {
-                      onSuccess: () => {
-                        setDialogOpen(false);
-                        setTopicTitle("");
-                        setTopicBody("");
-                      },
-                    },
-                  );
-                }}
-                disabled={!topicTitle || !topicBody || createTopic.isPending}
-                className="w-full"
-              >
-                作成
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {topics.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">トピックがありません</p>
-      ) : (
-        <div className="space-y-2">
-          {topics.map((t) => (
-            <Card
-              key={t.id}
-              className="cursor-pointer transition-shadow hover:shadow-md"
-              onClick={() => setSelectedTopicId(t.id)}
-            >
-              <CardContent className="flex items-center gap-3 py-3">
-                {t.isPinned && (
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">
-                    固定
-                  </Badge>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">{t.author.name}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Heart className="h-3 w-3" />
-                    {t.likeCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
-                    {t.commentCount}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleLike.mutate({ targetType: "project_board_post", targetId: t.id });
-                    }}
-                    className="hover:text-red-500"
-                  >
-                    <Heart className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+    <div className="space-y-1">
+      {topics.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => onSelectTopic(t.id)}
+          className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-sm hover:bg-accent"
+        >
+          {t.isPinned && (
+            <Badge variant="secondary" className="shrink-0 text-[10px]">
+              固定
+            </Badge>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{t.title}</p>
+            <p className="text-xs text-muted-foreground">{t.author.name}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-0.5">
+              <MessageSquare className="h-3 w-3" />
+              {t.commentCount}
+            </span>
+            <span className="flex items-center gap-0.5">
+              <Heart className="h-3 w-3" />
+              {t.likeCount}
+            </span>
+          </div>
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onNewTopic}
+        className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <Plus className="h-3 w-3" />
+        新規トピック
+      </button>
     </div>
   );
 }

@@ -473,6 +473,58 @@ export class ProjectsService {
 
   // ========== Board（Phase 2 掲示板と同じ構造） ==========
 
+  private boardScope(projectId: string) {
+    return `project_board:${projectId}`;
+  }
+
+  /** カテゴリ一覧 */
+  async getBoardCategories(projectId: string) {
+    const categories = await this.prisma.category.findMany({
+      where: { scope: this.boardScope(projectId), isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    // 各カテゴリのトピック数を取得
+    const counts = await Promise.all(
+      categories.map((c) =>
+        this.prisma.projectBoardPost.count({
+          where: { projectId, categoryId: c.id, deletedAt: null },
+        }),
+      ),
+    );
+
+    return categories.map((c, i) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      sortOrder: c.sortOrder,
+      topicCount: counts[i],
+    }));
+  }
+
+  /** カテゴリ作成 */
+  async createBoardCategory(projectId: string, data: { name: string; description?: string }) {
+    const scope = this.boardScope(projectId);
+    const slug = `${projectId}-${Date.now()}`;
+
+    return this.prisma.category.create({
+      data: {
+        scope,
+        slug,
+        name: data.name,
+        description: data.description,
+      },
+    });
+  }
+
+  /** カテゴリ削除 */
+  async deleteBoardCategory(categoryId: string) {
+    await this.prisma.category.update({
+      where: { id: categoryId },
+      data: { isActive: false },
+    });
+  }
+
   /** トピック一覧（カテゴリでフィルタ可） */
   async getBoardTopics(
     projectId: string,

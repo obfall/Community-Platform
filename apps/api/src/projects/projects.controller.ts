@@ -174,6 +174,28 @@ export class ProjectsController {
 
   // ========== Board（Phase 2 と同じ構造） ==========
 
+  @Get(":id/board/categories")
+  @ApiOperation({ summary: "掲示板カテゴリ一覧" })
+  getBoardCategories(@Param("id", ParseUUIDPipe) projectId: string) {
+    return this.service.getBoardCategories(projectId);
+  }
+
+  @Post(":id/board/categories")
+  @ApiOperation({ summary: "掲示板カテゴリ作成" })
+  createBoardCategory(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Body() data: { name: string; description?: string },
+  ) {
+    return this.service.createBoardCategory(projectId, data);
+  }
+
+  @Delete("board/categories/:categoryId")
+  @ApiOperation({ summary: "掲示板カテゴリ削除" })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteBoardCategory(@Param("categoryId", ParseUUIDPipe) categoryId: string) {
+    return this.service.deleteBoardCategory(categoryId);
+  }
+
   @Get(":id/board/topics")
   @ApiOperation({ summary: "掲示板トピック一覧" })
   getBoardTopics(
