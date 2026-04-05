@@ -26,6 +26,7 @@ import {
   Settings,
   Shield,
   UserCog,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 
@@ -79,4 +80,5 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
   { label: "権限設定", href: "/settings/permissions", icon: Shield },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog },
+  { label: "カスタム属性", href: "/settings/member-attributes", icon: ListChecks },
 ];

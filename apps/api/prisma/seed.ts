@@ -394,6 +394,42 @@ async function main() {
     }
   }
   console.log(`Seeded ${mailTemplates.length} mail templates`);
+
+  // --- Member Attributes ---
+  const memberAttributes = [
+    {
+      name: "入会動機",
+      slug: "join_reason",
+      type: "text" as const,
+      isRequired: false,
+      sortOrder: 0,
+    },
+    {
+      name: "参加可能曜日",
+      slug: "available_days",
+      type: "multi_select" as const,
+      options: ["月", "火", "水", "木", "金", "土", "日"],
+      isRequired: false,
+      sortOrder: 1,
+    },
+    {
+      name: "スキルレベル",
+      slug: "skill_level",
+      type: "select" as const,
+      options: ["初級", "中級", "上級"],
+      isRequired: false,
+      sortOrder: 2,
+    },
+  ];
+
+  for (const attr of memberAttributes) {
+    await prisma.memberAttribute.upsert({
+      where: { slug: attr.slug },
+      update: {},
+      create: attr,
+    });
+  }
+  console.log(`Seeded ${memberAttributes.length} member attributes`);
 }
 
 main()

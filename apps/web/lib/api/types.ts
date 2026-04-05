@@ -600,3 +600,47 @@ export interface MailMessageQuery {
   limit?: number;
   status?: string;
 }
+
+// --- Member Attributes ---
+
+export interface MemberAttribute {
+  id: string;
+  name: string;
+  slug: string;
+  type: "text" | "number" | "date" | "select" | "multi_select";
+  options: string[] | null;
+  isRequired: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserAttributeValue {
+  attributeId: string;
+  attributeName: string;
+  slug: string;
+  type: string;
+  options: string[] | null;
+  isRequired: boolean;
+  value: string | null;
+}
+
+export interface CreateMemberAttributeInput {
+  name: string;
+  slug: string;
+  type: "text" | "number" | "date" | "select" | "multi_select";
+  options?: string[];
+  isRequired?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateMemberAttributeInput {
+  name?: string;
+  options?: string[];
+  isRequired?: boolean;
+}
+
+export interface SetAttributeValueItem {
+  attributeId: string;
+  value: string | null;
+}
