@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import type { CreateEventDto } from "./dto/create-event.dto";
