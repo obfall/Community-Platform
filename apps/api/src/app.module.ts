@@ -14,6 +14,7 @@ import { BoardModule } from "./board/board.module";
 import { ChatModule } from "./chat/chat.module";
 import { MailModule } from "./mail/mail.module";
 import { MemberAttributesModule } from "./member-attributes/member-attributes.module";
+import { EventsModule } from "./events/events.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -57,6 +58,9 @@ import { validateEnv } from "./config/env.config";
 
     // Mail
     MailModule,
+
+    // Events
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [
