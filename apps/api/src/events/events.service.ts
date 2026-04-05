@@ -80,6 +80,9 @@ export class EventsService {
           avatarUrl: e.createdByUser.profile?.avatarUrl ?? null,
         },
         ticketCount: e.tickets.length,
+        totalCapacity: e.tickets.some((t) => t.capacity !== null)
+          ? e.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0)
+          : null,
         minPrice: e.tickets.length > 0 ? Math.min(...e.tickets.map((t) => t.price)) : null,
         createdAt: e.createdAt,
       })),

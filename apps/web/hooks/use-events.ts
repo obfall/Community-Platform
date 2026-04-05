@@ -109,7 +109,12 @@ export function useParticipate() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       toast.success("参加申込しました");
     },
-    onError: () => toast.error("参加申込に失敗しました"),
+    onError: (error: unknown) => {
+      const axiosError = error as { response?: { data?: { message?: string | string[] } } };
+      const msg = axiosError.response?.data?.message;
+      const errorText = Array.isArray(msg) ? msg.join(", ") : msg;
+      toast.error(errorText ?? "参加申込に失敗しました");
+    },
   });
 }
 

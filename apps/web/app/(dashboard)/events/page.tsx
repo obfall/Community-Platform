@@ -156,7 +156,8 @@ export default function EventsPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {event.participantCount}人参加
+                      {event.participantCount}
+                      {event.totalCapacity !== null ? `/${event.totalCapacity}人` : "人参加"}
                       {event.minPrice !== null && (
                         <span className="ml-auto font-medium text-foreground">
                           ¥{event.minPrice.toLocaleString()}〜

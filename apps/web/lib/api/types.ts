@@ -661,6 +661,7 @@ export interface EventListItem {
   category: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   ticketCount: number;
+  totalCapacity: number | null;
   minPrice: number | null;
   createdAt: string;
 }
