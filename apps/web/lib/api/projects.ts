@@ -47,7 +47,13 @@ export const projectsApi = {
 
   createTask: (
     projectId: string,
-    data: { title: string; description?: string; dueDate?: string },
+    data: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+      requestedDate?: string;
+      assigneeIds?: string[];
+    },
   ) => apiClient.post(`/projects/${projectId}/tasks`, data).then((r) => r.data),
 
   updateTask: (taskId: string, data: { title?: string; progress?: number; dueDate?: string }) =>

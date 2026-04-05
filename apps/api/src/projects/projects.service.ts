@@ -293,9 +293,15 @@ export class ProjectsService {
   async createTask(
     projectId: string,
     userId: string,
-    data: { title: string; description?: string; dueDate?: string; requestedDate?: string },
+    data: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+      requestedDate?: string;
+      assigneeIds?: string[];
+    },
   ) {
-    return this.prisma.projectTask.create({
+    const task = await this.prisma.projectTask.create({
       data: {
         projectId,
         title: data.title,
@@ -303,8 +309,32 @@ export class ProjectsService {
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
         requestedDate: data.requestedDate ? new Date(data.requestedDate) : undefined,
         createdByUserId: userId,
+        ...(data.assigneeIds?.length && {
+          assignees: {
+            create: data.assigneeIds.map((uid) => ({ userId: uid })),
+          },
+        }),
+      },
+      include: {
+        createdBy: { select: AUTHOR_SELECT },
+        assignees: { include: { user: { select: AUTHOR_SELECT } } },
       },
     });
+
+    return {
+      ...task,
+      createdBy: {
+        id: task.createdBy.id,
+        name: task.createdBy.name,
+        avatarUrl: task.createdBy.profile?.avatarUrl ?? null,
+      },
+      assignees: task.assignees.map((a) => ({
+        id: a.id,
+        userId: a.user.id,
+        name: a.user.name,
+        avatarUrl: a.user.profile?.avatarUrl ?? null,
+      })),
+    };
   }
 
   async updateTask(

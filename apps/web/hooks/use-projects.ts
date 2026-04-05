@@ -96,7 +96,13 @@ export function useCreateTask() {
       data,
     }: {
       projectId: string;
-      data: { title: string; description?: string; dueDate?: string };
+      data: {
+        title: string;
+        description?: string;
+        dueDate?: string;
+        requestedDate?: string;
+        assigneeIds?: string[];
+      };
     }) => projectsApi.createTask(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });

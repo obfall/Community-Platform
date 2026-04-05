@@ -11,6 +11,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +27,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Users, MessageSquare, CheckSquare, Plus, CalendarDays } from "lucide-react";
 import Link from "next/link";
-import type { ProjectThread, ProjectTask } from "@/lib/api/types";
+import type {
+  ProjectThread,
+  ProjectTask,
+  ProjectMember as ProjectMemberType,
+} from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "未着手",
@@ -181,7 +187,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </TabsContent>
 
         <TabsContent value="tasks" className="pt-4">
-          <TasksTab projectId={id} />
+          <TasksTab projectId={id} members={project.members} />
         </TabsContent>
       </Tabs>
     </div>
@@ -257,43 +263,125 @@ function ThreadsTab({ projectId }: { projectId: string }) {
   );
 }
 
-function TasksTab({ projectId }: { projectId: string }) {
+function TasksTab({ projectId, members }: { projectId: string; members: ProjectMemberType[] }) {
   const { data: tasks } = useProjectTasks(projectId);
   const createTask = useCreateTask();
-  const [title, setTitle] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [requestedDate, setRequestedDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setRequestedDate("");
+    setDueDate("");
+    setSelectedAssignees([]);
+  };
+
+  const handleCreate = () => {
+    createTask.mutate(
+      {
+        projectId,
+        data: {
+          title,
+          description: description || undefined,
+          requestedDate: requestedDate || undefined,
+          dueDate: dueDate || undefined,
+          assigneeIds: selectedAssignees.length > 0 ? selectedAssignees : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setDialogOpen(false);
+          resetForm();
+        },
+      },
+    );
+  };
+
+  const toggleAssignee = (userId: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+    );
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="mr-1 h-3 w-3" />
               タスク追加
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>タスク追加</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>タイトル</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="タスク名"
+                />
+              </div>
+              <div>
+                <Label>概要</Label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="タスクの詳細を入力"
+                />
+              </div>
+              <div>
+                <Label>担当者</Label>
+                <div className="mt-1 max-h-40 space-y-2 overflow-y-auto rounded border p-2">
+                  {members.map((m) => (
+                    <label key={m.userId} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={selectedAssignees.includes(m.userId)}
+                        onCheckedChange={() => toggleAssignee(m.userId)}
+                      />
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-[10px]">{m.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      {m.name}
+                    </label>
+                  ))}
+                  {members.length === 0 && (
+                    <p className="text-xs text-muted-foreground">メンバーがいません</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>依頼日</Label>
+                  <Input
+                    type="date"
+                    value={requestedDate}
+                    onChange={(e) => setRequestedDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>締切日</Label>
+                  <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                </div>
               </div>
               <Button
-                onClick={() => {
-                  createTask.mutate(
-                    { projectId, data: { title } },
-                    {
-                      onSuccess: () => {
-                        setDialogOpen(false);
-                        setTitle("");
-                      },
-                    },
-                  );
-                }}
+                onClick={handleCreate}
                 disabled={!title || createTask.isPending}
                 className="w-full"
               >
@@ -309,16 +397,31 @@ function TasksTab({ projectId }: { projectId: string }) {
         <div className="space-y-2">
           {tasks.map((t: ProjectTask) => (
             <Card key={t.id}>
-              <CardContent className="flex items-center gap-3 py-3">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{t.title}</p>
-                  {t.dueDate && <p className="text-xs text-muted-foreground">期限: {t.dueDate}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${t.progress}%` }} />
+              <CardContent className="py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{t.title}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {t.requestedDate && <span>依頼: {t.requestedDate}</span>}
+                      {t.dueDate && <span>期限: {t.dueDate}</span>}
+                      {t.assignees.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          担当:
+                          {t.assignees.map((a) => (
+                            <Badge key={a.id} variant="outline" className="text-[10px]">
+                              {a.name}
+                            </Badge>
+                          ))}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs text-muted-foreground">{t.progress}%</span>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${t.progress}%` }} />
+                    </div>
+                    <span className="text-xs text-muted-foreground">{t.progress}%</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
