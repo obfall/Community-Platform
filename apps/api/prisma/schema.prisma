@@ -137,6 +137,18 @@ model User {
   eventBoardComments      EventBoardComment[]
   eventFiles              EventFile[]
   eventResults            EventResult[]
+  // Phase 6
+  createdProjects         Project[]                @relation("ProjectCreator")
+  projectMemberships      ProjectMember[]
+  projectThreads          ProjectThread[]
+  projectThreadReplies    ProjectThreadReply[]
+  projectThreadLikes      ProjectThreadLike[]
+  projectFiles            ProjectFile[]
+  projectTasks            ProjectTask[]
+  projectTaskAssignees    ProjectTaskAssignee[]
+  projectBoardPosts       ProjectBoardPost[]
+  projectBoardComments    ProjectBoardComment[]
+  projectBoardLikes       ProjectBoardLike[]
 
   @@index([role])
   @@index([status])
@@ -311,6 +323,9 @@ model Category {
   userInterests UserInterest[]
   // Phase 5
   events Event[]
+  // Phase 6
+  projects        Project[]
+  projectBoardPosts ProjectBoardPost[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -329,6 +344,8 @@ model Tag {
   boardPostTags BoardPostTag[]
   // Phase 5
   eventTags EventTag[]
+  // Phase 6
+  projectTags ProjectTag[]
 
   @@map("tags")
 }
@@ -361,6 +378,11 @@ model File {
   // Phase 5
   eventFiles               EventFile[]
   eventResultAttachments   EventResultAttachment[]
+  // Phase 6
+  projectFiles                   ProjectFile[]
+  projectThreadReplyAttachments  ProjectThreadReplyAttachment[]
+  projectTaskAttachments         ProjectTaskAttachment[]
+  projectBoardPostAttachments    ProjectBoardPostAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -1062,6 +1084,8 @@ model Event {
   boardPosts     EventBoardPost[]
   files          EventFile[]
   result         EventResult?
+  // Phase 6
+  projects       Project[]
 
   @@index([status, startAt])
   @@index([startAt])
@@ -1283,4 +1307,349 @@ model EventDiscountCode {
   @@unique([ticketId, code])
   @@index([code])
   @@map("event_discount_codes")
+}
+
+// ============================================================
+// Phase 6: プロジェクト管理
+// ============================================================
+
+// --- Enums ---
+
+enum ProjectStatus {
+  not_started
+  in_progress
+  completed
+  cancelled
+}
+
+enum ProjectPublishStatus {
+  draft
+  published
+  archived
+}
+
+enum ProjectMemberRole {
+  admin
+  member
+}
+
+enum ProjectMemberStatus {
+  active
+  withdrawn
+  removed
+}
+
+enum ProjectBoardPublishStatus {
+  draft
+  published
+  archived
+}
+
+// --- Models ---
+
+model Project {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String               @db.VarChar(200)
+  description       String?              @db.Text
+  coverImageUrl     String?              @map("cover_image_url") @db.VarChar(500)
+  categoryId        String?              @map("category_id") @db.Uuid
+  eventId           String?              @map("event_id") @db.Uuid
+  startDate         DateTime?            @map("start_date") @db.Date
+  endDate           DateTime?            @map("end_date") @db.Date
+  status            ProjectStatus        @default(not_started)
+  publishStatus     ProjectPublishStatus @default(draft) @map("publish_status")
+  inviteToken       String               @unique @map("invite_token") @db.VarChar(100)
+  inviteLinkEnabled Boolean              @default(false) @map("invite_link_enabled")
+  memberCount       Int                  @default(0) @map("member_count")
+  activityCount     Int                  @default(0) @map("activity_count")
+  createdByUserId   String               @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdByUser User                @relation("ProjectCreator", fields: [createdByUserId], references: [id])
+  category      Category?           @relation(fields: [categoryId], references: [id])
+  event         Event?              @relation(fields: [eventId], references: [id])
+  members       ProjectMember[]
+  threads       ProjectThread[]
+  tags          ProjectTag[]
+  files         ProjectFile[]
+  tasks         ProjectTask[]
+  boardPosts    ProjectBoardPost[]
+
+  @@index([publishStatus, status])
+  @@index([createdByUserId])
+  @@index([eventId])
+  @@index([categoryId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId     String              @map("project_id") @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  role          ProjectMemberRole   @default(member)
+  status        ProjectMemberStatus @default(active)
+  joinedAt      DateTime            @default(now()) @map("joined_at") @db.Timestamptz()
+  removedAt     DateTime?           @map("removed_at") @db.Timestamptz()
+  removedReason String?             @map("removed_reason") @db.Text
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ProjectThread {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String    @map("project_id") @db.Uuid
+  title           String    @db.VarChar(200)
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  isPinned        Boolean   @default(false) @map("is_pinned")
+  replyCount      Int       @default(0) @map("reply_count")
+  likeCount       Int       @default(0) @map("like_count")
+  lastReplyAt     DateTime? @map("last_reply_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  project   Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation(fields: [createdByUserId], references: [id])
+  replies   ProjectThreadReply[]
+  likes     ProjectThreadLike[]  @relation("ThreadLikes")
+
+  @@index([projectId, isPinned(sort: Desc), lastReplyAt(sort: Desc)])
+  @@map("project_threads")
+}
+
+model ProjectThreadReply {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  threadId     String    @map("thread_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String    @db.Text
+  likeCount    Int       @default(0) @map("like_count")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  thread      ProjectThread                  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author      User                           @relation(fields: [authorUserId], references: [id])
+  attachments ProjectThreadReplyAttachment[]
+  likes       ProjectThreadLike[]            @relation("ReplyLikes")
+
+  @@index([threadId, createdAt])
+  @@map("project_thread_replies")
+}
+
+model ProjectThreadReplyAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  replyId   String   @map("reply_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  reply ProjectThreadReply @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  file  File               @relation(fields: [fileId], references: [id])
+
+  @@index([replyId, sortOrder])
+  @@map("project_thread_reply_attachments")
+}
+
+model ProjectThreadLike {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  threadId  String?  @map("thread_id") @db.Uuid
+  replyId   String?  @map("reply_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread ProjectThread?      @relation("ThreadLikes", fields: [threadId], references: [id], onDelete: Cascade)
+  reply  ProjectThreadReply? @relation("ReplyLikes", fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([replyId])
+  @@map("project_thread_likes")
+}
+
+model ProjectTag {
+  projectId String   @map("project_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, tagId])
+  @@index([tagId])
+  @@map("project_tags")
+}
+
+model ProjectFile {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  type             String   @default("file") @db.VarChar(10)
+  name             String?  @db.VarChar(200)
+  parentFolderId   String?  @map("parent_folder_id") @db.Uuid
+  fileId           String?  @map("file_id") @db.Uuid
+  sortOrder        Int      @default(0) @map("sort_order")
+  uploadedByUserId String   @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentFolder ProjectFile? @relation("ProjectFileHierarchy", fields: [parentFolderId], references: [id])
+  children     ProjectFile[] @relation("ProjectFileHierarchy")
+  file         File?        @relation(fields: [fileId], references: [id])
+  uploadedBy   User         @relation(fields: [uploadedByUserId], references: [id])
+
+  @@index([projectId, parentFolderId, sortOrder])
+  @@map("project_files")
+}
+
+model ProjectTask {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String    @map("project_id") @db.Uuid
+  title           String    @db.VarChar(200)
+  description     String?   @db.Text
+  progress        Int       @default(0)
+  requestedDate   DateTime? @map("requested_date") @db.Date
+  dueDate         DateTime? @map("due_date") @db.Date
+  notifyAssignee  Boolean   @default(false) @map("notify_assignee")
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  project     Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User                    @relation(fields: [createdByUserId], references: [id])
+  assignees   ProjectTaskAssignee[]
+  attachments ProjectTaskAttachment[]
+
+  @@index([projectId, sortOrder])
+  @@map("project_tasks")
+}
+
+model ProjectTaskAssignee {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  task ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id])
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@map("project_task_assignees")
+}
+
+model ProjectTaskAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  task ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  file File        @relation(fields: [fileId], references: [id])
+
+  @@index([taskId, sortOrder])
+  @@map("project_task_attachments")
+}
+
+model ProjectBoardPost {
+  id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId     String                   @map("project_id") @db.Uuid
+  categoryId    String?                  @map("category_id") @db.Uuid
+  authorUserId  String                   @map("author_user_id") @db.Uuid
+  language      String?                  @default("ja") @db.VarChar(20)
+  title         String                   @db.VarChar(200)
+  body          String                   @db.Text
+  publishStatus ProjectBoardPublishStatus @default(draft) @map("publish_status")
+  sortOrder     Int                      @default(0) @map("sort_order")
+  isPinned      Boolean                  @default(false) @map("is_pinned")
+  viewCount     Int                      @default(0) @map("view_count")
+  commentCount  Int                      @default(0) @map("comment_count")
+  likeCount     Int                      @default(0) @map("like_count")
+  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime                 @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?                @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  project     Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category    Category?                    @relation(fields: [categoryId], references: [id])
+  author      User                         @relation(fields: [authorUserId], references: [id])
+  attachments ProjectBoardPostAttachment[]
+  comments    ProjectBoardComment[]
+
+  @@index([projectId, publishStatus, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@map("project_board_posts")
+}
+
+model ProjectBoardPostAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  post ProjectBoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file File             @relation(fields: [fileId], references: [id])
+
+  @@index([postId, sortOrder])
+  @@map("project_board_post_attachments")
+}
+
+model ProjectBoardComment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  body            String    @db.Text
+  likeCount       Int       @default(0) @map("like_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  post          ProjectBoardPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                 @relation(fields: [authorUserId], references: [id])
+  parentComment ProjectBoardComment? @relation("ProjectCommentHierarchy", fields: [parentCommentId], references: [id])
+  childComments ProjectBoardComment[] @relation("ProjectCommentHierarchy")
+
+  @@index([postId, createdAt])
+  @@index([parentCommentId])
+  @@index([authorUserId])
+  @@map("project_board_comments")
+}
+
+model ProjectBoardLike {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(30)
+  targetId   String   @map("target_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("project_board_likes")
 }
