@@ -18,8 +18,13 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
+import { EventSidebar } from "./event-sidebar";
 
-export function Header() {
+interface HeaderProps {
+  eventId?: string | null;
+}
+
+export function Header({ eventId }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
@@ -58,7 +63,7 @@ export function Header() {
             <span className="font-bold">Community Platform</span>
           </div>
           <div onClick={() => setMobileOpen(false)}>
-            <Sidebar />
+            {eventId ? <EventSidebar eventId={eventId} /> : <Sidebar />}
           </div>
         </SheetContent>
       </Sheet>

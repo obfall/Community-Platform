@@ -53,14 +53,8 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={`/events/${id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <div>
           <h1 className="text-2xl font-bold">参加者一覧</h1>
-          {event && <p className="text-sm text-muted-foreground">{event.title}</p>}
         </div>
         {meta && (
           <Badge variant="secondary" className="ml-auto">

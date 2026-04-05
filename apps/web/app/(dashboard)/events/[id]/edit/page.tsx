@@ -161,11 +161,6 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={`/events/${id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <h1 className="text-2xl font-bold">イベント編集</h1>
         <div className="ml-auto">
           <AlertDialog>

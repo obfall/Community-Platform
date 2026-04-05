@@ -105,11 +105,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       {/* ヘッダー */}
       <div className="flex items-start gap-4">
-        <Link href="/events">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
             <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
@@ -318,6 +313,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <CardTitle>詳細情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              {event.language && <InfoRow label="使用言語" value={event.language} />}
               {event.accessInfo && <InfoRow label="アクセス" value={event.accessInfo} />}
               {event.participationMethod && (
                 <InfoRow label="参加方法" value={event.participationMethod} />
