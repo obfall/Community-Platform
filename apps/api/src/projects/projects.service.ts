@@ -470,4 +470,125 @@ export class ProjectsService {
       },
     });
   }
+
+  // ========== Board ==========
+
+  async getBoardPosts(projectId: string, query: { page?: number; limit?: number }) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = { projectId, deletedAt: null, publishStatus: "published" as const };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.projectBoardPost.findMany({
+        where,
+        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        skip,
+        take: limit,
+        include: {
+          author: { select: AUTHOR_SELECT },
+          _count: { select: { comments: true } },
+        },
+      }),
+      this.prisma.projectBoardPost.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: posts.map((p) => ({
+        id: p.id,
+        title: p.title,
+        body: p.body,
+        isPinned: p.isPinned,
+        viewCount: p.viewCount,
+        commentCount: p._count.comments,
+        likeCount: p.likeCount,
+        author: {
+          id: p.author.id,
+          name: p.author.name,
+          avatarUrl: p.author.profile?.avatarUrl ?? null,
+        },
+        createdAt: p.createdAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
+  async createBoardPost(projectId: string, userId: string, data: { title: string; body: string }) {
+    const post = await this.prisma.projectBoardPost.create({
+      data: {
+        projectId,
+        title: data.title,
+        body: data.body,
+        authorUserId: userId,
+        publishStatus: "published",
+      },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+
+    return {
+      id: post.id,
+      title: post.title,
+      body: post.body,
+      author: {
+        id: post.author.id,
+        name: post.author.name,
+        avatarUrl: post.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: post.createdAt,
+    };
+  }
+
+  async getBoardComments(postId: string) {
+    const comments = await this.prisma.projectBoardComment.findMany({
+      where: { postId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+
+    return comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      likeCount: c.likeCount,
+      author: {
+        id: c.author.id,
+        name: c.author.name,
+        avatarUrl: c.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: c.createdAt,
+    }));
+  }
+
+  async createBoardComment(postId: string, userId: string, body: string) {
+    const comment = await this.prisma.projectBoardComment.create({
+      data: { postId, authorUserId: userId, body },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+
+    await this.prisma.projectBoardPost.update({
+      where: { id: postId },
+      data: { commentCount: { increment: 1 } },
+    });
+
+    return {
+      id: comment.id,
+      body: comment.body,
+      likeCount: comment.likeCount,
+      author: {
+        id: comment.author.id,
+        name: comment.author.name,
+        avatarUrl: comment.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: comment.createdAt,
+    };
+  }
 }

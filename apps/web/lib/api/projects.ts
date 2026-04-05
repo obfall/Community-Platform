@@ -71,4 +71,16 @@ export const projectsApi = {
 
   updateTask: (taskId: string, data: { title?: string; progress?: number; dueDate?: string }) =>
     apiClient.patch(`/projects/tasks/${taskId}`, data).then((r) => r.data),
+
+  getBoardPosts: (projectId: string, params?: { page?: number; limit?: number }) =>
+    apiClient.get(`/projects/${projectId}/board`, { params }).then((r) => r.data),
+
+  createBoardPost: (projectId: string, data: { title: string; body: string }) =>
+    apiClient.post(`/projects/${projectId}/board`, data).then((r) => r.data),
+
+  getBoardComments: (postId: string) =>
+    apiClient.get(`/projects/board/${postId}/comments`).then((r) => r.data),
+
+  createBoardComment: (postId: string, body: string) =>
+    apiClient.post(`/projects/board/${postId}/comments`, { body }).then((r) => r.data),
 };

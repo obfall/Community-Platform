@@ -171,3 +171,55 @@ export function useUpdateTask() {
     onError: () => toast.error("タスクの更新に失敗しました"),
   });
 }
+
+// ========== Board ==========
+
+export function useProjectBoardPosts(
+  projectId: string | undefined,
+  query?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: ["projects", projectId, "board", query],
+    queryFn: () => projectsApi.getBoardPosts(projectId!, query),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateBoardPost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      data,
+    }: {
+      projectId: string;
+      data: { title: string; body: string };
+    }) => projectsApi.createBoardPost(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("投稿しました");
+    },
+    onError: () => toast.error("投稿に失敗しました"),
+  });
+}
+
+export function useBoardComments(postId: string | undefined) {
+  return useQuery({
+    queryKey: ["projects", "board", postId, "comments"],
+    queryFn: () => projectsApi.getBoardComments(postId!),
+    enabled: !!postId,
+  });
+}
+
+export function useCreateBoardComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, body }: { postId: string; body: string }) =>
+      projectsApi.createBoardComment(postId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("コメントしました");
+    },
+    onError: () => toast.error("コメントに失敗しました"),
+  });
+}

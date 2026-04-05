@@ -11,6 +11,10 @@ import {
   useCreateReply,
   useToggleThreadLike,
   useToggleReplyLike,
+  useProjectBoardPosts,
+  useCreateBoardPost,
+  useBoardComments,
+  useCreateBoardComment,
 } from "@/hooks/use-projects";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -143,6 +147,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <TabsTrigger value="members">メンバー</TabsTrigger>
           <TabsTrigger value="threads">メッセージ</TabsTrigger>
           <TabsTrigger value="tasks">タスク</TabsTrigger>
+          <TabsTrigger value="board">掲示板</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="space-y-4 pt-4">
@@ -205,6 +210,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         <TabsContent value="tasks" className="pt-4">
           <TasksTab projectId={id} members={project.members} />
+        </TabsContent>
+
+        <TabsContent value="board" className="pt-4">
+          <BoardTab projectId={id} />
         </TabsContent>
       </Tabs>
     </div>
@@ -622,6 +631,202 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function BoardTab({ projectId }: { projectId: string }) {
+  const { data } = useProjectBoardPosts(projectId);
+  const createPost = useCreateBoardPost();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [postTitle, setPostTitle] = useState("");
+  const [postBody, setPostBody] = useState("");
+  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+
+  type BoardPostItem = {
+    id: string;
+    title: string;
+    body: string;
+    isPinned: boolean;
+    viewCount: number;
+    commentCount: number;
+    likeCount: number;
+    author: { id: string; name: string; avatarUrl: string | null };
+    createdAt: string;
+  };
+  const posts = (data as { data: BoardPostItem[] } | undefined)?.data ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="mr-1 h-3 w-3" />
+              新規投稿
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>掲示板に投稿</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>タイトル</Label>
+                <Input
+                  value={postTitle}
+                  onChange={(e) => setPostTitle(e.target.value)}
+                  placeholder="タイトル"
+                />
+              </div>
+              <div>
+                <Label>本文</Label>
+                <Textarea
+                  value={postBody}
+                  onChange={(e) => setPostBody(e.target.value)}
+                  rows={5}
+                  placeholder="本文を入力"
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  createPost.mutate(
+                    { projectId, data: { title: postTitle, body: postBody } },
+                    {
+                      onSuccess: () => {
+                        setDialogOpen(false);
+                        setPostTitle("");
+                        setPostBody("");
+                      },
+                    },
+                  );
+                }}
+                disabled={!postTitle || !postBody || createPost.isPending}
+                className="w-full"
+              >
+                投稿
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      {posts.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">投稿がありません</p>
+      ) : (
+        <div className="space-y-3">
+          {posts.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="space-y-2 py-3">
+                <div className="flex items-start gap-3">
+                  <Avatar className="mt-0.5 h-8 w-8 shrink-0">
+                    <AvatarFallback className="text-xs">{p.author.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{p.author.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(p.createdAt).toLocaleString("ja-JP", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {p.isPinned && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          固定
+                        </Badge>
+                      )}
+                    </div>
+                    <h4 className="mt-1 text-sm font-semibold">{p.title}</h4>
+                    <div className="mt-1 text-sm text-muted-foreground line-clamp-3">{p.body}</div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Heart className="h-3.5 w-3.5" />
+                        {p.likeCount}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPost(expandedPost === p.id ? null : p.id)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {p.commentCount > 0 ? `${p.commentCount}件のコメント` : "コメント"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {expandedPost === p.id && <BoardCommentsSection postId={p.id} />}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BoardCommentsSection({ postId }: { postId: string }) {
+  const { data: comments } = useBoardComments(postId);
+  const createComment = useCreateBoardComment();
+  const [body, setBody] = useState("");
+
+  type CommentItem = {
+    id: string;
+    body: string;
+    likeCount: number;
+    author: { id: string; name: string; avatarUrl: string | null };
+    createdAt: string;
+  };
+
+  return (
+    <div className="ml-11 space-y-3 border-l-2 pl-4">
+      {(comments as CommentItem[] | undefined)?.map((c) => (
+        <div key={c.id} className="flex items-start gap-2">
+          <Avatar className="mt-0.5 h-6 w-6 shrink-0">
+            <AvatarFallback className="text-[10px]">{c.author.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{c.author.name}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(c.createdAt).toLocaleString("ja-JP", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm">{c.body}</p>
+          </div>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <Input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && body.trim()) {
+              createComment.mutate({ postId, body: body.trim() }, { onSuccess: () => setBody("") });
+            }
+          }}
+          placeholder="コメントを入力..."
+          className="h-8 text-sm"
+        />
+        <Button
+          size="sm"
+          onClick={() => {
+            if (body.trim()) {
+              createComment.mutate({ postId, body: body.trim() }, { onSuccess: () => setBody("") });
+            }
+          }}
+          disabled={!body.trim() || createComment.isPending}
+          className="h-8"
+        >
+          投稿
+        </Button>
+      </div>
     </div>
   );
 }

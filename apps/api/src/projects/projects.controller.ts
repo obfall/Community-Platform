@@ -171,4 +171,38 @@ export class ProjectsController {
   ) {
     return this.service.updateTask(taskId, data);
   }
+
+  // ========== Board ==========
+
+  @Get(":id/board")
+  @ApiOperation({ summary: "掲示板投稿一覧" })
+  getBoardPosts(@Param("id", ParseUUIDPipe) projectId: string, @Query() query: PaginationQueryDto) {
+    return this.service.getBoardPosts(projectId, query);
+  }
+
+  @Post(":id/board")
+  @ApiOperation({ summary: "掲示板投稿作成" })
+  createBoardPost(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @CurrentUser("id") userId: string,
+    @Body() data: { title: string; body: string },
+  ) {
+    return this.service.createBoardPost(projectId, userId, data);
+  }
+
+  @Get("board/:postId/comments")
+  @ApiOperation({ summary: "掲示板コメント一覧" })
+  getBoardComments(@Param("postId", ParseUUIDPipe) postId: string) {
+    return this.service.getBoardComments(postId);
+  }
+
+  @Post("board/:postId/comments")
+  @ApiOperation({ summary: "掲示板コメント作成" })
+  createBoardComment(
+    @Param("postId", ParseUUIDPipe) postId: string,
+    @CurrentUser("id") userId: string,
+    @Body("body") body: string,
+  ) {
+    return this.service.createBoardComment(postId, userId, body);
+  }
 }
