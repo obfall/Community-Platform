@@ -69,6 +69,7 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
 
       {displayUrl ? (
         <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={displayUrl} alt="カバー画像" className="h-48 w-full rounded-lg object-cover" />
           {upload.isPending && (
             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">

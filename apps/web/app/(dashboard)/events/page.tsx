@@ -124,6 +124,7 @@ export default function EventsPage() {
               <Card className="h-full transition-shadow hover:shadow-md">
                 {event.coverImageUrl && (
                   <div className="h-40 overflow-hidden rounded-t-lg bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={event.coverImageUrl}
                       alt={event.title}

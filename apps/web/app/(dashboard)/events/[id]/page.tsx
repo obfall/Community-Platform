@@ -2,12 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import {
-  useEvent,
-  useParticipate,
-  useCancelParticipation,
-  useCreateTicket,
-} from "@/hooks/use-events";
+import { useEvent, useParticipate, useCreateTicket } from "@/hooks/use-events";
 import { eventsApi } from "@/lib/api/events";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
   CalendarDays,
   MapPin,
   Monitor,
@@ -88,7 +82,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id);
   const participate = useParticipate();
-  const cancelParticipation = useCancelParticipation();
 
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -160,6 +153,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* カバー画像 */}
       {event.coverImageUrl && (
         <div className="h-64 overflow-hidden rounded-lg bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={event.coverImageUrl} alt={event.title} className="h-full w-full object-cover" />
         </div>
       )}

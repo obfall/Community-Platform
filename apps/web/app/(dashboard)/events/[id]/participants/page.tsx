@@ -1,8 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import Link from "next/link";
-import { useEvent, useEventParticipants, useUpdateParticipantStatus } from "@/hooks/use-events";
+import { useEventParticipants, useUpdateParticipantStatus } from "@/hooks/use-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+
 import type { EventParticipant } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,7 +41,6 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
 
 export default function ParticipantsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: event } = useEvent(id);
   const [page, setPage] = useState(1);
   const { data, isLoading } = useEventParticipants(id, { page, limit: 50 });
   const updateStatus = useUpdateParticipantStatus();
