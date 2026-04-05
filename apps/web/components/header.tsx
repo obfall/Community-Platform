@@ -19,12 +19,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
 import { EventSidebar } from "./event-sidebar";
+import { ProjectSidebar } from "./project-sidebar";
 
 interface HeaderProps {
   eventId?: string | null;
+  projectId?: string | null;
 }
 
-export function Header({ eventId }: HeaderProps) {
+export function Header({ eventId, projectId }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
@@ -63,7 +65,13 @@ export function Header({ eventId }: HeaderProps) {
             <span className="font-bold">Community Platform</span>
           </div>
           <div onClick={() => setMobileOpen(false)}>
-            {eventId ? <EventSidebar eventId={eventId} /> : <Sidebar />}
+            {eventId ? (
+              <EventSidebar eventId={eventId} />
+            ) : projectId ? (
+              <ProjectSidebar projectId={projectId} />
+            ) : (
+              <Sidebar />
+            )}
           </div>
         </SheetContent>
       </Sheet>
