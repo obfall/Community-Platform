@@ -89,22 +89,60 @@ export class ProjectsController {
     return this.service.removeMember(projectId, userId);
   }
 
-  // ========== Threads ==========
+  // ========== Messages (Threads) ==========
 
   @Get(":id/threads")
-  @ApiOperation({ summary: "スレッド一覧" })
+  @ApiOperation({ summary: "メッセージ一覧" })
   getThreads(@Param("id", ParseUUIDPipe) projectId: string, @Query() query: PaginationQueryDto) {
     return this.service.getThreads(projectId, query);
   }
 
   @Post(":id/threads")
-  @ApiOperation({ summary: "スレッド作成" })
+  @ApiOperation({ summary: "メッセージ作成" })
   createThread(
     @Param("id", ParseUUIDPipe) projectId: string,
     @CurrentUser("id") userId: string,
     @Body("title") title: string,
   ) {
     return this.service.createThread(projectId, userId, title);
+  }
+
+  // ========== Replies ==========
+
+  @Get("threads/:threadId/replies")
+  @ApiOperation({ summary: "返信一覧" })
+  getReplies(@Param("threadId", ParseUUIDPipe) threadId: string) {
+    return this.service.getReplies(threadId);
+  }
+
+  @Post("threads/:threadId/replies")
+  @ApiOperation({ summary: "返信作成" })
+  createReply(
+    @Param("threadId", ParseUUIDPipe) threadId: string,
+    @CurrentUser("id") userId: string,
+    @Body("body") body: string,
+  ) {
+    return this.service.createReply(threadId, userId, body);
+  }
+
+  // ========== Likes ==========
+
+  @Post("threads/:threadId/like")
+  @ApiOperation({ summary: "メッセージいいね切替" })
+  toggleThreadLike(
+    @Param("threadId", ParseUUIDPipe) threadId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.toggleThreadLike(threadId, userId);
+  }
+
+  @Post("replies/:replyId/like")
+  @ApiOperation({ summary: "返信いいね切替" })
+  toggleReplyLike(
+    @Param("replyId", ParseUUIDPipe) replyId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.toggleReplyLike(replyId, userId);
   }
 
   // ========== Tasks ==========

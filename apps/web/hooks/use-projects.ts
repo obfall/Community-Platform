@@ -82,9 +82,50 @@ export function useCreateThread() {
       projectsApi.createThread(projectId, title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("スレッドを作成しました");
+      toast.success("メッセージを作成しました");
     },
-    onError: () => toast.error("スレッドの作成に失敗しました"),
+    onError: () => toast.error("メッセージの作成に失敗しました"),
+  });
+}
+
+export function useThreadReplies(threadId: string | undefined) {
+  return useQuery({
+    queryKey: ["projects", "threads", threadId, "replies"],
+    queryFn: () => projectsApi.getReplies(threadId!),
+    enabled: !!threadId,
+  });
+}
+
+export function useCreateReply() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ threadId, body }: { threadId: string; body: string }) =>
+      projectsApi.createReply(threadId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("返信しました");
+    },
+    onError: () => toast.error("返信に失敗しました"),
+  });
+}
+
+export function useToggleThreadLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (threadId: string) => projectsApi.toggleThreadLike(threadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+}
+
+export function useToggleReplyLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (replyId: string) => projectsApi.toggleReplyLike(replyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
 }
 

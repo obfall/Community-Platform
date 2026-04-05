@@ -42,6 +42,18 @@ export const projectsApi = {
   createThread: (projectId: string, title: string) =>
     apiClient.post(`/projects/${projectId}/threads`, { title }).then((r) => r.data),
 
+  getReplies: (threadId: string) =>
+    apiClient.get(`/projects/threads/${threadId}/replies`).then((r) => r.data),
+
+  createReply: (threadId: string, body: string) =>
+    apiClient.post(`/projects/threads/${threadId}/replies`, { body }).then((r) => r.data),
+
+  toggleThreadLike: (threadId: string) =>
+    apiClient.post<{ liked: boolean }>(`/projects/threads/${threadId}/like`).then((r) => r.data),
+
+  toggleReplyLike: (replyId: string) =>
+    apiClient.post<{ liked: boolean }>(`/projects/replies/${replyId}/like`).then((r) => r.data),
+
   getTasks: (projectId: string) =>
     apiClient.get<ProjectTask[]>(`/projects/${projectId}/tasks`).then((r) => r.data),
 

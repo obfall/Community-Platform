@@ -272,9 +272,116 @@ export class ProjectsService {
   }
 
   async createThread(projectId: string, userId: string, title: string) {
-    return this.prisma.projectThread.create({
+    const thread = await this.prisma.projectThread.create({
       data: { projectId, title, createdByUserId: userId },
+      include: { createdBy: { select: AUTHOR_SELECT } },
     });
+    return {
+      ...thread,
+      createdBy: {
+        id: thread.createdBy.id,
+        name: thread.createdBy.name,
+        avatarUrl: thread.createdBy.profile?.avatarUrl ?? null,
+      },
+    };
+  }
+
+  // ========== Replies ==========
+
+  async getReplies(threadId: string) {
+    const replies = await this.prisma.projectThreadReply.findMany({
+      where: { threadId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+    return replies.map((r) => ({
+      id: r.id,
+      threadId: r.threadId,
+      body: r.body,
+      likeCount: r.likeCount,
+      author: {
+        id: r.author.id,
+        name: r.author.name,
+        avatarUrl: r.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async createReply(threadId: string, userId: string, body: string) {
+    const reply = await this.prisma.projectThreadReply.create({
+      data: { threadId, authorUserId: userId, body },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+
+    // replyCount と lastReplyAt を更新
+    await this.prisma.projectThread.update({
+      where: { id: threadId },
+      data: { replyCount: { increment: 1 }, lastReplyAt: new Date() },
+    });
+
+    return {
+      id: reply.id,
+      threadId: reply.threadId,
+      body: reply.body,
+      likeCount: reply.likeCount,
+      author: {
+        id: reply.author.id,
+        name: reply.author.name,
+        avatarUrl: reply.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: reply.createdAt,
+    };
+  }
+
+  // ========== Likes ==========
+
+  async toggleThreadLike(threadId: string, userId: string) {
+    const existing = await this.prisma.projectThreadLike.findFirst({
+      where: { userId, threadId },
+    });
+
+    if (existing) {
+      await this.prisma.projectThreadLike.delete({ where: { id: existing.id } });
+      await this.prisma.projectThread.update({
+        where: { id: threadId },
+        data: { likeCount: { decrement: 1 } },
+      });
+      return { liked: false };
+    }
+
+    await this.prisma.projectThreadLike.create({
+      data: { userId, threadId },
+    });
+    await this.prisma.projectThread.update({
+      where: { id: threadId },
+      data: { likeCount: { increment: 1 } },
+    });
+    return { liked: true };
+  }
+
+  async toggleReplyLike(replyId: string, userId: string) {
+    const existing = await this.prisma.projectThreadLike.findFirst({
+      where: { userId, replyId },
+    });
+
+    if (existing) {
+      await this.prisma.projectThreadLike.delete({ where: { id: existing.id } });
+      await this.prisma.projectThreadReply.update({
+        where: { id: replyId },
+        data: { likeCount: { decrement: 1 } },
+      });
+      return { liked: false };
+    }
+
+    await this.prisma.projectThreadLike.create({
+      data: { userId, replyId },
+    });
+    await this.prisma.projectThreadReply.update({
+      where: { id: replyId },
+      data: { likeCount: { increment: 1 } },
+    });
+    return { liked: true };
   }
 
   // ========== Tasks ==========
