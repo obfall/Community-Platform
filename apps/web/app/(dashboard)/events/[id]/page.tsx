@@ -35,6 +35,7 @@ import {
   Clock,
   Plus,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import type { EventTicket as EventTicketType } from "@/lib/api/types";
 
@@ -87,12 +88,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <Link href={`/events/${id}/participants`}>
-              <Button variant="outline">
-                <Users className="mr-2 h-4 w-4" />
-                参加者一覧
-              </Button>
-            </Link>
+            <>
+              <Link href={`/events/${id}/edit`}>
+                <Button variant="outline">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  編集
+                </Button>
+              </Link>
+              <Link href={`/events/${id}/participants`}>
+                <Button variant="outline">
+                  <Users className="mr-2 h-4 w-4" />
+                  参加者一覧
+                </Button>
+              </Link>
+            </>
           )}
           {event.status === "recruiting" && (
             <Button
