@@ -129,6 +129,14 @@ model User {
   mailRecipients          MailMessageRecipient[]    @relation("MailRecipient")
   // Phase 4
   attributeValues         MemberAttributeValue[]
+  // Phase 5
+  createdEvents           Event[]              @relation("EventCreator")
+  eventParticipations     EventParticipant[]
+  eventSpeakerProfiles    EventSpeaker[]
+  eventBoardPosts         EventBoardPost[]
+  eventBoardComments      EventBoardComment[]
+  eventFiles              EventFile[]
+  eventResults            EventResult[]
 
   @@index([role])
   @@index([status])
@@ -240,6 +248,8 @@ model MemberRank {
   categories         Category[]
   // Phase 2
   boardPosts BoardPost[]
+  // Phase 5
+  events Event[]
 
   @@index([sortOrder])
   @@map("member_ranks")
@@ -299,6 +309,8 @@ model Category {
   children      Category[]     @relation("CategoryHierarchy")
   requiredRank  MemberRank?    @relation(fields: [requiredRankId], references: [id])
   userInterests UserInterest[]
+  // Phase 5
+  events Event[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -315,6 +327,8 @@ model Tag {
 
   // Phase 2
   boardPostTags BoardPostTag[]
+  // Phase 5
+  eventTags EventTag[]
 
   @@map("tags")
 }
@@ -344,6 +358,9 @@ model File {
   // Phase 3
   chatMessages             ChatMessage[]
   mailMessageAttachments   MailMessageAttachment[]
+  // Phase 5
+  eventFiles               EventFile[]
+  eventResultAttachments   EventResultAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -957,4 +974,313 @@ model MemberAttributeValue {
   @@unique([userId, attributeId])
   @@index([attributeId])
   @@map("member_attribute_values")
+}
+
+// ============================================================
+// Phase 5: イベント
+// ============================================================
+
+// --- Enums ---
+
+enum EventLocationType {
+  venue
+  online
+  hybrid
+}
+
+enum EventStatus {
+  draft
+  recruiting
+  closed
+  canceled
+  ended
+}
+
+enum ParticipantStatus {
+  applied
+  confirmed
+  canceled
+  attended
+  no_show
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  canceled
+}
+
+enum EventResultStatus {
+  draft
+  completed
+}
+
+// --- Models ---
+
+model Event {
+  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                    String           @db.VarChar(200)
+  description              String?          @db.Text
+  locationType             EventLocationType @default(venue) @map("location_type")
+  venueName                String?          @map("venue_name") @db.VarChar(300)
+  venueAddress             String?          @map("venue_address") @db.VarChar(500)
+  onlineUrl                String?          @map("online_url") @db.VarChar(500)
+  startAt                  DateTime         @map("start_at") @db.Timestamptz()
+  endAt                    DateTime         @map("end_at") @db.Timestamptz()
+  registrationDeadlineAt   DateTime?        @map("registration_deadline_at") @db.Timestamptz()
+  ticketSaleStartAt        DateTime?        @map("ticket_sale_start_at") @db.Timestamptz()
+  allowMultiTicketPurchase Boolean          @default(false) @map("allow_multi_ticket_purchase")
+  acceptedPaymentMethods   Json?            @map("accepted_payment_methods") @db.JsonB
+  planningRole             String           @default("主催") @map("planning_role") @db.VarChar(30)
+  eventType                String?          @map("event_type") @db.VarChar(30)
+  categoryId               String?          @map("category_id") @db.Uuid
+  accessInfo               String?          @map("access_info") @db.Text
+  participationMethod      String?          @map("participation_method") @db.Text
+  contactInfo              String?          @map("contact_info") @db.Text
+  cancellationPolicy       String?          @map("cancellation_policy") @db.Text
+  language                 String?          @default("ja") @db.VarChar(20)
+  isAttendeeVisible        Boolean          @default(false) @map("is_attendee_visible")
+  status                   EventStatus      @default(draft)
+  coverImageUrl            String?          @map("cover_image_url") @db.VarChar(500)
+  createdByUserId          String           @map("created_by_user_id") @db.Uuid
+  requiredRankId           String?          @map("required_rank_id") @db.Uuid
+  participantCount         Int              @default(0) @map("participant_count")
+  isCalendarVisible        Boolean          @default(true) @map("is_calendar_visible")
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt                DateTime?        @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdByUser  User                @relation("EventCreator", fields: [createdByUserId], references: [id])
+  category       Category?           @relation(fields: [categoryId], references: [id])
+  requiredRank   MemberRank?         @relation(fields: [requiredRankId], references: [id])
+  tickets        EventTicket[]
+  participants   EventParticipant[]
+  speakers       EventSpeaker[]
+  organizations  EventOrganization[]
+  tags           EventTag[]
+  boardPosts     EventBoardPost[]
+  files          EventFile[]
+  result         EventResult?
+
+  @@index([status, startAt])
+  @@index([startAt])
+  @@index([createdByUserId])
+  @@index([categoryId])
+  @@map("events")
+}
+
+model EventTicket {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId       String   @map("event_id") @db.Uuid
+  ticketName    String   @map("ticket_name") @db.VarChar(100)
+  price         Int      @default(0)
+  currency      String   @default("JPY") @db.VarChar(3)
+  capacity      Int?
+  purchaseLimit Int      @default(1) @map("purchase_limit")
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  soldCount     Int      @default(0) @map("sold_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  event         Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participants  EventParticipant[]
+  discountCodes EventDiscountCode[]
+
+  @@index([eventId, sortOrder])
+  @@map("event_tickets")
+}
+
+model EventParticipant {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId        String             @map("event_id") @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  ticketId       String?            @map("ticket_id") @db.Uuid
+  quantity       Int                @default(1)
+  status         ParticipantStatus  @default(applied)
+  paymentStatus  PaymentStatus?     @map("payment_status")
+  paymentMethod  String?            @map("payment_method") @db.VarChar(30)
+  discountCodeId String?            @map("discount_code_id") @db.Uuid
+  appliedAt      DateTime           @default(now()) @map("applied_at") @db.Timestamptz()
+  canceledAt     DateTime?          @map("canceled_at") @db.Timestamptz()
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id])
+  ticket       EventTicket?       @relation(fields: [ticketId], references: [id])
+  discountCode EventDiscountCode? @relation(fields: [discountCodeId], references: [id])
+
+  @@unique([eventId, userId, ticketId])
+  @@index([userId])
+  @@index([eventId, status])
+  @@map("event_participants")
+}
+
+model EventSpeaker {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId   String   @map("event_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  name      String   @db.VarChar(100)
+  title     String?  @db.VarChar(100)
+  role      String   @db.VarChar(30)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@index([eventId, sortOrder])
+  @@map("event_speakers")
+}
+
+model EventOrganization {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId          String   @map("event_id") @db.Uuid
+  organizationName String   @map("organization_name") @db.VarChar(200)
+  role             String   @db.VarChar(30)
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, sortOrder])
+  @@map("event_organizations")
+}
+
+model EventTag {
+  eventId String @map("event_id") @db.Uuid
+  tagId   String @map("tag_id") @db.Uuid
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, tagId])
+  @@index([tagId])
+  @@map("event_tags")
+}
+
+model EventBoardPost {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId      String    @map("event_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String    @db.Text
+  likeCount    Int       @default(0) @map("like_count")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  event    Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author   User               @relation(fields: [authorUserId], references: [id])
+  comments EventBoardComment[]
+
+  @@index([eventId, createdAt(sort: Desc)])
+  @@map("event_board_posts")
+}
+
+model EventBoardComment {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId       String    @map("post_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String    @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  post   EventBoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User           @relation(fields: [authorUserId], references: [id])
+
+  @@index([postId, createdAt])
+  @@map("event_board_comments")
+}
+
+model EventFile {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId          String    @map("event_id") @db.Uuid
+  type             String    @default("file") @db.VarChar(10)
+  name             String?   @db.VarChar(200)
+  parentFolderId   String?   @map("parent_folder_id") @db.Uuid
+  fileId           String?   @map("file_id") @db.Uuid
+  sortOrder        Int       @default(0) @map("sort_order")
+  uploadedByUserId String    @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parentFolder EventFile? @relation("EventFileHierarchy", fields: [parentFolderId], references: [id])
+  children     EventFile[] @relation("EventFileHierarchy")
+  file         File?      @relation(fields: [fileId], references: [id])
+  uploadedBy   User       @relation(fields: [uploadedByUserId], references: [id])
+
+  @@index([eventId, parentFolderId, sortOrder])
+  @@map("event_files")
+}
+
+model EventResult {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId          String            @unique @map("event_id") @db.Uuid
+  attendanceCount  Int               @default(0) @map("attendance_count")
+  attendanceRate   Decimal?          @map("attendance_rate") @db.Decimal(5, 2)
+  achievementNotes String?           @map("achievement_notes") @db.Text
+  summary          String?           @db.Text
+  improvementNotes String?           @map("improvement_notes") @db.Text
+  status           EventResultStatus @default(draft)
+  publishStatus    PublicStatus      @default(private) @map("publish_status")
+  createdByUserId  String            @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  event       Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy   User                    @relation(fields: [createdByUserId], references: [id])
+  attachments EventResultAttachment[]
+
+  @@index([publishStatus])
+  @@map("event_results")
+}
+
+model EventResultAttachment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventResultId String   @map("event_result_id") @db.Uuid
+  fileId        String   @map("file_id") @db.Uuid
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  eventResult EventResult @relation(fields: [eventResultId], references: [id], onDelete: Cascade)
+  file        File        @relation(fields: [fileId], references: [id])
+
+  @@index([eventResultId, sortOrder])
+  @@map("event_result_attachments")
+}
+
+model EventDiscountCode {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId        String    @map("ticket_id") @db.Uuid
+  code            String    @db.VarChar(50)
+  discountedPrice Int       @map("discounted_price")
+  usageLimit      Int?      @map("usage_limit")
+  usedCount       Int       @default(0) @map("used_count")
+  isActive        Boolean   @default(true) @map("is_active")
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  ticket       EventTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  participants EventParticipant[]
+
+  @@unique([ticketId, code])
+  @@index([code])
+  @@map("event_discount_codes")
 }

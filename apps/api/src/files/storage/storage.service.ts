@@ -13,8 +13,19 @@ export class StorageService {
     const accountId = config.get<string>("CLOUDFLARE_ACCOUNT_ID");
     const accessKeyId = config.get<string>("R2_ACCESS_KEY_ID");
     const secretAccessKey = config.get<string>("R2_SECRET_ACCESS_KEY");
+    const s3Endpoint = config.get<string>("S3_ENDPOINT");
 
-    if (accountId && accessKeyId && secretAccessKey) {
+    if (s3Endpoint && accessKeyId && secretAccessKey) {
+      // MinIO またはカスタム S3 互換ストレージ
+      this.client = new S3Client({
+        region: "auto",
+        endpoint: s3Endpoint,
+        credentials: { accessKeyId, secretAccessKey },
+        forcePathStyle: true,
+      });
+      this.logger.log(`S3-compatible storage initialized (${s3Endpoint})`);
+    } else if (accountId && accessKeyId && secretAccessKey) {
+      // Cloudflare R2
       this.client = new S3Client({
         region: "auto",
         endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
@@ -22,7 +33,7 @@ export class StorageService {
       });
       this.logger.log("R2 storage client initialized");
     } else {
-      this.logger.warn("R2 credentials not configured — file upload will be unavailable");
+      this.logger.warn("Storage credentials not configured — file upload will be unavailable");
     }
 
     this.bucket = config.get<string>("R2_BUCKET_NAME") ?? "community-files";
