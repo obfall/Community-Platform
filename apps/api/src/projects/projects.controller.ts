@@ -172,37 +172,75 @@ export class ProjectsController {
     return this.service.updateTask(taskId, data);
   }
 
-  // ========== Board ==========
+  // ========== Board（Phase 2 と同じ構造） ==========
 
-  @Get(":id/board")
-  @ApiOperation({ summary: "掲示板投稿一覧" })
-  getBoardPosts(@Param("id", ParseUUIDPipe) projectId: string, @Query() query: PaginationQueryDto) {
-    return this.service.getBoardPosts(projectId, query);
+  @Get(":id/board/topics")
+  @ApiOperation({ summary: "掲示板トピック一覧" })
+  getBoardTopics(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Query() query: PaginationQueryDto & { categoryId?: string },
+  ) {
+    return this.service.getBoardTopics(projectId, query);
   }
 
-  @Post(":id/board")
-  @ApiOperation({ summary: "掲示板投稿作成" })
-  createBoardPost(
+  @Get("board/topics/:topicId")
+  @ApiOperation({ summary: "掲示板トピック詳細" })
+  getBoardTopic(@Param("topicId", ParseUUIDPipe) topicId: string) {
+    return this.service.getBoardTopic(topicId);
+  }
+
+  @Post(":id/board/topics")
+  @ApiOperation({ summary: "掲示板トピック作成" })
+  createBoardTopic(
     @Param("id", ParseUUIDPipe) projectId: string,
     @CurrentUser("id") userId: string,
-    @Body() data: { title: string; body: string },
+    @Body() data: { title: string; body: string; categoryId?: string; publishStatus?: string },
   ) {
-    return this.service.createBoardPost(projectId, userId, data);
+    return this.service.createBoardTopic(projectId, userId, data);
   }
 
-  @Get("board/:postId/comments")
-  @ApiOperation({ summary: "掲示板コメント一覧" })
-  getBoardComments(@Param("postId", ParseUUIDPipe) postId: string) {
-    return this.service.getBoardComments(postId);
+  @Delete("board/topics/:topicId")
+  @ApiOperation({ summary: "掲示板トピック削除" })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteBoardTopic(@Param("topicId", ParseUUIDPipe) topicId: string) {
+    return this.service.deleteBoardTopic(topicId);
   }
 
-  @Post("board/:postId/comments")
-  @ApiOperation({ summary: "掲示板コメント作成" })
-  createBoardComment(
+  @Get("board/topics/:topicId/posts")
+  @ApiOperation({ summary: "トピック内投稿一覧（コメント含む）" })
+  getBoardPosts(
+    @Param("topicId", ParseUUIDPipe) topicId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.service.getBoardPosts(topicId, query);
+  }
+
+  @Post("board/topics/:topicId/posts")
+  @ApiOperation({ summary: "トピック内投稿作成" })
+  createBoardPost(
+    @Param("topicId", ParseUUIDPipe) topicId: string,
+    @CurrentUser("id") userId: string,
+    @Body("body") body: string,
+  ) {
+    return this.service.createBoardPost(topicId, userId, body);
+  }
+
+  @Post("board/posts/:postId/replies")
+  @ApiOperation({ summary: "投稿への返信" })
+  createBoardReply(
     @Param("postId", ParseUUIDPipe) postId: string,
     @CurrentUser("id") userId: string,
     @Body("body") body: string,
   ) {
-    return this.service.createBoardComment(postId, userId, body);
+    return this.service.createBoardReply(postId, userId, body);
+  }
+
+  @Post("board/like")
+  @ApiOperation({ summary: "掲示板いいね切替" })
+  toggleBoardLike(
+    @CurrentUser("id") userId: string,
+    @Body() data: { targetType: string; targetId: string },
+  ) {
+    return this.service.toggleBoardLike(data.targetType, data.targetId, userId);
   }
 }

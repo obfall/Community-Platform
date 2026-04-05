@@ -471,23 +471,33 @@ export class ProjectsService {
     });
   }
 
-  // ========== Board ==========
+  // ========== Board（Phase 2 掲示板と同じ構造） ==========
 
-  async getBoardPosts(projectId: string, query: { page?: number; limit?: number }) {
+  /** トピック一覧（カテゴリでフィルタ可） */
+  async getBoardTopics(
+    projectId: string,
+    query: { page?: number; limit?: number; categoryId?: string },
+  ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where = { projectId, deletedAt: null, publishStatus: "published" as const };
+    const where: Record<string, unknown> = {
+      projectId,
+      deletedAt: null,
+      publishStatus: "published",
+    };
+    if (query.categoryId) where.categoryId = query.categoryId;
 
-    const [posts, total] = await Promise.all([
+    const [topics, total] = await Promise.all([
       this.prisma.projectBoardPost.findMany({
         where,
-        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
+        orderBy: [{ isPinned: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
         skip,
         take: limit,
         include: {
           author: { select: AUTHOR_SELECT },
+          category: { select: { id: true, name: true } },
           _count: { select: { comments: true } },
         },
       }),
@@ -497,19 +507,159 @@ export class ProjectsService {
     const totalPages = Math.ceil(total / limit);
 
     return {
+      data: topics.map((t) => ({
+        id: t.id,
+        title: t.title,
+        body: t.body,
+        publishStatus: t.publishStatus,
+        isPinned: t.isPinned,
+        viewCount: t.viewCount,
+        commentCount: t._count.comments,
+        likeCount: t.likeCount,
+        category: t.category,
+        author: {
+          id: t.author.id,
+          name: t.author.name,
+          avatarUrl: t.author.profile?.avatarUrl ?? null,
+        },
+        createdAt: t.createdAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
+  /** トピック詳細 */
+  async getBoardTopic(topicId: string) {
+    const topic = await this.prisma.projectBoardPost.findUnique({
+      where: { id: topicId },
+      include: {
+        author: { select: AUTHOR_SELECT },
+        category: { select: { id: true, name: true } },
+        _count: { select: { comments: true } },
+      },
+    });
+    if (!topic || topic.deletedAt) throw new NotFoundException("トピックが見つかりません");
+
+    // 閲覧数を更新
+    await this.prisma.projectBoardPost.update({
+      where: { id: topicId },
+      data: { viewCount: { increment: 1 } },
+    });
+
+    return {
+      id: topic.id,
+      title: topic.title,
+      body: topic.body,
+      publishStatus: topic.publishStatus,
+      isPinned: topic.isPinned,
+      viewCount: topic.viewCount + 1,
+      commentCount: topic._count.comments,
+      likeCount: topic.likeCount,
+      category: topic.category,
+      author: {
+        id: topic.author.id,
+        name: topic.author.name,
+        avatarUrl: topic.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: topic.createdAt,
+      updatedAt: topic.updatedAt,
+    };
+  }
+
+  /** トピック作成 */
+  async createBoardTopic(
+    projectId: string,
+    userId: string,
+    data: { title: string; body: string; categoryId?: string; publishStatus?: string },
+  ) {
+    const topic = await this.prisma.projectBoardPost.create({
+      data: {
+        projectId,
+        title: data.title,
+        body: data.body,
+        categoryId: data.categoryId,
+        authorUserId: userId,
+        publishStatus: (data.publishStatus as "draft" | "published") ?? "published",
+      },
+      include: { author: { select: AUTHOR_SELECT } },
+    });
+    return {
+      id: topic.id,
+      title: topic.title,
+      body: topic.body,
+      author: {
+        id: topic.author.id,
+        name: topic.author.name,
+        avatarUrl: topic.author.profile?.avatarUrl ?? null,
+      },
+      createdAt: topic.createdAt,
+    };
+  }
+
+  /** トピック削除 */
+  async deleteBoardTopic(topicId: string) {
+    await this.prisma.projectBoardPost.update({
+      where: { id: topicId },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  /** 投稿（コメント）一覧 — トピック内の投稿 */
+  async getBoardPosts(topicId: string, query: { page?: number; limit?: number }) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where = { postId: topicId, deletedAt: null, parentCommentId: null as string | null };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.projectBoardComment.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        skip,
+        take: limit,
+        include: {
+          author: { select: AUTHOR_SELECT },
+          childComments: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: AUTHOR_SELECT } },
+          },
+        },
+      }),
+      this.prisma.projectBoardComment.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
       data: posts.map((p) => ({
         id: p.id,
-        title: p.title,
         body: p.body,
-        isPinned: p.isPinned,
-        viewCount: p.viewCount,
-        commentCount: p._count.comments,
         likeCount: p.likeCount,
         author: {
           id: p.author.id,
           name: p.author.name,
           avatarUrl: p.author.profile?.avatarUrl ?? null,
         },
+        childComments: p.childComments.map((c) => ({
+          id: c.id,
+          body: c.body,
+          likeCount: c.likeCount,
+          author: {
+            id: c.author.id,
+            name: c.author.name,
+            avatarUrl: c.author.profile?.avatarUrl ?? null,
+          },
+          createdAt: c.createdAt,
+        })),
         createdAt: p.createdAt,
       })),
       meta: {
@@ -523,22 +673,20 @@ export class ProjectsService {
     };
   }
 
-  async createBoardPost(projectId: string, userId: string, data: { title: string; body: string }) {
-    const post = await this.prisma.projectBoardPost.create({
-      data: {
-        projectId,
-        title: data.title,
-        body: data.body,
-        authorUserId: userId,
-        publishStatus: "published",
-      },
+  /** 投稿作成（トピック内） */
+  async createBoardPost(topicId: string, userId: string, body: string) {
+    const post = await this.prisma.projectBoardComment.create({
+      data: { postId: topicId, authorUserId: userId, body },
       include: { author: { select: AUTHOR_SELECT } },
     });
-
+    await this.prisma.projectBoardPost.update({
+      where: { id: topicId },
+      data: { commentCount: { increment: 1 } },
+    });
     return {
       id: post.id,
-      title: post.title,
       body: post.body,
+      likeCount: post.likeCount,
       author: {
         id: post.author.id,
         name: post.author.name,
@@ -548,47 +696,69 @@ export class ProjectsService {
     };
   }
 
-  async getBoardComments(postId: string) {
-    const comments = await this.prisma.projectBoardComment.findMany({
-      where: { postId, deletedAt: null },
-      orderBy: { createdAt: "asc" },
+  /** 返信作成（投稿への返信） */
+  async createBoardReply(postId: string, userId: string, body: string) {
+    const parent = await this.prisma.projectBoardComment.findUnique({ where: { id: postId } });
+    if (!parent) throw new NotFoundException("投稿が見つかりません");
+
+    const reply = await this.prisma.projectBoardComment.create({
+      data: {
+        postId: parent.postId,
+        authorUserId: userId,
+        parentCommentId: postId,
+        body,
+      },
       include: { author: { select: AUTHOR_SELECT } },
     });
-
-    return comments.map((c) => ({
-      id: c.id,
-      body: c.body,
-      likeCount: c.likeCount,
+    return {
+      id: reply.id,
+      body: reply.body,
+      likeCount: reply.likeCount,
       author: {
-        id: c.author.id,
-        name: c.author.name,
-        avatarUrl: c.author.profile?.avatarUrl ?? null,
+        id: reply.author.id,
+        name: reply.author.name,
+        avatarUrl: reply.author.profile?.avatarUrl ?? null,
       },
-      createdAt: c.createdAt,
-    }));
+      createdAt: reply.createdAt,
+    };
   }
 
-  async createBoardComment(postId: string, userId: string, body: string) {
-    const comment = await this.prisma.projectBoardComment.create({
-      data: { postId, authorUserId: userId, body },
-      include: { author: { select: AUTHOR_SELECT } },
+  /** 掲示板いいね切替 */
+  async toggleBoardLike(targetType: string, targetId: string, userId: string) {
+    const existing = await this.prisma.projectBoardLike.findFirst({
+      where: { userId, targetType, targetId },
     });
 
-    await this.prisma.projectBoardPost.update({
-      where: { id: postId },
-      data: { commentCount: { increment: 1 } },
-    });
+    if (existing) {
+      await this.prisma.projectBoardLike.delete({ where: { id: existing.id } });
+      if (targetType === "project_board_post") {
+        await this.prisma.projectBoardPost.update({
+          where: { id: targetId },
+          data: { likeCount: { decrement: 1 } },
+        });
+      } else {
+        await this.prisma.projectBoardComment.update({
+          where: { id: targetId },
+          data: { likeCount: { decrement: 1 } },
+        });
+      }
+      return { liked: false };
+    }
 
-    return {
-      id: comment.id,
-      body: comment.body,
-      likeCount: comment.likeCount,
-      author: {
-        id: comment.author.id,
-        name: comment.author.name,
-        avatarUrl: comment.author.profile?.avatarUrl ?? null,
-      },
-      createdAt: comment.createdAt,
-    };
+    await this.prisma.projectBoardLike.create({
+      data: { userId, targetType, targetId },
+    });
+    if (targetType === "project_board_post") {
+      await this.prisma.projectBoardPost.update({
+        where: { id: targetId },
+        data: { likeCount: { increment: 1 } },
+      });
+    } else {
+      await this.prisma.projectBoardComment.update({
+        where: { id: targetId },
+        data: { likeCount: { increment: 1 } },
+      });
+    }
+    return { liked: true };
   }
 }

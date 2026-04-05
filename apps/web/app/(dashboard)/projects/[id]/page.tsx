@@ -11,10 +11,13 @@ import {
   useCreateReply,
   useToggleThreadLike,
   useToggleReplyLike,
+  useProjectBoardTopics,
+  useProjectBoardTopic,
   useProjectBoardPosts,
+  useCreateBoardTopic,
   useCreateBoardPost,
-  useBoardComments,
-  useCreateBoardComment,
+  useCreateBoardReply,
+  useToggleBoardLike,
 } from "@/hooks/use-projects";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -635,15 +639,18 @@ function TasksTab({ projectId, members }: { projectId: string; members: ProjectM
   );
 }
 
-function BoardTab({ projectId }: { projectId: string }) {
-  const { data } = useProjectBoardPosts(projectId);
-  const createPost = useCreateBoardPost();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [postTitle, setPostTitle] = useState("");
-  const [postBody, setPostBody] = useState("");
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
+// ========== 掲示板（Phase 2 と同じ構造） ==========
 
-  type BoardPostItem = {
+function BoardTab({ projectId }: { projectId: string }) {
+  const { data } = useProjectBoardTopics(projectId);
+  const createTopic = useCreateBoardTopic();
+  const toggleLike = useToggleBoardLike();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [topicTitle, setTopicTitle] = useState("");
+  const [topicBody, setTopicBody] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+
+  type TopicItem = {
     id: string;
     title: string;
     body: string;
@@ -651,10 +658,16 @@ function BoardTab({ projectId }: { projectId: string }) {
     viewCount: number;
     commentCount: number;
     likeCount: number;
+    category: { id: string; name: string } | null;
     author: { id: string; name: string; avatarUrl: string | null };
     createdAt: string;
   };
-  const posts = (data as { data: BoardPostItem[] } | undefined)?.data ?? [];
+  const topics = (data as { data: TopicItem[] } | undefined)?.data ?? [];
+
+  // トピック詳細が選択されている場合はトピック詳細を表示
+  if (selectedTopicId) {
+    return <BoardTopicDetail topicId={selectedTopicId} onBack={() => setSelectedTopicId(null)} />;
+  }
 
   return (
     <div className="space-y-4">
@@ -663,100 +676,93 @@ function BoardTab({ projectId }: { projectId: string }) {
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="mr-1 h-3 w-3" />
-              新規投稿
+              新規トピック
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>掲示板に投稿</DialogTitle>
+              <DialogTitle>トピック作成</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>タイトル</Label>
                 <Input
-                  value={postTitle}
-                  onChange={(e) => setPostTitle(e.target.value)}
-                  placeholder="タイトル"
+                  value={topicTitle}
+                  onChange={(e) => setTopicTitle(e.target.value)}
+                  placeholder="トピックのタイトル"
                 />
               </div>
               <div>
                 <Label>本文</Label>
                 <Textarea
-                  value={postBody}
-                  onChange={(e) => setPostBody(e.target.value)}
-                  rows={5}
-                  placeholder="本文を入力"
+                  value={topicBody}
+                  onChange={(e) => setTopicBody(e.target.value)}
+                  rows={6}
+                  placeholder="トピックの内容"
                 />
               </div>
               <Button
                 onClick={() => {
-                  createPost.mutate(
-                    { projectId, data: { title: postTitle, body: postBody } },
+                  createTopic.mutate(
+                    { projectId, data: { title: topicTitle, body: topicBody } },
                     {
                       onSuccess: () => {
                         setDialogOpen(false);
-                        setPostTitle("");
-                        setPostBody("");
+                        setTopicTitle("");
+                        setTopicBody("");
                       },
                     },
                   );
                 }}
-                disabled={!postTitle || !postBody || createPost.isPending}
+                disabled={!topicTitle || !topicBody || createTopic.isPending}
                 className="w-full"
               >
-                投稿
+                作成
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
-      {posts.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">投稿がありません</p>
+      {topics.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">トピックがありません</p>
       ) : (
-        <div className="space-y-3">
-          {posts.map((p) => (
-            <Card key={p.id}>
-              <CardContent className="space-y-2 py-3">
-                <div className="flex items-start gap-3">
-                  <Avatar className="mt-0.5 h-8 w-8 shrink-0">
-                    <AvatarFallback className="text-xs">{p.author.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{p.author.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(p.createdAt).toLocaleString("ja-JP", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      {p.isPinned && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          固定
-                        </Badge>
-                      )}
-                    </div>
-                    <h4 className="mt-1 text-sm font-semibold">{p.title}</h4>
-                    <div className="mt-1 text-sm text-muted-foreground line-clamp-3">{p.body}</div>
-                    <div className="mt-2 flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Heart className="h-3.5 w-3.5" />
-                        {p.likeCount}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedPost(expandedPost === p.id ? null : p.id)}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        {p.commentCount > 0 ? `${p.commentCount}件のコメント` : "コメント"}
-                      </button>
-                    </div>
-                  </div>
+        <div className="space-y-2">
+          {topics.map((t) => (
+            <Card
+              key={t.id}
+              className="cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => setSelectedTopicId(t.id)}
+            >
+              <CardContent className="flex items-center gap-3 py-3">
+                {t.isPinned && (
+                  <Badge variant="secondary" className="shrink-0 text-[10px]">
+                    固定
+                  </Badge>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{t.title}</p>
+                  <p className="text-xs text-muted-foreground">{t.author.name}</p>
                 </div>
-                {expandedPost === p.id && <BoardCommentsSection postId={p.id} />}
+                <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-3 w-3" />
+                    {t.likeCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    {t.commentCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLike.mutate({ targetType: "project_board_post", targetId: t.id });
+                    }}
+                    className="hover:text-red-500"
+                  >
+                    <Heart className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -766,66 +772,259 @@ function BoardTab({ projectId }: { projectId: string }) {
   );
 }
 
-function BoardCommentsSection({ postId }: { postId: string }) {
-  const { data: comments } = useBoardComments(postId);
-  const createComment = useCreateBoardComment();
-  const [body, setBody] = useState("");
+/** トピック詳細（Phase 2 のトピック詳細ページと同じ構造） */
+function BoardTopicDetail({ topicId, onBack }: { topicId: string; onBack: () => void }) {
+  const { data: topic } = useProjectBoardTopic(topicId);
+  const { data: postsData } = useProjectBoardPosts(topicId);
+  const createPost = useCreateBoardPost();
+  const createReplyMut = useCreateBoardReply();
+  const toggleLike = useToggleBoardLike();
+  const [postBody, setPostBody] = useState("");
+  const [replyTarget, setReplyTarget] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState("");
 
-  type CommentItem = {
+  type TopicData = {
+    id: string;
+    title: string;
+    body: string;
+    isPinned: boolean;
+    viewCount: number;
+    commentCount: number;
+    likeCount: number;
+    category: { id: string; name: string } | null;
+    author: { id: string; name: string; avatarUrl: string | null };
+    createdAt: string;
+    updatedAt: string;
+  };
+  const t = topic as TopicData | undefined;
+
+  type PostItem = {
     id: string;
     body: string;
     likeCount: number;
     author: { id: string; name: string; avatarUrl: string | null };
+    childComments: Array<{
+      id: string;
+      body: string;
+      likeCount: number;
+      author: { id: string; name: string; avatarUrl: string | null };
+      createdAt: string;
+    }>;
     createdAt: string;
   };
+  const posts = (postsData as { data: PostItem[] } | undefined)?.data ?? [];
+
+  if (!t) return <p className="py-8 text-center text-sm text-muted-foreground">読み込み中...</p>;
 
   return (
-    <div className="ml-11 space-y-3 border-l-2 pl-4">
-      {(comments as CommentItem[] | undefined)?.map((c) => (
-        <div key={c.id} className="flex items-start gap-2">
-          <Avatar className="mt-0.5 h-6 w-6 shrink-0">
-            <AvatarFallback className="text-[10px]">{c.author.name.charAt(0)}</AvatarFallback>
+    <div className="space-y-4">
+      {/* ヘッダー */}
+      <div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-2 text-xs text-muted-foreground hover:text-foreground"
+        >
+          ← トピック一覧に戻る
+        </button>
+        {t.category && (
+          <Badge variant="secondary" className="mb-2 ml-2">
+            {t.category.name}
+          </Badge>
+        )}
+        <h3 className="text-lg font-bold">{t.title}</h3>
+        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          <Avatar className="h-5 w-5">
+            <AvatarFallback className="text-[10px]">{t.author.name.charAt(0)}</AvatarFallback>
           </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">{c.author.name}</span>
-              <span className="text-[10px] text-muted-foreground">
-                {new Date(c.createdAt).toLocaleString("ja-JP", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-            <p className="mt-0.5 text-sm">{c.body}</p>
-          </div>
+          <span>{t.author.name}</span>
+          <span>{new Date(t.createdAt).toLocaleString("ja-JP")}</span>
         </div>
-      ))}
-      <div className="flex gap-2">
-        <Input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && body.trim()) {
-              createComment.mutate({ postId, body: body.trim() }, { onSuccess: () => setBody("") });
-            }
-          }}
-          placeholder="コメントを入力..."
-          className="h-8 text-sm"
+      </div>
+
+      {/* トピック本文 */}
+      <div className="whitespace-pre-wrap rounded border p-4 text-sm">{t.body}</div>
+
+      {/* いいね・投稿数 */}
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => toggleLike.mutate({ targetType: "project_board_post", targetId: t.id })}
+          className="flex items-center gap-1 hover:text-red-500"
+        >
+          <Heart className="h-4 w-4" />
+          {t.likeCount}
+        </button>
+        <span className="flex items-center gap-1">
+          <MessageSquare className="h-4 w-4" />
+          {t.commentCount}件の投稿
+        </span>
+      </div>
+
+      <Separator />
+
+      {/* 投稿フォーム */}
+      <div className="space-y-2">
+        <Textarea
+          value={postBody}
+          onChange={(e) => setPostBody(e.target.value)}
+          rows={3}
+          placeholder="投稿を入力..."
         />
         <Button
           size="sm"
           onClick={() => {
-            if (body.trim()) {
-              createComment.mutate({ postId, body: body.trim() }, { onSuccess: () => setBody("") });
-            }
+            createPost.mutate({ topicId, body: postBody }, { onSuccess: () => setPostBody("") });
           }}
-          disabled={!body.trim() || createComment.isPending}
-          className="h-8"
+          disabled={!postBody.trim() || createPost.isPending}
         >
           投稿
         </Button>
+      </div>
+
+      {/* 投稿一覧 */}
+      <div className="space-y-4">
+        {posts.map((p) => (
+          <Card key={p.id}>
+            <CardContent className="space-y-3 py-3">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="text-xs">{p.author.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-medium">{p.author.name}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(p.createdAt).toLocaleString("ja-JP", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm">{p.body}</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleLike.mutate({ targetType: "project_board_comment", targetId: p.id })
+                      }
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500"
+                    >
+                      <Heart className="h-3.5 w-3.5" />
+                      {p.likeCount > 0 && p.likeCount}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTarget(replyTarget === p.id ? null : p.id)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Reply className="h-3.5 w-3.5" />
+                      返信
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ネストされた返信 */}
+              {p.childComments.length > 0 && (
+                <div className="ml-11 space-y-2 border-l-2 pl-4">
+                  {p.childComments.map((c) => (
+                    <div key={c.id} className="flex items-start gap-2">
+                      <Avatar className="h-6 w-6 shrink-0">
+                        <AvatarFallback className="text-[10px]">
+                          {c.author.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-medium">{c.author.name}</span>
+                          <span className="text-muted-foreground">
+                            {new Date(c.createdAt).toLocaleString("ja-JP", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 whitespace-pre-wrap text-sm">{c.body}</p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleLike.mutate({
+                              targetType: "project_board_comment",
+                              targetId: c.id,
+                            })
+                          }
+                          className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500"
+                        >
+                          <Heart className="h-3 w-3" />
+                          {c.likeCount > 0 && c.likeCount}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 返信入力欄 */}
+              {replyTarget === p.id && (
+                <div className="ml-11 flex gap-2 border-l-2 pl-4">
+                  <Input
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && replyBody.trim()) {
+                        createReplyMut.mutate(
+                          { postId: p.id, body: replyBody.trim() },
+                          {
+                            onSuccess: () => {
+                              setReplyBody("");
+                              setReplyTarget(null);
+                            },
+                          },
+                        );
+                      }
+                    }}
+                    placeholder="返信を入力..."
+                    className="h-8 text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      createReplyMut.mutate(
+                        { postId: p.id, body: replyBody.trim() },
+                        {
+                          onSuccess: () => {
+                            setReplyBody("");
+                            setReplyTarget(null);
+                          },
+                        },
+                      );
+                    }}
+                    disabled={!replyBody.trim() || createReplyMut.isPending}
+                  >
+                    返信
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8"
+                    onClick={() => {
+                      setReplyTarget(null);
+                      setReplyBody("");
+                    }}
+                  >
+                    キャンセル
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

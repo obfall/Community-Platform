@@ -172,20 +172,28 @@ export function useUpdateTask() {
   });
 }
 
-// ========== Board ==========
+// ========== Board（Phase 2 と同じ構造） ==========
 
-export function useProjectBoardPosts(
+export function useProjectBoardTopics(
   projectId: string | undefined,
-  query?: { page?: number; limit?: number },
+  query?: { page?: number; limit?: number; categoryId?: string },
 ) {
   return useQuery({
-    queryKey: ["projects", projectId, "board", query],
-    queryFn: () => projectsApi.getBoardPosts(projectId!, query),
+    queryKey: ["projects", projectId, "board", "topics", query],
+    queryFn: () => projectsApi.getBoardTopics(projectId!, query),
     enabled: !!projectId,
   });
 }
 
-export function useCreateBoardPost() {
+export function useProjectBoardTopic(topicId: string | undefined) {
+  return useQuery({
+    queryKey: ["projects", "board", "topics", topicId],
+    queryFn: () => projectsApi.getBoardTopic(topicId!),
+    enabled: !!topicId,
+  });
+}
+
+export function useCreateBoardTopic() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -194,7 +202,31 @@ export function useCreateBoardPost() {
     }: {
       projectId: string;
       data: { title: string; body: string };
-    }) => projectsApi.createBoardPost(projectId, data),
+    }) => projectsApi.createBoardTopic(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("トピックを作成しました");
+    },
+    onError: () => toast.error("トピックの作成に失敗しました"),
+  });
+}
+
+export function useProjectBoardPosts(
+  topicId: string | undefined,
+  query?: { page?: number; limit?: number },
+) {
+  return useQuery({
+    queryKey: ["projects", "board", "topics", topicId, "posts", query],
+    queryFn: () => projectsApi.getBoardPosts(topicId!, query),
+    enabled: !!topicId,
+  });
+}
+
+export function useCreateBoardPost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ topicId, body }: { topicId: string; body: string }) =>
+      projectsApi.createBoardPost(topicId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("投稿しました");
@@ -203,23 +235,26 @@ export function useCreateBoardPost() {
   });
 }
 
-export function useBoardComments(postId: string | undefined) {
-  return useQuery({
-    queryKey: ["projects", "board", postId, "comments"],
-    queryFn: () => projectsApi.getBoardComments(postId!),
-    enabled: !!postId,
-  });
-}
-
-export function useCreateBoardComment() {
+export function useCreateBoardReply() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ postId, body }: { postId: string; body: string }) =>
-      projectsApi.createBoardComment(postId, body),
+      projectsApi.createBoardReply(postId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("コメントしました");
+      toast.success("返信しました");
     },
-    onError: () => toast.error("コメントに失敗しました"),
+    onError: () => toast.error("返信に失敗しました"),
+  });
+}
+
+export function useToggleBoardLike() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ targetType, targetId }: { targetType: string; targetId: string }) =>
+      projectsApi.toggleBoardLike(targetType, targetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
 }
