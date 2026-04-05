@@ -644,3 +644,151 @@ export interface SetAttributeValueItem {
   attributeId: string;
   value: string | null;
 }
+
+// --- Events ---
+
+export interface EventListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  locationType: string;
+  venueName: string | null;
+  startAt: string;
+  endAt: string;
+  status: string;
+  coverImageUrl: string | null;
+  participantCount: number;
+  category: { id: string; name: string } | null;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  ticketCount: number;
+  minPrice: number | null;
+  createdAt: string;
+}
+
+export interface EventTicket {
+  id: string;
+  ticketName: string;
+  price: number;
+  currency: string;
+  capacity: number | null;
+  purchaseLimit: number;
+  sortOrder: number;
+  isActive: boolean;
+  soldCount: number;
+}
+
+export interface EventSpeaker {
+  id: string;
+  name: string;
+  title: string | null;
+  role: string;
+  sortOrder: number;
+  user: { id: string; name: string; avatarUrl: string | null } | null;
+}
+
+export interface EventOrganization {
+  id: string;
+  organizationName: string;
+  role: string;
+  sortOrder: number;
+}
+
+export interface EventDetail extends EventListItem {
+  venueAddress: string | null;
+  onlineUrl: string | null;
+  registrationDeadlineAt: string | null;
+  ticketSaleStartAt: string | null;
+  allowMultiTicketPurchase: boolean;
+  planningRole: string;
+  eventType: string | null;
+  accessInfo: string | null;
+  participationMethod: string | null;
+  contactInfo: string | null;
+  cancellationPolicy: string | null;
+  isAttendeeVisible: boolean;
+  isCalendarVisible: boolean;
+  requiredRank: { id: string; name: string } | null;
+  tickets: EventTicket[];
+  speakers: EventSpeaker[];
+  organizations: EventOrganization[];
+  tags: { id: string; name: string; slug: string }[];
+  updatedAt: string;
+}
+
+export interface EventParticipant {
+  id: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+  ticket: { id: string; ticketName: string; price: number } | null;
+  quantity: number;
+  status: string;
+  paymentStatus: string | null;
+  paymentMethod: string | null;
+  appliedAt: string;
+  canceledAt: string | null;
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  locationType: string;
+  status: string;
+  coverImageUrl: string | null;
+}
+
+export interface EventQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  categoryId?: string;
+  eventType?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface CreateEventInput {
+  title: string;
+  description?: string;
+  locationType: "venue" | "online" | "hybrid";
+  venueName?: string;
+  venueAddress?: string;
+  onlineUrl?: string;
+  startAt: string;
+  endAt: string;
+  registrationDeadlineAt?: string;
+  ticketSaleStartAt?: string;
+  allowMultiTicketPurchase?: boolean;
+  planningRole?: string;
+  eventType?: string;
+  categoryId?: string;
+  accessInfo?: string;
+  participationMethod?: string;
+  contactInfo?: string;
+  cancellationPolicy?: string;
+  isAttendeeVisible?: boolean;
+  coverImageUrl?: string;
+  requiredRankId?: string;
+}
+
+export interface UpdateEventInput extends Partial<CreateEventInput> {
+  status?: string;
+  isCalendarVisible?: boolean;
+}
+
+export interface CreateTicketInput {
+  ticketName: string;
+  price?: number;
+  currency?: string;
+  capacity?: number;
+  purchaseLimit?: number;
+  isActive?: boolean;
+}
+
+export interface ParticipateEventInput {
+  ticketId?: string;
+  quantity?: number;
+  discountCode?: string;
+  paymentMethod?: string;
+}
