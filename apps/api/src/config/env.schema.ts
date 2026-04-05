@@ -28,12 +28,15 @@ export const envSchema = z.object({
   // Resend (optional - mock when not set)
   RESEND_API_KEY: z.string().optional(),
 
-  // Cloudflare R2 (optional - 503 when not set)
+  // Storage: Cloudflare R2 or S3-compatible (MinIO)
+  // S3_ENDPOINT を設定すると MinIO 等の S3 互換ストレージを使用
+  // 未設定時は CLOUDFLARE_ACCOUNT_ID で R2 に接続
+  S3_ENDPOINT: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET_NAME: z.string().default("community-files"),
-  R2_PUBLIC_URL: z.string().url().optional(),
+  R2_PUBLIC_URL: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
