@@ -47,6 +47,42 @@ const STATUS_LABELS: Record<string, string> = {
   ended: "終了",
 };
 
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  draft: "secondary",
+  recruiting: "default",
+  closed: "outline",
+  canceled: "destructive",
+  ended: "outline",
+};
+
+const STATUS_BANNER: Record<string, { bg: string; text: string; message: string }> = {
+  recruiting: {
+    bg: "bg-green-50 border-green-200",
+    text: "text-green-800",
+    message: "現在募集中です",
+  },
+  closed: {
+    bg: "bg-yellow-50 border-yellow-200",
+    text: "text-yellow-800",
+    message: "募集は締め切りました",
+  },
+  canceled: {
+    bg: "bg-red-50 border-red-200",
+    text: "text-red-800",
+    message: "このイベントは中止になりました",
+  },
+  ended: {
+    bg: "bg-gray-50 border-gray-200",
+    text: "text-gray-600",
+    message: "このイベントは終了しました",
+  },
+  draft: {
+    bg: "bg-blue-50 border-blue-200",
+    text: "text-blue-800",
+    message: "下書き — まだ公開されていません",
+  },
+};
+
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useAuth();
@@ -63,6 +99,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const banner = STATUS_BANNER[event.status];
 
   return (
     <div className="space-y-6">
@@ -75,7 +112,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
-            <Badge>{STATUS_LABELS[event.status] ?? event.status}</Badge>
+            <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
+              {STATUS_LABELS[event.status] ?? event.status}
+            </Badge>
             {event.category && <Badge variant="outline">{event.category.name}</Badge>}
             {event.tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
@@ -113,6 +152,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
       </div>
+
+      {/* ステータスバナー */}
+      {banner && (
+        <div
+          className={`rounded-lg border p-3 text-center text-sm font-medium ${banner.bg} ${banner.text}`}
+        >
+          {banner.message}
+        </div>
+      )}
 
       {/* カバー画像 */}
       {event.coverImageUrl && (
