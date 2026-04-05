@@ -474,7 +474,7 @@ export class ProjectsService {
   // ========== Board（Phase 2 掲示板と同じ構造） ==========
 
   private boardScope(projectId: string) {
-    return `project_board:${projectId}`;
+    return `pb_${projectId}`;
   }
 
   /** カテゴリ一覧 */
