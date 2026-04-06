@@ -42,14 +42,72 @@ export const projectsApi = {
   createThread: (projectId: string, title: string) =>
     apiClient.post(`/projects/${projectId}/threads`, { title }).then((r) => r.data),
 
+  getReplies: (threadId: string) =>
+    apiClient.get(`/projects/threads/${threadId}/replies`).then((r) => r.data),
+
+  createReply: (threadId: string, body: string) =>
+    apiClient.post(`/projects/threads/${threadId}/replies`, { body }).then((r) => r.data),
+
+  toggleThreadLike: (threadId: string) =>
+    apiClient.post<{ liked: boolean }>(`/projects/threads/${threadId}/like`).then((r) => r.data),
+
+  toggleReplyLike: (replyId: string) =>
+    apiClient.post<{ liked: boolean }>(`/projects/replies/${replyId}/like`).then((r) => r.data),
+
   getTasks: (projectId: string) =>
     apiClient.get<ProjectTask[]>(`/projects/${projectId}/tasks`).then((r) => r.data),
 
   createTask: (
     projectId: string,
-    data: { title: string; description?: string; dueDate?: string },
+    data: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+      requestedDate?: string;
+      assigneeIds?: string[];
+      fileIds?: string[];
+    },
   ) => apiClient.post(`/projects/${projectId}/tasks`, data).then((r) => r.data),
 
   updateTask: (taskId: string, data: { title?: string; progress?: number; dueDate?: string }) =>
     apiClient.patch(`/projects/tasks/${taskId}`, data).then((r) => r.data),
+
+  // Board（Phase 2 と同じ構造）
+  getBoardCategories: (projectId: string) =>
+    apiClient.get(`/projects/${projectId}/board/categories`).then((r) => r.data),
+
+  createBoardCategory: (projectId: string, data: { name: string; description?: string }) =>
+    apiClient.post(`/projects/${projectId}/board/categories`, data).then((r) => r.data),
+
+  deleteBoardCategory: (categoryId: string) =>
+    apiClient.delete(`/projects/board/categories/${categoryId}`),
+
+  getBoardTopics: (
+    projectId: string,
+    params?: { page?: number; limit?: number; categoryId?: string },
+  ) => apiClient.get(`/projects/${projectId}/board/topics`, { params }).then((r) => r.data),
+
+  getBoardTopic: (topicId: string) =>
+    apiClient.get(`/projects/board/topics/${topicId}`).then((r) => r.data),
+
+  createBoardTopic: (
+    projectId: string,
+    data: { title: string; body: string; categoryId?: string },
+  ) => apiClient.post(`/projects/${projectId}/board/topics`, data).then((r) => r.data),
+
+  deleteBoardTopic: (topicId: string) => apiClient.delete(`/projects/board/topics/${topicId}`),
+
+  getBoardPosts: (topicId: string, params?: { page?: number; limit?: number }) =>
+    apiClient.get(`/projects/board/topics/${topicId}/posts`, { params }).then((r) => r.data),
+
+  createBoardPost: (topicId: string, body: string) =>
+    apiClient.post(`/projects/board/topics/${topicId}/posts`, { body }).then((r) => r.data),
+
+  createBoardReply: (postId: string, body: string) =>
+    apiClient.post(`/projects/board/posts/${postId}/replies`, { body }).then((r) => r.data),
+
+  toggleBoardLike: (targetType: string, targetId: string) =>
+    apiClient
+      .post<{ liked: boolean }>("/projects/board/like", { targetType, targetId })
+      .then((r) => r.data),
 };

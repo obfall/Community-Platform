@@ -304,7 +304,7 @@ model AppSetting {
 model Category {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   parentId          String?   @map("parent_id") @db.Uuid
-  scope             String    @db.VarChar(30)
+  scope             String    @db.VarChar(50)
   name              String    @db.VarChar(100)
   slug              String    @db.VarChar(100)
   description       String?   @db.Text
