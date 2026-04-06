@@ -133,6 +133,24 @@ export class VideosService {
     return this.findOne(video.id);
   }
 
+  async createForUpload(
+    userId: string,
+    data: { title: string; description?: string; categoryId?: string; seriesId?: string },
+  ) {
+    return this.prisma.video.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        videoProvider: "r2_hls",
+        videoExternalId: "pending",
+        streamStatus: "uploading",
+        categoryId: data.categoryId,
+        seriesId: data.seriesId,
+        createdByUserId: userId,
+      },
+    });
+  }
+
   async remove(id: string) {
     await this.prisma.video.update({ where: { id }, data: { deletedAt: new Date() } });
   }

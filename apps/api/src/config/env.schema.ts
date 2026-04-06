@@ -37,6 +37,9 @@ export const envSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_BUCKET_NAME: z.string().default("community-files"),
   R2_PUBLIC_URL: z.string().optional(),
+
+  // FFmpeg (for video HLS conversion)
+  FFMPEG_PATH: z.string().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

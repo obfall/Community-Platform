@@ -28,4 +28,17 @@ export const videosApi = {
 
   createSeries: (data: { name: string; description?: string }) =>
     apiClient.post("/videos/series", data).then((r) => r.data),
+
+  upload: (
+    file: File,
+    data: { title: string; description?: string; categoryId?: string; seriesId?: string },
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", data.title);
+    if (data.description) formData.append("description", data.description);
+    if (data.categoryId) formData.append("categoryId", data.categoryId);
+    if (data.seriesId) formData.append("seriesId", data.seriesId);
+    return apiClient.post("/videos/upload", formData).then((r) => r.data);
+  },
 };

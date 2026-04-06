@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Video, Play } from "lucide-react";
+import { Video, Play, Upload } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,6 +34,12 @@ export default function VideosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">動画</h1>
+        <Link href="/videos/new">
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            アップロード
+          </Button>
+        </Link>
       </div>
 
       <div className="flex gap-2">
