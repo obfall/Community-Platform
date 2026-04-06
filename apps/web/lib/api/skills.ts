@@ -4,6 +4,7 @@ import type {
   SkillListItem,
   SkillBooking,
   SkillMessage,
+  SkillComment,
   SkillQuery,
 } from "./types";
 
@@ -53,4 +54,13 @@ export const skillsApi = {
     apiClient
       .post<SkillMessage>(`/skills/bookings/${bookingId}/messages`, { body })
       .then((r) => r.data),
+
+  // Comments
+  getComments: (listingId: string) =>
+    apiClient.get<SkillComment[]>(`/skills/${listingId}/comments`).then((r) => r.data),
+
+  addComment: (listingId: string, body: string) =>
+    apiClient.post<SkillComment>(`/skills/${listingId}/comments`, { body }).then((r) => r.data),
+
+  deleteComment: (commentId: string) => apiClient.delete(`/skills/comments/${commentId}`),
 };

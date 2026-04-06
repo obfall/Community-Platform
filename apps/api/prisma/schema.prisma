@@ -167,6 +167,7 @@ model User {
   skillBookingsRequested    SkillBooking[]           @relation("SkillRequester")
   skillBookingsProviding    SkillBooking[]           @relation("SkillBookingProvider")
   skillMessages             SkillMessage[]           @relation("SkillMessageSender")
+  skillComments             SkillComment[]           @relation("SkillCommentAuthor")
 
   @@index([role])
   @@index([status])
@@ -2165,9 +2166,10 @@ model SkillListing {
   deletedAt       DateTime?          @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category Category?      @relation(fields: [categoryId], references: [id])
-  provider User           @relation("SkillProvider", fields: [providerUserId], references: [id])
+  category Category?       @relation(fields: [categoryId], references: [id])
+  provider User            @relation("SkillProvider", fields: [providerUserId], references: [id])
   bookings SkillBooking[]
+  comments SkillComment[]
 
   @@index([status, createdAt(sort: Desc)])
   @@index([categoryId])
@@ -2213,4 +2215,21 @@ model SkillMessage {
 
   @@index([bookingId, createdAt])
   @@map("skill_messages")
+}
+
+model SkillComment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillListingId  String    @map("skill_listing_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  body            String    @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  skillListing SkillListing @relation(fields: [skillListingId], references: [id], onDelete: Cascade)
+  author       User         @relation("SkillCommentAuthor", fields: [authorUserId], references: [id])
+
+  @@index([skillListingId, createdAt])
+  @@map("skill_comments")
 }

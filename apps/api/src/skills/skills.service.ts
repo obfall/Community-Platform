@@ -260,4 +260,47 @@ export class SkillsService {
       },
     });
   }
+
+  // --- コメント ---
+
+  async getComments(skillListingId: string) {
+    return this.prisma.skillComment.findMany({
+      where: { skillListingId, deletedAt: null },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, profile: { select: { avatarUrl: true } } },
+        },
+      },
+    });
+  }
+
+  async addComment(skillListingId: string, userId: string, body: string) {
+    const listing = await this.prisma.skillListing.findUnique({ where: { id: skillListingId } });
+    if (!listing || listing.deletedAt) throw new NotFoundException("スキルが見つかりません");
+
+    return this.prisma.skillComment.create({
+      data: {
+        skillListingId,
+        authorUserId: userId,
+        body,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, profile: { select: { avatarUrl: true } } },
+        },
+      },
+    });
+  }
+
+  async deleteComment(commentId: string, userId: string) {
+    const comment = await this.prisma.skillComment.findUnique({ where: { id: commentId } });
+    if (!comment || comment.deletedAt) throw new NotFoundException("コメントが見つかりません");
+    if (comment.authorUserId !== userId) throw new ForbiddenException();
+
+    await this.prisma.skillComment.update({
+      where: { id: commentId },
+      data: { deletedAt: new Date() },
+    });
+  }
 }

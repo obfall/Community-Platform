@@ -1124,6 +1124,15 @@ export interface SkillMessage {
   sender: { id: string; name: string };
 }
 
+export interface SkillComment {
+  id: string;
+  skillListingId: string;
+  authorUserId: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string; profile?: { avatarUrl: string | null } };
+}
+
 export interface SkillQuery {
   page?: number;
   limit?: number;

@@ -100,3 +100,36 @@ export function useSendSkillMessage() {
     onError: () => toast.error("メッセージ送信に失敗しました"),
   });
 }
+
+export function useSkillComments(listingId: string | undefined) {
+  return useQuery({
+    queryKey: ["skills", listingId, "comments"],
+    queryFn: () => skillsApi.getComments(listingId!),
+    enabled: !!listingId,
+  });
+}
+
+export function useAddSkillComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ listingId, body }: { listingId: string; body: string }) =>
+      skillsApi.addComment(listingId, body),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["skills", variables.listingId, "comments"] });
+      toast.success("コメントを投稿しました");
+    },
+    onError: () => toast.error("コメント投稿に失敗しました"),
+  });
+}
+
+export function useDeleteSkillComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => skillsApi.deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["skills"] });
+      toast.success("コメントを削除しました");
+    },
+    onError: () => toast.error("コメント削除に失敗しました"),
+  });
+}

@@ -122,4 +122,32 @@ export class SkillsController {
   ) {
     return this.service.sendMessage(bookingId, userId, body);
   }
+
+  // --- コメント ---
+
+  @Get(":id/comments")
+  @ApiOperation({ summary: "スキルコメント一覧" })
+  getComments(@Param("id", ParseUUIDPipe) id: string) {
+    return this.service.getComments(id);
+  }
+
+  @Post(":id/comments")
+  @ApiOperation({ summary: "スキルコメント投稿" })
+  addComment(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("id") userId: string,
+    @Body("body") body: string,
+  ) {
+    return this.service.addComment(id, userId, body);
+  }
+
+  @Delete("comments/:commentId")
+  @ApiOperation({ summary: "スキルコメント削除" })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteComment(
+    @Param("commentId", ParseUUIDPipe) commentId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.deleteComment(commentId, userId);
+  }
 }
