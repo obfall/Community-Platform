@@ -2,12 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useVideos } from "@/hooks/use-videos";
+import {
+  useVideos,
+  useVideoCategories,
+  useCreateVideoCategory,
+  useVideoSeries,
+  useCreateVideoSeries,
+} from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Video, Play, Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Video, Play, Upload, Plus } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,6 +42,14 @@ export default function VideosPage() {
   const [query, setQuery] = useState<VideoQuery>({ page: 1, limit: 12 });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useVideos(query);
+  const { data: categories } = useVideoCategories();
+  const { data: seriesList } = useVideoSeries();
+  const createCategory = useCreateVideoCategory();
+  const createSeries = useCreateVideoSeries();
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newSeriesName, setNewSeriesName] = useState("");
   const videos = data?.data ?? [];
   const meta = data?.meta;
 
@@ -34,15 +57,25 @@ export default function VideosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">動画</h1>
-        <Link href="/videos/new">
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            アップロード
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
+            <Plus className="mr-1 h-3 w-3" />
+            カテゴリ追加
           </Button>
-        </Link>
+          <Button variant="outline" size="sm" onClick={() => setSeriesDialogOpen(true)}>
+            <Plus className="mr-1 h-3 w-3" />
+            シリーズ追加
+          </Button>
+          <Link href="/videos/new">
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              アップロード
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -50,9 +83,111 @@ export default function VideosPage() {
             e.key === "Enter" && setQuery((p) => ({ ...p, search: search || undefined, page: 1 }))
           }
           placeholder="動画を検索..."
-          className="max-w-sm"
+          className="max-w-xs"
         />
+        <Select
+          value={query.categoryId ?? "all"}
+          onValueChange={(v) =>
+            setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
+          }
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="カテゴリ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべてのカテゴリ</SelectItem>
+            {categories?.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={query.seriesId ?? "all"}
+          onValueChange={(v) =>
+            setQuery((p) => ({ ...p, seriesId: v === "all" ? undefined : v, page: 1 }))
+          }
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="シリーズ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべてのシリーズ</SelectItem>
+            {seriesList?.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>カテゴリ追加</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>カテゴリ名</Label>
+              <Input
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="カテゴリ名"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                createCategory.mutate(newCatName, {
+                  onSuccess: () => {
+                    setCatDialogOpen(false);
+                    setNewCatName("");
+                  },
+                });
+              }}
+              disabled={!newCatName || createCategory.isPending}
+              className="w-full"
+            >
+              作成
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>シリーズ追加</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>シリーズ名</Label>
+              <Input
+                value={newSeriesName}
+                onChange={(e) => setNewSeriesName(e.target.value)}
+                placeholder="シリーズ名"
+              />
+            </div>
+            <Button
+              onClick={() => {
+                createSeries.mutate(
+                  { name: newSeriesName },
+                  {
+                    onSuccess: () => {
+                      setSeriesDialogOpen(false);
+                      setNewSeriesName("");
+                    },
+                  },
+                );
+              }}
+              disabled={!newSeriesName || createSeries.isPending}
+              className="w-full"
+            >
+              作成
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="py-12 text-center text-muted-foreground">読み込み中...</div>

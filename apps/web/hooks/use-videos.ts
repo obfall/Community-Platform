@@ -39,11 +39,43 @@ export function useUpdateVideoProgress() {
   });
 }
 
+export function useVideoCategories() {
+  return useQuery({
+    queryKey: ["videos", "categories"],
+    queryFn: () => videosApi.getCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateVideoCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => videosApi.createCategory(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos", "categories"] });
+      toast.success("カテゴリを作成しました");
+    },
+    onError: () => toast.error("カテゴリの作成に失敗しました"),
+  });
+}
+
 export function useVideoSeries() {
   return useQuery({
     queryKey: ["videos", "series"],
     queryFn: () => videosApi.getSeries(),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateVideoSeries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; description?: string }) => videosApi.createSeries(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos", "series"] });
+      toast.success("シリーズを作成しました");
+    },
+    onError: () => toast.error("シリーズの作成に失敗しました"),
   });
 }
 

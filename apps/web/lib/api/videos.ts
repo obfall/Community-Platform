@@ -29,6 +29,14 @@ export const videosApi = {
   createSeries: (data: { name: string; description?: string }) =>
     apiClient.post("/videos/series", data).then((r) => r.data),
 
+  getCategories: () =>
+    apiClient
+      .get<Array<{ id: string; name: string; sortOrder: number }>>("/videos/categories")
+      .then((r) => r.data),
+
+  createCategory: (name: string) =>
+    apiClient.post("/videos/categories", { name }).then((r) => r.data),
+
   upload: (
     file: File,
     data: { title: string; description?: string; categoryId?: string; seriesId?: string },

@@ -41,6 +41,20 @@ export class VideosController {
     return this.service.findAll(query);
   }
 
+  @Get("categories")
+  @ApiOperation({ summary: "動画カテゴリ一覧" })
+  getCategories() {
+    return this.service.getCategories();
+  }
+
+  @Post("categories")
+  @ApiOperation({ summary: "動画カテゴリ作成" })
+  @UseGuards(RolesGuard)
+  @Roles("owner", "admin")
+  createCategory(@Body("name") name: string) {
+    return this.service.createCategory(name);
+  }
+
   @Get("series")
   @ApiOperation({ summary: "シリーズ一覧" })
   getSeries() {
