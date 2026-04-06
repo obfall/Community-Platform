@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useVideo, useUpdateVideo, useVideoCategories, useVideoSeries } from "@/hooks/use-videos";
@@ -28,23 +28,51 @@ export default function VideoEditPage({ params }: { params: Promise<{ id: string
   const { data: seriesList } = useVideoSeries();
   const updateVideo = useUpdateVideo();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [publishStatus, setPublishStatus] = useState("draft");
-  const [categoryId, setCategoryId] = useState<string>(NONE_VALUE);
-  const [seriesId, setSeriesId] = useState<string>(NONE_VALUE);
-  const [initialized, setInitialized] = useState(false);
+  if (isLoading) {
+    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  }
+  if (!video) {
+    return <div className="py-12 text-center text-muted-foreground">動画が見つかりません</div>;
+  }
 
-  useEffect(() => {
-    if (video && !initialized) {
-      setTitle(video.title);
-      setDescription(video.description ?? "");
-      setPublishStatus(video.publishStatus);
-      setCategoryId(video.category?.id ?? NONE_VALUE);
-      setSeriesId(video.series?.id ?? NONE_VALUE);
-      setInitialized(true);
-    }
-  }, [video, initialized]);
+  return (
+    <VideoEditForm
+      video={video}
+      categories={categories}
+      seriesList={seriesList}
+      updateVideo={updateVideo}
+      router={router}
+      id={id}
+    />
+  );
+}
+
+function VideoEditForm({
+  video,
+  categories,
+  seriesList,
+  updateVideo,
+  router,
+  id,
+}: {
+  video: {
+    title: string;
+    description: string | null;
+    publishStatus: string;
+    category: { id: string; name: string } | null;
+    series: { id: string; name: string } | null;
+  };
+  categories: Array<{ id: string; name: string }> | undefined;
+  seriesList: Array<{ id: string; name: string }> | undefined;
+  updateVideo: ReturnType<typeof useUpdateVideo>;
+  router: ReturnType<typeof useRouter>;
+  id: string;
+}) {
+  const [title, setTitle] = useState(video.title);
+  const [description, setDescription] = useState(video.description ?? "");
+  const [publishStatus, setPublishStatus] = useState(video.publishStatus);
+  const [categoryId, setCategoryId] = useState(video.category?.id ?? NONE_VALUE);
+  const [seriesId, setSeriesId] = useState(video.series?.id ?? NONE_VALUE);
 
   const handleSubmit = () => {
     updateVideo.mutate(
@@ -63,13 +91,6 @@ export default function VideoEditPage({ params }: { params: Promise<{ id: string
       },
     );
   };
-
-  if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
-  }
-  if (!video) {
-    return <div className="py-12 text-center text-muted-foreground">動画が見つかりません</div>;
-  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
