@@ -16,6 +16,8 @@ import { MailModule } from "./mail/mail.module";
 import { MemberAttributesModule } from "./member-attributes/member-attributes.module";
 import { EventsModule } from "./events/events.module";
 import { ProjectsModule } from "./projects/projects.module";
+import { VideosModule } from "./videos/videos.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -65,6 +67,12 @@ import { validateEnv } from "./config/env.config";
 
     // Projects
     ProjectsModule,
+
+    // Videos
+    VideosModule,
+
+    // Analytics
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [

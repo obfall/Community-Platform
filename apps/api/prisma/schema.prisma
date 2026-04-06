@@ -149,6 +149,14 @@ model User {
   projectBoardPosts       ProjectBoardPost[]
   projectBoardComments    ProjectBoardComment[]
   projectBoardLikes       ProjectBoardLike[]
+  // Phase 7
+  createdVideos           Video[]                  @relation("VideoCreator")
+  videoInstructorProfiles VideoInstructor[]
+  videoWatchProgress      VideoWatchProgress[]
+  videoTaskCompletions    VideoTaskCompletion[]
+  activityLogs            ActivityLog[]
+  engagementScore         EngagementScore?
+  activitySummary         MemberActivitySummary?
 
   @@index([role])
   @@index([status])
@@ -262,6 +270,8 @@ model MemberRank {
   boardPosts BoardPost[]
   // Phase 5
   events Event[]
+  // Phase 7
+  videos Video[]
 
   @@index([sortOrder])
   @@map("member_ranks")
@@ -326,6 +336,8 @@ model Category {
   // Phase 6
   projects        Project[]
   projectBoardPosts ProjectBoardPost[]
+  // Phase 7
+  videos Video[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -383,6 +395,8 @@ model File {
   projectThreadReplyAttachments  ProjectThreadReplyAttachment[]
   projectTaskAttachments         ProjectTaskAttachment[]
   projectBoardPostAttachments    ProjectBoardPostAttachment[]
+  // Phase 7
+  videoAttachments               VideoAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -1652,4 +1666,259 @@ model ProjectBoardLike {
   @@unique([userId, targetType, targetId])
   @@index([targetType, targetId])
   @@map("project_board_likes")
+}
+
+// ============================================================
+// Phase 7: 動画・アナリティクス
+// ============================================================
+
+// --- Enums ---
+
+enum VideoProvider {
+  cloudflare_stream
+  r2_hls
+}
+
+enum StreamStatus {
+  uploading
+  processing
+  ready
+  error
+}
+
+enum VideoViewPermission {
+  all
+  rank_restricted
+}
+
+enum VideoPublishStatus {
+  draft
+  published
+  archived
+}
+
+// --- Video Models ---
+
+model VideoSeries {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  videos Video[]
+
+  @@index([sortOrder])
+  @@map("video_series")
+}
+
+model Video {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId        String?             @map("category_id") @db.Uuid
+  seriesId          String?             @map("series_id") @db.Uuid
+  title             String              @db.VarChar(200)
+  description       String?             @db.Text
+  videoProvider     VideoProvider        @map("video_provider")
+  videoExternalId   String              @map("video_external_id") @db.VarChar(200)
+  playbackUrl       String?             @map("playback_url") @db.VarChar(500)
+  streamStatus      StreamStatus        @default(uploading) @map("stream_status")
+  thumbnailUrl      String?             @map("thumbnail_url") @db.VarChar(500)
+  durationSeconds   Int?                @map("duration_seconds")
+  viewPermission    VideoViewPermission @default(all) @map("view_permission")
+  requiredRankId    String?             @map("required_rank_id") @db.Uuid
+  availableUntil    DateTime?           @map("available_until") @db.Timestamptz()
+  passwordHash      String?             @map("password_hash") @db.VarChar(255)
+  publishStatus     VideoPublishStatus  @default(draft) @map("publish_status")
+  watchOrder        Int?                @map("watch_order")
+  sortOrder         Int                 @default(0) @map("sort_order")
+  viewCount         Int                 @default(0) @map("view_count")
+  createdByUserId   String              @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt         DateTime?           @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category      Category?          @relation(fields: [categoryId], references: [id])
+  series        VideoSeries?       @relation(fields: [seriesId], references: [id])
+  requiredRank  MemberRank?        @relation(fields: [requiredRankId], references: [id])
+  createdBy     User               @relation("VideoCreator", fields: [createdByUserId], references: [id])
+  instructors   VideoInstructor[]
+  attachments   VideoAttachment[]
+  watchProgress VideoWatchProgress[]
+  tasks         VideoTask[]
+
+  @@index([publishStatus, sortOrder])
+  @@index([categoryId])
+  @@index([seriesId])
+  @@index([seriesId, watchOrder])
+  @@map("videos")
+}
+
+model VideoInstructor {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId   String   @map("video_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([videoId, userId])
+  @@index([userId])
+  @@map("video_instructors")
+}
+
+model VideoAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId   String   @map("video_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  file  File  @relation(fields: [fileId], references: [id])
+
+  @@index([videoId, sortOrder])
+  @@map("video_attachments")
+}
+
+model VideoWatchProgress {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId             String    @map("video_id") @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  watchedSeconds      Int       @default(0) @map("watched_seconds")
+  totalSeconds        Int       @map("total_seconds")
+  isCompleted         Boolean   @default(false) @map("is_completed")
+  lastPositionSeconds Int       @default(0) @map("last_position_seconds")
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz()
+  lastWatchedAt       DateTime  @default(now()) @map("last_watched_at") @db.Timestamptz()
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([videoId, userId])
+  @@index([userId])
+  @@map("video_watch_progress")
+}
+
+model VideoTask {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId     String   @map("video_id") @db.Uuid
+  title       String   @db.VarChar(200)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  video       Video                @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  completions VideoTaskCompletion[]
+
+  @@index([videoId, sortOrder])
+  @@map("video_tasks")
+}
+
+model VideoTaskCompletion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoTaskId String   @map("video_task_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  videoTask VideoTask @relation(fields: [videoTaskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([videoTaskId, userId])
+  @@index([userId])
+  @@map("video_task_completions")
+}
+
+// --- Analytics Models ---
+
+model ActivityLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  action       String   @db.VarChar(50)
+  resourceType String?  @map("resource_type") @db.VarChar(30)
+  resourceId   String?  @map("resource_id") @db.Uuid
+  metadata     Json?    @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("activity_logs")
+}
+
+model EngagementScore {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                  String   @unique @map("user_id") @db.Uuid
+  score                   Decimal  @default(0) @db.Decimal(5, 2)
+  loginFrequencyScore     Decimal  @default(0) @map("login_frequency_score") @db.Decimal(5, 2)
+  postFrequencyScore      Decimal  @default(0) @map("post_frequency_score") @db.Decimal(5, 2)
+  eventParticipationScore Decimal  @default(0) @map("event_participation_score") @db.Decimal(5, 2)
+  videoWatchScore         Decimal  @default(0) @map("video_watch_score") @db.Decimal(5, 2)
+  calculatedAt            DateTime @map("calculated_at") @db.Timestamptz()
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([score(sort: Desc)])
+  @@map("engagement_scores")
+}
+
+model AnalyticsSnapshot {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  snapshotDate           DateTime @unique @map("snapshot_date") @db.Date
+  totalMembers           Int      @default(0) @map("total_members")
+  activeMembers          Int      @default(0) @map("active_members")
+  newMembers             Int      @default(0) @map("new_members")
+  withdrawnMembers       Int      @default(0) @map("withdrawn_members")
+  totalPosts             Int      @default(0) @map("total_posts")
+  totalComments          Int      @default(0) @map("total_comments")
+  totalEvents            Int      @default(0) @map("total_events")
+  totalEventParticipants Int      @default(0) @map("total_event_participants")
+  totalVideoViews        Int      @default(0) @map("total_video_views")
+  totalOrders            Int      @default(0) @map("total_orders")
+  totalRevenue           Int      @default(0) @map("total_revenue")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("analytics_snapshots")
+}
+
+model MemberActivitySummary {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String    @unique @map("user_id") @db.Uuid
+  lastLoginAt              DateTime? @map("last_login_at") @db.Timestamptz()
+  loginCount               Int       @default(0) @map("login_count")
+  postCount                Int       @default(0) @map("post_count")
+  commentCount             Int       @default(0) @map("comment_count")
+  eventParticipationCount  Int       @default(0) @map("event_participation_count")
+  lastEventParticipatedAt  DateTime? @map("last_event_participated_at") @db.Timestamptz()
+  videoWatchCount          Int       @default(0) @map("video_watch_count")
+  chatMessageCount         Int       @default(0) @map("chat_message_count")
+  projectCount             Int       @default(0) @map("project_count")
+  calculatedAt             DateTime  @map("calculated_at") @db.Timestamptz()
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([eventParticipationCount(sort: Desc)])
+  @@index([lastLoginAt(sort: Desc)])
+  @@map("member_activity_summaries")
 }
