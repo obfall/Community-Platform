@@ -1,13 +1,14 @@
 "use client";
 
-import { use } from "react";
+import { use, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useVideo, useVideoProgress } from "@/hooks/use-videos";
+import Hls from "hls.js";
+import { useVideo, useVideoProgress, useUpdateVideoProgress } from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Play, Download, CheckCircle } from "lucide-react";
+import { ArrowLeft, Play, Download, CheckCircle, Loader2 } from "lucide-react";
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return "";
@@ -48,18 +49,13 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* プレーヤーエリア */}
-      <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-        {video.playbackUrl ? (
-          <div className="flex h-full items-center justify-center text-white">
-            <p className="text-sm">HLS プレーヤー（{video.videoProvider}）</p>
-            <p className="mt-1 text-xs text-white/60">{video.playbackUrl}</p>
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Play className="h-16 w-16 text-white/50" />
-          </div>
-        )}
-      </div>
+      <HlsPlayer
+        playbackUrl={video.playbackUrl}
+        streamStatus={video.streamStatus}
+        videoId={video.id}
+        durationSeconds={video.durationSeconds}
+        resumePosition={progress?.lastPositionSeconds}
+      />
 
       {/* 視聴進捗 */}
       {progress && (
@@ -175,6 +171,110 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function HlsPlayer({
+  playbackUrl,
+  streamStatus,
+  videoId,
+  durationSeconds,
+  resumePosition,
+}: {
+  playbackUrl: string | null;
+  streamStatus: string;
+  videoId: string;
+  durationSeconds: number | null;
+  resumePosition?: number;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const updateProgress = useUpdateVideoProgress();
+
+  // HLS.js 初期化
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playbackUrl) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(playbackUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (resumePosition && resumePosition > 0) {
+          video.currentTime = resumePosition;
+        }
+      });
+      hlsRef.current = hls;
+
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari ネイティブ HLS
+      video.src = playbackUrl;
+      if (resumePosition && resumePosition > 0) {
+        video.currentTime = resumePosition;
+      }
+    }
+  }, [playbackUrl, resumePosition]);
+
+  // 視聴進捗を定期保存（30秒ごと）
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playbackUrl) return;
+
+    const interval = setInterval(() => {
+      if (video.currentTime > 0 && !video.paused) {
+        updateProgress.mutate({
+          videoId,
+          data: {
+            watchedSeconds: Math.round(video.currentTime),
+            lastPositionSeconds: Math.round(video.currentTime),
+            totalSeconds: Math.round(video.duration || durationSeconds || 0),
+          },
+        });
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playbackUrl, videoId]);
+
+  if (streamStatus === "uploading" || streamStatus === "processing") {
+    return (
+      <div className="flex aspect-video items-center justify-center rounded-lg bg-black">
+        <div className="text-center text-white">
+          <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin" />
+          <p className="text-sm">
+            {streamStatus === "uploading" ? "アップロード中..." : "HLS 変換中..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (streamStatus === "error") {
+    return (
+      <div className="flex aspect-video items-center justify-center rounded-lg bg-black">
+        <p className="text-sm text-red-400">動画の処理中にエラーが発生しました</p>
+      </div>
+    );
+  }
+
+  if (!playbackUrl) {
+    return (
+      <div className="flex aspect-video items-center justify-center rounded-lg bg-black">
+        <Play className="h-16 w-16 text-white/50" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+      <video ref={videoRef} className="h-full w-full" controls playsInline />
     </div>
   );
 }
