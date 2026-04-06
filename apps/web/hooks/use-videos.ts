@@ -79,6 +79,31 @@ export function useCreateVideoSeries() {
   });
 }
 
+export function useUpdateVideo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        title?: string;
+        description?: string | null;
+        publishStatus?: string;
+        categoryId?: string | null;
+        seriesId?: string | null;
+      };
+    }) => videosApi.updateVideo(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+      queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
+      toast.success("動画を更新しました");
+    },
+    onError: () => toast.error("動画の更新に失敗しました"),
+  });
+}
+
 export function useDeleteVideo() {
   const queryClient = useQueryClient();
   return useMutation({

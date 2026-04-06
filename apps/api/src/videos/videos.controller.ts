@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -22,7 +23,7 @@ import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
 import { VideosService } from "./videos.service";
 import { VideoProcessorService } from "./video-processor.service";
-import { CreateVideoDto, VideoQueryDto } from "./dto";
+import { CreateVideoDto, UpdateVideoDto, VideoQueryDto } from "./dto";
 
 @Controller("videos")
 @ApiTags("Videos")
@@ -100,6 +101,14 @@ export class VideosController {
     this.processor.processVideo(video.id, file.buffer, file.originalname).catch(() => {});
 
     return video;
+  }
+
+  @Patch(":id")
+  @ApiOperation({ summary: "動画更新" })
+  @UseGuards(RolesGuard)
+  @Roles("owner", "admin")
+  update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateVideoDto) {
+    return this.service.update(id, dto);
   }
 
   @Delete(":id")

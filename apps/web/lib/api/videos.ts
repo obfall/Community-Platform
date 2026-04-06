@@ -14,6 +14,17 @@ export const videosApi = {
 
   getVideo: (id: string) => apiClient.get<VideoDetail>(`/videos/${id}`).then((r) => r.data),
 
+  updateVideo: (
+    id: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      publishStatus?: string;
+      categoryId?: string | null;
+      seriesId?: string | null;
+    },
+  ) => apiClient.patch<VideoDetail>(`/videos/${id}`, data).then((r) => r.data),
+
   deleteVideo: (id: string) => apiClient.delete(`/videos/${id}`),
 
   getProgress: (videoId: string) =>

@@ -2,16 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  useVideos,
-  useVideoCategories,
-  useCreateVideoCategory,
-  useVideoSeries,
-  useCreateVideoSeries,
-} from "@/hooks/use-videos";
+import { useVideos, useVideoCategories, useVideoSeries } from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -21,15 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Video, Play, Upload, Plus } from "lucide-react";
+import { Video, Play } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  archived: "アーカイブ",
-};
 
 function formatDuration(seconds: number | null) {
   if (!seconds) return "";
@@ -39,41 +25,21 @@ function formatDuration(seconds: number | null) {
 }
 
 export default function VideosPage() {
-  const [query, setQuery] = useState<VideoQuery>({ page: 1, limit: 12 });
+  const [query, setQuery] = useState<VideoQuery>({
+    page: 1,
+    limit: 12,
+    publishStatus: "published",
+  });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useVideos(query);
   const { data: categories } = useVideoCategories();
   const { data: seriesList } = useVideoSeries();
-  const createCategory = useCreateVideoCategory();
-  const createSeries = useCreateVideoSeries();
-  const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newSeriesName, setNewSeriesName] = useState("");
   const videos = data?.data ?? [];
   const meta = data?.meta;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">動画</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
-            <Plus className="mr-1 h-3 w-3" />
-            カテゴリ追加
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setSeriesDialogOpen(true)}>
-            <Plus className="mr-1 h-3 w-3" />
-            シリーズ追加
-          </Button>
-          <Link href="/videos/new">
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              アップロード
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold">動画</h1>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -123,72 +89,6 @@ export default function VideosPage() {
         </Select>
       </div>
 
-      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>カテゴリ追加</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>カテゴリ名</Label>
-              <Input
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                placeholder="カテゴリ名"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                createCategory.mutate(newCatName, {
-                  onSuccess: () => {
-                    setCatDialogOpen(false);
-                    setNewCatName("");
-                  },
-                });
-              }}
-              disabled={!newCatName || createCategory.isPending}
-              className="w-full"
-            >
-              作成
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>シリーズ追加</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>シリーズ名</Label>
-              <Input
-                value={newSeriesName}
-                onChange={(e) => setNewSeriesName(e.target.value)}
-                placeholder="シリーズ名"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                createSeries.mutate(
-                  { name: newSeriesName },
-                  {
-                    onSuccess: () => {
-                      setSeriesDialogOpen(false);
-                      setNewSeriesName("");
-                    },
-                  },
-                );
-              }}
-              disabled={!newSeriesName || createSeries.isPending}
-              className="w-full"
-            >
-              作成
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {isLoading ? (
         <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
       ) : videos.length === 0 ? (
@@ -221,16 +121,13 @@ export default function VideosPage() {
                   )}
                 </div>
                 <CardContent className="p-4">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
-                    </Badge>
-                    {v.category && (
+                  {v.category && (
+                    <div className="mb-1">
                       <Badge variant="outline" className="text-[10px]">
                         {v.category.name}
                       </Badge>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <h3 className="line-clamp-2 text-sm font-semibold">{v.title}</h3>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{v.createdBy.name}</span>

@@ -81,4 +81,5 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "権限設定", href: "/settings/permissions", icon: Shield },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog },
   { label: "カスタム属性", href: "/settings/member-attributes", icon: ListChecks },
+  { label: "動画管理", href: "/videos/manage", icon: Video },
 ];
