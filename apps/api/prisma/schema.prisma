@@ -157,6 +157,16 @@ model User {
   activityLogs            ActivityLog[]
   engagementScore         EngagementScore?
   activitySummary         MemberActivitySummary?
+  // Phase 8
+  pointSummary              PointSummary?
+  pointHistories            PointHistory[]           @relation("PointGrantee")
+  pointHistoriesGranted     PointHistory[]           @relation("PointGranter")
+  surveysCreated            Survey[]                 @relation("SurveyCreator")
+  surveyResponses           SurveyResponse[]         @relation("SurveyRespondent")
+  skillListings             SkillListing[]           @relation("SkillProvider")
+  skillBookingsRequested    SkillBooking[]           @relation("SkillRequester")
+  skillBookingsProviding    SkillBooking[]           @relation("SkillBookingProvider")
+  skillMessages             SkillMessage[]           @relation("SkillMessageSender")
 
   @@index([role])
   @@index([status])
@@ -338,6 +348,8 @@ model Category {
   projectBoardPosts ProjectBoardPost[]
   // Phase 7
   videos Video[]
+  // Phase 8
+  skillListings SkillListing[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -1100,6 +1112,8 @@ model Event {
   result         EventResult?
   // Phase 6
   projects       Project[]
+  // Phase 8
+  surveys        Survey[]
 
   @@index([status, startAt])
   @@index([startAt])
@@ -1921,4 +1935,282 @@ model MemberActivitySummary {
   @@index([eventParticipationCount(sort: Desc)])
   @@index([lastLoginAt(sort: Desc)])
   @@map("member_activity_summaries")
+}
+
+// =============================================================
+// Phase 8: ポイント・アンケート・スキルシェア
+// =============================================================
+
+// --- Enums ---
+
+enum PointTransactionType {
+  admin_grant
+  rule_grant
+  utilization
+  event_grant
+  expiry
+  admin_adjust
+}
+
+enum PointTriggerEvent {
+  event_attendance
+  product_purchase
+  daily_login
+  board_post
+  survey_complete
+  video_complete
+  orientation_complete
+}
+
+enum SkillFormat {
+  online
+  offline
+  both
+}
+
+enum SkillListingStatus {
+  draft
+  active
+  inactive
+}
+
+enum SkillBookingStatus {
+  requested
+  approved
+  rejected
+  completed
+  canceled
+}
+
+enum SurveyStatus {
+  draft
+  active
+  closed
+}
+
+enum SurveyTargetType {
+  all
+  rank
+  custom
+}
+
+enum SurveyQuestionType {
+  single_choice
+  multi_choice
+  text
+  rating
+  number
+}
+
+// --- ポイント ---
+
+model PointSummary {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @unique @map("user_id") @db.Uuid
+  totalGranted    Int       @default(0) @map("total_granted")
+  totalUtilized   Int       @default(0) @map("total_utilized")
+  totalExpired    Int       @default(0) @map("total_expired")
+  availablePoints Int       @default(0) @map("available_points")
+  lastActivityAt  DateTime? @map("last_activity_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("point_summaries")
+}
+
+model PointHistory {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String               @map("user_id") @db.Uuid
+  points           Int
+  type             PointTransactionType
+  referenceType    String?              @map("reference_type") @db.VarChar(30)
+  referenceId      String?              @map("reference_id") @db.Uuid
+  description      String?              @db.VarChar(200)
+  remainingPoints  Int                  @default(0) @map("remaining_points")
+  expiresAt        DateTime?            @map("expires_at") @db.Timestamptz()
+  grantedByUserId  String?              @map("granted_by_user_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user      User  @relation("PointGrantee", fields: [userId], references: [id])
+  grantedBy User? @relation("PointGranter", fields: [grantedByUserId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("point_histories")
+}
+
+model PointRule {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String            @db.VarChar(100)
+  triggerEvent PointTriggerEvent @map("trigger_event")
+  pointAmount  Int               @map("point_amount")
+  expiryDays   Int               @map("expiry_days")
+  isActive     Boolean           @default(true) @map("is_active")
+  conditions   Json?             @db.JsonB
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([triggerEvent])
+  @@map("point_rules")
+}
+
+// --- アンケート ---
+
+model Survey {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String           @db.VarChar(200)
+  description      String?          @db.Text
+  eventId          String?          @map("event_id") @db.Uuid
+  isTemplate       Boolean          @default(false) @map("is_template")
+  templateId       String?          @map("template_id") @db.Uuid
+  isAnonymous      Boolean          @default(false) @map("is_anonymous")
+  status           SurveyStatus     @default(draft)
+  targetType       SurveyTargetType @default(all) @map("target_type")
+  targetFilter     Json?            @map("target_filter") @db.JsonB
+  startsAt         DateTime?        @map("starts_at") @db.Timestamptz()
+  endsAt           DateTime?        @map("ends_at") @db.Timestamptz()
+  responseCount    Int              @default(0) @map("response_count")
+  createdByUserId  String           @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?        @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdBy  User              @relation("SurveyCreator", fields: [createdByUserId], references: [id])
+  event      Event?            @relation(fields: [eventId], references: [id])
+  template   Survey?           @relation("SurveyTemplate", fields: [templateId], references: [id])
+  copies     Survey[]          @relation("SurveyTemplate")
+  questions  SurveyQuestion[]
+  responses  SurveyResponse[]
+
+  @@index([status])
+  @@map("surveys")
+}
+
+model SurveyQuestion {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  surveyId     String             @map("survey_id") @db.Uuid
+  questionType SurveyQuestionType @map("question_type")
+  questionText String             @map("question_text") @db.Text
+  isRequired   Boolean            @default(false) @map("is_required")
+  sortOrder    Int                @default(0) @map("sort_order")
+  options      Json?              @db.JsonB
+  minValue     Int?               @map("min_value")
+  maxValue     Int?               @map("max_value")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers SurveyAnswer[]
+
+  @@index([surveyId, sortOrder])
+  @@map("survey_questions")
+}
+
+model SurveyResponse {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  surveyId         String   @map("survey_id") @db.Uuid
+  respondentUserId String?  @map("respondent_user_id") @db.Uuid
+  submittedAt      DateTime @default(now()) @map("submitted_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  survey     Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  respondent User?          @relation("SurveyRespondent", fields: [respondentUserId], references: [id])
+  answers    SurveyAnswer[]
+
+  @@unique([surveyId, respondentUserId])
+  @@index([surveyId])
+  @@map("survey_responses")
+}
+
+model SurveyAnswer {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  responseId      String   @map("response_id") @db.Uuid
+  questionId      String   @map("question_id") @db.Uuid
+  selectedOptions Json?    @map("selected_options") @db.JsonB
+  textValue       String?  @map("text_value") @db.Text
+  numericValue    Decimal? @map("numeric_value") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([responseId])
+  @@index([questionId])
+  @@map("survey_answers")
+}
+
+// --- スキルシェア ---
+
+model SkillListing {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String?            @map("category_id") @db.Uuid
+  providerUserId  String             @map("provider_user_id") @db.Uuid
+  title           String             @db.VarChar(200)
+  description     String?            @db.Text
+  price           Int
+  durationMinutes Int                @map("duration_minutes")
+  format          SkillFormat        @default(online)
+  status          SkillListingStatus @default(active)
+  bookingCount    Int                @default(0) @map("booking_count")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?          @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category Category?      @relation(fields: [categoryId], references: [id])
+  provider User           @relation("SkillProvider", fields: [providerUserId], references: [id])
+  bookings SkillBooking[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([categoryId])
+  @@index([providerUserId])
+  @@map("skill_listings")
+}
+
+model SkillBooking {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillListingId   String             @map("skill_listing_id") @db.Uuid
+  requesterUserId  String             @map("requester_user_id") @db.Uuid
+  providerUserId   String             @map("provider_user_id") @db.Uuid
+  status           SkillBookingStatus @default(requested)
+  scheduledAt      DateTime?          @map("scheduled_at") @db.Timestamptz()
+  message          String?            @db.Text
+  completedAt      DateTime?          @map("completed_at") @db.Timestamptz()
+  canceledAt       DateTime?          @map("canceled_at") @db.Timestamptz()
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  skillListing SkillListing   @relation(fields: [skillListingId], references: [id])
+  requester    User           @relation("SkillRequester", fields: [requesterUserId], references: [id])
+  provider     User           @relation("SkillBookingProvider", fields: [providerUserId], references: [id])
+  messages     SkillMessage[]
+
+  @@index([skillListingId, status])
+  @@index([requesterUserId])
+  @@index([providerUserId])
+  @@map("skill_bookings")
+}
+
+model SkillMessage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId    String   @map("booking_id") @db.Uuid
+  senderUserId String   @map("sender_user_id") @db.Uuid
+  body         String   @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  booking SkillBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User         @relation("SkillMessageSender", fields: [senderUserId], references: [id])
+
+  @@index([bookingId, createdAt])
+  @@map("skill_messages")
 }
