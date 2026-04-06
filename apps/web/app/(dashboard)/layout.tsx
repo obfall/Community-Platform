@@ -13,8 +13,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const eventId = extractEventIdFromPath(pathname);
   const projectId = extractProjectIdFromPath(pathname);
 
-  const contextId = eventId ?? projectId;
-
   function renderSidebar() {
     if (eventId) return <EventSidebar eventId={eventId} />;
     if (projectId) return <ProjectSidebar projectId={projectId} />;
