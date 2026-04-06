@@ -874,3 +874,102 @@ export interface CreateProjectInput {
   endDate?: string;
   status?: string;
 }
+
+// --- Videos ---
+
+export interface VideoListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  durationSeconds: number | null;
+  publishStatus: string;
+  streamStatus: string;
+  viewCount: number;
+  category: { id: string; name: string } | null;
+  series: { id: string; name: string } | null;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+}
+
+export interface VideoDetail extends VideoListItem {
+  videoProvider: string;
+  videoExternalId: string;
+  playbackUrl: string | null;
+  viewPermission: string;
+  availableUntil: string | null;
+  watchOrder: number | null;
+  sortOrder: number;
+  instructors: { id: string; userId: string; name: string; avatarUrl: string | null }[];
+  attachments: { id: string; fileId: string; fileName: string; fileUrl: string | null }[];
+  tasks: { id: string; title: string; description: string | null; sortOrder: number }[];
+  updatedAt: string;
+}
+
+export interface VideoWatchProgress {
+  videoId: string;
+  watchedSeconds: number;
+  totalSeconds: number;
+  isCompleted: boolean;
+  lastPositionSeconds: number;
+}
+
+export interface VideoSeries {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+}
+
+export interface VideoQuery {
+  page?: number;
+  limit?: number;
+  publishStatus?: string;
+  categoryId?: string;
+  seriesId?: string;
+  search?: string;
+}
+
+// --- Analytics ---
+
+export interface AnalyticsDashboard {
+  summary: {
+    totalMembers: number;
+    activeMembers: number;
+    totalEvents: number;
+    totalVideos: number;
+  };
+  snapshots: Array<{
+    snapshotDate: string;
+    totalMembers: number;
+    activeMembers: number;
+    newMembers: number;
+    totalPosts: number;
+    totalEvents: number;
+    totalVideoViews: number;
+  }>;
+}
+
+export interface MemberActivityItem {
+  userId: string;
+  user: { id: string; name: string; email: string; role: string; status: string };
+  lastLoginAt: string | null;
+  loginCount: number;
+  postCount: number;
+  commentCount: number;
+  eventParticipationCount: number;
+  videoWatchCount: number;
+  chatMessageCount: number;
+  projectCount: number;
+}
+
+export interface EngagementScoreItem {
+  userId: string;
+  user: { id: string; name: string; role: string };
+  score: number;
+  loginFrequencyScore: number;
+  postFrequencyScore: number;
+  eventParticipationScore: number;
+  videoWatchScore: number;
+  calculatedAt: string;
+}
