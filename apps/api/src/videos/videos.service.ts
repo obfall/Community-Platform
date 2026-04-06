@@ -188,6 +188,21 @@ export class VideosService {
     });
   }
 
+  // Categories
+  async getCategories() {
+    return this.prisma.category.findMany({
+      where: { scope: "video", isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  }
+
+  async createCategory(name: string) {
+    const slug = `video-${Date.now()}`;
+    return this.prisma.category.create({
+      data: { scope: "video", slug, name },
+    });
+  }
+
   // Series
   async getSeries() {
     return this.prisma.videoSeries.findMany({ orderBy: { sortOrder: "asc" } });

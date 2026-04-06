@@ -5,19 +5,31 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { videosApi } from "@/lib/api/videos";
+import { useVideoCategories, useVideoSeries } from "@/hooks/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function NewVideoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { data: categories } = useVideoCategories();
+  const { data: seriesList } = useVideoSeries();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [seriesId, setSeriesId] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
 
   const upload = useMutation({
@@ -26,6 +38,8 @@ export default function NewVideoPage() {
       return videosApi.upload(file, {
         title,
         description: description || undefined,
+        categoryId: categoryId || undefined,
+        seriesId: seriesId || undefined,
       });
     },
     onSuccess: (data: { id: string }) => {
@@ -78,6 +92,46 @@ export default function NewVideoPage() {
               rows={4}
               placeholder="動画の説明"
             />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>カテゴリ</Label>
+              <Select
+                value={categoryId || "none"}
+                onValueChange={(v) => setCategoryId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="カテゴリを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">なし</SelectItem>
+                  {categories?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>シリーズ</Label>
+              <Select
+                value={seriesId || "none"}
+                onValueChange={(v) => setSeriesId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="シリーズを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">なし</SelectItem>
+                  {seriesList?.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label>動画ファイル</Label>
