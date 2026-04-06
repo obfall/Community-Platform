@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Video, Play, Clock } from "lucide-react";
+import { Video, Play } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {

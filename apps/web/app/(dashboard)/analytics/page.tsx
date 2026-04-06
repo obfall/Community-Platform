@@ -24,7 +24,7 @@ import type { MemberActivityItem, EngagementScoreItem } from "@/lib/api/types";
 export default function AnalyticsPage() {
   const { data: dashboard, isLoading } = useAnalyticsDashboard();
   const [memberPage, setMemberPage] = useState(1);
-  const [engagementPage, setEngagementPage] = useState(1);
+  const [engagementPage] = useState(1);
   const { data: memberData } = useMemberActivity({ page: memberPage, limit: 20 });
   const { data: engagementData } = useEngagementRanking({ page: engagementPage, limit: 20 });
 
