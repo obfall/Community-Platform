@@ -72,7 +72,7 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
       </div>
 
       {survey.questions.map((q, idx) => (
-        <Card key={q.id}>
+        <Card key={q.id ?? idx}>
           <CardHeader>
             <CardTitle className="text-base">
               {idx + 1}. {q.questionText}

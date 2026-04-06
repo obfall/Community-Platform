@@ -39,12 +39,14 @@ export default function SurveyNewPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const nextId = () => crypto.randomUUID().slice(0, 8);
+
   const [questions, setQuestions] = useState<QuestionDraft[]>([
     {
       questionType: "single_choice",
       questionText: "",
       isRequired: false,
-      options: [{ value: "1", label: "" }],
+      options: [{ value: nextId(), label: "" }],
     },
   ]);
 
@@ -55,7 +57,7 @@ export default function SurveyNewPage() {
         questionType: "single_choice",
         questionText: "",
         isRequired: false,
-        options: [{ value: "1", label: "" }],
+        options: [{ value: nextId(), label: "" }],
       },
     ]);
   };
@@ -71,9 +73,7 @@ export default function SurveyNewPage() {
   const addOption = (qIdx: number) => {
     setQuestions((prev) =>
       prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: [...q.options, { value: String(q.options.length + 1), label: "" }] }
-          : q,
+        i === qIdx ? { ...q, options: [...q.options, { value: nextId(), label: "" }] } : q,
       ),
     );
   };
