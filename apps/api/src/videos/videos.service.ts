@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import type { CreateVideoDto } from "./dto/create-video.dto";
+import type { UpdateVideoDto } from "./dto/update-video.dto";
 import type { VideoQueryDto } from "./dto/video-query.dto";
 
 const AUTHOR_SELECT = {
@@ -149,6 +150,24 @@ export class VideosService {
         createdByUserId: userId,
       },
     });
+  }
+
+  async update(id: string, dto: UpdateVideoDto) {
+    const video = await this.prisma.video.findUnique({ where: { id } });
+    if (!video || video.deletedAt) throw new NotFoundException("動画が見つかりません");
+
+    await this.prisma.video.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus }),
+        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        ...(dto.seriesId !== undefined && { seriesId: dto.seriesId }),
+      },
+    });
+
+    return this.findOne(id);
   }
 
   async remove(id: string) {

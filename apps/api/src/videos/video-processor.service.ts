@@ -60,10 +60,32 @@ export class VideoProcessorService {
         await this.storage.upload(storageKey, fileBuffer, contentType);
       }
 
+      // サムネイル抽出 + アップロード
+      let thumbnailUrl: string | null = null;
+      try {
+        const seekSeconds = durationSeconds
+          ? Math.max(0, Math.min(durationSeconds * 0.1, durationSeconds - 0.1))
+          : 1;
+        const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
+
+        await this.extractThumbnail(inputPath, thumbnailPath, seekSeconds);
+
+        const thumbnailKey = `videos/${videoId}/thumbnail.jpg`;
+        const thumbnailBuffer = fs.readFileSync(thumbnailPath);
+        thumbnailUrl = await this.storage.upload(thumbnailKey, thumbnailBuffer, "image/jpeg");
+
+        this.logger.log(`Thumbnail generated for video ${videoId}`);
+      } catch (thumbErr) {
+        this.logger.warn(
+          `Thumbnail extraction failed for video ${videoId}:`,
+          (thumbErr as Error).message,
+        );
+      }
+
       // playbackUrl を設定
       const publicUrl = this.storage.getPublicUrl(`${storagePrefix}/playlist.m3u8`);
 
-      // ステータスを ready に + 動画長を保存
+      // ステータスを ready に + 動画長・サムネイルを保存
       await this.prisma.video.update({
         where: { id: videoId },
         data: {
@@ -71,6 +93,7 @@ export class VideoProcessorService {
           playbackUrl: publicUrl,
           videoExternalId: storagePrefix,
           durationSeconds: durationSeconds ? Math.round(durationSeconds) : null,
+          thumbnailUrl,
         },
       });
 
@@ -108,13 +131,44 @@ export class VideoProcessorService {
       ffmpeg(inputPath)
         .setFfmpegPath(this.ffmpegPath)
         .outputOptions([
-          "-codec: copy",
-          "-start_number 0",
-          "-hls_time 10",
-          "-hls_list_size 0",
-          "-f hls",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "fast",
+          "-crf",
+          "23",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "128k",
+          "-start_number",
+          "0",
+          "-hls_time",
+          "10",
+          "-hls_list_size",
+          "0",
+          "-f",
+          "hls",
         ])
         .output(path.join(outputDir, "playlist.m3u8"))
+        .on("end", () => resolve())
+        .on("error", (err: Error) => reject(err))
+        .run();
+    });
+  }
+
+  private extractThumbnail(
+    inputPath: string,
+    outputPath: string,
+    seekSeconds: number,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .setFfmpegPath(this.ffmpegPath)
+        .seekInput(seekSeconds)
+        .frames(1)
+        .outputOptions(["-q:v", "2"])
+        .output(outputPath)
         .on("end", () => resolve())
         .on("error", (err: Error) => reject(err))
         .run();
