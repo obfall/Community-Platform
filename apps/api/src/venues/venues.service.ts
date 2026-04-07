@@ -101,9 +101,7 @@ export class VenuesService {
         ...(data.accessInfo !== undefined && { accessInfo: data.accessInfo }),
         ...(data.venueType !== undefined && { venueType: data.venueType }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
-        ...(data.publishStatus !== undefined && {
-          publishStatus: data.publishStatus as "draft" | "published" | "archived",
-        }),
+        ...(data.publishStatus !== undefined && { publishStatus: data.publishStatus }),
       },
     });
   }
