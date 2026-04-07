@@ -1214,6 +1214,7 @@ export interface VenueListItem {
   capacity: number | null;
   publishStatus: string;
   _count: { spaces: number };
+  images?: Array<{ id: string; file: { publicUrl: string | null } }>;
 }
 
 export interface VenueDetail extends VenueListItem {

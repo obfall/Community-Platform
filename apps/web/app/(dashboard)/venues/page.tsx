@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useVenues } from "@/hooks/use-venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -12,15 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Building2 } from "lucide-react";
+import { Plus, Building2, Users, MapPin } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
@@ -75,48 +68,52 @@ export default function VenuesPage() {
           <p>施設がありません</p>
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>施設名</TableHead>
-                <TableHead>種別</TableHead>
-                <TableHead>住所</TableHead>
-                <TableHead className="text-right">定員</TableHead>
-                <TableHead className="text-right">スペース数</TableHead>
-                <TableHead>ステータス</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {venues.map((v) => (
-                <TableRow key={v.id}>
-                  <TableCell>
-                    <Link
-                      href={`/venues/${v.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {v.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{VENUE_TYPE_LABELS[v.venueType] ?? v.venueType}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {v.address ?? "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {v.capacity != null ? `${v.capacity}人` : "-"}
-                  </TableCell>
-                  <TableCell className="text-right">{v._count.spaces}</TableCell>
-                  <TableCell>
-                    <Badge variant={v.publishStatus === "published" ? "default" : "secondary"}>
-                      {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {venues.map((v) => {
+            const imageUrl = v.images?.[0]?.file.publicUrl;
+            return (
+              <Link key={v.id} href={`/venues/${v.id}`}>
+                <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+                  <div className="flex aspect-video items-center justify-center bg-muted">
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imageUrl} alt={v.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-12 w-12 text-muted-foreground" />
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="mb-2 flex flex-wrap items-center gap-1">
+                      <Badge variant="outline" className="text-xs">
+                        {VENUE_TYPE_LABELS[v.venueType] ?? v.venueType}
+                      </Badge>
+                      {v.publishStatus !== "published" && (
+                        <Badge variant="secondary" className="text-xs">
+                          {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
+                        </Badge>
+                      )}
+                    </div>
+                    <h3 className="line-clamp-1 font-semibold">{v.name}</h3>
+                    {v.address && (
+                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                        <MapPin className="mr-1 inline h-3 w-3" />
+                        {v.address}
+                      </p>
+                    )}
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                      {v.capacity != null && (
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {v.capacity}人
+                        </span>
+                      )}
+                      <span>{v._count.spaces}スペース</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

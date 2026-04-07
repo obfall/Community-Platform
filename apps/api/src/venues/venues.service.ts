@@ -20,7 +20,14 @@ export class VenuesService {
     return this.prisma.venue.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { spaces: true } } },
+      include: {
+        _count: { select: { spaces: true } },
+        images: {
+          where: { isPrimary: true },
+          take: 1,
+          include: { file: { select: { publicUrl: true } } },
+        },
+      },
     });
   }
 

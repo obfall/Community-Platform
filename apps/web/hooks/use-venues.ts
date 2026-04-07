@@ -29,6 +29,25 @@ export function useCreateVenue() {
   });
 }
 
+export function useCreateSpace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      venueId,
+      data,
+    }: {
+      venueId: string;
+      data: { name: string; description?: string; capacity?: number; spaceType?: string };
+    }) => venuesApi.createSpace(venueId, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["venues"] });
+      queryClient.invalidateQueries({ queryKey: ["venues", vars.venueId] });
+      toast.success("スペースを登録しました");
+    },
+    onError: () => toast.error("スペース登録に失敗しました"),
+  });
+}
+
 export function useDeleteVenue() {
   const queryClient = useQueryClient();
   return useMutation({

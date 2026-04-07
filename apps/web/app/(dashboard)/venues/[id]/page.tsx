@@ -7,10 +7,12 @@ import {
   useReservations,
   useCreateReservation,
   useCancelReservation,
+  useCreateSpace,
 } from "@/hooks/use-venues";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,7 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Building2, Calendar, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
@@ -53,7 +56,36 @@ interface VenueImageItem {
 export default function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: venue, isLoading } = useVenue(id);
+  const createSpace = useCreateSpace();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
+  const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
+  const [spaceName, setSpaceName] = useState("");
+  const [spaceDescription, setSpaceDescription] = useState("");
+  const [spaceCapacity, setSpaceCapacity] = useState("");
+  const [spaceType, setSpaceType] = useState("meeting_room");
+
+  const handleCreateSpace = () => {
+    createSpace.mutate(
+      {
+        venueId: id,
+        data: {
+          name: spaceName,
+          description: spaceDescription || undefined,
+          capacity: spaceCapacity ? Number(spaceCapacity) : undefined,
+          spaceType,
+        },
+      },
+      {
+        onSuccess: () => {
+          setSpaceDialogOpen(false);
+          setSpaceName("");
+          setSpaceDescription("");
+          setSpaceCapacity("");
+          setSpaceType("meeting_room");
+        },
+      },
+    );
+  };
 
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -126,11 +158,15 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             スペース一覧
           </CardTitle>
+          <Button size="sm" onClick={() => setSpaceDialogOpen(true)}>
+            <Plus className="mr-1 h-3 w-3" />
+            スペース追加
+          </Button>
         </CardHeader>
         <CardContent>
           {venue.spaces.length === 0 ? (
@@ -200,6 +236,69 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>スペース追加</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>スペース名</Label>
+              <Input
+                value={spaceName}
+                onChange={(e) => setSpaceName(e.target.value)}
+                placeholder="例: 会議室A"
+                maxLength={200}
+              />
+            </div>
+            <div>
+              <Label>説明</Label>
+              <Textarea
+                value={spaceDescription}
+                onChange={(e) => setSpaceDescription(e.target.value)}
+                placeholder="説明（任意）"
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>タイプ</Label>
+                <Select value={spaceType} onValueChange={setSpaceType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="meeting_room">会議室</SelectItem>
+                    <SelectItem value="studio">スタジオ</SelectItem>
+                    <SelectItem value="hall">ホール</SelectItem>
+                    <SelectItem value="open_space">オープンスペース</SelectItem>
+                    <SelectItem value="other">その他</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>定員</Label>
+                <Input
+                  type="number"
+                  value={spaceCapacity}
+                  onChange={(e) => setSpaceCapacity(e.target.value)}
+                  placeholder="任意"
+                  min="1"
+                />
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleCreateSpace}
+              disabled={!spaceName || createSpace.isPending}
+            >
+              {createSpace.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              登録
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
