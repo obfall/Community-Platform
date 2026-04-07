@@ -9,14 +9,14 @@ export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: {
-    page?: number;
-    limit?: number;
+    page?: number | string;
+    limit?: number | string;
     search?: string;
     contentType?: string;
     publishStatus?: string;
   }) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 20);
     const skip = (page - 1) * limit;
 
     const where: Prisma.ContentWhereInput = { deletedAt: null };
