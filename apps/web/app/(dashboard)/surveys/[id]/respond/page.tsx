@@ -85,27 +85,31 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
                 value={answers[q.id]?.selectedOptions?.[0] ?? ""}
                 onValueChange={(v) => setAnswer(q.id, { selectedOptions: [v] })}
               >
-                {q.options.map((o, oIdx) => (
-                  <div key={`${o.value}-${oIdx}`} className="flex items-center gap-2">
-                    <RadioGroupItem value={o.value} id={`${q.id}-${oIdx}`} />
-                    <Label htmlFor={`${q.id}-${oIdx}`}>{o.label}</Label>
-                  </div>
-                ))}
+                {q.options.map((o, oIdx) => {
+                  const key = `${oIdx}`;
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <RadioGroupItem value={key} id={`${q.id}-${key}`} />
+                      <Label htmlFor={`${q.id}-${key}`}>{o.label}</Label>
+                    </div>
+                  );
+                })}
               </RadioGroup>
             )}
             {q.questionType === "multi_choice" && q.options && (
               <div className="space-y-2">
                 {q.options.map((o, oIdx) => {
+                  const key = `${oIdx}`;
                   const selected = answers[q.id]?.selectedOptions ?? [];
                   return (
-                    <label key={`${o.value}-${oIdx}`} className="flex items-center gap-2 text-sm">
+                    <label key={key} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={selected.includes(o.value)}
+                        checked={selected.includes(key)}
                         onChange={(e) => {
                           const next = e.target.checked
-                            ? [...selected, o.value]
-                            : selected.filter((v) => v !== o.value);
+                            ? [...selected, key]
+                            : selected.filter((v) => v !== key);
                           setAnswer(q.id, { selectedOptions: next });
                         }}
                       />
