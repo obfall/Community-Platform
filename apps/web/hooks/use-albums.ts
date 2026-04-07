@@ -2,7 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { albumsApi } from "@/lib/api/albums";
 
-export function useAlbums(query?: { page?: number; limit?: number; search?: string }) {
+export function useAlbums(query?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+}) {
   return useQuery({
     queryKey: ["albums", query],
     queryFn: () => albumsApi.getAll(query),
@@ -38,5 +43,25 @@ export function useDeleteAlbum() {
       toast.success("アルバムを削除しました");
     },
     onError: () => toast.error("アルバム削除に失敗しました"),
+  });
+}
+
+export function useAlbumCategories() {
+  return useQuery({
+    queryKey: ["albums", "categories"],
+    queryFn: () => albumsApi.getCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateAlbumCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => albumsApi.createCategory(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["albums", "categories"] });
+      toast.success("カテゴリを作成しました");
+    },
+    onError: () => toast.error("カテゴリ作成に失敗しました"),
   });
 }

@@ -34,6 +34,20 @@ export class AlbumsController {
     return this.service.findAll(query);
   }
 
+  @Get("categories")
+  @ApiOperation({ summary: "アルバムカテゴリ一覧" })
+  getCategories() {
+    return this.service.getCategories();
+  }
+
+  @Post("categories")
+  @ApiOperation({ summary: "アルバムカテゴリ作成" })
+  @UseGuards(RolesGuard)
+  @Roles("owner", "admin")
+  createCategory(@Body("name") name: string) {
+    return this.service.createCategory(name);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "アルバム詳細" })
   findOne(@Param("id", ParseUUIDPipe) id: string) {

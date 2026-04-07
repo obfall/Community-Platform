@@ -3,26 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCreateAlbum } from "@/hooks/use-albums";
+import { useCreateAlbum, useAlbumCategories } from "@/hooks/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+
+const NONE_VALUE = "__none__";
 
 export default function AlbumNewPage() {
   const router = useRouter();
   const createAlbum = useCreateAlbum();
+  const { data: categories } = useAlbumCategories();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState(NONE_VALUE);
 
   const handleSubmit = () => {
     createAlbum.mutate(
       {
         title,
         description: description || undefined,
+        categoryId: categoryId === NONE_VALUE ? undefined : categoryId,
       },
       { onSuccess: () => router.push("/albums") },
     );
@@ -61,6 +73,22 @@ export default function AlbumNewPage() {
               placeholder="アルバムの説明（任意）"
               rows={4}
             />
+          </div>
+          <div>
+            <Label>カテゴリ</Label>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>なし</SelectItem>
+                {categories?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/albums">

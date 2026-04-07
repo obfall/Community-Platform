@@ -15,6 +15,7 @@ export class AlbumsService {
 
     const where: Prisma.AlbumWhereInput = { deletedAt: null, publishStatus: "published" };
     if (query.search) where.title = { contains: query.search, mode: "insensitive" };
+    if (query.categoryId) where.categoryId = query.categoryId;
 
     const [data, total] = await Promise.all([
       this.prisma.album.findMany({
@@ -100,5 +101,21 @@ export class AlbumsService {
 
   async remove(id: string) {
     await this.prisma.album.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  // --- カテゴリ ---
+
+  async getCategories() {
+    return this.prisma.category.findMany({
+      where: { scope: "album", isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  }
+
+  async createCategory(name: string) {
+    const slug = `album-${Date.now()}`;
+    return this.prisma.category.create({
+      data: { scope: "album", slug, name },
+    });
   }
 }

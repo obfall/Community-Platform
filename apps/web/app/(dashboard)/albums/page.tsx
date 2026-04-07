@@ -2,20 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAlbums } from "@/hooks/use-albums";
+import { useAlbums, useAlbumCategories, useCreateAlbumCategory } from "@/hooks/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Image as ImageIcon, Camera } from "lucide-react";
 
 export default function AlbumsPage() {
-  const [query, setQuery] = useState<{ page?: number; limit?: number; search?: string }>({
+  const [query, setQuery] = useState<{
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+  }>({
     page: 1,
     limit: 12,
   });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useAlbums(query);
+  const { data: categories } = useAlbumCategories();
+  const createCategory = useCreateAlbumCategory();
+  const [catDialogOpen, setCatDialogOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
   const albums = data?.data ?? [];
   const meta = data?.meta;
 
@@ -23,12 +41,18 @@ export default function AlbumsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">アルバム</h1>
-        <Link href="/albums/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            作成
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
+            <Plus className="mr-1 h-3 w-3" />
+            カテゴリ追加
           </Button>
-        </Link>
+          <Link href="/albums/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              作成
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -41,7 +65,57 @@ export default function AlbumsPage() {
           placeholder="アルバムを検索..."
           className="max-w-xs"
         />
+        <Select
+          value={query.categoryId ?? "all"}
+          onValueChange={(v) =>
+            setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
+          }
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="カテゴリ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべてのカテゴリ</SelectItem>
+            {categories?.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>カテゴリ追加</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>カテゴリ名</Label>
+              <Input
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="カテゴリ名"
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={!newCatName || createCategory.isPending}
+              onClick={() => {
+                createCategory.mutate(newCatName, {
+                  onSuccess: () => {
+                    setCatDialogOpen(false);
+                    setNewCatName("");
+                  },
+                });
+              }}
+            >
+              作成
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
