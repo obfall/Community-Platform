@@ -43,6 +43,12 @@ export class ContentsController {
     return this.service.findAll(query);
   }
 
+  @Get("share/:token")
+  @ApiOperation({ summary: "招待トークンでコンテンツ取得" })
+  findByToken(@Param("token") token: string) {
+    return this.service.findByInviteToken(token);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "コンテンツ詳細" })
   findOne(@Param("id", ParseUUIDPipe) id: string) {

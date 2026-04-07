@@ -71,6 +71,15 @@ export class ContentsService {
     return content;
   }
 
+  async findByInviteToken(token: string) {
+    const content = await this.prisma.content.findUnique({
+      where: { inviteToken: token },
+      include: { createdBy: { select: { id: true, name: true } } },
+    });
+    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
+    return content;
+  }
+
   async create(userId: string, dto: CreateContentDto) {
     const inviteToken = crypto.randomBytes(16).toString("hex");
     return this.prisma.content.create({

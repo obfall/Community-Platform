@@ -13,6 +13,9 @@ export const contentsApi = {
 
   getOne: (id: string) => apiClient.get<ContentListItem>(`/contents/${id}`).then((r) => r.data),
 
+  getByToken: (token: string) =>
+    apiClient.get<ContentListItem>(`/contents/share/${token}`).then((r) => r.data),
+
   create: (data: {
     name: string;
     contentType: string;
