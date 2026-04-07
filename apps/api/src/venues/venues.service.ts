@@ -1,0 +1,141 @@
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { PrismaService } from "@/prisma/prisma.service";
+import type { CreateVenueDto } from "./dto/create-venue.dto";
+import type { CreateSpaceDto } from "./dto/create-space.dto";
+import type { CreateReservationDto } from "./dto/create-reservation.dto";
+
+@Injectable()
+export class VenuesService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  // --- 施設 ---
+
+  async findAllVenues() {
+    return this.prisma.venue.findMany({
+      where: { deletedAt: null, publishStatus: "published" },
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { spaces: true } } },
+    });
+  }
+
+  async findOneVenue(id: string) {
+    const venue = await this.prisma.venue.findUnique({
+      where: { id },
+      include: {
+        spaces: { where: { deletedAt: null }, orderBy: { sortOrder: "asc" } },
+        images: {
+          orderBy: { sortOrder: "asc" },
+          include: { file: { select: { publicUrl: true } } },
+        },
+      },
+    });
+    if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
+    return venue;
+  }
+
+  async createVenue(userId: string, dto: CreateVenueDto) {
+    return this.prisma.venue.create({
+      data: {
+        name: dto.name,
+        address: dto.address,
+        description: dto.description,
+        accessInfo: dto.accessInfo,
+        venueType: dto.venueType ?? "other",
+        capacity: dto.capacity,
+        publishStatus: "published",
+        createdByUserId: userId,
+      },
+    });
+  }
+
+  async updateVenue(id: string, data: Partial<CreateVenueDto> & { publishStatus?: string }) {
+    const venue = await this.prisma.venue.findUnique({ where: { id } });
+    if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
+    return this.prisma.venue.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.accessInfo !== undefined && { accessInfo: data.accessInfo }),
+        ...(data.venueType !== undefined && { venueType: data.venueType }),
+        ...(data.capacity !== undefined && { capacity: data.capacity }),
+        ...(data.publishStatus !== undefined && {
+          publishStatus: data.publishStatus as "draft" | "published" | "archived",
+        }),
+      },
+    });
+  }
+
+  async removeVenue(id: string) {
+    await this.prisma.venue.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
+  // --- スペース ---
+
+  async createSpace(venueId: string, dto: CreateSpaceDto) {
+    return this.prisma.space.create({
+      data: {
+        venueId,
+        name: dto.name,
+        description: dto.description,
+        capacity: dto.capacity,
+        spaceType: dto.spaceType as
+          | "meeting_room"
+          | "studio"
+          | "hall"
+          | "open_space"
+          | "other"
+          | undefined,
+        publishStatus: "published",
+      },
+    });
+  }
+
+  // --- 予約 ---
+
+  async getReservations(spaceId: string) {
+    return this.prisma.reservation.findMany({
+      where: { spaceId },
+      orderBy: { startAt: "asc" },
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  async createReservation(spaceId: string, userId: string, dto: CreateReservationDto) {
+    const space = await this.prisma.space.findUnique({ where: { id: spaceId } });
+    if (!space || space.deletedAt || !space.isReservable) {
+      throw new NotFoundException("スペースが見つかりません");
+    }
+
+    const startAt = new Date(dto.startAt);
+    const endAt = new Date(dto.endAt);
+
+    // 重複チェック
+    const overlap = await this.prisma.reservation.findFirst({
+      where: {
+        spaceId,
+        status: { not: "canceled" },
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+      },
+    });
+    if (overlap) throw new BadRequestException("指定した時間帯は既に予約があります");
+
+    return this.prisma.reservation.create({
+      data: { spaceId, userId, title: dto.title, startAt, endAt, note: dto.note },
+    });
+  }
+
+  async cancelReservation(reservationId: string, userId: string) {
+    const reservation = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!reservation) throw new NotFoundException("予約が見つかりません");
+    if (reservation.userId !== userId)
+      throw new BadRequestException("この予約をキャンセルする権限がありません");
+
+    return this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: { status: "canceled" },
+    });
+  }
+}

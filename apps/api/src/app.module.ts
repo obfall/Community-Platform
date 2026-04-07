@@ -21,6 +21,10 @@ import { AnalyticsModule } from "./analytics/analytics.module";
 import { PointsModule } from "./points/points.module";
 import { SurveysModule } from "./surveys/surveys.module";
 import { SkillsModule } from "./skills/skills.module";
+import { ShopModule } from "./shop/shop.module";
+import { AlbumsModule } from "./albums/albums.module";
+import { VenuesModule } from "./venues/venues.module";
+import { ContentsModule } from "./contents/contents.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -85,6 +89,18 @@ import { validateEnv } from "./config/env.config";
 
     // Skills
     SkillsModule,
+
+    // Shop
+    ShopModule,
+
+    // Albums
+    AlbumsModule,
+
+    // Venues
+    VenuesModule,
+
+    // Contents
+    ContentsModule,
   ],
   controllers: [AppController],
   providers: [
