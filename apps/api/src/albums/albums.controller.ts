@@ -81,4 +81,24 @@ export class AlbumsController {
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);
   }
+
+  @Post(":id/photos")
+  @ApiOperation({ summary: "写真追加" })
+  addPhotos(
+    @Param("id", ParseUUIDPipe) albumId: string,
+    @CurrentUser("id") userId: string,
+    @Body() body: { photos: Array<{ fileId: string; title?: string; caption?: string }> },
+  ) {
+    return this.service.addPhotos(albumId, userId, body.photos);
+  }
+
+  @Delete(":id/photos/:photoId")
+  @ApiOperation({ summary: "写真削除" })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removePhoto(
+    @Param("id", ParseUUIDPipe) albumId: string,
+    @Param("photoId", ParseUUIDPipe) photoId: string,
+  ) {
+    return this.service.removePhoto(albumId, photoId);
+  }
 }

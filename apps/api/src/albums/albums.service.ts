@@ -103,6 +103,57 @@ export class AlbumsService {
     await this.prisma.album.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 
+  // --- 写真 ---
+
+  async addPhotos(
+    albumId: string,
+    userId: string,
+    photos: Array<{ fileId: string; title?: string; caption?: string }>,
+  ) {
+    const album = await this.prisma.album.findUnique({ where: { id: albumId } });
+    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+
+    const existingCount = await this.prisma.albumPhoto.count({ where: { albumId } });
+
+    await this.prisma.albumPhoto.createMany({
+      data: photos.map((p, i) => ({
+        albumId,
+        fileId: p.fileId,
+        title: p.title,
+        caption: p.caption,
+        sortOrder: existingCount + i,
+        publishStatus: "published",
+        uploadedByUserId: userId,
+      })),
+    });
+
+    // 写真数とカバー写真を更新
+    const totalCount = existingCount + photos.length;
+    const updateData: { photoCount: number; coverPhotoUrl?: string } = { photoCount: totalCount };
+    if (existingCount === 0 && photos.length > 0) {
+      const firstFile = await this.prisma.file.findUnique({
+        where: { id: photos[0]!.fileId },
+        select: { publicUrl: true },
+      });
+      if (firstFile?.publicUrl) updateData.coverPhotoUrl = firstFile.publicUrl;
+    }
+
+    await this.prisma.album.update({ where: { id: albumId }, data: updateData });
+
+    return { count: photos.length };
+  }
+
+  async removePhoto(albumId: string, photoId: string) {
+    const photo = await this.prisma.albumPhoto.findUnique({ where: { id: photoId } });
+    if (!photo || photo.albumId !== albumId) throw new NotFoundException("写真が見つかりません");
+
+    await this.prisma.albumPhoto.delete({ where: { id: photoId } });
+    await this.prisma.album.update({
+      where: { id: albumId },
+      data: { photoCount: { decrement: 1 } },
+    });
+  }
+
   // --- カテゴリ ---
 
   async getCategories() {

@@ -60,6 +60,39 @@ export function useDeleteAlbum() {
   });
 }
 
+export function useAddAlbumPhotos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      albumId,
+      photos,
+    }: {
+      albumId: string;
+      photos: Array<{ fileId: string; title?: string; caption?: string }>;
+    }) => albumsApi.addPhotos(albumId, photos),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
+      toast.success("写真を追加しました");
+    },
+    onError: () => toast.error("写真の追加に失敗しました"),
+  });
+}
+
+export function useRemoveAlbumPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ albumId, photoId }: { albumId: string; photoId: string }) =>
+      albumsApi.removePhoto(albumId, photoId),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
+      toast.success("写真を削除しました");
+    },
+    onError: () => toast.error("写真の削除に失敗しました"),
+  });
+}
+
 export function useAlbumCategories() {
   return useQuery({
     queryKey: ["albums", "categories"],

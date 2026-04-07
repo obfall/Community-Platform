@@ -19,6 +19,14 @@ export const albumsApi = {
 
   remove: (id: string) => apiClient.delete(`/albums/${id}`),
 
+  addPhotos: (
+    albumId: string,
+    photos: Array<{ fileId: string; title?: string; caption?: string }>,
+  ) => apiClient.post(`/albums/${albumId}/photos`, { photos }).then((r) => r.data),
+
+  removePhoto: (albumId: string, photoId: string) =>
+    apiClient.delete(`/albums/${albumId}/photos/${photoId}`),
+
   getCategories: () =>
     apiClient.get<Array<{ id: string; name: string }>>("/albums/categories").then((r) => r.data),
 
