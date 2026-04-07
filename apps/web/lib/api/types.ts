@@ -973,3 +973,170 @@ export interface EngagementScoreItem {
   videoWatchScore: number;
   calculatedAt: string;
 }
+
+// --- Points ---
+
+export interface PointSummary {
+  id: string;
+  userId: string;
+  totalGranted: number;
+  totalUtilized: number;
+  totalExpired: number;
+  availablePoints: number;
+  lastActivityAt: string | null;
+}
+
+export interface PointHistory {
+  id: string;
+  userId: string;
+  points: number;
+  type: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  description: string | null;
+  remainingPoints: number;
+  expiresAt: string | null;
+  grantedBy: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface PointRule {
+  id: string;
+  name: string;
+  triggerEvent: string;
+  pointAmount: number;
+  expiryDays: number;
+  isActive: boolean;
+  conditions: unknown;
+  createdAt: string;
+}
+
+export interface PointHistoryQuery {
+  page?: number;
+  limit?: number;
+  type?: string;
+}
+
+// --- Surveys ---
+
+export interface SurveyListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  isAnonymous: boolean;
+  targetType: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  responseCount: number;
+  questionCount: number;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  surveyId: string;
+  questionType: string;
+  questionText: string;
+  isRequired: boolean;
+  sortOrder: number;
+  options: Array<{ value: string; label: string }> | null;
+  minValue: number | null;
+  maxValue: number | null;
+}
+
+export interface SurveyDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  isAnonymous: boolean;
+  targetType: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  responseCount: number;
+  createdBy: { id: string; name: string };
+  questions: SurveyQuestion[];
+  createdAt: string;
+}
+
+export interface SurveyQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface SurveyResultQuestion {
+  question: SurveyQuestion;
+  totalAnswers: number;
+  optionCounts?: Record<string, number>;
+  average?: number | null;
+  min?: number | null;
+  max?: number | null;
+  textAnswers?: string[];
+}
+
+export interface SurveyResults {
+  survey: { id: string; title: string; responseCount: number };
+  results: SurveyResultQuestion[];
+}
+
+// --- Skills ---
+
+export interface SkillListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  durationMinutes: number;
+  format: string;
+  status: string;
+  bookingCount: number;
+  category: { id: string; name: string } | null;
+  provider: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+}
+
+export interface SkillBooking {
+  id: string;
+  skillListingId: string;
+  requesterUserId: string;
+  providerUserId: string;
+  status: string;
+  scheduledAt: string | null;
+  message: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  skillListing: { id: string; title: string; price: number };
+  requester: { id: string; name: string };
+  provider: { id: string; name: string };
+}
+
+export interface SkillMessage {
+  id: string;
+  bookingId: string;
+  senderUserId: string;
+  body: string;
+  createdAt: string;
+  sender: { id: string; name: string };
+}
+
+export interface SkillComment {
+  id: string;
+  skillListingId: string;
+  authorUserId: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string; profile?: { avatarUrl: string | null } };
+}
+
+export interface SkillQuery {
+  page?: number;
+  limit?: number;
+  categoryId?: string;
+  format?: string;
+  search?: string;
+}

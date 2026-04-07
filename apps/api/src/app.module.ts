@@ -18,6 +18,9 @@ import { EventsModule } from "./events/events.module";
 import { ProjectsModule } from "./projects/projects.module";
 import { VideosModule } from "./videos/videos.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { PointsModule } from "./points/points.module";
+import { SurveysModule } from "./surveys/surveys.module";
+import { SkillsModule } from "./skills/skills.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -73,6 +76,15 @@ import { validateEnv } from "./config/env.config";
 
     // Analytics
     AnalyticsModule,
+
+    // Points
+    PointsModule,
+
+    // Surveys
+    SurveysModule,
+
+    // Skills
+    SkillsModule,
   ],
   controllers: [AppController],
   providers: [
