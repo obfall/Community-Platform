@@ -180,7 +180,7 @@ export default function ShopManagePage() {
             {products.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="max-w-[240px]">
-                  <Link href={`/shop/${p.id}`} className="font-medium hover:underline">
+                  <Link href={`/shop/${p.id}?from=manage`} className="font-medium hover:underline">
                     {p.name}
                   </Link>
                 </TableCell>

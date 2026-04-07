@@ -2,6 +2,7 @@
 
 import { use, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useProduct, useCreateOrder } from "@/hooks/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,8 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Package, ShoppingCart } 
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const fromManage = searchParams.get("from") === "manage";
   const { data: product, isLoading } = useProduct(id);
   const createOrder = useCreateOrder();
   const [quantity, setQuantity] = useState("1");
@@ -33,17 +36,19 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/shop">
+        <Link href={fromManage ? "/shop/manage" : "/shop"}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <h1 className="flex-1 text-2xl font-bold">{product.name}</h1>
-        <Link href={`/shop/${product.id}/edit`}>
-          <Button variant="outline" size="sm">
-            編集
-          </Button>
-        </Link>
+        {fromManage && (
+          <Link href={`/shop/${product.id}/edit`}>
+            <Button variant="outline" size="sm">
+              編集
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -85,36 +90,38 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>購入</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>数量</Label>
-            <Input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              min="1"
-              max={product.stock ?? undefined}
-              className="w-24"
-            />
-          </div>
-          <Button
-            onClick={handleOrder}
-            disabled={outOfStock || createOrder.isPending}
-            className="w-full"
-          >
-            {createOrder.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="mr-2 h-4 w-4" />
-            )}
-            {outOfStock ? "売り切れ" : "注文する"}
-          </Button>
-        </CardContent>
-      </Card>
+      {!fromManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>購入</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>数量</Label>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                min="1"
+                max={product.stock ?? undefined}
+                className="w-24"
+              />
+            </div>
+            <Button
+              onClick={handleOrder}
+              disabled={outOfStock || createOrder.isPending}
+              className="w-full"
+            >
+              {createOrder.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ShoppingCart className="mr-2 h-4 w-4" />
+              )}
+              {outOfStock ? "売り切れ" : "注文する"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
