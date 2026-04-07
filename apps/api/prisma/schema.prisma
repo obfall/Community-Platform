@@ -168,6 +168,16 @@ model User {
   skillBookingsProviding    SkillBooking[]           @relation("SkillBookingProvider")
   skillMessages             SkillMessage[]           @relation("SkillMessageSender")
   skillComments             SkillComment[]           @relation("SkillCommentAuthor")
+  // Phase 9
+  products                  Product[]                @relation("ProductSeller")
+  ordersBought              Order[]                  @relation("OrderBuyer")
+  ordersSold                Order[]                  @relation("OrderSeller")
+  albumsCreated             Album[]                  @relation("AlbumCreator")
+  albumPhotos               AlbumPhoto[]             @relation("AlbumPhotoUploader")
+  venuesCreated             Venue[]                  @relation("VenueCreator")
+  reservations              Reservation[]
+  contentsCreated           Content[]                @relation("ContentCreator")
+  shopSettingsUpdated       ShopSetting[]            @relation("ShopSettingUpdatedBy")
 
   @@index([role])
   @@index([status])
@@ -351,6 +361,9 @@ model Category {
   videos Video[]
   // Phase 8
   skillListings SkillListing[]
+  // Phase 9
+  products Product[]
+  albums   Album[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -371,6 +384,8 @@ model Tag {
   eventTags EventTag[]
   // Phase 6
   projectTags ProjectTag[]
+  // Phase 9
+  albumTags AlbumTag[]
 
   @@map("tags")
 }
@@ -410,6 +425,10 @@ model File {
   projectBoardPostAttachments    ProjectBoardPostAttachment[]
   // Phase 7
   videoAttachments               VideoAttachment[]
+  // Phase 9
+  productImages                  ProductImage[]
+  albumPhotos                    AlbumPhoto[]
+  venueImages                    VenueImage[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -2232,4 +2251,361 @@ model SkillComment {
 
   @@index([skillListingId, createdAt])
   @@map("skill_comments")
+}
+
+// =============================================================
+// Phase 9: ショップ・アルバム・施設・コンテンツ
+// =============================================================
+
+// --- Enums ---
+
+enum ProductPublishStatus {
+  draft
+  published
+  archived
+}
+
+enum ProductSaleStatus {
+  on_sale
+  sold_out
+}
+
+enum ProductSellerType {
+  admin
+  member
+}
+
+enum OrderStatus {
+  in_progress
+  completed
+  canceled
+}
+
+enum AlbumPublishStatus {
+  draft
+  published
+  archived
+}
+
+enum VenueType {
+  theater
+  concert_hall
+  conference_room
+  stadium
+  outdoor
+  other
+}
+
+enum SpaceType {
+  meeting_room
+  studio
+  hall
+  open_space
+  other
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  canceled
+}
+
+enum ContentPublishStatus {
+  draft
+  published
+  archived
+}
+
+// --- ショップ ---
+
+model ShopSetting {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iconImageUrl    String?              @map("icon_image_url") @db.VarChar(500)
+  headerImageUrl  String?              @map("header_image_url") @db.VarChar(500)
+  publishStatus   ProductPublishStatus @default(draft) @map("publish_status")
+  autoTranslate   Boolean              @default(false) @map("auto_translate")
+  updatedByUserId String?              @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  updatedBy User? @relation("ShopSettingUpdatedBy", fields: [updatedByUserId], references: [id])
+
+  @@map("shop_settings")
+}
+
+model ProductSeries {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.VarChar(100)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  products Product[]
+
+  @@index([sortOrder])
+  @@map("product_series")
+}
+
+model Product {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String?              @map("category_id") @db.Uuid
+  seriesId        String?              @map("series_id") @db.Uuid
+  sellerUserId    String               @map("seller_user_id") @db.Uuid
+  name            String               @db.VarChar(200)
+  description     String?              @db.Text
+  price           Int
+  compareAtPrice  Int?                 @map("compare_at_price")
+  stock           Int?
+  sellerType      ProductSellerType    @default(admin) @map("seller_type")
+  publishStatus   ProductPublishStatus @default(draft) @map("publish_status")
+  status          ProductSaleStatus    @default(on_sale)
+  saleStartAt     DateTime?            @map("sale_start_at") @db.Timestamptz()
+  saleEndAt       DateTime?            @map("sale_end_at") @db.Timestamptz()
+  salesCount      Int                  @default(0) @map("sales_count")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category Category?      @relation(fields: [categoryId], references: [id])
+  series   ProductSeries? @relation(fields: [seriesId], references: [id])
+  seller   User           @relation("ProductSeller", fields: [sellerUserId], references: [id])
+  images   ProductImage[]
+  orderItems OrderItem[]
+
+  @@index([publishStatus, status, createdAt(sort: Desc)])
+  @@index([categoryId])
+  @@index([seriesId])
+  @@index([sellerUserId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  file    File    @relation(fields: [fileId], references: [id])
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+model Order {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyerUserId   String      @map("buyer_user_id") @db.Uuid
+  sellerUserId  String      @map("seller_user_id") @db.Uuid
+  orderNumber   String      @unique @map("order_number") @db.VarChar(50)
+  totalAmount   Int         @map("total_amount")
+  status        OrderStatus @default(in_progress)
+  notes         String?     @db.Text
+  completedAt   DateTime?   @map("completed_at") @db.Timestamptz()
+  canceledAt    DateTime?   @map("canceled_at") @db.Timestamptz()
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  buyer  User        @relation("OrderBuyer", fields: [buyerUserId], references: [id])
+  seller User        @relation("OrderSeller", fields: [sellerUserId], references: [id])
+  items  OrderItem[]
+
+  @@index([buyerUserId, createdAt(sort: Desc)])
+  @@index([sellerUserId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId     String   @map("order_id") @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  productName String   @map("product_name") @db.VarChar(200)
+  quantity    Int
+  unitPrice   Int      @map("unit_price")
+  subtotal    Int
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// --- アルバム ---
+
+model Album {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId       String?            @map("category_id") @db.Uuid
+  title            String             @db.VarChar(200)
+  description      String?            @db.Text
+  coverPhotoUrl    String?            @map("cover_photo_url") @db.VarChar(500)
+  publishStatus    AlbumPublishStatus @default(draft) @map("publish_status")
+  photoCount       Int                @default(0) @map("photo_count")
+  sortOrder        Int                @default(0) @map("sort_order")
+  createdByUserId  String             @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?          @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  category  Category?    @relation(fields: [categoryId], references: [id])
+  createdBy User         @relation("AlbumCreator", fields: [createdByUserId], references: [id])
+  photos    AlbumPhoto[]
+  tags      AlbumTag[]
+
+  @@index([publishStatus, sortOrder])
+  @@index([categoryId])
+  @@map("albums")
+}
+
+model AlbumPhoto {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  albumId          String             @map("album_id") @db.Uuid
+  fileId           String             @map("file_id") @db.Uuid
+  title            String?            @db.VarChar(200)
+  caption          String?            @db.VarChar(500)
+  publishStatus    AlbumPublishStatus @default(published) @map("publish_status")
+  sortOrder        Int                @default(0) @map("sort_order")
+  uploadedByUserId String             @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  album      Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  file       File  @relation(fields: [fileId], references: [id])
+  uploadedBy User  @relation("AlbumPhotoUploader", fields: [uploadedByUserId], references: [id])
+
+  @@index([albumId, publishStatus, sortOrder])
+  @@map("album_photos")
+}
+
+model AlbumTag {
+  albumId   String   @map("album_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id])
+
+  @@id([albumId, tagId])
+  @@index([tagId])
+  @@map("album_tags")
+}
+
+// --- 施設・会場 ---
+
+model Venue {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String               @db.VarChar(200)
+  address          String?              @db.Text
+  description      String?              @db.Text
+  accessInfo       String?              @map("access_info") @db.Text
+  venueType        VenueType            @default(other) @map("venue_type")
+  capacity         Int?
+  publishStatus    ContentPublishStatus @default(draft) @map("publish_status")
+  createdByUserId  String               @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdBy User         @relation("VenueCreator", fields: [createdByUserId], references: [id])
+  images    VenueImage[]
+  spaces    Space[]
+
+  @@index([publishStatus, venueType])
+  @@map("venues")
+}
+
+model VenueImage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  file  File  @relation(fields: [fileId], references: [id])
+
+  @@index([venueId, sortOrder])
+  @@map("venue_images")
+}
+
+model Space {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId       String               @map("venue_id") @db.Uuid
+  name          String               @db.VarChar(200)
+  description   String?              @db.Text
+  capacity      Int?
+  spaceType     SpaceType?           @map("space_type")
+  isReservable  Boolean              @default(true) @map("is_reservable")
+  publishStatus ContentPublishStatus @default(draft) @map("publish_status")
+  sortOrder     Int                  @default(0) @map("sort_order")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  venue        Venue         @relation(fields: [venueId], references: [id])
+  reservations Reservation[]
+
+  @@index([venueId, publishStatus, sortOrder])
+  @@map("spaces")
+}
+
+model Reservation {
+  id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  spaceId   String            @map("space_id") @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  title     String?           @db.VarChar(200)
+  startAt   DateTime          @map("start_at") @db.Timestamptz()
+  endAt     DateTime          @map("end_at") @db.Timestamptz()
+  status    ReservationStatus @default(pending)
+  note      String?           @db.Text
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  space Space @relation(fields: [spaceId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([spaceId, startAt, endAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+  @@map("reservations")
+}
+
+// --- コンテンツ ---
+
+model Content {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String               @db.VarChar(200)
+  contentType      String               @map("content_type") @db.VarChar(50)
+  description      String?              @db.Text
+  price            Int?
+  coverImageUrl    String?              @map("cover_image_url") @db.VarChar(500)
+  inviteToken      String               @unique @map("invite_token") @db.VarChar(100)
+  publishStatus    ContentPublishStatus @default(draft) @map("publish_status")
+  createdByUserId  String               @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt        DateTime?            @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  createdBy User @relation("ContentCreator", fields: [createdByUserId], references: [id])
+
+  @@index([publishStatus, contentType])
+  @@map("contents")
 }
