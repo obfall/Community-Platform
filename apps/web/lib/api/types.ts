@@ -1140,3 +1140,117 @@ export interface SkillQuery {
   format?: string;
   search?: string;
 }
+
+// --- Shop ---
+export interface ProductListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  compareAtPrice: number | null;
+  stock: number | null;
+  publishStatus: string;
+  status: string;
+  salesCount: number;
+  imageUrl: string | null;
+  category: { id: string; name: string } | null;
+  series: { id: string; name: string } | null;
+  seller: { id: string; name: string };
+  saleStartAt: string | null;
+  saleEndAt: string | null;
+  createdAt: string;
+}
+
+export interface ProductQuery {
+  page?: number;
+  limit?: number;
+  categoryId?: string;
+  seriesId?: string;
+  search?: string;
+  publishStatus?: string;
+}
+
+export interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  totalAmount: number;
+  status: string;
+  notes: string | null;
+  buyer: { id: string; name: string };
+  seller: { id: string; name: string };
+  items: OrderItem[];
+  createdAt: string;
+}
+
+// --- Albums ---
+export interface AlbumListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  coverPhotoUrl: string | null;
+  publishStatus: string;
+  photoCount: number;
+  category: { id: string; name: string } | null;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
+
+// --- Venues ---
+export interface VenueListItem {
+  id: string;
+  name: string;
+  address: string | null;
+  description: string | null;
+  venueType: string;
+  capacity: number | null;
+  publishStatus: string;
+  _count: { spaces: number };
+  images?: Array<{ id: string; file: { publicUrl: string | null } }>;
+}
+
+export interface VenueDetail extends VenueListItem {
+  accessInfo: string | null;
+  spaces: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    capacity: number | null;
+    spaceType: string | null;
+    isReservable: boolean;
+  }>;
+}
+
+export interface Reservation {
+  id: string;
+  spaceId: string;
+  title: string | null;
+  startAt: string;
+  endAt: string;
+  status: string;
+  note: string | null;
+  user: { id: string; name: string };
+  createdAt: string;
+}
+
+// --- Contents ---
+export interface ContentListItem {
+  id: string;
+  name: string;
+  contentType: string;
+  description: string | null;
+  price: number | null;
+  coverImageUrl: string | null;
+  inviteToken: string;
+  publishStatus: string;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
