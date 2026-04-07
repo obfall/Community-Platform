@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { EventBreadcrumb } from "@/components/event-breadcrumb";
+import { EventDetailBreadcrumb } from "./_components/breadcrumb";
 
 export default function EventDetailLayout({
   children,
@@ -13,7 +13,7 @@ export default function EventDetailLayout({
   const { id } = use(params);
   return (
     <div>
-      <EventBreadcrumb eventId={id} />
+      <EventDetailBreadcrumb eventId={id} />
       {children}
     </div>
   );

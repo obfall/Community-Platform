@@ -3,47 +3,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useEvent } from "@/hooks/use-events";
-import { EVENT_DETAIL_NAV_ITEMS } from "@/lib/event-detail-navigation";
+import { useProject } from "@/hooks/use-projects";
+import { PROJECT_DETAIL_NAV_ITEMS } from "@/lib/project-detail-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft } from "lucide-react";
 
-interface EventSidebarProps {
-  eventId: string;
+interface ProjectDetailSidebarProps {
+  projectId: string;
 }
 
-export function EventSidebar({ eventId }: EventSidebarProps) {
+export function ProjectDetailSidebar({ projectId }: ProjectDetailSidebarProps) {
   const pathname = usePathname();
-  const { data: event } = useEvent(eventId);
+  const { data: project } = useProject(projectId);
 
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-1 p-3">
-        {/* イベント一覧に戻る */}
         <Link
-          href="/events"
+          href="/projects"
           className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          イベント一覧に戻る
+          プロジェクト一覧に戻る
         </Link>
 
-        {/* イベント名 */}
         <div className="mb-3 px-3">
           <p className="truncate text-sm font-semibold text-sidebar-foreground">
-            {event?.title ?? "..."}
+            {project?.name ?? "..."}
           </p>
         </div>
 
-        {/* ナビゲーション */}
-        {EVENT_DETAIL_NAV_ITEMS.map((item) => {
+        {PROJECT_DETAIL_NAV_ITEMS.map((item) => {
           const href =
-            item.segment === "" ? `/events/${eventId}` : `/events/${eventId}/${item.segment}`;
+            item.segment === ""
+              ? `/projects/${projectId}`
+              : `/projects/${projectId}/${item.segment}`;
 
           const isActive =
             item.segment === ""
-              ? pathname === `/events/${eventId}`
-              : pathname.startsWith(`/events/${eventId}/${item.segment}`);
+              ? pathname === `/projects/${projectId}`
+              : pathname.startsWith(`/projects/${projectId}/${item.segment}`);
 
           return (
             <Link

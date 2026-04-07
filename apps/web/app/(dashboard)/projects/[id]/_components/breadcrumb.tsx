@@ -3,11 +3,11 @@
 import { useProject } from "@/hooks/use-projects";
 import { Breadcrumb } from "@/components/breadcrumb";
 
-interface ProjectBreadcrumbProps {
+interface ProjectDetailBreadcrumbProps {
   projectId: string;
 }
 
-export function ProjectBreadcrumb({ projectId }: ProjectBreadcrumbProps) {
+export function ProjectDetailBreadcrumb({ projectId }: ProjectDetailBreadcrumbProps) {
   const { data: project } = useProject(projectId);
 
   return (
