@@ -1156,6 +1156,8 @@ export interface ProductListItem {
   category: { id: string; name: string } | null;
   series: { id: string; name: string } | null;
   seller: { id: string; name: string };
+  saleStartAt: string | null;
+  saleEndAt: string | null;
   createdAt: string;
 }
 

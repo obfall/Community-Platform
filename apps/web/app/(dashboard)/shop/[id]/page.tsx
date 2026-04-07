@@ -38,7 +38,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">{product.name}</h1>
+        <h1 className="flex-1 text-2xl font-bold">{product.name}</h1>
+        <Link href={`/shop/${product.id}/edit`}>
+          <Button variant="outline" size="sm">
+            編集
+          </Button>
+        </Link>
       </div>
 
       <Card>

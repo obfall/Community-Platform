@@ -99,12 +99,21 @@ export class ShopService {
         stock: dto.stock,
         categoryId: dto.categoryId,
         seriesId: dto.seriesId,
+        saleStartAt: dto.saleStartAt ? new Date(dto.saleStartAt) : undefined,
+        saleEndAt: dto.saleEndAt ? new Date(dto.saleEndAt) : undefined,
         sellerUserId: userId,
       },
     });
   }
 
-  async updateProduct(id: string, data: Partial<CreateProductDto> & { publishStatus?: string }) {
+  async updateProduct(
+    id: string,
+    data: Partial<CreateProductDto> & {
+      publishStatus?: string;
+      saleStartAt?: string | null;
+      saleEndAt?: string | null;
+    },
+  ) {
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product || product.deletedAt) throw new NotFoundException("商品が見つかりません");
 
@@ -118,6 +127,12 @@ export class ShopService {
         ...(data.stock !== undefined && { stock: data.stock }),
         ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
         ...(data.seriesId !== undefined && { seriesId: data.seriesId }),
+        ...(data.saleStartAt !== undefined && {
+          saleStartAt: data.saleStartAt ? new Date(data.saleStartAt) : null,
+        }),
+        ...(data.saleEndAt !== undefined && {
+          saleEndAt: data.saleEndAt ? new Date(data.saleEndAt) : null,
+        }),
         ...(data.publishStatus !== undefined && {
           publishStatus: data.publishStatus as "draft" | "published" | "archived",
         }),
@@ -185,6 +200,22 @@ export class ShopService {
         seller: { select: { id: true, name: true } },
         items: true,
       },
+    });
+  }
+
+  // --- カテゴリ ---
+
+  async getProductCategories() {
+    return this.prisma.category.findMany({
+      where: { scope: "product", isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  }
+
+  async createProductCategory(name: string) {
+    const slug = `product-${Date.now()}`;
+    return this.prisma.category.create({
+      data: { scope: "product", slug, name },
     });
   }
 

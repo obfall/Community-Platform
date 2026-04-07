@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from "class-validator";
+import { IsDateString, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from "class-validator";
 
 export class CreateProductDto {
   @ApiProperty({ maxLength: 200 })
@@ -38,4 +38,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID()
   seriesId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  saleStartAt?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  saleEndAt?: string;
 }

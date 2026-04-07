@@ -42,6 +42,59 @@ export function useDeleteProduct() {
   });
 }
 
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      shopApi.updateProduct(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("商品を更新しました");
+    },
+    onError: () => toast.error("商品更新に失敗しました"),
+  });
+}
+
+export function useProductCategories() {
+  return useQuery({
+    queryKey: ["products", "categories"],
+    queryFn: () => shopApi.getCategories(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateProductCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => shopApi.createCategory(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products", "categories"] });
+      toast.success("カテゴリを作成しました");
+    },
+    onError: () => toast.error("カテゴリ作成に失敗しました"),
+  });
+}
+
+export function useProductSeries() {
+  return useQuery({
+    queryKey: ["products", "series"],
+    queryFn: () => shopApi.getSeries(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateProductSeries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => shopApi.createSeries(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products", "series"] });
+      toast.success("シリーズを作成しました");
+    },
+    onError: () => toast.error("シリーズ作成に失敗しました"),
+  });
+}
+
 export function useOrders() {
   return useQuery({
     queryKey: ["orders"],

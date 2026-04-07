@@ -80,6 +80,20 @@ export class ShopController {
     return this.service.getOrders(userId);
   }
 
+  @Get("categories")
+  @ApiOperation({ summary: "商品カテゴリ一覧" })
+  getCategories() {
+    return this.service.getProductCategories();
+  }
+
+  @Post("categories")
+  @ApiOperation({ summary: "商品カテゴリ作成" })
+  @UseGuards(RolesGuard)
+  @Roles("owner", "admin")
+  createCategory(@Body("name") name: string) {
+    return this.service.createProductCategory(name);
+  }
+
   @Get("series")
   @ApiOperation({ summary: "商品シリーズ一覧" })
   getSeries() {

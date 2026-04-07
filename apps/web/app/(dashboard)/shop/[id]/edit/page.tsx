@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  useCreateProduct,
+  useProduct,
+  useUpdateProduct,
   useProductCategories,
   useCreateProductCategory,
   useProductSeries,
@@ -24,26 +25,46 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import type { ProductListItem } from "@/lib/api/types";
 
 const NONE_VALUE = "__none__";
 
-export default function ProductNewPage() {
+export default function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: product, isLoading } = useProduct(id);
+
+  if (isLoading)
+    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  if (!product)
+    return <div className="py-12 text-center text-muted-foreground">商品が見つかりません</div>;
+
+  return <ProductEditForm id={id} product={product as unknown as ProductListItem} />;
+}
+
+function toLocalDatetime(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+}
+
+function ProductEditForm({ id, product }: { id: string; product: ProductListItem }) {
   const router = useRouter();
-  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
   const { data: categories } = useProductCategories();
   const { data: seriesList } = useProductSeries();
   const createCategory = useCreateProductCategory();
   const createSeries = useCreateProductSeries();
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("");
-  const [categoryId, setCategoryId] = useState(NONE_VALUE);
-  const [seriesId, setSeriesId] = useState(NONE_VALUE);
-  const [publishStatus, setPublishStatus] = useState("draft");
-  const [saleStartAt, setSaleStartAt] = useState("");
-  const [saleEndAt, setSaleEndAt] = useState("");
+  const [name, setName] = useState(product.name);
+  const [description, setDescription] = useState(product.description ?? "");
+  const [price, setPrice] = useState(String(product.price));
+  const [stock, setStock] = useState(product.stock != null ? String(product.stock) : "");
+  const [categoryId, setCategoryId] = useState(product.category?.id ?? NONE_VALUE);
+  const [seriesId, setSeriesId] = useState(product.series?.id ?? NONE_VALUE);
+  const [publishStatus, setPublishStatus] = useState(product.publishStatus);
+  const [saleStartAt, setSaleStartAt] = useState(toLocalDatetime(product.saleStartAt));
+  const [saleEndAt, setSaleEndAt] = useState(toLocalDatetime(product.saleEndAt));
 
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
@@ -51,16 +72,20 @@ export default function ProductNewPage() {
   const [newSeriesName, setNewSeriesName] = useState("");
 
   const handleSubmit = () => {
-    createProduct.mutate(
+    updateProduct.mutate(
       {
-        name,
-        description: description || undefined,
-        price: Number(price),
-        stock: stock ? Number(stock) : undefined,
-        categoryId: categoryId === NONE_VALUE ? undefined : categoryId,
-        seriesId: seriesId === NONE_VALUE ? undefined : seriesId,
-        saleStartAt: saleStartAt || undefined,
-        saleEndAt: saleEndAt || undefined,
+        id,
+        data: {
+          name,
+          description: description || null,
+          price: Number(price),
+          stock: stock ? Number(stock) : null,
+          categoryId: categoryId === NONE_VALUE ? null : categoryId,
+          seriesId: seriesId === NONE_VALUE ? null : seriesId,
+          publishStatus,
+          saleStartAt: saleStartAt ? new Date(saleStartAt).toISOString() : null,
+          saleEndAt: saleEndAt ? new Date(saleEndAt).toISOString() : null,
+        },
       },
       { onSuccess: () => router.push("/shop") },
     );
@@ -74,7 +99,7 @@ export default function ProductNewPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">商品登録</h1>
+        <h1 className="text-2xl font-bold">商品編集</h1>
       </div>
 
       <Card>
@@ -84,19 +109,13 @@ export default function ProductNewPage() {
         <CardContent className="space-y-4">
           <div>
             <Label>商品名</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="商品名を入力"
-              maxLength={200}
-            />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
           </div>
           <div>
             <Label>説明</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="商品の説明（任意）"
               rows={4}
             />
           </div>
@@ -107,7 +126,6 @@ export default function ProductNewPage() {
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="1000"
                 min="0"
               />
             </div>
@@ -213,9 +231,9 @@ export default function ProductNewPage() {
             <Link href="/shop">
               <Button variant="outline">キャンセル</Button>
             </Link>
-            <Button onClick={handleSubmit} disabled={!name || !price || createProduct.isPending}>
-              {createProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              登録
+            <Button onClick={handleSubmit} disabled={!name || !price || updateProduct.isPending}>
+              {updateProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              保存
             </Button>
           </div>
         </CardContent>
