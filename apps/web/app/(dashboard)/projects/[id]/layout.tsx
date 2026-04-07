@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { ProjectBreadcrumb } from "@/components/project-breadcrumb";
+import { ProjectDetailBreadcrumb } from "./_components/breadcrumb";
 
 export default function ProjectDetailLayout({
   children,
@@ -13,7 +13,7 @@ export default function ProjectDetailLayout({
   const { id } = use(params);
   return (
     <div>
-      <ProjectBreadcrumb projectId={id} />
+      <ProjectDetailBreadcrumb projectId={id} />
       {children}
     </div>
   );

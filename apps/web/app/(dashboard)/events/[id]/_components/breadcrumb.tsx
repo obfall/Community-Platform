@@ -3,11 +3,11 @@
 import { useEvent } from "@/hooks/use-events";
 import { Breadcrumb } from "@/components/breadcrumb";
 
-interface EventBreadcrumbProps {
+interface EventDetailBreadcrumbProps {
   eventId: string;
 }
 
-export function EventBreadcrumb({ eventId }: EventBreadcrumbProps) {
+export function EventDetailBreadcrumb({ eventId }: EventDetailBreadcrumbProps) {
   const { data: event } = useEvent(eventId);
 
   return (

@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
-import { EventSidebar } from "@/components/event-sidebar";
-import { ProjectSidebar } from "@/components/project-sidebar";
+import { EventDetailSidebar } from "./events/[id]/_components/sidebar";
+import { ProjectDetailSidebar } from "./projects/[id]/_components/sidebar";
 import { extractEventIdFromPath } from "@/lib/event-detail-navigation";
 import { extractProjectIdFromPath } from "@/lib/project-detail-navigation";
 
@@ -14,8 +14,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const projectId = extractProjectIdFromPath(pathname);
 
   function renderSidebar() {
-    if (eventId) return <EventSidebar eventId={eventId} />;
-    if (projectId) return <ProjectSidebar projectId={projectId} />;
+    if (eventId) return <EventDetailSidebar eventId={eventId} />;
+    if (projectId) return <ProjectDetailSidebar projectId={projectId} />;
     return <Sidebar />;
   }
 

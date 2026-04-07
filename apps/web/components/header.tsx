@@ -18,8 +18,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
-import { EventSidebar } from "./event-sidebar";
-import { ProjectSidebar } from "./project-sidebar";
+import { EventDetailSidebar } from "@/app/(dashboard)/events/[id]/_components/sidebar";
+import { ProjectDetailSidebar } from "@/app/(dashboard)/projects/[id]/_components/sidebar";
 
 interface HeaderProps {
   eventId?: string | null;
@@ -66,9 +66,9 @@ export function Header({ eventId, projectId }: HeaderProps) {
           </div>
           <div onClick={() => setMobileOpen(false)}>
             {eventId ? (
-              <EventSidebar eventId={eventId} />
+              <EventDetailSidebar eventId={eventId} />
             ) : projectId ? (
-              <ProjectSidebar projectId={projectId} />
+              <ProjectDetailSidebar projectId={projectId} />
             ) : (
               <Sidebar />
             )}
