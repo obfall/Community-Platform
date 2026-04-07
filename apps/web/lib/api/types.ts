@@ -1241,6 +1241,125 @@ export interface Reservation {
   createdAt: string;
 }
 
+// --- Announcements ---
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  targetAudience: string;
+  isPublished: boolean;
+  publishedAt: string | null;
+  pinnedUntil: string | null;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
+
+// --- FAQ ---
+export interface FaqArticle {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isPublished: boolean;
+  viewCount: number;
+  createdAt: string;
+}
+
+// --- Memos ---
+export interface MemoCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
+export interface Memo {
+  id: string;
+  title: string;
+  body: string | null;
+  category: MemoCategory | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoDetail extends Memo {
+  attachments: Array<{
+    id: string;
+    fileId: string;
+    file: { id: string; publicUrl: string | null; originalName: string; contentType: string };
+  }>;
+}
+
+// --- Schedules ---
+export interface Schedule {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  isAllDay: boolean;
+  location: string | null;
+  visibility: string;
+  sourceType: string | null;
+  sourceId: string | null;
+  createdAt: string;
+}
+
+// --- Moderation ---
+export interface ContentReport {
+  id: string;
+  reporterUserId: string;
+  reporter: { id: string; name: string };
+  targetType: string;
+  targetId: string;
+  category: string;
+  description: string | null;
+  status: string;
+  assignedTo: { id: string; name: string } | null;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+export interface ModerationActionItem {
+  id: string;
+  actionType: string;
+  targetType: string;
+  targetId: string;
+  reason: string | null;
+  notes: string | null;
+  moderator: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface ContentReportDetail extends ContentReport {
+  actions: ModerationActionItem[];
+}
+
+export interface BannedWord {
+  id: string;
+  word: string;
+  matchType: string;
+  action: string;
+  replacement: string | null;
+  isActive: boolean;
+}
+
+// --- Orientation ---
+export interface OrientationPage {
+  id: string;
+  title: string;
+  body: string;
+  sortOrder: number;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+export interface OrientationCompletion {
+  id: string;
+  userId: string;
+  completedAt: string;
+}
+
 // --- Contents ---
 export interface ContentListItem {
   id: string;

@@ -222,6 +222,20 @@ async function main() {
       description: "コンテンツ管理",
       sortOrder: 28,
     },
+    {
+      featureKey: "announcement",
+      featureName: "お知らせ",
+      category: "optional" as const,
+      description: "お知らせ作成・配信",
+      sortOrder: 29,
+    },
+    {
+      featureKey: "faq",
+      featureName: "FAQ",
+      category: "optional" as const,
+      description: "よくある質問・記事管理",
+      sortOrder: 30,
+    },
   ];
 
   for (const feature of features) {
