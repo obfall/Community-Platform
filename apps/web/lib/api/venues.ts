@@ -2,7 +2,8 @@ import { apiClient } from "./client";
 import type { VenueListItem, VenueDetail, Reservation } from "./types";
 
 export const venuesApi = {
-  getAll: () => apiClient.get<VenueListItem[]>("/venues").then((r) => r.data),
+  getAll: (params?: { publishStatus?: string }) =>
+    apiClient.get<VenueListItem[]>("/venues", { params }).then((r) => r.data),
 
   getOne: (id: string) => apiClient.get<VenueDetail>(`/venues/${id}`).then((r) => r.data),
 
@@ -10,8 +11,11 @@ export const venuesApi = {
     name: string;
     address?: string;
     description?: string;
+    accessInfo?: string;
     venueType?: string;
     capacity?: number;
+    publishStatus?: string;
+    imageFileIds?: string[];
   }) => apiClient.post("/venues", data).then((r) => r.data),
 
   update: (id: string, data: Record<string, unknown>) =>

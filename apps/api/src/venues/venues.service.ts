@@ -10,9 +10,15 @@ export class VenuesService {
 
   // --- 施設 ---
 
-  async findAllVenues() {
+  async findAllVenues(publishStatus?: string) {
+    const where: { deletedAt: null; publishStatus?: "draft" | "published" | "archived" } = {
+      deletedAt: null,
+    };
+    if (publishStatus && publishStatus !== "all") {
+      where.publishStatus = publishStatus as "draft" | "published" | "archived";
+    }
     return this.prisma.venue.findMany({
-      where: { deletedAt: null, publishStatus: "published" },
+      where,
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { spaces: true } } },
     });
@@ -42,15 +48,43 @@ export class VenuesService {
         accessInfo: dto.accessInfo,
         venueType: dto.venueType ?? "other",
         capacity: dto.capacity,
-        publishStatus: "published",
+        publishStatus: dto.publishStatus ?? "draft",
         createdByUserId: userId,
+        ...(dto.imageFileIds &&
+          dto.imageFileIds.length > 0 && {
+            images: {
+              create: dto.imageFileIds.map((fileId, i) => ({
+                fileId,
+                sortOrder: i,
+                isPrimary: i === 0,
+              })),
+            },
+          }),
       },
     });
   }
 
-  async updateVenue(id: string, data: Partial<CreateVenueDto> & { publishStatus?: string }) {
+  async updateVenue(
+    id: string,
+    data: Partial<CreateVenueDto> & { publishStatus?: string; imageFileIds?: string[] },
+  ) {
     const venue = await this.prisma.venue.findUnique({ where: { id } });
     if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
+
+    if (data.imageFileIds !== undefined) {
+      await this.prisma.venueImage.deleteMany({ where: { venueId: id } });
+      if (data.imageFileIds.length > 0) {
+        await this.prisma.venueImage.createMany({
+          data: data.imageFileIds.map((fileId, i) => ({
+            venueId: id,
+            fileId,
+            sortOrder: i,
+            isPrimary: i === 0,
+          })),
+        });
+      }
+    }
+
     return this.prisma.venue.update({
       where: { id },
       data: {

@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
@@ -29,8 +30,8 @@ export class VenuesController {
 
   @Get()
   @ApiOperation({ summary: "施設一覧" })
-  findAll() {
-    return this.service.findAllVenues();
+  findAll(@Query("publishStatus") publishStatus?: string) {
+    return this.service.findAllVenues(publishStatus);
   }
 
   @Get(":id")

@@ -1,9 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useVenues } from "@/hooks/use-venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -15,15 +23,23 @@ import {
 import { Plus, Building2 } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
-  hall: "ホール",
-  meeting_room: "会議室",
-  studio: "スタジオ",
+  theater: "劇場",
+  concert_hall: "コンサートホール",
+  conference_room: "会議室",
+  stadium: "スタジアム",
   outdoor: "屋外",
   other: "その他",
 };
 
+const PUBLISH_STATUS_LABELS: Record<string, string> = {
+  draft: "下書き",
+  published: "公開",
+  archived: "アーカイブ",
+};
+
 export default function VenuesPage() {
-  const { data: venues, isLoading } = useVenues();
+  const [publishStatus, setPublishStatus] = useState("all");
+  const { data: venues, isLoading } = useVenues({ publishStatus });
 
   return (
     <div className="space-y-6">
@@ -35,6 +51,20 @@ export default function VenuesPage() {
             施設登録
           </Button>
         </Link>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={publishStatus} onValueChange={setPublishStatus}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="ステータス" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべて</SelectItem>
+            <SelectItem value="draft">下書き</SelectItem>
+            <SelectItem value="published">公開</SelectItem>
+            <SelectItem value="archived">アーカイブ</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -80,7 +110,7 @@ export default function VenuesPage() {
                   <TableCell className="text-right">{v._count.spaces}</TableCell>
                   <TableCell>
                     <Badge variant={v.publishStatus === "published" ? "default" : "secondary"}>
-                      {v.publishStatus === "published" ? "公開" : "下書き"}
+                      {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
                     </Badge>
                   </TableCell>
                 </TableRow>

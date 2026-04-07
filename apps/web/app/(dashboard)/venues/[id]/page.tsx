@@ -31,12 +31,24 @@ import {
 import { ArrowLeft, Building2, Calendar, Loader2 } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
-  hall: "ホール",
-  meeting_room: "会議室",
-  studio: "スタジオ",
+  theater: "劇場",
+  concert_hall: "コンサートホール",
+  conference_room: "会議室",
+  stadium: "スタジアム",
   outdoor: "屋外",
   other: "その他",
 };
+
+const PUBLISH_STATUS_LABELS: Record<string, string> = {
+  draft: "下書き",
+  published: "公開",
+  archived: "アーカイブ",
+};
+
+interface VenueImageItem {
+  id: string;
+  file: { publicUrl: string | null };
+}
 
 export default function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -48,6 +60,11 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
   if (!venue)
     return <div className="py-12 text-center text-muted-foreground">施設が見つかりません</div>;
 
+  const venueImages =
+    (venue as unknown as { images?: VenueImageItem[] }).images?.filter(
+      (img) => img.file.publicUrl,
+    ) ?? [];
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-4">
@@ -56,9 +73,31 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">{venue.name}</h1>
-        <Badge variant="outline">{VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}</Badge>
+        <div className="flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <Badge variant="outline">{VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}</Badge>
+            <Badge variant="secondary">
+              {PUBLISH_STATUS_LABELS[venue.publishStatus] ?? venue.publishStatus}
+            </Badge>
+          </div>
+          <h1 className="text-2xl font-bold">{venue.name}</h1>
+        </div>
       </div>
+
+      {venueImages.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {venueImages.map((img) => (
+            <div key={img.id} className="aspect-video overflow-hidden rounded-lg bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.file.publicUrl!}
+                alt={venue.name}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-6">

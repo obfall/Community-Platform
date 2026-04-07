@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ProductImageUpload, type ProductImage } from "@/components/product-image-upload";
 
 export default function VenueNewPage() {
   const router = useRouter();
@@ -25,8 +26,11 @@ export default function VenueNewPage() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
-  const [venueType, setVenueType] = useState("meeting_room");
+  const [accessInfo, setAccessInfo] = useState("");
+  const [venueType, setVenueType] = useState("conference_room");
   const [capacity, setCapacity] = useState("");
+  const [publishStatus, setPublishStatus] = useState("draft");
+  const [images, setImages] = useState<ProductImage[]>([]);
 
   const handleSubmit = () => {
     createVenue.mutate(
@@ -34,8 +38,11 @@ export default function VenueNewPage() {
         name,
         address: address || undefined,
         description: description || undefined,
+        accessInfo: accessInfo || undefined,
         venueType,
         capacity: capacity ? Number(capacity) : undefined,
+        publishStatus,
+        imageFileIds: images.map((i) => i.fileId),
       },
       { onSuccess: () => router.push("/venues") },
     );
@@ -57,6 +64,10 @@ export default function VenueNewPage() {
           <CardTitle>基本情報</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>施設画像</Label>
+            <ProductImageUpload value={images} onChange={setImages} />
+          </div>
           <div>
             <Label>施設名</Label>
             <Input
@@ -83,6 +94,15 @@ export default function VenueNewPage() {
               rows={4}
             />
           </div>
+          <div>
+            <Label>アクセス</Label>
+            <Textarea
+              value={accessInfo}
+              onChange={(e) => setAccessInfo(e.target.value)}
+              placeholder="最寄駅・交通アクセス等（任意）"
+              rows={3}
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>種別</Label>
@@ -91,9 +111,10 @@ export default function VenueNewPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hall">ホール</SelectItem>
-                  <SelectItem value="meeting_room">会議室</SelectItem>
-                  <SelectItem value="studio">スタジオ</SelectItem>
+                  <SelectItem value="theater">劇場</SelectItem>
+                  <SelectItem value="concert_hall">コンサートホール</SelectItem>
+                  <SelectItem value="conference_room">会議室</SelectItem>
+                  <SelectItem value="stadium">スタジアム</SelectItem>
                   <SelectItem value="outdoor">屋外</SelectItem>
                   <SelectItem value="other">その他</SelectItem>
                 </SelectContent>
@@ -109,6 +130,19 @@ export default function VenueNewPage() {
                 min="1"
               />
             </div>
+          </div>
+          <div>
+            <Label>公開ステータス</Label>
+            <Select value={publishStatus} onValueChange={setPublishStatus}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">下書き</SelectItem>
+                <SelectItem value="published">公開</SelectItem>
+                <SelectItem value="archived">アーカイブ</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/venues">

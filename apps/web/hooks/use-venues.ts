@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { venuesApi } from "@/lib/api/venues";
 
-export function useVenues() {
+export function useVenues(params?: { publishStatus?: string }) {
   return useQuery({
-    queryKey: ["venues"],
-    queryFn: () => venuesApi.getAll(),
+    queryKey: ["venues", params],
+    queryFn: () => venuesApi.getAll(params),
   });
 }
 
