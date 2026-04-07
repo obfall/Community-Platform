@@ -25,6 +25,12 @@ import { ShopModule } from "./shop/shop.module";
 import { AlbumsModule } from "./albums/albums.module";
 import { VenuesModule } from "./venues/venues.module";
 import { ContentsModule } from "./contents/contents.module";
+import { AnnouncementsModule } from "./announcements/announcements.module";
+import { FaqModule } from "./faq/faq.module";
+import { MemosModule } from "./memos/memos.module";
+import { SchedulesModule } from "./schedules/schedules.module";
+import { ModerationModule } from "./moderation/moderation.module";
+import { OrientationModule } from "./orientation/orientation.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -101,6 +107,24 @@ import { validateEnv } from "./config/env.config";
 
     // Contents
     ContentsModule,
+
+    // Announcements
+    AnnouncementsModule,
+
+    // FAQ
+    FaqModule,
+
+    // Memos
+    MemosModule,
+
+    // Schedules
+    SchedulesModule,
+
+    // Moderation
+    ModerationModule,
+
+    // Orientation
+    OrientationModule,
   ],
   controllers: [AppController],
   providers: [

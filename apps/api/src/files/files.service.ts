@@ -42,6 +42,9 @@ export class FilesService {
   ) {}
 
   async upload(file: Express.Multer.File, dto: UploadFileDto, userId: string) {
+    // multer はデフォルトで originalname を latin1 として扱うため UTF-8 にデコード
+    file.originalname = Buffer.from(file.originalname, "latin1").toString("utf8");
+
     this.validateFile(file, dto.fileCategory);
 
     const fileId = randomUUID();
