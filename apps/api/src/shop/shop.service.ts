@@ -102,6 +102,16 @@ export class ShopService {
         saleStartAt: dto.saleStartAt ? new Date(dto.saleStartAt) : undefined,
         saleEndAt: dto.saleEndAt ? new Date(dto.saleEndAt) : undefined,
         sellerUserId: userId,
+        ...(dto.imageFileIds &&
+          dto.imageFileIds.length > 0 && {
+            images: {
+              create: dto.imageFileIds.map((fileId, i) => ({
+                fileId,
+                sortOrder: i,
+                isPrimary: i === 0,
+              })),
+            },
+          }),
       },
     });
   }
@@ -112,10 +122,25 @@ export class ShopService {
       publishStatus?: string;
       saleStartAt?: string | null;
       saleEndAt?: string | null;
+      imageFileIds?: string[];
     },
   ) {
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product || product.deletedAt) throw new NotFoundException("商品が見つかりません");
+
+    if (data.imageFileIds !== undefined) {
+      await this.prisma.productImage.deleteMany({ where: { productId: id } });
+      if (data.imageFileIds.length > 0) {
+        await this.prisma.productImage.createMany({
+          data: data.imageFileIds.map((fileId, i) => ({
+            productId: id,
+            fileId,
+            sortOrder: i,
+            isPrimary: i === 0,
+          })),
+        });
+      }
+    }
 
     return this.prisma.product.update({
       where: { id },

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ProductImageUpload, type ProductImage } from "@/components/product-image-upload";
 
 const NONE_VALUE = "__none__";
 
@@ -35,6 +36,7 @@ export default function ProductNewPage() {
   const [publishStatus, setPublishStatus] = useState("draft");
   const [saleStartAt, setSaleStartAt] = useState("");
   const [saleEndAt, setSaleEndAt] = useState("");
+  const [images, setImages] = useState<ProductImage[]>([]);
 
   const handleSubmit = () => {
     createProduct.mutate(
@@ -47,6 +49,7 @@ export default function ProductNewPage() {
         seriesId: seriesId === NONE_VALUE ? undefined : seriesId,
         saleStartAt: saleStartAt || undefined,
         saleEndAt: saleEndAt || undefined,
+        imageFileIds: images.map((i) => i.fileId),
       },
       { onSuccess: () => router.push("/shop") },
     );
@@ -68,6 +71,10 @@ export default function ProductNewPage() {
           <CardTitle>基本情報</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>商品画像</Label>
+            <ProductImageUpload value={images} onChange={setImages} />
+          </div>
           <div>
             <Label>商品名</Label>
             <Input

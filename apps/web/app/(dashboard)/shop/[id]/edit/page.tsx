@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { ProductImageUpload, type ProductImage } from "@/components/product-image-upload";
 import type { ProductListItem } from "@/lib/api/types";
 
 const NONE_VALUE = "__none__";
@@ -35,8 +36,12 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
   if (!product)
     return <div className="py-12 text-center text-muted-foreground">商品が見つかりません</div>;
 
-  return <ProductEditForm id={id} product={product as unknown as ProductListItem} />;
+  return <ProductEditForm id={id} product={product as unknown as ProductWithImages} />;
 }
+
+type ProductWithImages = ProductListItem & {
+  images?: Array<{ id: string; fileId: string; file: { id: string; publicUrl: string | null } }>;
+};
 
 function toLocalDatetime(iso: string | null) {
   if (!iso) return "";
@@ -45,7 +50,7 @@ function toLocalDatetime(iso: string | null) {
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
 }
 
-function ProductEditForm({ id, product }: { id: string; product: ProductListItem }) {
+function ProductEditForm({ id, product }: { id: string; product: ProductWithImages }) {
   const router = useRouter();
   const updateProduct = useUpdateProduct();
   const { data: categories } = useProductCategories();
@@ -60,6 +65,11 @@ function ProductEditForm({ id, product }: { id: string; product: ProductListItem
   const [publishStatus, setPublishStatus] = useState(product.publishStatus);
   const [saleStartAt, setSaleStartAt] = useState(toLocalDatetime(product.saleStartAt));
   const [saleEndAt, setSaleEndAt] = useState(toLocalDatetime(product.saleEndAt));
+  const [images, setImages] = useState<ProductImage[]>(
+    (product.images ?? [])
+      .filter((img) => img.file.publicUrl)
+      .map((img) => ({ fileId: img.fileId, url: img.file.publicUrl! })),
+  );
 
   const handleSubmit = () => {
     updateProduct.mutate(
@@ -75,6 +85,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductListItem
           publishStatus,
           saleStartAt: saleStartAt ? new Date(saleStartAt).toISOString() : null,
           saleEndAt: saleEndAt ? new Date(saleEndAt).toISOString() : null,
+          imageFileIds: images.map((i) => i.fileId),
         },
       },
       { onSuccess: () => router.push("/shop") },
@@ -97,6 +108,10 @@ function ProductEditForm({ id, product }: { id: string; product: ProductListItem
           <CardTitle>基本情報</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>商品画像</Label>
+            <ProductImageUpload value={images} onChange={setImages} />
+          </div>
           <div>
             <Label>商品名</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />

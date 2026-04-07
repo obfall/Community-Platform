@@ -19,6 +19,7 @@ export const shopApi = {
     seriesId?: string;
     saleStartAt?: string;
     saleEndAt?: string;
+    imageFileIds?: string[];
   }) => apiClient.post("/shop/products", data).then((r) => r.data),
 
   updateProduct: (id: string, data: Record<string, unknown>) =>
