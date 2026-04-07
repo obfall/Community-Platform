@@ -29,7 +29,8 @@ export default function ContentPage() {
     limit?: number;
     search?: string;
     contentType?: string;
-  }>({ page: 1, limit: 12 });
+    publishStatus?: string;
+  }>({ page: 1, limit: 12, publishStatus: "all" });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useContents(query);
   const contents = data?.data ?? [];
@@ -72,6 +73,20 @@ export default function ContentPage() {
             <SelectItem value="course">コース</SelectItem>
             <SelectItem value="document">ドキュメント</SelectItem>
             <SelectItem value="other">その他</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={query.publishStatus ?? "all"}
+          onValueChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="ステータス" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべて</SelectItem>
+            <SelectItem value="draft">下書き</SelectItem>
+            <SelectItem value="published">公開</SelectItem>
+            <SelectItem value="archived">アーカイブ</SelectItem>
           </SelectContent>
         </Select>
       </div>

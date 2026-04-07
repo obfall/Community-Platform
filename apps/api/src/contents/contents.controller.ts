@@ -31,7 +31,14 @@ export class ContentsController {
   @Get()
   @ApiOperation({ summary: "コンテンツ一覧" })
   findAll(
-    @Query() query: { page?: number; limit?: number; search?: string; contentType?: string },
+    @Query()
+    query: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      contentType?: string;
+      publishStatus?: string;
+    },
   ) {
     return this.service.findAll(query);
   }

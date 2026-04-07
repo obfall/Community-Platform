@@ -8,12 +8,21 @@ import * as crypto from "crypto";
 export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: { page?: number; limit?: number; search?: string; contentType?: string }) {
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    contentType?: string;
+    publishStatus?: string;
+  }) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ContentWhereInput = { deletedAt: null, publishStatus: "published" };
+    const where: Prisma.ContentWhereInput = { deletedAt: null };
+    if (query.publishStatus && query.publishStatus !== "all") {
+      where.publishStatus = query.publishStatus as "draft" | "published" | "archived";
+    }
     if (query.search) where.name = { contains: query.search, mode: "insensitive" };
     if (query.contentType) where.contentType = query.contentType;
 
@@ -70,8 +79,9 @@ export class ContentsService {
         contentType: dto.contentType,
         description: dto.description,
         price: dto.price,
+        coverImageUrl: dto.coverImageUrl,
         inviteToken,
-        publishStatus: "published",
+        publishStatus: (dto.publishStatus as "draft" | "published" | "archived") ?? "draft",
         createdByUserId: userId,
       },
     });
@@ -79,7 +89,14 @@ export class ContentsService {
 
   async update(
     id: string,
-    data: { name?: string; description?: string; price?: number; publishStatus?: string },
+    data: {
+      name?: string;
+      contentType?: string;
+      description?: string | null;
+      price?: number | null;
+      coverImageUrl?: string | null;
+      publishStatus?: string;
+    },
   ) {
     const content = await this.prisma.content.findUnique({ where: { id } });
     if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
@@ -87,8 +104,10 @@ export class ContentsService {
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
+        ...(data.contentType !== undefined && { contentType: data.contentType }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.price !== undefined && { price: data.price }),
+        ...(data.coverImageUrl !== undefined && { coverImageUrl: data.coverImageUrl }),
         ...(data.publishStatus !== undefined && {
           publishStatus: data.publishStatus as "draft" | "published" | "archived",
         }),

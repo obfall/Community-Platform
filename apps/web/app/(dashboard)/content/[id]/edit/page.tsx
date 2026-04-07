@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCreateContent } from "@/hooks/use-contents";
+import { useContent, useUpdateContent } from "@/hooks/use-contents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,41 +18,61 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { ProductImageUpload, type ProductImage } from "@/components/product-image-upload";
+import type { ContentListItem } from "@/lib/api/types";
 
-export default function ContentNewPage() {
+export default function ContentEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: content, isLoading } = useContent(id);
+
+  if (isLoading)
+    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  if (!content)
+    return (
+      <div className="py-12 text-center text-muted-foreground">コンテンツが見つかりません</div>
+    );
+
+  return <ContentEditForm id={id} content={content} />;
+}
+
+function ContentEditForm({ id, content }: { id: string; content: ContentListItem }) {
   const router = useRouter();
-  const createContent = useCreateContent();
+  const updateContent = useUpdateContent();
 
-  const [name, setName] = useState("");
-  const [contentType, setContentType] = useState("article");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [publishStatus, setPublishStatus] = useState("draft");
-  const [images, setImages] = useState<ProductImage[]>([]);
+  const [name, setName] = useState(content.name);
+  const [contentType, setContentType] = useState(content.contentType);
+  const [description, setDescription] = useState(content.description ?? "");
+  const [price, setPrice] = useState(content.price != null ? String(content.price) : "");
+  const [publishStatus, setPublishStatus] = useState(content.publishStatus);
+  const [images, setImages] = useState<ProductImage[]>(
+    content.coverImageUrl ? [{ fileId: "existing", url: content.coverImageUrl }] : [],
+  );
 
   const handleSubmit = () => {
-    createContent.mutate(
+    updateContent.mutate(
       {
-        name,
-        contentType,
-        description: description || undefined,
-        price: price ? Number(price) : undefined,
-        coverImageUrl: images[0]?.url,
-        publishStatus,
+        id,
+        data: {
+          name,
+          contentType,
+          description: description || null,
+          price: price ? Number(price) : null,
+          coverImageUrl: images[0]?.url ?? null,
+          publishStatus,
+        },
       },
-      { onSuccess: () => router.push("/content") },
+      { onSuccess: () => router.push(`/content/${id}`) },
     );
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/content">
+        <Link href={`/content/${id}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">コンテンツ作成</h1>
+        <h1 className="text-2xl font-bold">コンテンツ編集</h1>
       </div>
 
       <Card>
@@ -66,12 +86,7 @@ export default function ContentNewPage() {
           </div>
           <div>
             <Label>名前</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="コンテンツ名を入力"
-              maxLength={200}
-            />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
           </div>
           <div>
             <Label>種別</Label>
@@ -92,7 +107,6 @@ export default function ContentNewPage() {
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="コンテンツの説明（任意）"
               rows={4}
             />
           </div>
@@ -120,12 +134,12 @@ export default function ContentNewPage() {
             </Select>
           </div>
           <div className="flex justify-end gap-2 pt-4">
-            <Link href="/content">
+            <Link href={`/content/${id}`}>
               <Button variant="outline">キャンセル</Button>
             </Link>
-            <Button onClick={handleSubmit} disabled={!name || createContent.isPending}>
-              {createContent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              作成
+            <Button onClick={handleSubmit} disabled={!name || updateContent.isPending}>
+              {updateContent.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              保存
             </Button>
           </div>
         </CardContent>

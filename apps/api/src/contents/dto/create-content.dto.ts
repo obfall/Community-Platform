@@ -21,4 +21,14 @@ export class CreateContentDto {
   @IsInt()
   @Min(0)
   price?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  coverImageUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  publishStatus?: string;
 }

@@ -7,6 +7,7 @@ export function useContents(query?: {
   limit?: number;
   search?: string;
   contentType?: string;
+  publishStatus?: string;
 }) {
   return useQuery({
     queryKey: ["contents", query],
@@ -31,6 +32,20 @@ export function useCreateContent() {
       toast.success("コンテンツを作成しました");
     },
     onError: () => toast.error("コンテンツ作成に失敗しました"),
+  });
+}
+
+export function useUpdateContent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      contentsApi.update(id, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["contents"] });
+      queryClient.invalidateQueries({ queryKey: ["contents", vars.id] });
+      toast.success("コンテンツを更新しました");
+    },
+    onError: () => toast.error("コンテンツ更新に失敗しました"),
   });
 }
 
