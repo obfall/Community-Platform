@@ -30,14 +30,19 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
 
   const handleSubmit = () => {
     if (!survey) return;
+    const cleanedAnswers = survey.questions.map((q) => {
+      const a = answers[q.id] ?? {};
+      return {
+        questionId: q.id,
+        ...(a.selectedOptions && a.selectedOptions.length > 0
+          ? { selectedOptions: a.selectedOptions }
+          : {}),
+        ...(a.textValue ? { textValue: a.textValue } : {}),
+        ...(a.numericValue !== undefined ? { numericValue: a.numericValue } : {}),
+      };
+    });
     submitResponse.mutate(
-      {
-        surveyId: id,
-        answers: survey.questions.map((q) => ({
-          questionId: q.id,
-          ...answers[q.id],
-        })),
-      },
+      { surveyId: id, answers: cleanedAnswers },
       { onSuccess: () => router.push("/surveys") },
     );
   };

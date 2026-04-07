@@ -88,7 +88,12 @@ export function useSubmitSurveyResponse() {
       queryClient.invalidateQueries({ queryKey: ["surveys"] });
       toast.success("回答を送信しました");
     },
-    onError: () => toast.error("回答の送信に失敗しました"),
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "回答の送信に失敗しました";
+      toast.error(msg);
+    },
   });
 }
 
