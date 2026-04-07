@@ -212,7 +212,7 @@ export default function SurveyNewPage() {
                 {q.options.map((o, oIdx) => (
                   <div key={oIdx} className="flex gap-2">
                     <Input
-                      value={o.label}
+                      value={o.label ?? ""}
                       onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
                       placeholder={`選択肢 ${oIdx + 1}`}
                     />
