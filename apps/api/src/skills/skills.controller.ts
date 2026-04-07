@@ -14,9 +14,8 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
-import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
-import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
+import { FeatureEnabledGuard } from "@/common/guards";
 import { SkillsService } from "./skills.service";
 import { CreateSkillListingDto, CreateBookingDto, SkillQueryDto } from "./dto";
 
