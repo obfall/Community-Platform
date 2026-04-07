@@ -26,7 +26,7 @@ import { Plus, ShoppingBag, Package } from "lucide-react";
 import type { ProductQuery } from "@/lib/api/types";
 
 export default function ShopPage() {
-  const [query, setQuery] = useState<ProductQuery>({ page: 1, limit: 12 });
+  const [query, setQuery] = useState<ProductQuery>({ page: 1, limit: 12, publishStatus: "all" });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useProducts(query);
   const { data: categories } = useProductCategories();
@@ -106,6 +106,20 @@ export default function ShopPage() {
                 {s.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={query.publishStatus ?? "all"}
+          onValueChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="ステータス" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべて</SelectItem>
+            <SelectItem value="draft">下書き</SelectItem>
+            <SelectItem value="published">公開</SelectItem>
+            <SelectItem value="archived">アーカイブ</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -200,7 +214,12 @@ export default function ShopPage() {
                     )}
                   </div>
                   <div className="p-4">
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-1">
+                      {p.publishStatus !== "published" && (
+                        <Badge variant="secondary" className="text-xs">
+                          {p.publishStatus === "draft" ? "下書き" : "アーカイブ"}
+                        </Badge>
+                      )}
                       {p.category && (
                         <Badge variant="secondary" className="text-xs">
                           {p.category.name}

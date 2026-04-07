@@ -17,9 +17,8 @@ export class ShopService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductWhereInput = { deletedAt: null };
-    if (query.publishStatus)
+    if (query.publishStatus && query.publishStatus !== "all")
       where.publishStatus = query.publishStatus as "draft" | "published" | "archived";
-    else where.publishStatus = "published";
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
     if (query.search) where.name = { contains: query.search, mode: "insensitive" };
