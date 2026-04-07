@@ -42,9 +42,25 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
     );
   };
 
+  // options の value が重複していたらインデックスベースで一意化
+  const normalizedQuestions = survey?.questions.map((q) => {
+    if (!q.options) return q;
+    const seen = new Set<string>();
+    const hasDuplicates = q.options.some((o) => {
+      if (seen.has(o.value)) return true;
+      seen.add(o.value);
+      return false;
+    });
+    if (!hasDuplicates) return q;
+    return {
+      ...q,
+      options: q.options.map((o, i) => ({ ...o, value: `opt_${i}` })),
+    };
+  });
+
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
-  if (!survey)
+  if (!survey || !normalizedQuestions)
     return (
       <div className="py-12 text-center text-muted-foreground">アンケートが見つかりません</div>
     );
@@ -71,7 +87,7 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {survey.questions.map((q, idx) => (
+      {normalizedQuestions.map((q, idx) => (
         <Card key={q.id ?? idx}>
           <CardHeader>
             <CardTitle className="text-base">
@@ -85,31 +101,27 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
                 value={answers[q.id]?.selectedOptions?.[0] ?? ""}
                 onValueChange={(v) => setAnswer(q.id, { selectedOptions: [v] })}
               >
-                {q.options.map((o, oIdx) => {
-                  const key = `${oIdx}`;
-                  return (
-                    <div key={key} className="flex items-center gap-2">
-                      <RadioGroupItem value={key} id={`${q.id}-${key}`} />
-                      <Label htmlFor={`${q.id}-${key}`}>{o.label}</Label>
-                    </div>
-                  );
-                })}
+                {q.options.map((o, oIdx) => (
+                  <div key={oIdx} className="flex items-center gap-2">
+                    <RadioGroupItem value={o.value} id={`${q.id}-${oIdx}`} />
+                    <Label htmlFor={`${q.id}-${oIdx}`}>{o.label}</Label>
+                  </div>
+                ))}
               </RadioGroup>
             )}
             {q.questionType === "multi_choice" && q.options && (
               <div className="space-y-2">
                 {q.options.map((o, oIdx) => {
-                  const key = `${oIdx}`;
                   const selected = answers[q.id]?.selectedOptions ?? [];
                   return (
-                    <label key={key} className="flex items-center gap-2 text-sm">
+                    <label key={oIdx} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
-                        checked={selected.includes(key)}
+                        checked={selected.includes(o.value)}
                         onChange={(e) => {
                           const next = e.target.checked
-                            ? [...selected, key]
-                            : selected.filter((v) => v !== key);
+                            ? [...selected, o.value]
+                            : selected.filter((v) => v !== o.value);
                           setAnswer(q.id, { selectedOptions: next });
                         }}
                       />

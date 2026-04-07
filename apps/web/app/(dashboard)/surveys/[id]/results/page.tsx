@@ -45,7 +45,11 @@ export default function SurveyResultsPage({ params }: { params: Promise<{ id: st
             {r.optionCounts && r.question.options && (
               <div className="space-y-2">
                 {r.question.options.map((o, oIdx) => {
-                  const count = r.optionCounts![o.value] ?? 0;
+                  const count =
+                    r.optionCounts![o.value] ??
+                    r.optionCounts![`opt_${oIdx}`] ??
+                    r.optionCounts![`${oIdx}`] ??
+                    0;
                   const pct = r.totalAnswers > 0 ? Math.round((count / r.totalAnswers) * 100) : 0;
                   return (
                     <div key={`${o.value}-${oIdx}`}>
