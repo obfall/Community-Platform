@@ -34,6 +34,20 @@ export function useCreateAlbum() {
   });
 }
 
+export function useUpdateAlbum() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      albumsApi.update(id, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+      queryClient.invalidateQueries({ queryKey: ["albums", vars.id] });
+      toast.success("アルバムを更新しました");
+    },
+    onError: () => toast.error("アルバム更新に失敗しました"),
+  });
+}
+
 export function useDeleteAlbum() {
   const queryClient = useQueryClient();
   return useMutation({

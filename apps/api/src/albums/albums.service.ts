@@ -79,7 +79,7 @@ export class AlbumsService {
         description: dto.description,
         categoryId: dto.categoryId,
         createdByUserId: userId,
-        publishStatus: "published",
+        publishStatus: dto.publishStatus ?? "draft",
       },
     });
   }
