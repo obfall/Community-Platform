@@ -24,6 +24,11 @@ export class ProductQueryDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsUUID()
+  seriesId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   search?: string;
 

@@ -21,6 +21,7 @@ export class ShopService {
       where.publishStatus = query.publishStatus as "draft" | "published" | "archived";
     else where.publishStatus = "published";
     if (query.categoryId) where.categoryId = query.categoryId;
+    if (query.seriesId) where.seriesId = query.seriesId;
     if (query.search) where.name = { contains: query.search, mode: "insensitive" };
 
     const [data, total] = await Promise.all([

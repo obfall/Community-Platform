@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  useCreateProduct,
-  useProductCategories,
-  useCreateProductCategory,
-  useProductSeries,
-  useCreateProductSeries,
-} from "@/hooks/use-shop";
+import { useCreateProduct, useProductCategories, useProductSeries } from "@/hooks/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const NONE_VALUE = "__none__";
 
@@ -32,8 +25,6 @@ export default function ProductNewPage() {
   const createProduct = useCreateProduct();
   const { data: categories } = useProductCategories();
   const { data: seriesList } = useProductSeries();
-  const createCategory = useCreateProductCategory();
-  const createSeries = useCreateProductSeries();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -44,11 +35,6 @@ export default function ProductNewPage() {
   const [publishStatus, setPublishStatus] = useState("draft");
   const [saleStartAt, setSaleStartAt] = useState("");
   const [saleEndAt, setSaleEndAt] = useState("");
-
-  const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newSeriesName, setNewSeriesName] = useState("");
 
   const handleSubmit = () => {
     createProduct.mutate(
@@ -124,18 +110,7 @@ export default function ProductNewPage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <div className="flex items-center justify-between">
-                <Label>カテゴリ</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setCatDialogOpen(true)}
-                >
-                  <Plus className="mr-1 h-3 w-3" />
-                  新規
-                </Button>
-              </div>
+              <Label>カテゴリ</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger>
                   <SelectValue />
@@ -151,18 +126,7 @@ export default function ProductNewPage() {
               </Select>
             </div>
             <div>
-              <div className="flex items-center justify-between">
-                <Label>シリーズ</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setSeriesDialogOpen(true)}
-                >
-                  <Plus className="mr-1 h-3 w-3" />
-                  新規
-                </Button>
-              </div>
+              <Label>シリーズ</Label>
               <Select value={seriesId} onValueChange={setSeriesId}>
                 <SelectTrigger>
                   <SelectValue />
@@ -220,64 +184,6 @@ export default function ProductNewPage() {
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>カテゴリ追加</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              placeholder="カテゴリ名"
-            />
-            <Button
-              className="w-full"
-              disabled={!newCatName || createCategory.isPending}
-              onClick={() => {
-                createCategory.mutate(newCatName, {
-                  onSuccess: () => {
-                    setCatDialogOpen(false);
-                    setNewCatName("");
-                  },
-                });
-              }}
-            >
-              作成
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>シリーズ追加</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              value={newSeriesName}
-              onChange={(e) => setNewSeriesName(e.target.value)}
-              placeholder="シリーズ名"
-            />
-            <Button
-              className="w-full"
-              disabled={!newSeriesName || createSeries.isPending}
-              onClick={() => {
-                createSeries.mutate(newSeriesName, {
-                  onSuccess: () => {
-                    setSeriesDialogOpen(false);
-                    setNewSeriesName("");
-                  },
-                });
-              }}
-            >
-              作成
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
