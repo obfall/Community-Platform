@@ -48,18 +48,36 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
       <Card>
         <CardContent className="p-6">
-          <div className="mb-4 flex h-48 items-center justify-center rounded-lg bg-muted">
-            {product.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="h-full w-full rounded-lg object-cover"
-              />
-            ) : (
-              <Package className="h-16 w-16 text-muted-foreground" />
-            )}
-          </div>
+          {(() => {
+            const images =
+              (
+                product as unknown as {
+                  images?: Array<{ id: string; file: { publicUrl: string | null } }>;
+                }
+              ).images ?? [];
+            const validImages = images.filter((img) => img.file.publicUrl);
+            if (validImages.length === 0) {
+              return (
+                <div className="mb-4 flex h-48 items-center justify-center rounded-lg bg-muted">
+                  <Package className="h-16 w-16 text-muted-foreground" />
+                </div>
+              );
+            }
+            return (
+              <div className="mb-4 grid gap-2 sm:grid-cols-2">
+                {validImages.map((img) => (
+                  <div key={img.id} className="aspect-square overflow-hidden rounded-lg bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.file.publicUrl!}
+                      alt={product.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="mb-4 flex items-center gap-2">
             {product.category && <Badge variant="secondary">{product.category.name}</Badge>}
