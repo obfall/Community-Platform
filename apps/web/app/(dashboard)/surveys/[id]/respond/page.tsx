@@ -85,20 +85,20 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
                 value={answers[q.id]?.selectedOptions?.[0] ?? ""}
                 onValueChange={(v) => setAnswer(q.id, { selectedOptions: [v] })}
               >
-                {q.options.map((o) => (
-                  <div key={o.value} className="flex items-center gap-2">
-                    <RadioGroupItem value={o.value} id={`${q.id}-${o.value}`} />
-                    <Label htmlFor={`${q.id}-${o.value}`}>{o.label}</Label>
+                {q.options.map((o, oIdx) => (
+                  <div key={`${o.value}-${oIdx}`} className="flex items-center gap-2">
+                    <RadioGroupItem value={o.value} id={`${q.id}-${oIdx}`} />
+                    <Label htmlFor={`${q.id}-${oIdx}`}>{o.label}</Label>
                   </div>
                 ))}
               </RadioGroup>
             )}
             {q.questionType === "multi_choice" && q.options && (
               <div className="space-y-2">
-                {q.options.map((o) => {
+                {q.options.map((o, oIdx) => {
                   const selected = answers[q.id]?.selectedOptions ?? [];
                   return (
-                    <label key={o.value} className="flex items-center gap-2 text-sm">
+                    <label key={`${o.value}-${oIdx}`} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={selected.includes(o.value)}

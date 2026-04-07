@@ -44,11 +44,11 @@ export default function SurveyResultsPage({ params }: { params: Promise<{ id: st
           <CardContent>
             {r.optionCounts && r.question.options && (
               <div className="space-y-2">
-                {r.question.options.map((o) => {
+                {r.question.options.map((o, oIdx) => {
                   const count = r.optionCounts![o.value] ?? 0;
                   const pct = r.totalAnswers > 0 ? Math.round((count / r.totalAnswers) * 100) : 0;
                   return (
-                    <div key={o.value}>
+                    <div key={`${o.value}-${oIdx}`}>
                       <div className="flex justify-between text-sm">
                         <span>{o.label}</span>
                         <span className="text-muted-foreground">
