@@ -30,6 +30,9 @@ export const surveysApi = {
     }>;
   }) => apiClient.post<SurveyDetail>("/surveys", data).then((r) => r.data),
 
+  update: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch<SurveyDetail>(`/surveys/${id}`, data).then((r) => r.data),
+
   updateStatus: (id: string, status: string) =>
     apiClient.patch(`/surveys/${id}/status`, { status }).then((r) => r.data),
 

@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ClipboardList, Trash2, BarChart3, Play, Square } from "lucide-react";
+import { Plus, ClipboardList, Trash2, BarChart3, Play, Square, Pencil } from "lucide-react";
 import type { SurveyQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = { draft: "下書き", active: "受付中", closed: "終了" };
@@ -117,6 +117,11 @@ export default function SurveysPage() {
                 <TableCell>{new Date(s.createdAt).toLocaleDateString("ja-JP")}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Link href={`/surveys/${s.id}/edit`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </Link>
                     {s.status === "draft" && (
                       <Button
                         variant="ghost"

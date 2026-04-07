@@ -101,6 +101,69 @@ export class SurveysService {
     });
   }
 
+  async update(
+    id: string,
+    dto: {
+      title?: string;
+      description?: string | null;
+      isAnonymous?: boolean;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      questions?: Array<{
+        id?: string;
+        questionType: string;
+        questionText: string;
+        isRequired?: boolean;
+        sortOrder?: number;
+        options?: Array<{ value: string; label: string }>;
+        minValue?: number | null;
+        maxValue?: number | null;
+      }>;
+    },
+  ) {
+    const survey = await this.prisma.survey.findUnique({ where: { id } });
+    if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");
+
+    // 質問の更新: 既存を全削除して再作成（シンプルな方式）
+    if (dto.questions) {
+      await this.prisma.surveyQuestion.deleteMany({ where: { surveyId: id } });
+    }
+
+    return this.prisma.survey.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.isAnonymous !== undefined && { isAnonymous: dto.isAnonymous }),
+        ...(dto.startsAt !== undefined && {
+          startsAt: dto.startsAt ? new Date(dto.startsAt) : null,
+        }),
+        ...(dto.endsAt !== undefined && { endsAt: dto.endsAt ? new Date(dto.endsAt) : null }),
+        ...(dto.questions && {
+          questions: {
+            create: dto.questions.map((q, i) => ({
+              questionType: q.questionType as
+                | "single_choice"
+                | "multi_choice"
+                | "text"
+                | "rating"
+                | "number",
+              questionText: q.questionText,
+              isRequired: q.isRequired ?? false,
+              sortOrder: q.sortOrder ?? i,
+              options: q.options ?? Prisma.JsonNull,
+              minValue: q.minValue,
+              maxValue: q.maxValue,
+            })),
+          },
+        }),
+      },
+      include: {
+        questions: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+  }
+
   async updateStatus(id: string, status: "draft" | "active" | "closed") {
     const survey = await this.prisma.survey.findUnique({ where: { id } });
     if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");

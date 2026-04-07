@@ -30,6 +30,20 @@ export function useCreateSurvey() {
   });
 }
 
+export function useUpdateSurvey() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      surveysApi.update(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["surveys"] });
+      queryClient.invalidateQueries({ queryKey: ["surveys", variables.id] });
+      toast.success("アンケートを更新しました");
+    },
+    onError: () => toast.error("アンケート更新に失敗しました"),
+  });
+}
+
 export function useUpdateSurveyStatus() {
   const queryClient = useQueryClient();
   return useMutation({

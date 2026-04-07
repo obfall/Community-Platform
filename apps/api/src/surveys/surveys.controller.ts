@@ -48,6 +48,14 @@ export class SurveysController {
     return this.service.create(userId, dto);
   }
 
+  @Patch(":id")
+  @ApiOperation({ summary: "アンケート更新" })
+  @UseGuards(RolesGuard)
+  @Roles("owner", "admin")
+  update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: Record<string, unknown>) {
+    return this.service.update(id, dto as Parameters<SurveysService["update"]>[1]);
+  }
+
   @Patch(":id/status")
   @ApiOperation({ summary: "アンケートステータス変更" })
   @UseGuards(RolesGuard)
