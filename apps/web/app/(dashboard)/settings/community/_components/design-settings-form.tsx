@@ -7,11 +7,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
-const DEFAULT_PRIMARY = "#3b82f6";
-const DEFAULT_ACCENT = "#8b5cf6";
+const DEFAULT_PRIMARY = "#0a0a0a";
+const DEFAULT_ACCENT = "#f3f4f6";
+
+const FONT_OPTIONS = [
+  { label: "デフォルト（システム）", value: "" },
+  {
+    label: "Noto Sans JP（ゴシック・読みやすい）",
+    value: "'Noto Sans JP', sans-serif",
+  },
+  {
+    label: "Noto Serif JP（明朝・上品）",
+    value: "'Noto Serif JP', serif",
+  },
+  {
+    label: "游ゴシック",
+    value: "'Yu Gothic', YuGothic, sans-serif",
+  },
+  {
+    label: "游明朝",
+    value: "'Yu Mincho', YuMincho, serif",
+  },
+  {
+    label: "ヒラギノ角ゴ",
+    value: "'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif",
+  },
+  {
+    label: "ヒラギノ明朝",
+    value: "'Hiragino Mincho ProN', serif",
+  },
+  {
+    label: "Meiryo",
+    value: "Meiryo, sans-serif",
+  },
+];
 
 export function DesignSettingsForm() {
   const { data: settings, isLoading } = useAppSettings();
@@ -21,6 +60,15 @@ export function DesignSettingsForm() {
   const [faviconUrl, setFaviconUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState(DEFAULT_PRIMARY);
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT);
+  const [headerBgColor, setHeaderBgColor] = useState("");
+  const [headerTextColor, setHeaderTextColor] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
+  const [textColor, setTextColor] = useState("");
+  const [sidebarBgColor, setSidebarBgColor] = useState("");
+  const [sidebarTextColor, setSidebarTextColor] = useState("");
+  const [sidebarAccentColor, setSidebarAccentColor] = useState("");
+  const [sidebarAccentTextColor, setSidebarAccentTextColor] = useState("");
+  const [fontFamily, setFontFamily] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,6 +81,15 @@ export function DesignSettingsForm() {
     setFaviconUrl(get("favicon_url"));
     setPrimaryColor(get("primary_color") || DEFAULT_PRIMARY);
     setAccentColor(get("accent_color") || DEFAULT_ACCENT);
+    setHeaderBgColor(get("header_bg_color"));
+    setHeaderTextColor(get("header_text_color"));
+    setBackgroundColor(get("background_color"));
+    setTextColor(get("text_color"));
+    setSidebarBgColor(get("sidebar_bg_color"));
+    setSidebarTextColor(get("sidebar_text_color"));
+    setSidebarAccentColor(get("sidebar_accent_color"));
+    setSidebarAccentTextColor(get("sidebar_accent_text_color"));
+    setFontFamily(get("font_family"));
   }, [settings]);
 
   const handleUpload = async (
@@ -63,19 +120,76 @@ export function DesignSettingsForm() {
     }
   };
 
+  const buildUpdates = (): Array<{ key: string; value: string }> => [
+    { key: "logo_url", value: logoUrl },
+    { key: "favicon_url", value: faviconUrl },
+    { key: "primary_color", value: primaryColor },
+    { key: "accent_color", value: accentColor },
+    { key: "header_bg_color", value: headerBgColor },
+    { key: "header_text_color", value: headerTextColor },
+    { key: "background_color", value: backgroundColor },
+    { key: "text_color", value: textColor },
+    { key: "sidebar_bg_color", value: sidebarBgColor },
+    { key: "sidebar_text_color", value: sidebarTextColor },
+    { key: "sidebar_accent_color", value: sidebarAccentColor },
+    { key: "sidebar_accent_text_color", value: sidebarAccentTextColor },
+    { key: "font_family", value: fontFamily },
+  ];
+
   const handleSave = async () => {
     if (!settings) return;
     setSaving(true);
     try {
-      const updates: Array<{ key: string; value: string }> = [
-        { key: "logo_url", value: logoUrl },
-        { key: "favicon_url", value: faviconUrl },
-        { key: "primary_color", value: primaryColor },
-        { key: "accent_color", value: accentColor },
-      ];
+      const updates = buildUpdates();
       const promises = updates
         .filter((u) => settings.find((s) => s.key === u.key)?.value !== u.value)
         .map((u) => updateMutation.mutateAsync({ key: u.key, data: { value: u.value } }));
+      await Promise.all(promises);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!settings) return;
+    if (!confirm("デザイン設定をすべてデフォルトに戻します。よろしいですか？")) return;
+
+    // フォーム state をリセット
+    setLogoUrl("");
+    setFaviconUrl("");
+    setPrimaryColor(DEFAULT_PRIMARY);
+    setAccentColor(DEFAULT_ACCENT);
+    setHeaderBgColor("");
+    setHeaderTextColor("");
+    setBackgroundColor("");
+    setTextColor("");
+    setSidebarBgColor("");
+    setSidebarTextColor("");
+    setSidebarAccentColor("");
+    setSidebarAccentTextColor("");
+    setFontFamily("");
+
+    // 保存
+    setSaving(true);
+    try {
+      const resetValues: Record<string, string> = {
+        logo_url: "",
+        favicon_url: "",
+        primary_color: DEFAULT_PRIMARY,
+        accent_color: DEFAULT_ACCENT,
+        header_bg_color: "",
+        header_text_color: "",
+        background_color: "",
+        text_color: "",
+        sidebar_bg_color: "",
+        sidebar_text_color: "",
+        sidebar_accent_color: "",
+        sidebar_accent_text_color: "",
+        font_family: "",
+      };
+      const promises = Object.entries(resetValues)
+        .filter(([key, value]) => settings.find((s) => s.key === key)?.value !== value)
+        .map(([key, value]) => updateMutation.mutateAsync({ key, data: { value } }));
       await Promise.all(promises);
     } finally {
       setSaving(false);
@@ -231,9 +345,207 @@ export function DesignSettingsForm() {
           </div>
         </div>
 
+        {/* ヘッダー色 */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>ヘッダー背景色</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={headerBgColor || "#ffffff"}
+                onChange={(e) => setHeaderBgColor(e.target.value)}
+                className="h-10 w-16 cursor-pointer p-1"
+              />
+              <Input
+                type="text"
+                value={headerBgColor}
+                onChange={(e) => setHeaderBgColor(e.target.value)}
+                placeholder="空欄でデフォルト"
+                className="font-mono"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>ヘッダー文字色</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={headerTextColor || "#000000"}
+                onChange={(e) => setHeaderTextColor(e.target.value)}
+                className="h-10 w-16 cursor-pointer p-1"
+              />
+              <Input
+                type="text"
+                value={headerTextColor}
+                onChange={(e) => setHeaderTextColor(e.target.value)}
+                placeholder="空欄でデフォルト"
+                className="font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 背景色・文字色 */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>ページ背景色</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={backgroundColor || "#ffffff"}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                className="h-10 w-16 cursor-pointer p-1"
+              />
+              <Input
+                type="text"
+                value={backgroundColor}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                placeholder="空欄でデフォルト"
+                className="font-mono"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>本文文字色</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={textColor || "#000000"}
+                onChange={(e) => setTextColor(e.target.value)}
+                className="h-10 w-16 cursor-pointer p-1"
+              />
+              <Input
+                type="text"
+                value={textColor}
+                onChange={(e) => setTextColor(e.target.value)}
+                placeholder="空欄でデフォルト"
+                className="font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* サイドバー */}
+        <div className="space-y-3 rounded-lg border p-4">
+          <p className="text-sm font-medium">サイドバー</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>サイドバー背景色</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  value={sidebarBgColor || "#ffffff"}
+                  onChange={(e) => setSidebarBgColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer p-1"
+                />
+                <Input
+                  type="text"
+                  value={sidebarBgColor}
+                  onChange={(e) => setSidebarBgColor(e.target.value)}
+                  placeholder="空欄でデフォルト"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>サイドバー文字色</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  value={sidebarTextColor || "#000000"}
+                  onChange={(e) => setSidebarTextColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer p-1"
+                />
+                <Input
+                  type="text"
+                  value={sidebarTextColor}
+                  onChange={(e) => setSidebarTextColor(e.target.value)}
+                  placeholder="空欄でデフォルト"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>hover/選択色（背景）</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  value={sidebarAccentColor || "#f3f4f6"}
+                  onChange={(e) => setSidebarAccentColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer p-1"
+                />
+                <Input
+                  type="text"
+                  value={sidebarAccentColor}
+                  onChange={(e) => setSidebarAccentColor(e.target.value)}
+                  placeholder="空欄でデフォルト"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>hover/選択色（文字）</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="color"
+                  value={sidebarAccentTextColor || "#000000"}
+                  onChange={(e) => setSidebarAccentTextColor(e.target.value)}
+                  className="h-10 w-16 cursor-pointer p-1"
+                />
+                <Input
+                  type="text"
+                  value={sidebarAccentTextColor}
+                  onChange={(e) => setSidebarAccentTextColor(e.target.value)}
+                  placeholder="空欄でデフォルト"
+                  className="font-mono"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* フォント */}
+        <div className="space-y-2">
+          <Label>フォント</Label>
+          <Select
+            value={fontFamily || "__default__"}
+            onValueChange={(v) => setFontFamily(v === "__default__" ? "" : v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value || "__default__"} value={opt.value || "__default__"}>
+                  <span style={{ fontFamily: opt.value || undefined }}>{opt.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* プレビュー */}
-        <div className="rounded-lg border p-4">
-          <p className="mb-2 text-sm font-medium">プレビュー</p>
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            backgroundColor: backgroundColor || undefined,
+            color: textColor || undefined,
+            fontFamily: fontFamily || undefined,
+          }}
+        >
+          <p className="mb-3 text-sm font-medium">プレビュー</p>
+          <div
+            className="mb-3 -mx-4 -mt-4 rounded-t-lg border-b px-4 py-2 text-sm font-bold"
+            style={{
+              backgroundColor: headerBgColor || undefined,
+              color: headerTextColor || undefined,
+            }}
+          >
+            ヘッダーのサンプル
+          </div>
+          <p className="mb-3 text-sm">
+            これは本文のサンプルテキストです。あいうえおカタカナ漢字 ABCDEabcde 12345
+          </p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -252,7 +564,10 @@ export function DesignSettingsForm() {
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={handleReset} disabled={saving}>
+            初期化
+          </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             保存
