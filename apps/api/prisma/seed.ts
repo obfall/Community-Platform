@@ -296,15 +296,69 @@ async function main() {
     },
     {
       key: "primary_color",
-      value: "#3b82f6",
+      value: "#0a0a0a",
       valueType: "string" as const,
-      description: "プライマリーカラー（HEX）",
+      description: "プライマリーカラー（HEX、メインボタンや強調要素に使用）",
     },
     {
       key: "accent_color",
-      value: "#8b5cf6",
+      value: "#f3f4f6",
       valueType: "string" as const,
-      description: "アクセントカラー（HEX）",
+      description: "アクセントカラー（HEX、ホバー時の背景に使用）",
+    },
+    {
+      key: "header_bg_color",
+      value: "",
+      valueType: "string" as const,
+      description: "ヘッダー背景色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "header_text_color",
+      value: "",
+      valueType: "string" as const,
+      description: "ヘッダー文字色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "background_color",
+      value: "",
+      valueType: "string" as const,
+      description: "ページ背景色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "text_color",
+      value: "",
+      valueType: "string" as const,
+      description: "本文文字色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "font_family",
+      value: "",
+      valueType: "string" as const,
+      description: "フォントファミリー（CSS font-family、空欄でデフォルト）",
+    },
+    {
+      key: "sidebar_bg_color",
+      value: "",
+      valueType: "string" as const,
+      description: "サイドバー背景色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "sidebar_text_color",
+      value: "",
+      valueType: "string" as const,
+      description: "サイドバー文字色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "sidebar_accent_color",
+      value: "",
+      valueType: "string" as const,
+      description: "サイドバー hover/選択色（HEX、空欄でデフォルト）",
+    },
+    {
+      key: "sidebar_accent_text_color",
+      value: "",
+      valueType: "string" as const,
+      description: "サイドバー選択中文字色（HEX、空欄でデフォルト）",
     },
   ];
 

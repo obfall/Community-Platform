@@ -54,8 +54,19 @@ export function Header({ eventId, projectId }: HeaderProps) {
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
 
+  const headerBg = settings?.find((s) => s.key === "header_bg_color")?.value ?? "";
+  const headerText = settings?.find((s) => s.key === "header_text_color")?.value ?? "";
+
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4">
+    <header
+      className={`sticky top-0 z-30 flex h-14 items-center gap-4 border-b px-4 ${
+        headerBg ? "" : "bg-background"
+      } ${headerText ? "" : "text-foreground"}`}
+      style={{
+        ...(headerBg && { backgroundColor: headerBg }),
+        ...(headerText && { color: headerText }),
+      }}
+    >
       {/* モバイル: ハンバーガーメニュー */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
