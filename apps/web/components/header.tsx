@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Menu, LogOut, Settings, User, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUnreadCount } from "@/hooks/use-notifications";
+import { useAppSettings } from "@/hooks/use-app-settings";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,8 +31,12 @@ export function Header({ eventId, projectId }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
+  const { data: settings } = useAppSettings();
   const unreadCount = unreadData?.count ?? 0;
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const logoUrl = settings?.find((s) => s.key === "logo_url")?.value ?? "";
+  const siteName = settings?.find((s) => s.key === "site_name")?.value ?? "Community Platform";
 
   const handleLogout = async () => {
     await logout();
@@ -62,7 +67,12 @@ export function Header({ eventId, projectId }: HeaderProps) {
         <SheetContent side="left" className="w-64 p-0">
           <SheetTitle className="sr-only">ナビゲーション</SheetTitle>
           <div className="flex h-14 items-center border-b px-4">
-            <span className="font-bold">Community Platform</span>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
+            ) : (
+              <span className="font-bold">{siteName}</span>
+            )}
           </div>
           <div onClick={() => setMobileOpen(false)}>
             {eventId ? (
@@ -77,8 +87,13 @@ export function Header({ eventId, projectId }: HeaderProps) {
       </Sheet>
 
       {/* ロゴ */}
-      <Link href="/dashboard" className="font-bold">
-        Community Platform
+      <Link href="/dashboard" className="flex items-center gap-2 font-bold">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
+        ) : (
+          <span>{siteName}</span>
+        )}
       </Link>
 
       <div className="flex-1" />

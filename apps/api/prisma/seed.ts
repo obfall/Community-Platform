@@ -282,6 +282,30 @@ async function main() {
       valueType: "string" as const,
       description: "デフォルト言語",
     },
+    {
+      key: "logo_url",
+      value: "",
+      valueType: "string" as const,
+      description: "ロゴ画像URL（空欄の場合はサイト名テキストを表示）",
+    },
+    {
+      key: "favicon_url",
+      value: "",
+      valueType: "string" as const,
+      description: "ファビコンURL",
+    },
+    {
+      key: "primary_color",
+      value: "#3b82f6",
+      valueType: "string" as const,
+      description: "プライマリーカラー（HEX）",
+    },
+    {
+      key: "accent_color",
+      value: "#8b5cf6",
+      valueType: "string" as const,
+      description: "アクセントカラー（HEX）",
+    },
   ];
 
   for (const setting of appSettings) {

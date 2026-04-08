@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppSettingsForm } from "./_components/app-settings-form";
 import { FeatureToggles } from "./_components/feature-toggles";
+import { DesignSettingsForm } from "./_components/design-settings-form";
 
 export default function CommunitySettingsPage() {
   return (
@@ -17,11 +18,16 @@ export default function CommunitySettingsPage() {
       <Tabs defaultValue="general">
         <TabsList>
           <TabsTrigger value="general">基本設定</TabsTrigger>
+          <TabsTrigger value="design">デザイン</TabsTrigger>
           <TabsTrigger value="features">機能設定</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-6">
           <AppSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="design" className="mt-6">
+          <DesignSettingsForm />
         </TabsContent>
 
         <TabsContent value="features" className="mt-6">
