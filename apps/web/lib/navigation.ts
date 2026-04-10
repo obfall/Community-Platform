@@ -27,7 +27,6 @@ import {
   Settings,
   Shield,
   UserCog,
-  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 

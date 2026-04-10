@@ -54,6 +54,7 @@ export default function SystemSettingsPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted flag for hydration
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
