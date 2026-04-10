@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { contentsApi } from "@/lib/api/contents";
+import { contentsApi } from "@/lib/api/content";
 
 export function useContents(query?: {
   page?: number;

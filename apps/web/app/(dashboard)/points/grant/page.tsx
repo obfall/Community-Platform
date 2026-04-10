@@ -7,7 +7,7 @@ import {
   usePointRules,
   useCreatePointRule,
   useDeletePointRule,
-} from "@/hooks/use-points";
+} from "@/hooks/points/use-points";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAlbums, useAlbumCategories, useCreateAlbumCategory } from "@/hooks/use-albums";
+import { useAlbums, useAlbumCategories, useCreateAlbumCategory } from "@/hooks/albums/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

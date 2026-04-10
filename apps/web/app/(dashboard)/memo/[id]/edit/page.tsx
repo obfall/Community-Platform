@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useMemoDetail, useUpdateMemo, useMemoCategories } from "@/hooks/use-memos";
+import { useMemoDetail, useUpdateMemo, useMemoCategories } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

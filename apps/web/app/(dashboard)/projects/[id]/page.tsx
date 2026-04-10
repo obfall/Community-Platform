@@ -1,8 +1,8 @@
 "use client";
 
 import { use } from "react";
-import { useProject } from "@/hooks/use-projects";
-import { useAuth } from "@/hooks/use-auth";
+import { useProject } from "@/hooks/projects/use-projects";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

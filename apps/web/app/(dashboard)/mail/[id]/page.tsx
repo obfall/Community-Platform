@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useMailMessage, useSendMailMessage } from "@/hooks/use-mail";
+import { useMailMessage, useSendMailMessage } from "@/hooks/mail/use-mail";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,7 +62,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/campaigns">
+        <Link href="/mail">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

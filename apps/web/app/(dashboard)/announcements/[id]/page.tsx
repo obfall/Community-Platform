@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAnnouncement, useDeleteAnnouncement } from "@/hooks/use-announcements";
+import { useAnnouncement, useDeleteAnnouncement } from "@/hooks/announcements/use-announcements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

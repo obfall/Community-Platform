@@ -5,7 +5,7 @@ import {
   useAnalyticsDashboard,
   useMemberActivity,
   useEngagementRanking,
-} from "@/hooks/use-analytics";
+} from "@/hooks/analytics/use-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

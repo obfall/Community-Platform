@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { videosApi } from "@/lib/api/videos";
-import { useVideoCategories, useVideoSeries } from "@/hooks/use-videos";
+import { useVideoCategories, useVideoSeries } from "@/hooks/videos/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

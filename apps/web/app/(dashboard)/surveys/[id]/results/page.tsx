@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useSurveyResults } from "@/hooks/use-surveys";
+import { useSurveyResults } from "@/hooks/surveys/use-surveys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

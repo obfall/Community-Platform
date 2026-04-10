@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppSettings, useUpdateAppSetting } from "@/hooks/use-app-settings";
+import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { filesApi } from "@/lib/api/files";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";

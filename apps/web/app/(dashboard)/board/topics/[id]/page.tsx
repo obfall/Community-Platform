@@ -9,8 +9,8 @@ import { ArrowLeft, Edit, Trash2, Heart, Eye, MessageCircle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
-import { useTopic, useDeleteTopic, useToggleTopicLike } from "@/hooks/use-board";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { useTopic, useDeleteTopic, useToggleTopicLike } from "@/hooks/board/use-board";
 import { TopicPostSection } from "../../_components/topic-post-section";
 
 export default function TopicDetailPage({ params }: { params: Promise<{ id: string }> }) {

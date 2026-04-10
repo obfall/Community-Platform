@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useUpdateCategory, useDeleteCategory } from "@/hooks/use-board";
+import { useUpdateCategory, useDeleteCategory } from "@/hooks/board/use-board";
 import { TopicList } from "./topic-list";
 import type { BoardCategory } from "@/lib/api/types";
 

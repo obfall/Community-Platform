@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useProject } from "@/hooks/use-projects";
+import { useProject } from "@/hooks/projects/use-projects";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";

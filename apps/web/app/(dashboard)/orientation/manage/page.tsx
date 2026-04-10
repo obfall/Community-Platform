@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useOrientationPages, useDeletePage } from "@/hooks/use-orientation";
+import { useOrientationPages, useDeletePage } from "@/hooks/orientation/use-orientation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

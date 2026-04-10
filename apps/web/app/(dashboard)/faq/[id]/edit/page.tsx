@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useFaqArticle, useUpdateFaq } from "@/hooks/use-faq";
+import { useFaqArticle, useUpdateFaq } from "@/hooks/faq/use-faq";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

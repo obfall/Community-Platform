@@ -21,7 +21,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useTopics, useReorderTopics } from "@/hooks/use-board";
+import { useTopics, useReorderTopics } from "@/hooks/board/use-board";
 import { Badge } from "@/components/ui/badge";
 import type { BoardTopic } from "@/lib/api/types";
 

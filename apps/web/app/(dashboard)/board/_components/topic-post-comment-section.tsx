@@ -11,7 +11,7 @@ import {
   useTopicPostComments,
   useCreateTopicPostComment,
   useToggleTopicPostCommentLike,
-} from "@/hooks/use-board";
+} from "@/hooks/board/use-board";
 import type { BoardTopicPostComment } from "@/lib/api/types";
 
 function CommentCard({

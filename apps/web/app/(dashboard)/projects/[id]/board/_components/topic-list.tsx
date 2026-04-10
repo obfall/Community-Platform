@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjectBoardTopics } from "@/hooks/use-projects";
+import { useProjectBoardTopics } from "@/hooks/projects/use-projects";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Heart, Plus } from "lucide-react";
 

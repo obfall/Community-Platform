@@ -1,7 +1,7 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { useToggleFeature } from "@/hooks/use-feature-settings";
+import { useToggleFeature } from "@/hooks/settings/use-feature-settings";
 import type { FeatureSetting } from "@/lib/api/types";
 
 interface FeatureToggleItemProps {

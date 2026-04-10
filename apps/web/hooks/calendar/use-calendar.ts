@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { schedulesApi, type ScheduleInput } from "@/lib/api/schedules";
+import { schedulesApi, type ScheduleInput } from "@/lib/api/calendar";
 
 export function useSchedules(query?: { startAt?: string; endAt?: string }) {
   return useQuery({

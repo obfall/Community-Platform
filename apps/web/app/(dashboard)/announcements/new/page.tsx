@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCreateAnnouncement } from "@/hooks/use-announcements";
+import { useCreateAnnouncement } from "@/hooks/announcements/use-announcements";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { usersApi } from "@/lib/api/users";
+import { usersApi } from "@/lib/api/members";
 import type { UpdateProfileInput, UpdatePublicInfoInput } from "@/lib/api/types";
 import { toast } from "sonner";
 

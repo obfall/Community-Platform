@@ -1,6 +1,6 @@
 "use client";
 
-import { useFeatures } from "@/hooks/use-features";
+import { useFeatures } from "@/hooks/settings/use-features";
 import {
   Select,
   SelectContent,

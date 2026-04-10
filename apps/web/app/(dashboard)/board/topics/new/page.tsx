@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCategories, useCreateTopic } from "@/hooks/use-board";
+import { useCategories, useCreateTopic } from "@/hooks/board/use-board";
 
 const topicSchema = z.object({
   title: z.string().min(1, "タイトルを入力してください").max(200),

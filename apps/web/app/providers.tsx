@@ -5,7 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider } from "@/hooks/auth/use-auth";
 import { ThemeApplier } from "@/components/theme-applier";
 
 export function Providers({ children }: { children: ReactNode }) {

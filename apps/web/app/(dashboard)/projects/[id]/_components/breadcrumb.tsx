@@ -1,6 +1,6 @@
 "use client";
 
-import { useProject } from "@/hooks/use-projects";
+import { useProject } from "@/hooks/projects/use-projects";
 import { Breadcrumb } from "@/components/breadcrumb";
 
 interface ProjectDetailBreadcrumbProps {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { usersApi } from "@/lib/api/users";
+import { usersApi } from "@/lib/api/members";
 import type { UserListQuery, SetAttributeValueItem } from "@/lib/api/types";
 
 export function useUsers(params?: UserListQuery) {

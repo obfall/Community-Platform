@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
-import { useAppSettings, useUpdateAppSetting } from "@/hooks/use-app-settings";
+import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,

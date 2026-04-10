@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useThreadReplies, useCreateReply, useToggleReplyLike } from "@/hooks/use-projects";
+import {
+  useThreadReplies,
+  useCreateReply,
+  useToggleReplyLike,
+} from "@/hooks/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

@@ -2,9 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { io, type Socket } from "socket.io-client";
-import { useAuth } from "@/hooks/use-auth";
-import { useChatRooms, useChatMessages, useCreateChatRoom, useMarkAsRead } from "@/hooks/use-chat";
-import { usersApi } from "@/lib/api/users";
+import { useAuth } from "@/hooks/auth/use-auth";
+import {
+  useChatRooms,
+  useChatMessages,
+  useCreateChatRoom,
+  useMarkAsRead,
+} from "@/hooks/chat/use-chat";
+import { usersApi } from "@/lib/api/members";
 import { getAccessToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

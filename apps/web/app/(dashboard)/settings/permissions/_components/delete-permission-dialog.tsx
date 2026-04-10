@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDeletePermission } from "@/hooks/use-permissions";
+import { useDeletePermission } from "@/hooks/settings/use-permissions";
 import type { PermissionSetting } from "@/lib/api/types";
 
 interface DeletePermissionDialogProps {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppSettings } from "@/hooks/use-app-settings";
+import { useAppSettings } from "@/hooks/settings/use-app-settings";
 
 /**
  * app_settings からデザイン関連の値を読み取り、document に動的適用する。

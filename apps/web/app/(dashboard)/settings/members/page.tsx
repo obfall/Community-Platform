@@ -5,7 +5,7 @@ import { MembersTable } from "./_components/members-table";
 import { MembersFilter } from "./_components/members-filter";
 import { MembersPagination } from "./_components/members-pagination";
 import { MemberDetailDialog } from "./_components/member-detail-dialog";
-import { useUsers, useExportMembersCsv } from "@/hooks/use-users";
+import { useUsers, useExportMembersCsv } from "@/hooks/settings/use-members";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import type { UserListQuery } from "@/lib/api/types";

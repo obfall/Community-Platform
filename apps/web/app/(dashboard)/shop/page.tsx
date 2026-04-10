@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useProducts, useProductCategories, useProductSeries } from "@/hooks/use-shop";
+import { useProducts, useProductCategories, useProductSeries } from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

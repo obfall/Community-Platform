@@ -35,8 +35,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAuth } from "@/hooks/use-auth";
-import { useCategories, useCreateCategory, useReorderCategories } from "@/hooks/use-board";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { useCategories, useCreateCategory, useReorderCategories } from "@/hooks/board/use-board";
 import { TopicList } from "./_components/topic-list";
 import { SortableCategoryItem } from "./_components/sortable-category-item";
 

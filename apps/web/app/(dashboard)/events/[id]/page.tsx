@@ -2,8 +2,8 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useEvent, useParticipate } from "@/hooks/use-events";
-import { useAuth } from "@/hooks/use-auth";
+import { useEvent, useParticipate } from "@/hooks/events/use-events";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

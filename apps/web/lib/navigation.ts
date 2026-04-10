@@ -65,7 +65,7 @@ export const NAV_ITEMS: NavItem[] = [
   { featureKey: "skill_share", label: "スキルシェア", href: "/skills", icon: Share2 },
   { featureKey: "survey", label: "アンケート", href: "/surveys", icon: ClipboardList },
   { featureKey: "advertising", label: "広告", href: "/ads", icon: Megaphone },
-  { featureKey: "mail_campaign", label: "メール配信", href: "/campaigns", icon: Mail },
+  { featureKey: "mail_campaign", label: "メール配信", href: "/mail", icon: Mail },
   { featureKey: "line_integration", label: "LINE連携", href: "/line", icon: Smartphone },
   {
     featureKey: "orientation",

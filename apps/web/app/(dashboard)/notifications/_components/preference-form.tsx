@@ -11,7 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useNotificationPreferences, useUpdatePreferences } from "@/hooks/use-notifications";
+import {
+  useNotificationPreferences,
+  useUpdatePreferences,
+} from "@/hooks/notifications/use-notifications";
 import type { PreferenceItem } from "@/lib/api/types";
 
 const NOTIFICATION_TYPE_LABELS: Record<string, string> = {

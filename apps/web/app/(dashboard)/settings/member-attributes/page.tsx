@@ -6,7 +6,7 @@ import {
   useCreateMemberAttribute,
   useUpdateMemberAttribute,
   useDeleteMemberAttribute,
-} from "@/hooks/use-member-attributes";
+} from "@/hooks/settings/use-member-attributes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

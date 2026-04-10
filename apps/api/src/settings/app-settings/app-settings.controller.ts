@@ -2,7 +2,7 @@ import { Controller, Get, Patch, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AppSettingsService } from "./app-settings.service";
 import { UpdateAppSettingDto } from "./dto";
-import { CurrentUser, Roles } from "@/common/decorators";
+import { CurrentUser, Public, Roles } from "@/common/decorators";
 import { RolesGuard } from "@/common/guards";
 
 @ApiTags("settings/app")
@@ -11,6 +11,7 @@ import { RolesGuard } from "@/common/guards";
 export class AppSettingsController {
   constructor(private readonly appSettingsService: AppSettingsService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: "アプリ設定一覧" })
   findAll() {

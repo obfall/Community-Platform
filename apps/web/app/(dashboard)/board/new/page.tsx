@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PostForm } from "../_components/post-form";
-import { useCreatePost } from "@/hooks/use-board";
+import { useCreatePost } from "@/hooks/board/use-board";
 
 export default function NewPostPage() {
   const router = useRouter();
