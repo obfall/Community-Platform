@@ -23,7 +23,6 @@ import {
   Bookmark,
   Calendar,
   StickyNote,
-  HelpCircle,
   Settings,
   Shield,
   UserCog,
@@ -46,7 +45,6 @@ export interface AdminNavItem {
 export const NAV_ITEMS: NavItem[] = [
   { featureKey: "news", label: "ホーム", href: "/dashboard", icon: Home },
   { featureKey: "announcement", label: "配信", href: "/announcements", icon: Megaphone },
-  { featureKey: "faq", label: "FAQ", href: "/faq", icon: HelpCircle },
   { featureKey: "notification", label: "通知", href: "/notifications", icon: Bell },
   { featureKey: "member", label: "メンバー", href: "/members", icon: Users },
   { featureKey: "profile", label: "プロフィール", href: "/profile", icon: UserCheck },
