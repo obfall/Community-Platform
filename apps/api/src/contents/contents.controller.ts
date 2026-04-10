@@ -58,7 +58,7 @@ export class ContentsController {
   @Post()
   @ApiOperation({ summary: "コンテンツ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateContentDto) {
     return this.service.create(userId, dto);
   }
@@ -66,7 +66,7 @@ export class ContentsController {
   @Patch(":id")
   @ApiOperation({ summary: "コンテンツ更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: { name?: string; description?: string; price?: number; publishStatus?: string },
@@ -77,7 +77,7 @@ export class ContentsController {
   @Delete(":id")
   @ApiOperation({ summary: "コンテンツ削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);

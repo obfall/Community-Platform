@@ -43,7 +43,7 @@ export class SurveysController {
   @Post()
   @ApiOperation({ summary: "アンケート作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateSurveyDto) {
     return this.service.create(userId, dto);
   }
@@ -51,7 +51,7 @@ export class SurveysController {
   @Patch(":id")
   @ApiOperation({ summary: "アンケート更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: Record<string, unknown>) {
     return this.service.update(id, dto as Parameters<SurveysService["update"]>[1]);
   }
@@ -59,7 +59,7 @@ export class SurveysController {
   @Patch(":id/status")
   @ApiOperation({ summary: "アンケートステータス変更" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   updateStatus(
     @Param("id", ParseUUIDPipe) id: string,
     @Body("status") status: "draft" | "active" | "closed",
@@ -70,7 +70,7 @@ export class SurveysController {
   @Delete(":id")
   @ApiOperation({ summary: "アンケート削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);
@@ -89,7 +89,7 @@ export class SurveysController {
   @Get(":id/results")
   @ApiOperation({ summary: "アンケート結果集計" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   getResults(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.getResults(id);
   }

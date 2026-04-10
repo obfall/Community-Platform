@@ -57,7 +57,7 @@ export class EventsController {
   @Post()
   @ApiOperation({ summary: "イベント作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateEventDto) {
     return this.eventsService.create(userId, dto);
   }
@@ -65,7 +65,7 @@ export class EventsController {
   @Patch(":id")
   @ApiOperation({ summary: "イベント更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.eventsService.update(id, dto);
   }
@@ -73,7 +73,7 @@ export class EventsController {
   @Delete(":id")
   @ApiOperation({ summary: "イベント削除（論理削除）" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.eventsService.remove(id);
@@ -84,7 +84,7 @@ export class EventsController {
   @Post(":id/tickets")
   @ApiOperation({ summary: "チケット作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   createTicket(@Param("id", ParseUUIDPipe) eventId: string, @Body() dto: CreateTicketDto) {
     return this.eventsService.createTicket(eventId, dto);
   }
@@ -92,7 +92,7 @@ export class EventsController {
   @Patch("tickets/:ticketId")
   @ApiOperation({ summary: "チケット更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   updateTicket(@Param("ticketId", ParseUUIDPipe) ticketId: string, @Body() dto: CreateTicketDto) {
     return this.eventsService.updateTicket(ticketId, dto);
   }
@@ -100,7 +100,7 @@ export class EventsController {
   @Delete("tickets/:ticketId")
   @ApiOperation({ summary: "チケット削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   removeTicket(@Param("ticketId", ParseUUIDPipe) ticketId: string) {
     return this.eventsService.removeTicket(ticketId);
@@ -137,7 +137,7 @@ export class EventsController {
   @Patch("participants/:participantId/status")
   @ApiOperation({ summary: "参加者ステータス変更" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   updateParticipantStatus(
     @Param("participantId", ParseUUIDPipe) participantId: string,
     @Body() dto: UpdateParticipantStatusDto,

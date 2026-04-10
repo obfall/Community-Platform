@@ -18,7 +18,7 @@ export class FeaturesController {
   }
 
   @Patch(":featureKey")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "機能の有効/無効切替（optional のみ）" })
   toggle(

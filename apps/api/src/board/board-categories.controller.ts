@@ -32,7 +32,7 @@ export class BoardCategoriesController {
   }
 
   @Post()
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "カテゴリ作成" })
   create(@CurrentUser("id") userId: string, @Body() dto: CreateCategoryDto) {
@@ -40,7 +40,7 @@ export class BoardCategoriesController {
   }
 
   @Patch("reorder")
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "カテゴリ並び替え" })
   reorder(@Body() dto: ReorderItemsDto) {
@@ -48,7 +48,7 @@ export class BoardCategoriesController {
   }
 
   @Patch(":id")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "カテゴリ更新" })
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateCategoryDto) {
@@ -56,7 +56,7 @@ export class BoardCategoriesController {
   }
 
   @Delete(":id")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "カテゴリ削除" })

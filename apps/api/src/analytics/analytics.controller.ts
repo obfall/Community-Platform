@@ -11,7 +11,7 @@ import { AnalyticsService } from "./analytics.service";
 @ApiBearerAuth()
 @FeatureEnabled("analytics")
 @UseGuards(FeatureEnabledGuard, RolesGuard)
-@Roles("owner", "admin")
+@Roles("admin", "owner")
 export class AnalyticsController {
   constructor(private readonly service: AnalyticsService) {}
 

@@ -38,7 +38,7 @@ export class MemberAttributesController {
   @Post()
   @ApiOperation({ summary: "属性定義作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@Body() dto: CreateMemberAttributeDto) {
     return this.service.create(dto);
   }
@@ -46,7 +46,7 @@ export class MemberAttributesController {
   @Patch("reorder")
   @ApiOperation({ summary: "属性定義並び替え" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   reorder(@Body() dto: ReorderAttributesDto) {
     return this.service.reorder(dto);
   }
@@ -54,7 +54,7 @@ export class MemberAttributesController {
   @Patch(":id")
   @ApiOperation({ summary: "属性定義更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateMemberAttributeDto) {
     return this.service.update(id, dto);
   }
@@ -62,7 +62,7 @@ export class MemberAttributesController {
   @Delete(":id")
   @ApiOperation({ summary: "属性定義削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);
@@ -78,7 +78,7 @@ export class UserAttributesController {
   @Get("export/csv")
   @ApiOperation({ summary: "メンバー CSV エクスポート" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   async exportCsv(@Res({ passthrough: true }) res: Response) {
     const { attributes, users } = await this.service.getExportData();
 
@@ -135,7 +135,7 @@ export class UserAttributesController {
   @Patch(":id/attributes")
   @ApiOperation({ summary: "ユーザーの属性値一括設定" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   setUserAttributes(@Param("id", ParseUUIDPipe) id: string, @Body() dto: SetAttributeValuesDto) {
     return this.service.setUserAttributes(id, dto);
   }

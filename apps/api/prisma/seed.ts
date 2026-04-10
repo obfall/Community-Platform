@@ -374,7 +374,7 @@ async function main() {
   // --- Board Categories ---
   // createdByUserId が必要なため、最初のユーザーを探すか、存在しなければスキップ
   const firstUser = await prisma.user.findFirst({
-    where: { role: "owner", deletedAt: null },
+    where: { role: "admin", deletedAt: null },
     select: { id: true },
   });
 

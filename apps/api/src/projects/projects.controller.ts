@@ -56,7 +56,7 @@ export class ProjectsController {
   @Delete(":id")
   @ApiOperation({ summary: "プロジェクト削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);

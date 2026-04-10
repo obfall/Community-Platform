@@ -249,9 +249,9 @@ export class UsersService {
   ) {
     const target = await this.validateAdminAction(targetUserId, currentUser);
 
-    if (currentUser.role === "admin") {
-      if (dto.role === "owner" || dto.role === "admin") {
-        throw new ForbiddenException("管理者はオーナーや管理者に昇格させることはできません");
+    if (currentUser.role === "owner") {
+      if (dto.role === "admin") {
+        throw new ForbiddenException("運営者はシステム管理者に昇格させることはできません");
       }
     }
 
@@ -301,8 +301,8 @@ export class UsersService {
 
     if (!target) throw new NotFoundException("ユーザーが見つかりません");
 
-    if (currentUser.role === "admin" && (target.role === "owner" || target.role === "admin")) {
-      throw new ForbiddenException("管理者はオーナーや他の管理者を操作できません");
+    if (currentUser.role === "owner" && target.role === "admin") {
+      throw new ForbiddenException("運営者はシステム管理者を操作できません");
     }
 
     return target;

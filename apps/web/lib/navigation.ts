@@ -27,7 +27,6 @@ import {
   Settings,
   Shield,
   UserCog,
-  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 
@@ -79,12 +78,16 @@ export const NAV_ITEMS: NavItem[] = [
   { featureKey: "moderation", label: "モデレーション", href: "/moderation", icon: Shield },
 ];
 
-export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+/** コミュニティ運営メニュー（owner 以上） */
+export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
-  { label: "権限設定", href: "/settings/permissions", icon: Shield },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog },
-  { label: "カスタム属性", href: "/settings/member-attributes", icon: ListChecks },
   { label: "動画管理", href: "/videos/manage", icon: Video },
   { label: "商品管理", href: "/shop/manage", icon: ShoppingBag },
   { label: "ポイント発行", href: "/points/grant", icon: Star },
+];
+
+/** システム管理メニュー（admin のみ） */
+export const SYSTEM_ADMIN_ITEMS: AdminNavItem[] = [
+  { label: "システム設定", href: "/settings/system", icon: Shield },
 ];

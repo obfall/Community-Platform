@@ -43,7 +43,7 @@ export class ShopController {
   @Post("products")
   @ApiOperation({ summary: "商品登録" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateProductDto) {
     return this.service.createProduct(userId, dto);
   }
@@ -51,7 +51,7 @@ export class ShopController {
   @Patch("products/:id")
   @ApiOperation({ summary: "商品更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: Partial<CreateProductDto> & { publishStatus?: string },
@@ -62,7 +62,7 @@ export class ShopController {
   @Delete("products/:id")
   @ApiOperation({ summary: "商品削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.removeProduct(id);
@@ -89,7 +89,7 @@ export class ShopController {
   @Post("categories")
   @ApiOperation({ summary: "商品カテゴリ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createCategory(@Body("name") name: string) {
     return this.service.createProductCategory(name);
   }
@@ -103,7 +103,7 @@ export class ShopController {
   @Post("series")
   @ApiOperation({ summary: "商品シリーズ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createSeries(@Body("name") name: string) {
     return this.service.createProductSeries(name);
   }

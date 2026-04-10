@@ -43,7 +43,7 @@ export class AnnouncementsController {
   @Post()
   @ApiOperation({ summary: "お知らせ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateAnnouncementDto) {
     return this.service.create(userId, dto);
   }
@@ -51,7 +51,7 @@ export class AnnouncementsController {
   @Patch(":id")
   @ApiOperation({ summary: "お知らせ更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateAnnouncementDto) {
     return this.service.update(id, dto);
   }
@@ -59,7 +59,7 @@ export class AnnouncementsController {
   @Delete(":id")
   @ApiOperation({ summary: "お知らせ削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);

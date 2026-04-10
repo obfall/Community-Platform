@@ -19,7 +19,7 @@ export class AppSettingsController {
   }
 
   @Patch(":key")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "アプリ設定更新" })
   update(

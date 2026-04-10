@@ -20,7 +20,7 @@ import { RolesGuard } from "@/common/guards";
 
 @ApiTags("settings/permissions")
 @ApiBearerAuth()
-@Roles("owner", "admin")
+@Roles("admin", "owner")
 @UseGuards(RolesGuard)
 @Controller("settings/permissions")
 export class PermissionsController {
