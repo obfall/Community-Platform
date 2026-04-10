@@ -12,7 +12,7 @@ export class CreatePermissionDto {
   @MaxLength(50)
   action!: string;
 
-  @ApiProperty({ example: ["owner", "admin"], type: [String] })
+  @ApiProperty({ example: ["admin", "owner"], type: [String] })
   @IsArray()
   @IsString({ each: true })
   @ArrayMinSize(1)

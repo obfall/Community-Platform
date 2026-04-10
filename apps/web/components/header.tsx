@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, LogOut, Settings, User, Bell } from "lucide-react";
+import { Menu, LogOut, Settings, User, Bell, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useUnreadCount } from "@/hooks/notifications/use-notifications";
 import { useAppSettings } from "@/hooks/settings/use-app-settings";
@@ -108,6 +108,14 @@ export function Header({ eventId, projectId }: HeaderProps) {
       </Link>
 
       <div className="flex-1" />
+
+      {/* FAQ */}
+      <Button variant="ghost" size="icon" asChild>
+        <Link href="/faq">
+          <HelpCircle className="h-5 w-5" />
+          <span className="sr-only">FAQ</span>
+        </Link>
+      </Button>
 
       {/* 通知ベル */}
       <Button variant="ghost" size="icon" className="relative" asChild>
