@@ -15,10 +15,10 @@ datasource db {
 // --- Enums ---
 
 enum UserRole {
-  owner
   admin
-  moderator
+  owner
   member
+  visitor
 }
 
 enum UserStatus {

@@ -2,13 +2,13 @@ import { ApiProperty } from "@nestjs/swagger";
 import { IsIn } from "class-validator";
 import type { UserRole } from "@prisma/client";
 
-const USER_ROLES = ["owner", "admin", "moderator", "member"] as const;
+const USER_ROLES = ["admin", "owner", "member", "visitor"] as const;
 
 export class UpdateUserRoleDto {
   @ApiProperty({
     enum: USER_ROLES,
     description: "変更先のロール",
-    example: "moderator",
+    example: "member",
   })
   @IsIn(USER_ROLES)
   role!: UserRole;

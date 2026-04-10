@@ -9,9 +9,9 @@ export class UserListQueryDto extends PaginationQueryDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ enum: ["owner", "admin", "moderator", "member"] })
+  @ApiPropertyOptional({ enum: ["admin", "owner", "member", "visitor"] })
   @IsOptional()
-  @IsEnum(["owner", "admin", "moderator", "member"] as const)
+  @IsEnum(["admin", "owner", "member", "visitor"] as const)
   role?: UserRole;
 
   @ApiPropertyOptional({ enum: ["active", "suspended", "withdrawn"] })

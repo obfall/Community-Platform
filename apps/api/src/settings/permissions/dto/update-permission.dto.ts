@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class UpdatePermissionDto {
-  @ApiPropertyOptional({ example: ["owner", "admin", "moderator"], type: [String] })
+  @ApiPropertyOptional({ example: ["admin", "owner"], type: [String] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

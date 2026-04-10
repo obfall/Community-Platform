@@ -82,7 +82,7 @@ export class UsersController {
   }
 
   @Patch(":id/role")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "ユーザーロール変更（管理者専用）" })
   updateRole(
@@ -94,7 +94,7 @@ export class UsersController {
   }
 
   @Patch(":id/status")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "ユーザーステータス変更（管理者専用）" })
   updateStatus(
@@ -106,7 +106,7 @@ export class UsersController {
   }
 
   @Delete(":id")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "ユーザー削除（ソフトデリート、管理者専用）" })

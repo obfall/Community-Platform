@@ -43,7 +43,7 @@ import { SortableCategoryItem } from "./_components/sortable-category-item";
 export default function BoardPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "owner" || user?.role === "admin";
-  const canManage = user?.role === "owner" || user?.role === "admin" || user?.role === "moderator";
+  const canManage = user?.role === "admin" || user?.role === "owner";
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
   const reorderCategories = useReorderCategories();

@@ -37,7 +37,7 @@ export class ModerationController {
   @Get("reports")
   @ApiOperation({ summary: "通報一覧" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   findAllReports(@Query("status") status?: string) {
     return this.service.findAllReports(status);
   }
@@ -45,7 +45,7 @@ export class ModerationController {
   @Get("reports/:id")
   @ApiOperation({ summary: "通報詳細" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   findOneReport(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.findOneReport(id);
   }
@@ -53,7 +53,7 @@ export class ModerationController {
   @Patch("reports/:id")
   @ApiOperation({ summary: "通報更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   updateReport(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateReportDto) {
     return this.service.updateReport(id, dto);
   }
@@ -61,7 +61,7 @@ export class ModerationController {
   @Post("reports/:id/actions")
   @ApiOperation({ summary: "モデレーションアクション作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createAction(
     @CurrentUser("id") userId: string,
     @Param("id", ParseUUIDPipe) reportId: string,
@@ -73,7 +73,7 @@ export class ModerationController {
   @Get("banned-words")
   @ApiOperation({ summary: "禁止ワード一覧" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   findAllBannedWords() {
     return this.service.findAllBannedWords();
   }
@@ -81,7 +81,7 @@ export class ModerationController {
   @Post("banned-words")
   @ApiOperation({ summary: "禁止ワード作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createBannedWord(@Body() dto: CreateBannedWordDto) {
     return this.service.createBannedWord(dto);
   }
@@ -89,7 +89,7 @@ export class ModerationController {
   @Delete("banned-words/:id")
   @ApiOperation({ summary: "禁止ワード削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   removeBannedWord(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.removeBannedWord(id);

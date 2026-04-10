@@ -43,7 +43,7 @@ export class VenuesController {
   @Post()
   @ApiOperation({ summary: "施設登録" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateVenueDto) {
     return this.service.createVenue(userId, dto);
   }
@@ -51,7 +51,7 @@ export class VenuesController {
   @Patch(":id")
   @ApiOperation({ summary: "施設更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: Partial<CreateVenueDto> & { publishStatus?: string },
@@ -62,7 +62,7 @@ export class VenuesController {
   @Delete(":id")
   @ApiOperation({ summary: "施設削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.removeVenue(id);
@@ -71,7 +71,7 @@ export class VenuesController {
   @Post(":id/spaces")
   @ApiOperation({ summary: "スペース作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createSpace(@Param("id", ParseUUIDPipe) venueId: string, @Body() dto: CreateSpaceDto) {
     return this.service.createSpace(venueId, dto);
   }

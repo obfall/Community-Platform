@@ -54,7 +54,7 @@ export class OrientationController {
   @Post("pages")
   @ApiOperation({ summary: "オリエンテーションページ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createPage(@Body() dto: CreateOrientationPageDto) {
     return this.service.createPage(dto);
   }
@@ -62,7 +62,7 @@ export class OrientationController {
   @Patch("pages/:id")
   @ApiOperation({ summary: "オリエンテーションページ更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   updatePage(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateOrientationPageDto) {
     return this.service.updatePage(id, dto);
   }
@@ -70,7 +70,7 @@ export class OrientationController {
   @Delete("pages/:id")
   @ApiOperation({ summary: "オリエンテーションページ削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   removePage(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.removePage(id);

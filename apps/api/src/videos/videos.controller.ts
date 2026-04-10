@@ -51,7 +51,7 @@ export class VideosController {
   @Post("categories")
   @ApiOperation({ summary: "動画カテゴリ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createCategory(@Body("name") name: string) {
     return this.service.createCategory(name);
   }
@@ -71,7 +71,7 @@ export class VideosController {
   @Post()
   @ApiOperation({ summary: "動画登録（メタデータのみ）" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateVideoDto) {
     return this.service.create(userId, dto);
   }
@@ -80,7 +80,7 @@ export class VideosController {
   @ApiOperation({ summary: "動画アップロード（ファイル → HLS 変換）" })
   @ApiConsumes("multipart/form-data")
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 500 * 1024 * 1024 } }))
   async upload(
     @UploadedFile() file: Express.Multer.File,
@@ -106,7 +106,7 @@ export class VideosController {
   @Patch(":id")
   @ApiOperation({ summary: "動画更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateVideoDto) {
     return this.service.update(id, dto);
   }
@@ -114,7 +114,7 @@ export class VideosController {
   @Delete(":id")
   @ApiOperation({ summary: "動画削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);
@@ -139,7 +139,7 @@ export class VideosController {
   @Post("series")
   @ApiOperation({ summary: "シリーズ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createSeries(@Body() data: { name: string; description?: string }) {
     return this.service.createSeries(data);
   }

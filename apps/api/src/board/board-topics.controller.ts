@@ -33,7 +33,7 @@ export class BoardTopicsController {
   }
 
   @Patch("reorder")
-  @Roles("owner", "admin", "moderator")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "トピック並び替え" })
   reorder(@Body() dto: ReorderItemsDto) {
@@ -70,7 +70,7 @@ export class BoardTopicsController {
   }
 
   @Patch(":id/pin")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "トピックピン留めトグル" })
   togglePin(@Param("id", ParseUUIDPipe) id: string) {

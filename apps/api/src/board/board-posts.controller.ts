@@ -62,7 +62,7 @@ export class BoardPostsController {
   }
 
   @Patch(":id/pin")
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: "投稿ピン留めトグル" })
   togglePin(@Param("id", ParseUUIDPipe) id: string) {

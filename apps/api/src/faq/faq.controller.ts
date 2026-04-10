@@ -48,7 +48,7 @@ export class FaqController {
   @Post()
   @ApiOperation({ summary: "FAQ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@Body() dto: CreateFaqDto) {
     return this.service.create(dto);
   }
@@ -56,7 +56,7 @@ export class FaqController {
   @Patch(":id")
   @ApiOperation({ summary: "FAQ更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateFaqDto) {
     return this.service.update(id, dto);
   }
@@ -64,7 +64,7 @@ export class FaqController {
   @Delete(":id")
   @ApiOperation({ summary: "FAQ削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);

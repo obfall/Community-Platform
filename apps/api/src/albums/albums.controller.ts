@@ -43,7 +43,7 @@ export class AlbumsController {
   @Post("categories")
   @ApiOperation({ summary: "アルバムカテゴリ作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createCategory(@Body("name") name: string) {
     return this.service.createCategory(name);
   }
@@ -57,7 +57,7 @@ export class AlbumsController {
   @Post()
   @ApiOperation({ summary: "ア���バム作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateAlbumDto) {
     return this.service.create(userId, dto);
   }
@@ -65,7 +65,7 @@ export class AlbumsController {
   @Patch(":id")
   @ApiOperation({ summary: "アルバム更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   update(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: { title?: string; description?: string; publishStatus?: string },
@@ -76,7 +76,7 @@ export class AlbumsController {
   @Delete(":id")
   @ApiOperation({ summary: "アルバム削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.remove(id);

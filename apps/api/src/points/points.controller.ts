@@ -37,7 +37,7 @@ export class PointsController {
   @Get("summary/:userId")
   @ApiOperation({ summary: "指定ユーザーのポイントサマリー" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   getUserSummary(@Param("userId", ParseUUIDPipe) userId: string) {
     return this.service.getSummary(userId);
   }
@@ -51,7 +51,7 @@ export class PointsController {
   @Get("history/:userId")
   @ApiOperation({ summary: "指定ユーザーのポイント履歴" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   getUserHistory(
     @Param("userId", ParseUUIDPipe) userId: string,
     @Query() query: PointHistoryQueryDto,
@@ -62,7 +62,7 @@ export class PointsController {
   @Post("grant")
   @ApiOperation({ summary: "ポイント付与（管理者）" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   grant(@CurrentUser("id") adminId: string, @Body() dto: GrantPointsDto) {
     return this.service.grantPoints(adminId, dto);
   }
@@ -72,7 +72,7 @@ export class PointsController {
   @Get("rules")
   @ApiOperation({ summary: "ポイントルール一覧" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   getRules() {
     return this.service.getRules();
   }
@@ -80,7 +80,7 @@ export class PointsController {
   @Post("rules")
   @ApiOperation({ summary: "ポイントルール作成" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   createRule(@Body() dto: CreatePointRuleDto) {
     return this.service.createRule(dto);
   }
@@ -88,7 +88,7 @@ export class PointsController {
   @Patch("rules/:id")
   @ApiOperation({ summary: "ポイントルール更新" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   updateRule(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: { name?: string; pointAmount?: number; expiryDays?: number; isActive?: boolean },
@@ -99,7 +99,7 @@ export class PointsController {
   @Delete("rules/:id")
   @ApiOperation({ summary: "ポイントルール削除" })
   @UseGuards(RolesGuard)
-  @Roles("owner", "admin")
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteRule(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.deleteRule(id);

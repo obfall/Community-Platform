@@ -32,7 +32,7 @@ import { CreateMailSuppressionDto } from "./dto/create-mail-suppression.dto";
 @ApiBearerAuth()
 @FeatureEnabled("mail_campaign")
 @UseGuards(FeatureEnabledGuard, RolesGuard)
-@Roles("owner", "admin")
+@Roles("admin", "owner")
 export class MailController {
   constructor(
     private readonly messagesService: MailMessagesService,
