@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useReports, useCreateReport } from "@/hooks/use-moderation";
+import { useReports, useCreateReport } from "@/hooks/moderation/use-moderation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

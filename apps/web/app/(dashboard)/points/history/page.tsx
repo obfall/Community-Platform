@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePointHistory } from "@/hooks/use-points";
+import { usePointHistory } from "@/hooks/points/use-points";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

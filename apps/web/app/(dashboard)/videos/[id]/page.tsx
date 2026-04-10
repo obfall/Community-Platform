@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useVideo, useVideoProgress } from "@/hooks/use-videos";
+import { useVideo, useVideoProgress } from "@/hooks/videos/use-videos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

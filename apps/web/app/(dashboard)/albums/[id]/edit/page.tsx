@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAlbum, useUpdateAlbum, useAlbumCategories } from "@/hooks/use-albums";
+import { useAlbum, useUpdateAlbum, useAlbumCategories } from "@/hooks/albums/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

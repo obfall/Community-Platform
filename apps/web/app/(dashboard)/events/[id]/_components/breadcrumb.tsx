@@ -1,6 +1,6 @@
 "use client";
 
-import { useEvent } from "@/hooks/use-events";
+import { useEvent } from "@/hooks/events/use-events";
 import { Breadcrumb } from "@/components/breadcrumb";
 
 interface EventDetailBreadcrumbProps {

@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCategories } from "@/hooks/use-board";
+import { useCategories } from "@/hooks/board/use-board";
 import type { BoardPostDetail } from "@/lib/api/types";
 
 const postSchema = z.object({

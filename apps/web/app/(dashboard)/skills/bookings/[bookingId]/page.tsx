@@ -2,7 +2,7 @@
 
 import { use, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useSkillMessages, useSendSkillMessage } from "@/hooks/use-skills";
+import { useSkillMessages, useSendSkillMessage } from "@/hooks/skills/use-skills";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send } from "lucide-react";

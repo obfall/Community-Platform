@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useMailMessages } from "@/hooks/use-mail";
+import { useMailMessages } from "@/hooks/mail/use-mail";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -56,7 +56,7 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">メール配信</h1>
-        <Link href="/campaigns/new">
+        <Link href="/mail/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             新規作成
@@ -113,7 +113,7 @@ export default function CampaignsPage() {
               {messages.map((msg: MailMessage) => (
                 <TableRow key={msg.id}>
                   <TableCell>
-                    <Link href={`/campaigns/${msg.id}`} className="font-medium hover:underline">
+                    <Link href={`/mail/${msg.id}`} className="font-medium hover:underline">
                       {msg.subject}
                     </Link>
                   </TableCell>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCreateMailMessage, useMailTemplates } from "@/hooks/use-mail";
+import { useCreateMailMessage, useMailTemplates } from "@/hooks/mail/use-mail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,9 +57,9 @@ export default function NewCampaignPage() {
       {
         onSuccess: (msg) => {
           if (sendImmediately) {
-            router.push(`/campaigns/${msg.id}`);
+            router.push(`/mail/${msg.id}`);
           } else {
-            router.push("/campaigns");
+            router.push("/mail");
           }
         },
       },
@@ -69,7 +69,7 @@ export default function NewCampaignPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/campaigns">
+        <Link href="/mail">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

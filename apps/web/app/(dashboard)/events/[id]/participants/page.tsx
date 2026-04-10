@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useEventParticipants, useUpdateParticipantStatus } from "@/hooks/use-events";
+import { useEventParticipants, useUpdateParticipantStatus } from "@/hooks/events/use-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";

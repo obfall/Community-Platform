@@ -4,7 +4,7 @@ import {
   useOrientationPages,
   useCompleteOrientation,
   useMyCompletion,
-} from "@/hooks/use-orientation";
+} from "@/hooks/orientation/use-orientation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

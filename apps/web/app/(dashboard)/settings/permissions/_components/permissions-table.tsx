@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { usePermissions } from "@/hooks/use-permissions";
+import { usePermissions } from "@/hooks/settings/use-permissions";
 import {
   Table,
   TableBody,

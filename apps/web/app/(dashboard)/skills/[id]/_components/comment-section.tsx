@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useSkillComments, useAddSkillComment, useDeleteSkillComment } from "@/hooks/use-skills";
+import {
+  useSkillComments,
+  useAddSkillComment,
+  useDeleteSkillComment,
+} from "@/hooks/skills/use-skills";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

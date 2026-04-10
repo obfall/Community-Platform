@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useProject, useProjectTasks, useCreateTask } from "@/hooks/use-projects";
+import { useProject, useProjectTasks, useCreateTask } from "@/hooks/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

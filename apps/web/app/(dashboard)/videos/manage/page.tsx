@@ -10,7 +10,7 @@ import {
   useVideoSeries,
   useCreateVideoSeries,
   useDeleteVideo,
-} from "@/hooks/use-videos";
+} from "@/hooks/videos/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { useVenue, useCreateSpace } from "@/hooks/use-venues";
+import { useVenue, useCreateSpace } from "@/hooks/venues/use-venues";
 import { ReservationSection } from "./_components/reservation-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, LogOut, Settings, User, Bell } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { useUnreadCount } from "@/hooks/use-notifications";
-import { useAppSettings } from "@/hooks/use-app-settings";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { useUnreadCount } from "@/hooks/notifications/use-notifications";
+import { useAppSettings } from "@/hooks/settings/use-app-settings";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

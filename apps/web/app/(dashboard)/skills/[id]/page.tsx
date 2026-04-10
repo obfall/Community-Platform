@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { useSkill, useCreateBooking } from "@/hooks/use-skills";
+import { useSkill, useCreateBooking } from "@/hooks/skills/use-skills";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

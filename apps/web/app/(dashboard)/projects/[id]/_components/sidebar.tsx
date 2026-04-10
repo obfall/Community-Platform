@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useProject } from "@/hooks/use-projects";
+import { useProject } from "@/hooks/projects/use-projects";
 import { PROJECT_DETAIL_NAV_ITEMS } from "@/lib/project-detail-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft } from "lucide-react";

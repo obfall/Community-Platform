@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { NotificationList } from "./_components/notification-list";
-import { useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/use-notifications";
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from "@/hooks/notifications/use-notifications";
 import type { NotificationItem, NotificationQuery } from "@/lib/api/types";
 import type { PaginationMeta } from "@/lib/api/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";

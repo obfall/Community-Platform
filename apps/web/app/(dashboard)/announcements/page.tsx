@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useAnnouncements } from "@/hooks/use-announcements";
+import { useAnnouncements } from "@/hooks/announcements/use-announcements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

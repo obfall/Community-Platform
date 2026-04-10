@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemoDetail, useDeleteMemo } from "@/hooks/use-memos";
+import { useMemoDetail, useDeleteMemo } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

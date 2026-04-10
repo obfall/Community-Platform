@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useReservations, useCreateReservation, useCancelReservation } from "@/hooks/use-venues";
+import {
+  useReservations,
+  useCreateReservation,
+  useCancelReservation,
+} from "@/hooks/venues/use-venues";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

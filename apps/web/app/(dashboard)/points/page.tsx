@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePointSummary, usePointHistory } from "@/hooks/use-points";
+import { usePointSummary, usePointHistory } from "@/hooks/points/use-points";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

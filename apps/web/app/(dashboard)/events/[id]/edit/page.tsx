@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useEvent, useUpdateEvent, useDeleteEvent } from "@/hooks/use-events";
+import { useEvent, useUpdateEvent, useDeleteEvent } from "@/hooks/events/use-events";
 import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useCreateTicket } from "@/hooks/use-events";
+import { useCreateTicket } from "@/hooks/events/use-events";
 import { eventsApi } from "@/lib/api/events";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

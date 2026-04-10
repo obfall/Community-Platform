@@ -8,7 +8,7 @@ import {
   useDeleteUser,
   useUserAttributes,
   useSetUserAttributes,
-} from "@/hooks/use-users";
+} from "@/hooks/settings/use-members";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,

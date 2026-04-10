@@ -10,7 +10,7 @@ import {
   useCreateProductCategory,
   useProductSeries,
   useCreateProductSeries,
-} from "@/hooks/use-shop";
+} from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LikeButton } from "../_components/like-button";
 import { CommentSection } from "../_components/comment-section";
-import { usePost, useDeletePost, useTogglePostLike } from "@/hooks/use-board";
-import { useAuth } from "@/hooks/use-auth";
+import { usePost, useDeletePost, useTogglePostLike } from "@/hooks/board/use-board";
+import { useAuth } from "@/hooks/auth/use-auth";
 
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

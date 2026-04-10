@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PostForm } from "../../_components/post-form";
-import { usePost, useUpdatePost } from "@/hooks/use-board";
+import { usePost, useUpdatePost } from "@/hooks/board/use-board";
 
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

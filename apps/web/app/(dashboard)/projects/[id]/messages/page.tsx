@@ -1,7 +1,11 @@
 "use client";
 
 import { use, useState } from "react";
-import { useProjectThreads, useCreateThread, useToggleThreadLike } from "@/hooks/use-projects";
+import {
+  useProjectThreads,
+  useCreateThread,
+  useToggleThreadLike,
+} from "@/hooks/projects/use-projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

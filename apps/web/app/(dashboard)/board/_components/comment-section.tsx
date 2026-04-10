@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentItem } from "./comment-item";
-import { useComments, useCreateComment, useToggleCommentLike } from "@/hooks/use-board";
+import { useComments, useCreateComment, useToggleCommentLike } from "@/hooks/board/use-board";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CommentSectionProps {

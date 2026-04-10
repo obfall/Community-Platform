@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
-import { useUpdateVideoProgress } from "@/hooks/use-videos";
+import { useUpdateVideoProgress } from "@/hooks/videos/use-videos";
 import { Loader2, Play } from "lucide-react";
 
 interface HlsPlayerProps {

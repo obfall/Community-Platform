@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { memosApi, type MemoInput } from "@/lib/api/memos";
+import { memosApi, type MemoInput } from "@/lib/api/memo";
 
 export function useMemos(query?: { categoryId?: string; search?: string }) {
   return useQuery({

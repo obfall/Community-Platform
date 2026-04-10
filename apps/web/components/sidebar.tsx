@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
-import { useFeatures } from "@/hooks/use-features";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { useFeatures } from "@/hooks/settings/use-features";
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from "@/lib/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSurveys, useDeleteSurvey, useUpdateSurveyStatus } from "@/hooks/use-surveys";
+import { useSurveys, useDeleteSurvey, useUpdateSurveyStatus } from "@/hooks/surveys/use-surveys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

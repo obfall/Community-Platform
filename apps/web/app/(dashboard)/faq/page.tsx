@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useFaqArticles, useFaqCategories } from "@/hooks/use-faq";
+import { useFaqArticles, useFaqCategories } from "@/hooks/faq/use-faq";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
-import { useFeatures } from "@/hooks/use-features";
-import { useCreatePermission, useUpdatePermission } from "@/hooks/use-permissions";
+import { useFeatures } from "@/hooks/settings/use-features";
+import { useCreatePermission, useUpdatePermission } from "@/hooks/settings/use-permissions";
 import {
   Dialog,
   DialogContent,

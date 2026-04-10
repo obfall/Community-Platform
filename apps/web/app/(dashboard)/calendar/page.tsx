@@ -6,7 +6,7 @@ import {
   useCreateSchedule,
   useUpdateSchedule,
   useDeleteSchedule,
-} from "@/hooks/use-schedules";
+} from "@/hooks/calendar/use-calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

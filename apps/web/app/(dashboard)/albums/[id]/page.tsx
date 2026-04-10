@@ -2,7 +2,7 @@
 
 import { use, useRef, useState } from "react";
 import Link from "next/link";
-import { useAlbum, useAddAlbumPhotos, useRemoveAlbumPhoto } from "@/hooks/use-albums";
+import { useAlbum, useAddAlbumPhotos, useRemoveAlbumPhoto } from "@/hooks/albums/use-albums";
 import { filesApi } from "@/lib/api/files";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
