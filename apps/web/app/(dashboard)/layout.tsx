@@ -5,8 +5,8 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { EventDetailSidebar } from "./events/[id]/_components/sidebar";
 import { ProjectDetailSidebar } from "./projects/[id]/_components/sidebar";
-import { extractEventIdFromPath } from "@/lib/event-detail-navigation";
-import { extractProjectIdFromPath } from "@/lib/project-detail-navigation";
+import { extractEventIdFromPath } from "@/lib/event-navigation";
+import { extractProjectIdFromPath } from "@/lib/project-navigation";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

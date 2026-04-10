@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useEvent } from "@/hooks/events/use-events";
-import { EVENT_DETAIL_NAV_ITEMS } from "@/lib/event-detail-navigation";
+import { EVENT_DETAIL_NAV_ITEMS } from "@/lib/event-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft } from "lucide-react";
 
