@@ -7,6 +7,9 @@
 - コミットメッセージは日本語（例: `feat: Phase 0.3 NestJS 初期化（...）`）
 - 作業開始時に feature ブランチを作成（例: `feature/phase-1.2-auth`）
 - git commit / git push は明示的な指示があるまで実行しない
+- main ブランチにはコミット・push・マージを行わない
+- 作業ブランチからのマージ先はすべて dev ブランチとする
+- マージ完了後は dev ブランチに切り替え、作業ブランチをローカル・リモートともに削除する
 
 ## フォルダ構成 — Feature-based structure
 
