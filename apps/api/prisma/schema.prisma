@@ -264,6 +264,7 @@ model FeatureSetting {
   featureKey      String          @unique @map("feature_key") @db.VarChar(50)
   featureName     String          @map("feature_name") @db.VarChar(100)
   category        FeatureCategory
+  isAvailable     Boolean         @default(true) @map("is_available")
   isEnabled       Boolean         @default(true) @map("is_enabled")
   description     String?         @db.Text
   sortOrder       Int             @default(0) @map("sort_order")

@@ -72,6 +72,8 @@ export class ProjectsController {
 
   @Post(":id/members/:userId")
   @ApiOperation({ summary: "メンバー追加" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
   addMember(
     @Param("id", ParseUUIDPipe) projectId: string,
     @Param("userId", ParseUUIDPipe) userId: string,
@@ -81,6 +83,8 @@ export class ProjectsController {
 
   @Delete(":id/members/:userId")
   @ApiOperation({ summary: "メンバー削除" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   removeMember(
     @Param("id", ParseUUIDPipe) projectId: string,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import type { CreateContentDto } from "./dto/create-content.dto";
@@ -106,9 +106,17 @@ export class ContentsService {
       coverImageUrl?: string | null;
       publishStatus?: string;
     },
+    currentUser: { id: string; role: string },
   ) {
     const content = await this.prisma.content.findUnique({ where: { id } });
     if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
+    if (
+      currentUser.role !== "admin" &&
+      currentUser.role !== "owner" &&
+      content.createdByUserId !== currentUser.id
+    ) {
+      throw new ForbiddenException("自分のコンテンツのみ更新できます");
+    }
     return this.prisma.content.update({
       where: { id },
       data: {
@@ -124,7 +132,16 @@ export class ContentsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, currentUser: { id: string; role: string }) {
+    const content = await this.prisma.content.findUnique({ where: { id } });
+    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
+    if (
+      currentUser.role !== "admin" &&
+      currentUser.role !== "owner" &&
+      content.createdByUserId !== currentUser.id
+    ) {
+      throw new ForbiddenException("自分のコンテンツのみ削除できます");
+    }
     await this.prisma.content.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }

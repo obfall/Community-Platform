@@ -19,10 +19,10 @@ export class FeatureEnabledGuard implements CanActivate {
 
     const feature = await this.prisma.featureSetting.findUnique({
       where: { featureKey },
-      select: { isEnabled: true },
+      select: { isAvailable: true, isEnabled: true },
     });
 
-    if (!feature || !feature.isEnabled) {
+    if (!feature || !feature.isAvailable || !feature.isEnabled) {
       throw new ForbiddenException("この機能は現在無効です");
     }
 

@@ -14,9 +14,8 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
-import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
-import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
+import { FeatureEnabledGuard } from "@/common/guards";
 import { ContentsService } from "./contents.service";
 import { CreateContentDto } from "./dto";
 
@@ -57,29 +56,27 @@ export class ContentsController {
 
   @Post()
   @ApiOperation({ summary: "コンテンツ作成" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateContentDto) {
     return this.service.create(userId, dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "コンテンツ更新" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   update(
+    @CurrentUser() currentUser: { id: string; role: string },
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: { name?: string; description?: string; price?: number; publishStatus?: string },
   ) {
-    return this.service.update(id, data);
+    return this.service.update(id, data, currentUser);
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "コンテンツ削除" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.remove(id);
+  remove(
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.service.remove(id, currentUser);
   }
 }
