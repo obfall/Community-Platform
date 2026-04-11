@@ -34,6 +34,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  roles?: string[];
 }
 
 export interface AdminNavItem {
@@ -44,7 +45,13 @@ export interface AdminNavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { featureKey: "news", label: "ホーム", href: "/dashboard", icon: Home },
-  { featureKey: "announcement", label: "配信", href: "/announcements", icon: Megaphone },
+  {
+    featureKey: "announcement",
+    label: "配信",
+    href: "/announcements",
+    icon: Megaphone,
+    roles: ["admin", "owner"],
+  },
   { featureKey: "notification", label: "通知", href: "/notifications", icon: Bell },
   { featureKey: "member", label: "メンバー", href: "/members", icon: Users },
   { featureKey: "profile", label: "プロフィール", href: "/profile", icon: UserCheck },
@@ -61,19 +68,55 @@ export const NAV_ITEMS: NavItem[] = [
   { featureKey: "point", label: "ポイント", href: "/points", icon: Star },
   { featureKey: "skill_share", label: "スキルシェア", href: "/skills", icon: Share2 },
   { featureKey: "survey", label: "アンケート", href: "/surveys", icon: ClipboardList },
-  { featureKey: "advertising", label: "広告", href: "/ads", icon: Megaphone },
-  { featureKey: "mail_campaign", label: "メール配信", href: "/mail", icon: Mail },
-  { featureKey: "line_integration", label: "LINE連携", href: "/line", icon: Smartphone },
+  {
+    featureKey: "advertising",
+    label: "広告",
+    href: "/ads",
+    icon: Megaphone,
+    roles: ["admin", "owner"],
+  },
+  {
+    featureKey: "mail_campaign",
+    label: "メール配信",
+    href: "/mail",
+    icon: Mail,
+    roles: ["admin", "owner"],
+  },
+  {
+    featureKey: "line_integration",
+    label: "LINE連携",
+    href: "/line",
+    icon: Smartphone,
+    roles: ["admin", "owner"],
+  },
   {
     featureKey: "orientation",
     label: "オリエンテーション",
     href: "/orientation",
     icon: GraduationCap,
   },
-  { featureKey: "analytics", label: "アナリティクス", href: "/analytics", icon: BarChart3 },
+  {
+    featureKey: "analytics",
+    label: "アナリティクス",
+    href: "/analytics",
+    icon: BarChart3,
+    roles: ["admin", "owner"],
+  },
   { featureKey: "venue", label: "施設・会場", href: "/venues", icon: MapPin },
-  { featureKey: "usage_history", label: "利用履歴", href: "/usage-history", icon: Bookmark },
-  { featureKey: "moderation", label: "モデレーション", href: "/moderation", icon: Shield },
+  {
+    featureKey: "usage_history",
+    label: "利用履歴",
+    href: "/usage-history",
+    icon: Bookmark,
+    roles: ["admin", "owner"],
+  },
+  {
+    featureKey: "moderation",
+    label: "モデレーション",
+    href: "/moderation",
+    icon: Shield,
+    roles: ["admin", "owner"],
+  },
 ];
 
 /** コミュニティ運営メニュー（owner 以上） */
