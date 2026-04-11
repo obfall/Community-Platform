@@ -16,7 +16,10 @@ export function Sidebar() {
 
   const enabledKeys = new Set(features?.filter((f) => f.isEnabled).map((f) => f.featureKey) ?? []);
 
-  const visibleItems = NAV_ITEMS.filter((item) => enabledKeys.has(item.featureKey));
+  const visibleItems = NAV_ITEMS.filter(
+    (item) =>
+      enabledKeys.has(item.featureKey) && (!item.roles || item.roles.includes(user?.role ?? "")),
+  );
   const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
   const isSystemAdmin = user?.role === "admin";
 
