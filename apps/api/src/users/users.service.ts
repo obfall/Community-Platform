@@ -47,7 +47,7 @@ export class UsersService {
           createdAt: true,
           profile: { select: { avatarUrl: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: this.buildOrderBy(query.sortBy, query.sortOrder),
         skip,
         take: limit,
       }),
@@ -306,6 +306,85 @@ export class UsersService {
     }
 
     return target;
+  }
+
+  async findUserEvents(userId: string) {
+    await this.ensureUserExists(userId);
+
+    const participants = await this.prisma.eventParticipant.findMany({
+      where: { userId, status: { not: "canceled" } },
+      select: {
+        status: true,
+        appliedAt: true,
+        event: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            startAt: true,
+            endAt: true,
+            locationType: true,
+            venueName: true,
+            coverImageUrl: true,
+            category: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { event: { startAt: "desc" } },
+    });
+
+    return participants.map((p) => ({
+      ...p.event,
+      participantStatus: p.status,
+      appliedAt: p.appliedAt,
+    }));
+  }
+
+  async findUserProjects(userId: string) {
+    await this.ensureUserExists(userId);
+
+    const memberships = await this.prisma.projectMember.findMany({
+      where: { userId, status: "active" },
+      select: {
+        role: true,
+        joinedAt: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            status: true,
+            coverImageUrl: true,
+            category: { select: { id: true, name: true } },
+            memberCount: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
+    });
+
+    return memberships.map((m) => ({
+      ...m.project,
+      memberRole: m.role,
+      joinedAt: m.joinedAt,
+    }));
+  }
+
+  private buildOrderBy(
+    sortBy?: "role" | "name" | "createdAt",
+    sortOrder?: "asc" | "desc",
+  ): Prisma.UserOrderByWithRelationInput[] {
+    const order = sortOrder ?? "asc";
+    switch (sortBy) {
+      case "name":
+        return [{ name: order }];
+      case "createdAt":
+        return [{ createdAt: order }];
+      case "role":
+      default:
+        // enum 定義順: admin→owner→member→visitor（権限の高い順）
+        return [{ role: "asc" }, { createdAt: "desc" }];
+    }
   }
 
   private async ensureUserExists(userId: string) {

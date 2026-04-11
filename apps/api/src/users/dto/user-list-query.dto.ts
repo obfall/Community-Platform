@@ -18,4 +18,17 @@ export class UserListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(["active", "suspended", "withdrawn"] as const)
   status?: UserStatus;
+
+  @ApiPropertyOptional({
+    description: "ソート対象",
+    enum: ["role", "name", "createdAt"],
+  })
+  @IsOptional()
+  @IsEnum(["role", "name", "createdAt"] as const)
+  sortBy?: "role" | "name" | "createdAt";
+
+  @ApiPropertyOptional({ description: "ソート順", enum: ["asc", "desc"] })
+  @IsOptional()
+  @IsEnum(["asc", "desc"] as const)
+  sortOrder?: "asc" | "desc";
 }
