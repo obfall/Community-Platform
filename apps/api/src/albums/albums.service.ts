@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 import type { CreateAlbumDto } from "./dto/create-album.dto";
@@ -84,9 +84,20 @@ export class AlbumsService {
     });
   }
 
-  async update(id: string, data: { title?: string; description?: string; publishStatus?: string }) {
+  async update(
+    id: string,
+    data: { title?: string; description?: string; publishStatus?: string },
+    currentUser: { id: string; role: string },
+  ) {
     const album = await this.prisma.album.findUnique({ where: { id } });
     if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (
+      currentUser.role !== "admin" &&
+      currentUser.role !== "owner" &&
+      album.createdByUserId !== currentUser.id
+    ) {
+      throw new ForbiddenException("自分のアルバムのみ更新できます");
+    }
     return this.prisma.album.update({
       where: { id },
       data: {
@@ -99,7 +110,16 @@ export class AlbumsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, currentUser: { id: string; role: string }) {
+    const album = await this.prisma.album.findUnique({ where: { id } });
+    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (
+      currentUser.role !== "admin" &&
+      currentUser.role !== "owner" &&
+      album.createdByUserId !== currentUser.id
+    ) {
+      throw new ForbiddenException("自分のアルバムのみ削除できます");
+    }
     await this.prisma.album.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 

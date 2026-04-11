@@ -5,10 +5,17 @@ import { PermissionsController } from "./permissions/permissions.controller";
 import { PermissionsService } from "./permissions/permissions.service";
 import { AppSettingsController } from "./app-settings/app-settings.controller";
 import { AppSettingsService } from "./app-settings/app-settings.service";
+import { OptionsController } from "./options/options.controller";
+import { OptionsService } from "./options/options.service";
 
 @Module({
-  controllers: [FeaturesController, PermissionsController, AppSettingsController],
-  providers: [FeaturesService, PermissionsService, AppSettingsService],
+  controllers: [
+    FeaturesController,
+    PermissionsController,
+    AppSettingsController,
+    OptionsController,
+  ],
+  providers: [FeaturesService, PermissionsService, AppSettingsService, OptionsService],
   exports: [FeaturesService],
 })
 export class SettingsModule {}

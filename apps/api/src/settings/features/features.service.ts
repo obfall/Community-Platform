@@ -8,6 +8,7 @@ export class FeaturesService {
 
   async findAll() {
     return this.prisma.featureSetting.findMany({
+      where: { isAvailable: true },
       orderBy: { sortOrder: "asc" },
     });
   }
@@ -20,6 +21,9 @@ export class FeaturesService {
 
     if (feature.category === "common") {
       throw new BadRequestException("共通機能は有効/無効を切り替えできません");
+    }
+    if (!feature.isAvailable) {
+      throw new BadRequestException("この機能はオプション設定で無効化されています");
     }
 
     return this.prisma.featureSetting.update({

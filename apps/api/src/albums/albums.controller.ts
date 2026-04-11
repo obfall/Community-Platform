@@ -55,31 +55,29 @@ export class AlbumsController {
   }
 
   @Post()
-  @ApiOperation({ summary: "ア���バム作成" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
+  @ApiOperation({ summary: "アルバム作成" })
   create(@CurrentUser("id") userId: string, @Body() dto: CreateAlbumDto) {
     return this.service.create(userId, dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "アルバム更新" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   update(
+    @CurrentUser() currentUser: { id: string; role: string },
     @Param("id", ParseUUIDPipe) id: string,
     @Body() data: { title?: string; description?: string; publishStatus?: string },
   ) {
-    return this.service.update(id, data);
+    return this.service.update(id, data, currentUser);
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "アルバム削除" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.remove(id);
+  remove(
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.service.remove(id, currentUser);
   }
 
   @Post(":id/photos")
