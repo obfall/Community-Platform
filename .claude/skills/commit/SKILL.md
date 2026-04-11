@@ -137,29 +137,10 @@ EOF
 - エラーの詳細を表示する
 - 対処方法を提示する（例: 「`git pull --rebase` してから再度 push してください」）
 
-### 7.5. PR 作成・マージ・dev 切替（push 実行後のみ）
-
-push が成功し、現在のブランチが dev 以外の場合、以下を自動実行する:
-
-1. `gh pr create --base dev --title "{コミットメッセージ}" --body ""` で dev 向け PR を作成
-2. `gh pr merge {PR番号} --merge --auto` で自動マージを設定
-3. CI 通過を待つ（`gh pr checks {PR番号} --watch`）
-4. マージ完了を確認（`gh pr view {PR番号} --json state`）
-5. `git checkout dev && git pull origin dev` で dev に切替・最新化
-6. `git branch -d {作業ブランチ名}` でローカルブランチを削除
-7. `git push origin --delete {作業ブランチ名}` でリモートブランチを削除
-
-**エラー時**:
-
-- PR 作成失敗 → エラーを報告して終了（コミットと push はそのまま保持）
-- マージ失敗（CI 失敗等） → PR URL を表示して手動対応を案内
-- ブランチ削除失敗 → 警告を表示するが処理は続行
-
 ### 8. 結果報告
 
 - コミットが成功した場合 → コミットハッシュとメッセージを表示
 - push した場合 → push 先のリモート・ブランチ名を表示
-- PR をマージした場合 → PR URL とマージ先を表示
 - エラーが発生した場合 → エラー内容と対処方法を表示
 
 ## 禁止事項
