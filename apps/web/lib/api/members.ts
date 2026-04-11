@@ -8,6 +8,8 @@ import type {
   UpdatePublicInfoInput,
   UserAttributeValue,
   SetAttributeValueItem,
+  UserEventItem,
+  UserProjectItem,
 } from "./types";
 
 export const usersApi = {
@@ -39,4 +41,10 @@ export const usersApi = {
     apiClient.put<UserAttributeValue[]>(`/users/${id}/attributes`, { values }).then((r) => r.data),
 
   exportCsv: () => apiClient.get("/users/export/csv", { responseType: "blob" }).then((r) => r.data),
+
+  getUserEvents: (id: string) =>
+    apiClient.get<UserEventItem[]>(`/users/${id}/events`).then((r) => r.data),
+
+  getUserProjects: (id: string) =>
+    apiClient.get<UserProjectItem[]>(`/users/${id}/projects`).then((r) => r.data),
 };

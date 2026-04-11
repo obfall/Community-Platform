@@ -51,6 +51,18 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
+  @Get(":id/events")
+  @ApiOperation({ summary: "ユーザーの参加イベント一覧" })
+  findUserEvents(@Param("id", ParseUUIDPipe) id: string) {
+    return this.usersService.findUserEvents(id);
+  }
+
+  @Get(":id/projects")
+  @ApiOperation({ summary: "ユーザーの参加プロジェクト一覧" })
+  findUserProjects(@Param("id", ParseUUIDPipe) id: string) {
+    return this.usersService.findUserProjects(id);
+  }
+
   @Patch("me/profile")
   @ApiOperation({ summary: "自分のプロフィール更新" })
   updateProfile(@CurrentUser("id") userId: string, @Body() dto: UpdateProfileDto) {

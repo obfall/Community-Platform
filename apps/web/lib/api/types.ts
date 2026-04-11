@@ -174,6 +174,8 @@ export interface UserListQuery {
   search?: string;
   role?: string;
   status?: string;
+  sortBy?: "role" | "name" | "createdAt";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface UpdateProfileInput {
@@ -643,6 +645,32 @@ export interface UpdateMemberAttributeInput {
 export interface SetAttributeValueItem {
   attributeId: string;
   value: string | null;
+}
+
+export interface UserEventItem {
+  id: string;
+  title: string;
+  status: string;
+  startAt: string;
+  endAt: string;
+  locationType: string;
+  venueName: string | null;
+  coverImageUrl: string | null;
+  category: { id: string; name: string } | null;
+  participantStatus: string;
+  appliedAt: string;
+}
+
+export interface UserProjectItem {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  coverImageUrl: string | null;
+  category: { id: string; name: string } | null;
+  memberCount: number;
+  memberRole: string;
+  joinedAt: string;
 }
 
 // --- Events ---
