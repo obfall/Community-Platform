@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
@@ -110,7 +112,8 @@ const publicInfoSchema = z.object({
 
 type PublicInfoFormValues = z.infer<typeof publicInfoSchema>;
 
-export function PublicInfoForm() {
+export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
+  const router = useRouter();
   const { data: profileData, isLoading } = useMyProfile();
   const updateMutation = useUpdatePublicInfo();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,6 +166,7 @@ export function PublicInfoForm() {
         ...data,
         publicStatus: isPublic ? "public" : "private",
       });
+      if (returnTo) router.push(returnTo);
     } finally {
       setIsSubmitting(false);
     }
@@ -413,9 +417,18 @@ export function PublicInfoForm() {
               )}
             />
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "保存中..." : "保存"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "保存中..." : "保存"}
+              </Button>
+              {returnTo && (
+                <Link href={returnTo}>
+                  <Button type="button" variant="outline">
+                    戻る
+                  </Button>
+                </Link>
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>
