@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Req, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Post, Patch, Get, Body, Req, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AuthService } from "./auth.service";
@@ -9,6 +9,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   AuthResponseDto,
+  ChangePasswordDto,
 } from "./dto";
 import { Public } from "@/common/decorators";
 import { CurrentUser } from "@/common/decorators";
@@ -68,6 +69,14 @@ export class AuthController {
   @ApiOperation({ summary: "パスワードリセット実行" })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @Patch("change-password")
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "パスワード変更" })
+  changePassword(@CurrentUser("id") userId: string, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(userId, dto);
   }
 
   @Get("me")

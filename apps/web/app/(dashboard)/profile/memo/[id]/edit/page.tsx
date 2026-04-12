@@ -61,14 +61,14 @@ function Form({ id, initial }: { id: string; initial: MemoDetail }) {
           attachmentFileIds: files.map((f) => f.fileId),
         },
       },
-      { onSuccess: () => router.push(`/memo/${id}`) },
+      { onSuccess: () => router.push(`/profile/memo/${id}`) },
     );
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={`/memo/${id}`}>
+        <Link href={`/profile/memo/${id}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -117,7 +117,7 @@ function Form({ id, initial }: { id: string; initial: MemoDetail }) {
             <FileUploadList value={files} onChange={setFiles} fileCategory="general" />
           </div>
           <div className="flex justify-end gap-2 pt-4">
-            <Link href={`/memo/${id}`}>
+            <Link href={`/profile/memo/${id}`}>
               <Button variant="outline">キャンセル</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!title || updateMemo.isPending}>

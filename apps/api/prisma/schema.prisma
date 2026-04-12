@@ -187,6 +187,7 @@ model User {
   assignedReports           ContentReport[]          @relation("ReportAssignee")
   moderationActions         ModerationAction[]       @relation("ModerationActor")
   orientationCompletion     OrientationCompletion?
+  libraryItems              UserLibraryItem[]
 
   @@index([role])
   @@index([status])
@@ -439,6 +440,7 @@ model File {
   productImages                  ProductImage[]
   albumPhotos                    AlbumPhoto[]
   venueImages                    VenueImage[]
+  libraryItems                   UserLibraryItem[]
   // Phase 10
   memoAttachments                MemoAttachment[]
 
@@ -2885,4 +2887,45 @@ model OrientationCompletion {
   user User @relation(fields: [userId], references: [id])
 
   @@map("orientation_completions")
+}
+
+// --- ユーザーライブラリー ---
+
+enum UserLibraryType {
+  book
+  magazine
+  manga
+  paper
+  document
+  other
+}
+
+enum UserLibraryStatus {
+  unread
+  reading
+  completed
+  want
+  lending
+}
+
+model UserLibraryItem {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  type        UserLibraryType
+  title       String            @db.VarChar(200)
+  content     String?           @db.Text
+  author      String?           @db.VarChar(200)
+  publishedAt DateTime?         @map("published_at") @db.Date
+  pageCount   Int?              @map("page_count")
+  impression  String?           @db.Text
+  status      UserLibraryStatus @default(unread)
+  fileId      String?           @map("file_id") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User  @relation(fields: [userId], references: [id])
+  file File? @relation(fields: [fileId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_library_items")
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useProjects } from "@/hooks/projects/use-projects";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +26,11 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
 };
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
   const [query, setQuery] = useState<ProjectQuery>({ page: 1, limit: 12 });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useProjects(query);
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
 
   const projects = data?.data ?? [];
   const meta = data?.meta;
@@ -36,12 +39,14 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">プロジェクト</h1>
-        <Link href="/projects/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            新規作成
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href="/projects/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              新規作成
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="flex gap-2">

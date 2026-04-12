@@ -37,14 +37,14 @@ export default function MemoNewPage() {
         categoryId,
         attachmentFileIds: files.map((f) => f.fileId),
       },
-      { onSuccess: () => router.push("/memo") },
+      { onSuccess: () => router.push("/profile/memo") },
     );
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/memo">
+        <Link href="/profile/memo">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -93,7 +93,7 @@ export default function MemoNewPage() {
             <FileUploadList value={files} onChange={setFiles} fileCategory="general" />
           </div>
           <div className="flex justify-end gap-2 pt-4">
-            <Link href="/memo">
+            <Link href="/profile/memo">
               <Button variant="outline">キャンセル</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!title || createMemo.isPending}>

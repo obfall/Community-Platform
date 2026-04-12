@@ -673,6 +673,84 @@ export interface UserProjectItem {
   joinedAt: string;
 }
 
+export interface MyTicketItem {
+  id: string;
+  event: {
+    id: string;
+    title: string;
+    startAt: string;
+    endAt: string;
+    status: string;
+    venueName: string | null;
+    locationType: string;
+  };
+  ticket: {
+    id: string;
+    ticketName: string;
+    price: number;
+    currency: string;
+  } | null;
+  quantity: number;
+  status: string;
+  paymentStatus: string | null;
+  appliedAt: string;
+}
+
+export interface MyReservationItem {
+  id: string;
+  title: string | null;
+  startAt: string;
+  endAt: string;
+  status: string;
+  note: string | null;
+  createdAt: string;
+  space: {
+    id: string;
+    name: string;
+    venue: { id: string; name: string };
+  };
+}
+
+export interface MyTaskItem {
+  id: string;
+  title: string;
+  description: string | null;
+  progress: number;
+  dueDate: string | null;
+  requestedDate: string | null;
+  project: { id: string; name: string };
+}
+
+export interface LibraryItem {
+  id: string;
+  type: "book" | "magazine" | "manga" | "paper" | "document" | "other";
+  title: string;
+  content: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  pageCount: number | null;
+  impression: string | null;
+  status: "unread" | "reading" | "completed" | "want" | "lending";
+  fileId: string | null;
+  file: { id: string; originalName: string; publicUrl: string | null } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLibraryItemInput {
+  type: LibraryItem["type"];
+  title: string;
+  content?: string;
+  author?: string;
+  publishedAt?: string;
+  pageCount?: number;
+  impression?: string;
+  status?: LibraryItem["status"];
+  fileId?: string;
+}
+
+export type UpdateLibraryItemInput = Partial<CreateLibraryItemInput>;
+
 // --- Events ---
 
 export interface EventListItem {

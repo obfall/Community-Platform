@@ -17,7 +17,7 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleDelete = () => {
     if (confirm("本当に削除しますか?")) {
-      deleteMemo.mutate(id, { onSuccess: () => router.push("/memo") });
+      deleteMemo.mutate(id, { onSuccess: () => router.push("/profile/memo") });
     }
   };
 
@@ -31,7 +31,7 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <Link href="/memo">
+        <Link href="/profile/memo">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
