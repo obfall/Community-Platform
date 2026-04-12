@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useEvents } from "@/hooks/events/use-events";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +46,11 @@ const LOCATION_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function EventsPage() {
+  const { user } = useAuth();
   const [query, setQuery] = useState<EventQuery>({ page: 1, limit: 12 });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useEvents(query);
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
 
   const events = data?.data ?? [];
   const meta = data?.meta;
@@ -67,12 +70,14 @@ export default function EventsPage() {
               カレンダー
             </Button>
           </Link>
-          <Link href="/events/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              新規作成
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href="/events/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                新規作成
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

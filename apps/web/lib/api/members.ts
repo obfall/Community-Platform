@@ -10,6 +10,12 @@ import type {
   SetAttributeValueItem,
   UserEventItem,
   UserProjectItem,
+  MyTicketItem,
+  MyReservationItem,
+  MyTaskItem,
+  LibraryItem,
+  CreateLibraryItemInput,
+  UpdateLibraryItemInput,
 } from "./types";
 
 export const usersApi = {
@@ -47,4 +53,30 @@ export const usersApi = {
 
   getUserProjects: (id: string) =>
     apiClient.get<UserProjectItem[]>(`/users/${id}/projects`).then((r) => r.data),
+
+  replaceAffiliations: (data: {
+    affiliations: {
+      organizationName: string;
+      title?: string;
+      roleDescription?: string;
+      sortOrder?: number;
+    }[];
+  }) => apiClient.put("/users/me/affiliations", data).then((r) => r.data),
+
+  getMyTickets: () => apiClient.get<MyTicketItem[]>("/users/me/tickets").then((r) => r.data),
+
+  getMyReservations: () =>
+    apiClient.get<MyReservationItem[]>("/users/me/reservations").then((r) => r.data),
+
+  getMyTasks: () => apiClient.get<MyTaskItem[]>("/users/me/tasks").then((r) => r.data),
+
+  getLibrary: () => apiClient.get<LibraryItem[]>("/user-library").then((r) => r.data),
+
+  createLibraryItem: (data: CreateLibraryItemInput) =>
+    apiClient.post<LibraryItem>("/user-library", data).then((r) => r.data),
+
+  updateLibraryItem: (id: string, data: UpdateLibraryItemInput) =>
+    apiClient.patch<LibraryItem>(`/user-library/${id}`, data).then((r) => r.data),
+
+  deleteLibraryItem: (id: string) => apiClient.delete(`/user-library/${id}`),
 };

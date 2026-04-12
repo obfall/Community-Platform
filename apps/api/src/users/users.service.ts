@@ -370,6 +370,139 @@ export class UsersService {
     }));
   }
 
+  async findUserTickets(userId: string) {
+    const participants = await this.prisma.eventParticipant.findMany({
+      where: { userId, status: { not: "canceled" } },
+      select: {
+        id: true,
+        quantity: true,
+        status: true,
+        paymentStatus: true,
+        appliedAt: true,
+        ticket: {
+          select: {
+            id: true,
+            ticketName: true,
+            price: true,
+            currency: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            endAt: true,
+            status: true,
+            venueName: true,
+            locationType: true,
+          },
+        },
+      },
+      orderBy: { event: { startAt: "desc" } },
+    });
+
+    return participants.map((p) => ({
+      id: p.id,
+      event: p.event,
+      ticket: p.ticket,
+      quantity: p.quantity,
+      status: p.status,
+      paymentStatus: p.paymentStatus,
+      appliedAt: p.appliedAt,
+    }));
+  }
+
+  async findUserReservations(userId: string) {
+    return this.prisma.reservation.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        title: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        note: true,
+        createdAt: true,
+        space: {
+          select: {
+            id: true,
+            name: true,
+            venue: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { startAt: "desc" },
+    });
+  }
+
+  async findUserTasks(userId: string) {
+    const assignments = await this.prisma.projectTaskAssignee.findMany({
+      where: { userId },
+      select: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            progress: true,
+            dueDate: true,
+            requestedDate: true,
+            project: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { task: { createdAt: "desc" } },
+    });
+
+    return assignments.map((a) => a.task);
+  }
+
+  async findUserLibrary(userId: string) {
+    const [watchProgress, orders] = await Promise.all([
+      this.prisma.videoWatchProgress.findMany({
+        where: { userId },
+        select: {
+          watchedSeconds: true,
+          totalSeconds: true,
+          isCompleted: true,
+          lastWatchedAt: true,
+          video: {
+            select: {
+              id: true,
+              title: true,
+              thumbnailUrl: true,
+              durationSeconds: true,
+            },
+          },
+        },
+        orderBy: { lastWatchedAt: "desc" },
+        take: 30,
+      }),
+      this.prisma.order.findMany({
+        where: { buyerUserId: userId },
+        select: {
+          id: true,
+          orderNumber: true,
+          totalAmount: true,
+          status: true,
+          createdAt: true,
+          items: {
+            select: {
+              productName: true,
+              quantity: true,
+              unitPrice: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+    ]);
+
+    return { videos: watchProgress, orders };
+  }
+
   private buildOrderBy(
     sortBy?: "role" | "name" | "createdAt",
     sortOrder?: "asc" | "desc",

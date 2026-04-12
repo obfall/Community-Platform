@@ -15,6 +15,7 @@ import type { LoginDto } from "./dto/login.dto";
 import type { RefreshTokenDto } from "./dto/refresh-token.dto";
 import type { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import type { ResetPasswordDto } from "./dto/reset-password.dto";
+import type { ChangePasswordDto } from "./dto/change-password.dto";
 import type { JwtPayload } from "./types/jwt-payload";
 
 const BCRYPT_SALT_ROUNDS = 12;
@@ -178,6 +179,25 @@ export class AuthService {
         data: { revokedAt: new Date() },
       }),
     ]);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user) throw new UnauthorizedException();
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException("現在のパスワードが正しくありません");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_SALT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
   }
 
   async getMe(userId: string) {

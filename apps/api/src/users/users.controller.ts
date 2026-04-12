@@ -45,6 +45,30 @@ export class UsersController {
     return this.usersService.findOne(userId);
   }
 
+  @Get("me/tickets")
+  @ApiOperation({ summary: "自分のチケット一覧" })
+  getMyTickets(@CurrentUser("id") userId: string) {
+    return this.usersService.findUserTickets(userId);
+  }
+
+  @Get("me/reservations")
+  @ApiOperation({ summary: "自分の予約一覧" })
+  getMyReservations(@CurrentUser("id") userId: string) {
+    return this.usersService.findUserReservations(userId);
+  }
+
+  @Get("me/tasks")
+  @ApiOperation({ summary: "自分の担当タスク一覧" })
+  getMyTasks(@CurrentUser("id") userId: string) {
+    return this.usersService.findUserTasks(userId);
+  }
+
+  @Get("me/library")
+  @ApiOperation({ summary: "自分のライブラリー（視聴履歴・購入商品）" })
+  getMyLibrary(@CurrentUser("id") userId: string) {
+    return this.usersService.findUserLibrary(userId);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "メンバー詳細" })
   findOne(@Param("id", ParseUUIDPipe) id: string) {

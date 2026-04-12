@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { useForm, useFieldArray } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/profile/use-profile";
+import { filesApi } from "@/lib/api/files";
+import { usersApi } from "@/lib/api/members";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -23,25 +29,77 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Camera, Loader2, Plus, Trash2 } from "lucide-react";
+
+const OCCUPATION_OPTIONS = [
+  { value: "company_employee", label: "会社員" },
+  { value: "student", label: "学生" },
+  { value: "self_employed", label: "自営業" },
+  { value: "homemaker", label: "主婦" },
+  { value: "unemployed", label: "無職" },
+  { value: "other", label: "その他" },
+] as const;
+
+const LANGUAGE_OPTIONS = [{ value: "ja", label: "日本語" }] as const;
+
+const affiliationSchema = z.object({
+  organizationName: z.string().max(200).optional().or(z.literal("")),
+  department: z.string().max(200).optional().or(z.literal("")),
+  jobTitle: z.string().max(200).optional().or(z.literal("")),
+});
 
 const profileSchema = z.object({
   nameKana: z.string().max(100).optional().or(z.literal("")),
   bio: z.string().optional().or(z.literal("")),
   phone: z.string().max(20).optional().or(z.literal("")),
   birthday: z.string().optional().or(z.literal("")),
-  website: z.string().max(500).optional().or(z.literal("")),
   gender: z.string().optional().or(z.literal("")),
-  occupation: z.string().max(100).optional().or(z.literal("")),
+  occupation: z.string().optional().or(z.literal("")),
   countryOfOrigin: z.string().max(100).optional().or(z.literal("")),
+  affiliations: z.array(affiliationSchema),
+  language: z.string().optional().or(z.literal("")),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm() {
+  const { user } = useAuth();
   const { data: profileData, isLoading } = useMyProfile();
   const updateMutation = useUpdateProfile();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const avatarUpload = useMutation({
+    mutationFn: async (file: File) => {
+      const uploaded = await filesApi.upload(file, "avatar", true);
+      await updateMutation.mutateAsync({ avatarUrl: uploaded.publicUrl ?? undefined });
+      return uploaded;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
+      toast.success("プロフィール画像を更新しました");
+    },
+    onError: () => toast.error("画像のアップロードに失敗しました"),
+  });
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("画像ファイルを選択してください");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("5MB 以下の画像を選択してください");
+      return;
+    }
+    avatarUpload.mutate(file);
+  };
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -50,25 +108,41 @@ export function ProfileForm() {
       bio: "",
       phone: "",
       birthday: "",
-      website: "",
       gender: "",
-      occupation: "",
+      occupation: "company_employee",
       countryOfOrigin: "",
+      affiliations: [{ organizationName: "", department: "", jobTitle: "" }],
+      language: "ja",
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "affiliations",
+  });
+
   useEffect(() => {
-    if (profileData?.profile) {
+    if (profileData) {
       const p = profileData.profile;
+      const affs = profileData.affiliations ?? [];
+      const lang = profileData.languages?.[0]?.languageCode;
       form.reset({
-        nameKana: p.nameKana ?? "",
-        bio: p.bio ?? "",
-        phone: p.phone ?? "",
-        birthday: p.birthday ? p.birthday.split("T")[0] : "",
-        website: p.website ?? "",
-        gender: p.gender ?? "",
-        occupation: p.occupation ?? "",
-        countryOfOrigin: p.countryOfOrigin ?? "",
+        nameKana: p?.nameKana ?? "",
+        bio: p?.bio ?? "",
+        phone: p?.phone ?? "",
+        birthday: p?.birthday ? p.birthday.split("T")[0] : "",
+        gender: p?.gender ?? "",
+        occupation: p?.occupation || "company_employee",
+        countryOfOrigin: p?.countryOfOrigin ?? "",
+        affiliations:
+          affs.length > 0
+            ? affs.map((a) => ({
+                organizationName: a.organizationName,
+                department: a.roleDescription ?? "",
+                jobTitle: a.title ?? "",
+              }))
+            : [{ organizationName: "", department: "", jobTitle: "" }],
+        language: lang || "ja",
       });
     }
   }, [profileData, form]);
@@ -76,11 +150,27 @@ export function ProfileForm() {
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
     try {
+      const { affiliations, language: _language, ...profileValues } = values;
+
+      // プロフィール保存
       const data: Record<string, string | undefined> = {};
-      for (const [key, val] of Object.entries(values)) {
+      for (const [key, val] of Object.entries(profileValues)) {
         data[key] = val || undefined;
       }
       await updateMutation.mutateAsync(data);
+
+      // 所属保存
+      const validAffiliations = affiliations.filter((a) => a.organizationName);
+      await usersApi.replaceAffiliations({
+        affiliations: validAffiliations.map((a, i) => ({
+          organizationName: a.organizationName!,
+          roleDescription: a.department || undefined,
+          title: a.jobTitle || undefined,
+          sortOrder: i,
+        })),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
     } finally {
       setIsSubmitting(false);
     }
@@ -103,6 +193,59 @@ export function ProfileForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* アバター */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-32 w-32">
+                  <AvatarImage
+                    src={profileData?.profile?.avatarUrl ?? undefined}
+                    alt="プロフィール画像"
+                  />
+                  <AvatarFallback className="text-3xl">
+                    {profileData?.name?.slice(0, 2) ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+                {avatarUpload.isPending && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="text-center">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUpload.isPending}
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  画像を変更
+                </Button>
+                <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WebP（5MB以下）</p>
+              </div>
+            </div>
+
+            {/* メールアドレス（読み取り専用） */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">メールアドレス</Label>
+              <Input value={user?.email ?? ""} disabled className="bg-muted" />
+              <p className="text-xs text-muted-foreground">
+                変更は
+                <Link href="/profile/settings" className="text-primary hover:underline">
+                  個人設定
+                </Link>
+                から行えます
+              </p>
+            </div>
+
             <FormField
               control={form.control}
               name="nameKana"
@@ -163,57 +306,150 @@ export function ProfileForm() {
 
             <FormField
               control={form.control}
-              name="website"
+              name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ウェブサイト</FormLabel>
+                  <FormLabel>性別</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="選択してください" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="male">男性</SelectItem>
+                      <SelectItem value="female">女性</SelectItem>
+                      <SelectItem value="other">その他</SelectItem>
+                      <SelectItem value="prefer_not_to_say">回答しない</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* 職業（ラジオボタン） */}
+            <FormField
+              control={form.control}
+              name="occupation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>職業</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://example.com" {...field} />
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      className="flex flex-wrap gap-4"
+                    >
+                      {OCCUPATION_OPTIONS.map((opt) => (
+                        <div key={opt.value} className="flex items-center gap-2">
+                          <RadioGroupItem value={opt.value} id={`occupation-${opt.value}`} />
+                          <Label htmlFor={`occupation-${opt.value}`} className="font-normal">
+                            {opt.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>性別</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="選択してください" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="male">男性</SelectItem>
-                        <SelectItem value="female">女性</SelectItem>
-                        <SelectItem value="other">その他</SelectItem>
-                        <SelectItem value="prefer_not_to_say">回答しない</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="occupation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>職業</FormLabel>
-                    <FormControl>
-                      <Input placeholder="エンジニア" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* 所属・部署・肩書 */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">所属 / 部署 / 肩書</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ organizationName: "", department: "", jobTitle: "" })}
+                >
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  追加
+                </Button>
+              </div>
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex gap-3">
+                  <div className="grid flex-1 gap-3 sm:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name={`affiliations.${index}.organizationName`}
+                      render={({ field }) => (
+                        <FormItem>
+                          {index === 0 && <FormLabel className="text-xs">所属</FormLabel>}
+                          <FormControl>
+                            <Input placeholder="株式会社〇〇" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`affiliations.${index}.department`}
+                      render={({ field }) => (
+                        <FormItem>
+                          {index === 0 && <FormLabel className="text-xs">部署</FormLabel>}
+                          <FormControl>
+                            <Input placeholder="開発部" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`affiliations.${index}.jobTitle`}
+                      render={({ field }) => (
+                        <FormItem>
+                          {index === 0 && <FormLabel className="text-xs">肩書</FormLabel>}
+                          <FormControl>
+                            <Input placeholder="エンジニア" {...field} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={`shrink-0 text-muted-foreground hover:text-destructive ${index === 0 ? "mt-6" : ""}`}
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
+
+            {/* 使用言語 */}
+            <FormField
+              control={form.control}
+              name="language"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>使用言語</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="選択してください" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {LANGUAGE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, LogOut, Settings, User, Bell, HelpCircle } from "lucide-react";
+import { Menu, LogOut, Settings, LayoutDashboard, Bell, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useUnreadCount } from "@/hooks/notifications/use-notifications";
 import { useAppSettings } from "@/hooks/settings/use-app-settings";
@@ -21,13 +21,15 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Sidebar } from "./sidebar";
 import { EventDetailSidebar } from "@/app/(dashboard)/events/[id]/_components/sidebar";
 import { ProjectDetailSidebar } from "@/app/(dashboard)/projects/[id]/_components/sidebar";
+import { ProfileSidebar } from "@/app/(dashboard)/profile/_components/sidebar";
 
 interface HeaderProps {
   eventId?: string | null;
   projectId?: string | null;
+  isProfile?: boolean;
 }
 
-export function Header({ eventId, projectId }: HeaderProps) {
+export function Header({ eventId, projectId, isProfile }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
@@ -90,6 +92,8 @@ export function Header({ eventId, projectId }: HeaderProps) {
               <EventDetailSidebar eventId={eventId} />
             ) : projectId ? (
               <ProjectDetailSidebar projectId={projectId} />
+            ) : isProfile ? (
+              <ProfileSidebar />
             ) : (
               <Sidebar />
             )}
@@ -149,8 +153,8 @@ export function Header({ eventId, projectId }: HeaderProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <Link href="/profile" className="cursor-pointer">
-              <User className="mr-2 h-4 w-4" />
-              プロフィール
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              マイページ
             </Link>
           </DropdownMenuItem>
           {isAdmin && (

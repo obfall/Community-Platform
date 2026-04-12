@@ -31,6 +31,7 @@ import { MemosModule } from "./memos/memos.module";
 import { SchedulesModule } from "./schedules/schedules.module";
 import { ModerationModule } from "./moderation/moderation.module";
 import { OrientationModule } from "./orientation/orientation.module";
+import { UserLibraryModule } from "./user-library/user-library.module";
 import { JwtAuthGuard } from "./common/guards";
 import { validateEnv } from "./config/env.config";
 
@@ -125,6 +126,7 @@ import { validateEnv } from "./config/env.config";
 
     // Orientation
     OrientationModule,
+    UserLibraryModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,73 +1,155 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMemberEvents, useMemberProjects } from "@/hooks/members/use-members";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ProfileForm } from "./_components/profile-form";
-import { PublicInfoForm } from "./_components/public-info-form";
+import { CalendarDays, FolderKanban, Users } from "lucide-react";
+import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  admin: "管理者",
-  moderator: "モデレーター",
-  member: "メンバー",
+const EVENT_STATUS_LABELS: Record<string, string> = {
+  draft: "下書き",
+  recruiting: "募集中",
+  closed: "締切",
+  canceled: "中止",
+  ended: "終了",
 };
 
-export default function ProfilePage() {
-  const { user } = useAuth();
+const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  recruiting: "default",
+  closed: "outline",
+  canceled: "destructive",
+  ended: "outline",
+  draft: "secondary",
+};
 
-  const initials = user?.name
-    ? user.name
-        .split(/\s+/)
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "?";
+const PROJECT_STATUS_LABELS: Record<string, string> = {
+  active: "進行中",
+  completed: "完了",
+  archived: "アーカイブ",
+  draft: "下書き",
+};
+
+export default function ProfileActivityPage() {
+  const { user } = useAuth();
+  const { data: events } = useMemberEvents(user?.id);
+  const { data: projects } = useMemberProjects(user?.id);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">プロフィール</h1>
-        <p className="mt-1 text-muted-foreground">あなたのプロフィール情報を管理します</p>
+      <h2 className="text-xl font-bold">アクティビティ</h2>
+
+      {/* サマリー */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <CalendarDays className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="text-2xl font-bold">{events?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">参加イベント</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <FolderKanban className="h-8 w-8 text-muted-foreground" />
+            <div>
+              <p className="text-2xl font-bold">{projects?.length ?? 0}</p>
+              <p className="text-xs text-muted-foreground">参加プロジェクト</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 基本情報カード */}
+      {/* イベント */}
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            参加イベント
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <p className="text-lg font-bold">{user?.name}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-              <Badge variant="secondary">{ROLE_LABELS[user?.role ?? ""] ?? user?.role}</Badge>
+          {!events || events.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              参加イベントはありません
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {events.map((event: UserEventItem) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted"
+                >
+                  <CalendarDays className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{event.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(event.startAt).toLocaleDateString("ja-JP", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
+                    className="text-xs"
+                  >
+                    {EVENT_STATUS_LABELS[event.status] ?? event.status}
+                  </Badge>
+                </Link>
+              ))}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* 編集タブ */}
-      <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">プロフィール</TabsTrigger>
-          <TabsTrigger value="public-info">公開情報</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="mt-6">
-          <ProfileForm />
-        </TabsContent>
-
-        <TabsContent value="public-info" className="mt-6">
-          <PublicInfoForm />
-        </TabsContent>
-      </Tabs>
+      {/* プロジェクト */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderKanban className="h-4 w-4" />
+            参加プロジェクト
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!projects || projects.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              参加プロジェクトはありません
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {projects.map((project: UserProjectItem) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted"
+                >
+                  <FolderKanban className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{project.name}</p>
+                    {project.description && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {project.description}
+                      </p>
+                    )}
+                  </div>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    {project.memberCount}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

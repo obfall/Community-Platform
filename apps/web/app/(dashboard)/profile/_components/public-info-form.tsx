@@ -18,18 +18,93 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+
+const SPECIALTY_CATEGORIES = [
+  {
+    label: "IT・テクノロジー",
+    children: [
+      "Web開発",
+      "モバイル開発",
+      "AI・機械学習",
+      "データサイエンス",
+      "セキュリティ",
+      "インフラ・クラウド",
+    ],
+  },
+  {
+    label: "ビジネス",
+    children: [
+      "マーケティング",
+      "経営・戦略",
+      "財務・会計",
+      "人事・組織",
+      "営業",
+      "コンサルティング",
+    ],
+  },
+  {
+    label: "デザイン",
+    children: ["UI/UXデザイン", "グラフィックデザイン", "映像・動画", "写真"],
+  },
+  {
+    label: "教育",
+    children: ["語学教育", "プログラミング教育", "幼児教育", "学校教育", "社会人教育"],
+  },
+  {
+    label: "スポーツ",
+    children: [
+      "サッカー",
+      "バスケットボール",
+      "テニス",
+      "ヨガ・フィットネス",
+      "ランニング",
+      "水泳",
+      "武道",
+    ],
+  },
+  {
+    label: "音楽・芸術",
+    children: ["楽器演奏", "作曲・DTM", "絵画", "演劇", "ダンス"],
+  },
+  {
+    label: "医療・健康",
+    children: ["医学", "看護", "薬学", "栄養学", "メンタルヘルス"],
+  },
+  {
+    label: "法律・政治",
+    children: ["法律", "行政", "国際関係"],
+  },
+  {
+    label: "科学・研究",
+    children: ["物理学", "化学", "生物学", "環境科学"],
+  },
+  {
+    label: "ものづくり",
+    children: ["建築", "製造", "農業", "料理"],
+  },
+] as const;
+
+const EVENT_ROLE_OPTIONS = [
+  { value: "lecturer", label: "講師" },
+  { value: "mc", label: "司会" },
+  { value: "interpreter", label: "通訳" },
+  { value: "planner", label: "企画" },
+  { value: "panelist", label: "パネリスト" },
+  { value: "performer", label: "出演" },
+] as const;
 
 const publicInfoSchema = z.object({
   nickname: z.string().max(100).optional().or(z.literal("")),
   nicknameKana: z.string().max(100).optional().or(z.literal("")),
-  specialty: z.string().max(200).optional().or(z.literal("")),
+  specialties: z.array(z.string()),
   prefecture: z.string().max(50).optional().or(z.literal("")),
   city: z.string().max(100).optional().or(z.literal("")),
   foreignCountry: z.string().max(100).optional().or(z.literal("")),
   foreignCity: z.string().max(100).optional().or(z.literal("")),
   introduction: z.string().optional().or(z.literal("")),
-  eventRole: z.string().max(50).optional().or(z.literal("")),
+  eventRoles: z.array(z.string()),
   isPublic: z.boolean(),
 });
 
@@ -45,13 +120,13 @@ export function PublicInfoForm() {
     defaultValues: {
       nickname: "",
       nicknameKana: "",
-      specialty: "",
+      specialties: [],
       prefecture: "",
       city: "",
       foreignCountry: "",
       foreignCity: "",
       introduction: "",
-      eventRole: "",
+      eventRoles: [],
       isPublic: false,
     },
   });
@@ -62,13 +137,13 @@ export function PublicInfoForm() {
       form.reset({
         nickname: p.nickname ?? "",
         nicknameKana: p.nicknameKana ?? "",
-        specialty: p.specialty ?? "",
+        specialties: p.specialty ? p.specialty.split(",") : [],
         prefecture: p.prefecture ?? "",
         city: p.city ?? "",
         foreignCountry: p.foreignCountry ?? "",
         foreignCity: p.foreignCity ?? "",
         introduction: p.introduction ?? "",
-        eventRole: p.eventRole ?? "",
+        eventRoles: p.eventRole ? p.eventRole.split(",") : [],
         isPublic: p.publicStatus === "public",
       });
     }
@@ -77,11 +152,13 @@ export function PublicInfoForm() {
   async function onSubmit(values: PublicInfoFormValues) {
     setIsSubmitting(true);
     try {
-      const { isPublic, ...rest } = values;
+      const { isPublic, eventRoles, specialties, ...rest } = values;
       const data: Record<string, string | undefined> = {};
       for (const [key, val] of Object.entries(rest)) {
         data[key] = val || undefined;
       }
+      data.specialty = specialties.length > 0 ? specialties.join(",") : undefined;
+      data.eventRole = eventRoles.length > 0 ? eventRoles.join(",") : undefined;
       await updateMutation.mutateAsync({
         ...data,
         publicStatus: isPublic ? "public" : "private",
@@ -158,16 +235,74 @@ export function PublicInfoForm() {
 
             <FormField
               control={form.control}
-              name="specialty"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>専門分野</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Web開発、デザインなど" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              name="specialties"
+              render={({ field }) => {
+                const selected = new Set(field.value);
+
+                const hasChild = (cat: string) =>
+                  SPECIALTY_CATEGORIES.find((c) => c.label === cat)?.children.some((ch) =>
+                    selected.has(`${cat}/${ch}`),
+                  );
+
+                const isCatOpen = (cat: string) => selected.has(cat) || !!hasChild(cat);
+
+                const toggle = (value: string) => {
+                  const next = new Set(selected);
+                  if (next.has(value)) {
+                    next.delete(value);
+                    // 親カテゴリを外したら子も外す
+                    const cat = SPECIALTY_CATEGORIES.find((c) => c.label === value);
+                    if (cat) {
+                      cat.children.forEach((ch) => next.delete(`${value}/${ch}`));
+                    }
+                  } else {
+                    next.add(value);
+                  }
+                  field.onChange(Array.from(next));
+                };
+
+                return (
+                  <FormItem>
+                    <FormLabel>専門分野</FormLabel>
+                    <div className="space-y-3 rounded-md border p-4">
+                      {SPECIALTY_CATEGORIES.map((cat) => (
+                        <div key={cat.label}>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`spec-${cat.label}`}
+                              checked={isCatOpen(cat.label)}
+                              onCheckedChange={() => toggle(cat.label)}
+                            />
+                            <label htmlFor={`spec-${cat.label}`} className="text-sm font-medium">
+                              {cat.label}
+                            </label>
+                          </div>
+                          {isCatOpen(cat.label) && (
+                            <div className="ml-6 mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                              {cat.children.map((child) => {
+                                const val = `${cat.label}/${child}`;
+                                return (
+                                  <div key={val} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`spec-${val}`}
+                                      checked={selected.has(val)}
+                                      onCheckedChange={() => toggle(val)}
+                                    />
+                                    <label htmlFor={`spec-${val}`} className="text-sm font-normal">
+                                      {child}
+                                    </label>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <div className="grid gap-6 sm:grid-cols-2">
@@ -176,7 +311,7 @@ export function PublicInfoForm() {
                 name="prefecture"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>都道府県</FormLabel>
+                    <FormLabel>活動拠点（都道府県）</FormLabel>
                     <FormControl>
                       <Input placeholder="東京都" {...field} />
                     </FormControl>
@@ -190,7 +325,7 @@ export function PublicInfoForm() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>市区町村</FormLabel>
+                    <FormLabel>活動拠点（市区町村）</FormLabel>
                     <FormControl>
                       <Input placeholder="渋谷区" {...field} />
                     </FormControl>
@@ -206,7 +341,7 @@ export function PublicInfoForm() {
                 name="foreignCountry"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>海外（国）</FormLabel>
+                    <FormLabel>活動拠点・外国（国）</FormLabel>
                     <FormControl>
                       <Input placeholder="国名" {...field} />
                     </FormControl>
@@ -220,7 +355,7 @@ export function PublicInfoForm() {
                 name="foreignCity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>海外（都市）</FormLabel>
+                    <FormLabel>活動拠点・外国（都市）</FormLabel>
                     <FormControl>
                       <Input placeholder="都市名" {...field} />
                     </FormControl>
@@ -250,13 +385,29 @@ export function PublicInfoForm() {
 
             <FormField
               control={form.control}
-              name="eventRole"
+              name="eventRoles"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>イベント役割</FormLabel>
-                  <FormControl>
-                    <Input placeholder="スピーカー、運営など" {...field} />
-                  </FormControl>
+                  <div className="flex flex-wrap gap-4">
+                    {EVENT_ROLE_OPTIONS.map((opt) => (
+                      <div key={opt.value} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`event-role-${opt.value}`}
+                          checked={field.value.includes(opt.value)}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...field.value, opt.value]
+                              : field.value.filter((v) => v !== opt.value);
+                            field.onChange(next);
+                          }}
+                        />
+                        <label htmlFor={`event-role-${opt.value}`} className="text-sm font-normal">
+                          {opt.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
