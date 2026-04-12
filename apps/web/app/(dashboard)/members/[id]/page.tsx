@@ -14,18 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ArrowLeft,
-  MessageCircle,
-  MapPin,
-  Globe,
-  Briefcase,
-  GraduationCap,
-  Languages,
-  CalendarDays,
-  FolderKanban,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, MessageCircle, MapPin, CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -33,6 +22,24 @@ const ROLE_LABELS: Record<string, string> = {
   owner: "運営者",
   moderator: "モデレーター",
   member: "メンバー",
+};
+
+const OCCUPATION_LABELS: Record<string, string> = {
+  company_employee: "会社員",
+  student: "学生",
+  self_employed: "自営業",
+  homemaker: "主婦",
+  unemployed: "無職",
+  other: "その他",
+};
+
+const EVENT_ROLE_LABELS: Record<string, string> = {
+  lecturer: "講師",
+  mc: "司会",
+  interpreter: "通訳",
+  planner: "企画",
+  panelist: "パネリスト",
+  performer: "出演",
 };
 
 const EVENT_STATUS_LABELS: Record<string, string> = {
@@ -74,7 +81,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
     return <div className="py-12 text-center text-muted-foreground">メンバーが見つかりません</div>;
   }
 
-  const publicInfo = member.publicInfo;
+  const isPublic = member.publicInfo?.publicStatus === "public";
+  const publicInfo = isPublic ? member.publicInfo : null;
   const isOwnProfile = user?.id === member.id;
   const location = [
     publicInfo?.prefecture,
@@ -84,6 +92,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   ]
     .filter(Boolean)
     .join(" ");
+
+  const introduction = publicInfo?.introduction ?? null;
 
   return (
     <div className="space-y-6">
@@ -96,31 +106,49 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       </Link>
 
       {/* ヒーロー */}
-      <Card>
+      <Card className="overflow-hidden py-0">
+        {member.profile?.headerImageUrl && (
+          <div className="h-72">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={member.profile.headerImageUrl}
+              alt=""
+              className="h-full w-full rounded-t-xl object-cover"
+            />
+          </div>
+        )}
         <CardContent className="p-6">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <Avatar className="h-24 w-24">
+          <div className="flex flex-col items-center">
+            <Avatar
+              className={`h-28 w-28 ${member.profile?.headerImageUrl ? "-mt-24 ring-4 ring-background" : ""}`}
+            >
               <AvatarImage src={member.profile?.avatarUrl ?? undefined} alt={member.name} />
               <AvatarFallback className="text-2xl">{member.name.slice(0, 2)}</AvatarFallback>
             </Avatar>
-            <div className="flex-1 text-center sm:text-left">
-              <h1 className="text-2xl font-bold">{member.name}</h1>
+            <div className="mt-3 text-center">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <h1 className="text-2xl font-bold">{member.name}</h1>
+                <Badge variant="secondary">{ROLE_LABELS[member.role] ?? member.role}</Badge>
+              </div>
               {publicInfo?.nickname && (
                 <p className="text-sm text-muted-foreground">@{publicInfo.nickname}</p>
               )}
-              <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
-                <Badge variant="secondary">{ROLE_LABELS[member.role] ?? member.role}</Badge>
-                {publicInfo?.specialty && <Badge variant="outline">{publicInfo.specialty}</Badge>}
-              </div>
-              {location && (
-                <p className="mt-2 flex items-center justify-center gap-1 text-sm text-muted-foreground sm:justify-start">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {location}
-                </p>
-              )}
+              <p className="mt-2 flex items-center justify-center gap-1 text-sm text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {new Date(member.createdAt).toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+                に参加
+              </p>
             </div>
             {!isOwnProfile && (
-              <Button onClick={() => startDm.mutate(member.id)} disabled={startDm.isPending}>
+              <Button
+                className="mt-4"
+                onClick={() => startDm.mutate(member.id)}
+                disabled={startDm.isPending}
+              >
                 <MessageCircle className="mr-2 h-4 w-4" />
                 チャット
               </Button>
@@ -129,10 +157,162 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
         </CardContent>
       </Card>
 
-      {/* タブ */}
-      <Tabs defaultValue="profile">
+      {/* プロフィール情報 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>プロフィール情報</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {publicInfo?.nickname && (
+              <div>
+                <p className="text-xs text-muted-foreground">ニックネーム</p>
+                <p>
+                  {publicInfo.nickname}
+                  {publicInfo.nicknameKana && (
+                    <span className="ml-1 text-muted-foreground">({publicInfo.nicknameKana})</span>
+                  )}
+                </p>
+              </div>
+            )}
+            {member.profile?.occupation && (
+              <div>
+                <p className="text-xs text-muted-foreground">職業</p>
+                <p>{OCCUPATION_LABELS[member.profile.occupation] ?? member.profile.occupation}</p>
+              </div>
+            )}
+            {member.profile?.countryOfOrigin && (
+              <div>
+                <p className="text-xs text-muted-foreground">出身国</p>
+                <p>{member.profile.countryOfOrigin}</p>
+              </div>
+            )}
+            {member.profile?.website && (
+              <div>
+                <p className="text-xs text-muted-foreground">Webサイト</p>
+                <a
+                  href={member.profile.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {member.profile.website}
+                </a>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground">参加日</p>
+              <p>
+                {new Date(member.createdAt).toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
+
+          {member.affiliations.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">所属 / 部署 / 肩書</p>
+              <div className="space-y-2">
+                {member.affiliations.map((aff) => (
+                  <p key={aff.id}>
+                    {aff.organizationName}
+                    {aff.roleDescription && ` / ${aff.roleDescription}`}
+                    {aff.title && ` / ${aff.title}`}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {member.languages.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">使用言語</p>
+              <div className="flex flex-wrap gap-2">
+                {member.languages.map((lang) => (
+                  <Badge key={lang.id} variant="secondary">
+                    {lang.languageCode}
+                    {lang.proficiency && ` (${lang.proficiency})`}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 公開情報 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>公開情報</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          {location && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">活動拠点</p>
+              <p className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                {location}
+              </p>
+            </div>
+          )}
+
+          {publicInfo?.specialty && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">専門分野</p>
+              <div className="flex flex-wrap gap-1.5">
+                {publicInfo.specialty.split(",").map((s) => {
+                  const label = s.includes("/") ? s.split("/")[1] : s;
+                  return (
+                    <Badge key={s} variant="outline" className="text-xs">
+                      {label}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {publicInfo?.eventRole && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">イベント役割</p>
+              <div className="flex flex-wrap gap-1.5">
+                {publicInfo.eventRole.split(",").map((r) => (
+                  <Badge key={r} variant="outline" className="text-xs">
+                    {EVENT_ROLE_LABELS[r] ?? r}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {introduction && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">自己紹介</p>
+              <p className="whitespace-pre-wrap">{introduction}</p>
+            </div>
+          )}
+
+          {member.interests.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">興味分野</p>
+              <div className="flex flex-wrap gap-2">
+                {member.interests.map((interest) => (
+                  <Badge key={interest.id} variant="outline">
+                    {interest.categoryName}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* イベント・プロジェクト */}
+      <Tabs defaultValue="events">
         <TabsList>
-          <TabsTrigger value="profile">プロフィール</TabsTrigger>
           <TabsTrigger value="events">
             イベント{events && events.length > 0 && ` (${events.length})`}
           </TabsTrigger>
@@ -140,129 +320,6 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             プロジェクト{projects && projects.length > 0 && ` (${projects.length})`}
           </TabsTrigger>
         </TabsList>
-
-        {/* プロフィールタブ */}
-        <TabsContent value="profile" className="space-y-6">
-          {publicInfo?.introduction && (
-            <Card>
-              <CardHeader>
-                <CardTitle>自己紹介</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{publicInfo.introduction}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            {/* 所属 */}
-            {member.affiliations.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    所属
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {member.affiliations.map((aff) => (
-                      <div key={aff.id}>
-                        <p className="text-sm font-medium">{aff.organizationName}</p>
-                        {aff.title && <p className="text-xs text-muted-foreground">{aff.title}</p>}
-                        {aff.roleDescription && (
-                          <p className="text-xs text-muted-foreground">{aff.roleDescription}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 基本情報 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>基本情報</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {member.profile?.occupation && (
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>{member.profile.occupation}</span>
-                  </div>
-                )}
-                {member.profile?.website && (
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <a
-                      href={member.profile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate text-primary hover:underline"
-                    >
-                      {member.profile.website}
-                    </a>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <CalendarDays className="h-4 w-4 shrink-0" />
-                  <span>
-                    {new Date(member.createdAt).toLocaleDateString("ja-JP", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                    に参加
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 興味分野 */}
-            {member.interests.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4" />
-                    興味分野
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {member.interests.map((interest) => (
-                      <Badge key={interest.id} variant="outline">
-                        {interest.categoryName}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* 言語 */}
-            {member.languages.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Languages className="h-4 w-4" />
-                    言語
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {member.languages.map((lang) => (
-                      <div key={lang.id} className="flex items-center justify-between text-sm">
-                        <span>{lang.languageCode}</span>
-                        {lang.proficiency && <Badge variant="secondary">{lang.proficiency}</Badge>}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
 
         {/* イベントタブ */}
         <TabsContent value="events">

@@ -2,150 +2,286 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { useMemberEvents, useMemberProjects } from "@/hooks/members/use-members";
+import { useMyProfile } from "@/hooks/profile/use-profile";
+import { usePointSummary } from "@/hooks/points/use-points";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, FolderKanban, Users } from "lucide-react";
-import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { MapPin, Star, Pencil, CalendarDays } from "lucide-react";
 
-const EVENT_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  recruiting: "募集中",
-  closed: "締切",
-  canceled: "中止",
-  ended: "終了",
+const ROLE_LABELS: Record<string, string> = {
+  owner: "運営者",
+  admin: "管理者",
+  moderator: "モデレーター",
+  member: "メンバー",
 };
 
-const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  recruiting: "default",
-  closed: "outline",
-  canceled: "destructive",
-  ended: "outline",
-  draft: "secondary",
+const OCCUPATION_LABELS: Record<string, string> = {
+  company_employee: "会社員",
+  student: "学生",
+  self_employed: "自営業",
+  homemaker: "主婦",
+  unemployed: "無職",
+  other: "その他",
 };
 
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  active: "進行中",
-  completed: "完了",
-  archived: "アーカイブ",
-  draft: "下書き",
+const EVENT_ROLE_LABELS: Record<string, string> = {
+  lecturer: "講師",
+  mc: "司会",
+  interpreter: "通訳",
+  planner: "企画",
+  panelist: "パネリスト",
+  performer: "出演",
 };
 
-export default function ProfileActivityPage() {
+export default function MyPage() {
   const { user } = useAuth();
-  const { data: events } = useMemberEvents(user?.id);
-  const { data: projects } = useMemberProjects(user?.id);
+  const { data: profileData } = useMyProfile();
+  const { data: pointSummary } = usePointSummary();
+
+  const profile = profileData?.profile;
+  const publicInfo = profileData?.publicInfo;
+  const location = [
+    publicInfo?.prefecture,
+    publicInfo?.city,
+    publicInfo?.foreignCountry,
+    publicInfo?.foreignCity,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">アクティビティ</h2>
+      <h2 className="text-xl font-bold">プロフィール</h2>
 
-      {/* サマリー */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <CalendarDays className="h-8 w-8 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{events?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">参加イベント</p>
+      {/* ヒーロー（基本情報） */}
+      <Card className="overflow-hidden py-0">
+        {profile?.headerImageUrl && (
+          <div className="h-72">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={profile.headerImageUrl}
+              alt=""
+              className="h-full w-full rounded-t-xl object-cover"
+            />
+          </div>
+        )}
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center">
+            <Avatar
+              className={`h-28 w-28 ${profile?.headerImageUrl ? "-mt-24 ring-4 ring-background" : ""}`}
+            >
+              <AvatarImage src={profile?.avatarUrl ?? undefined} alt={user?.name} />
+              <AvatarFallback className="text-2xl">{user?.name?.slice(0, 2) ?? "?"}</AvatarFallback>
+            </Avatar>
+            <div className="mt-3 text-center">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <h1 className="text-2xl font-bold">{user?.name}</h1>
+                <Badge variant="secondary">{ROLE_LABELS[user?.role ?? ""] ?? user?.role}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
+              <div className="mt-2 flex items-center justify-center gap-3 text-sm text-muted-foreground">
+                <Star className="h-4 w-4" />
+                <span className="font-medium">
+                  {pointSummary?.availablePoints?.toLocaleString() ?? 0} ポイント
+                </span>
+                <span>|</span>
+                <CalendarDays className="h-4 w-4" />
+                <span>
+                  {new Date(profileData?.createdAt ?? "").toLocaleDateString("ja-JP", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  に参加
+                </span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 p-4">
-            <FolderKanban className="h-8 w-8 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{projects?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">参加プロジェクト</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* イベント */}
+      {/* プロフィール情報 */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            参加イベント
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>プロフィール情報</CardTitle>
+          <Link href="/profile/edit">
+            <Button variant="outline" size="sm">
+              <Pencil className="mr-2 h-4 w-4" />
+              編集
+            </Button>
+          </Link>
         </CardHeader>
-        <CardContent>
-          {!events || events.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              参加イベントはありません
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {events.map((event: UserEventItem) => (
-                <Link
-                  key={event.id}
-                  href={`/events/${event.id}`}
-                  className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted"
-                >
-                  <CalendarDays className="h-5 w-5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{event.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(event.startAt).toLocaleDateString("ja-JP", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
-                    className="text-xs"
-                  >
-                    {EVENT_STATUS_LABELS[event.status] ?? event.status}
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">名前（カナ）</p>
+              <p>{profile?.nameKana || "未設定"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">職業</p>
+              <p>
+                {profile?.occupation
+                  ? (OCCUPATION_LABELS[profile.occupation] ?? profile.occupation)
+                  : "未設定"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">電話番号</p>
+              <p>{profile?.phone || "未設定"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">誕生日</p>
+              <p>
+                {profile?.birthday
+                  ? new Date(profile.birthday).toLocaleDateString("ja-JP")
+                  : "未設定"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">性別</p>
+              <p>
+                {profile?.gender
+                  ? ({
+                      male: "男性",
+                      female: "女性",
+                      other: "その他",
+                      prefer_not_to_say: "回答しない",
+                    }[profile.gender] ?? profile.gender)
+                  : "未設定"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">出身国</p>
+              <p>{profile?.countryOfOrigin || "未設定"}</p>
+            </div>
+          </div>
+
+          {/* 所属 */}
+          {profileData?.affiliations && profileData.affiliations.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">所属 / 部署 / 肩書</p>
+              <div className="space-y-2">
+                {profileData.affiliations.map((aff) => (
+                  <p key={aff.id} className="text-sm">
+                    {aff.organizationName}
+                    {aff.roleDescription && ` / ${aff.roleDescription}`}
+                    {aff.title && ` / ${aff.title}`}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 言語 */}
+          {profileData?.languages && profileData.languages.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">使用言語</p>
+              <div className="flex flex-wrap gap-2">
+                {profileData.languages.map((lang) => (
+                  <Badge key={lang.id} variant="secondary">
+                    {lang.languageCode}
+                    {lang.proficiency && ` (${lang.proficiency})`}
                   </Badge>
-                </Link>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* プロジェクト */}
+      {/* 公開情報 */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderKanban className="h-4 w-4" />
-            参加プロジェクト
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>公開情報</CardTitle>
+          <Link href="/profile/public-info">
+            <Button variant="outline" size="sm">
+              <Pencil className="mr-2 h-4 w-4" />
+              編集
+            </Button>
+          </Link>
         </CardHeader>
-        <CardContent>
-          {!projects || projects.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              参加プロジェクトはありません
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {projects.map((project: UserProjectItem) => (
-                <Link
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-muted"
-                >
-                  <FolderKanban className="h-5 w-5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{project.name}</p>
-                    {project.description && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {project.description}
-                      </p>
-                    )}
-                  </div>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users className="h-3 w-3" />
-                    {project.memberCount}
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted-foreground">ニックネーム</p>
+              <p>
+                {publicInfo?.nickname || "未設定"}
+                {publicInfo?.nicknameKana && (
+                  <span className="ml-1 text-muted-foreground">({publicInfo.nicknameKana})</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">公開ステータス</p>
+              <Badge variant={publicInfo?.publicStatus === "public" ? "default" : "secondary"}>
+                {publicInfo?.publicStatus === "public" ? "公開" : "非公開"}
+              </Badge>
+            </div>
+          </div>
+
+          {/* 活動拠点 */}
+          {location && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">活動拠点</p>
+              <p className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                {location}
+              </p>
+            </div>
+          )}
+
+          {/* 専門分野 */}
+          {publicInfo?.specialty && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">専門分野</p>
+              <div className="flex flex-wrap gap-1.5">
+                {publicInfo.specialty.split(",").map((s) => {
+                  const label = s.includes("/") ? s.split("/")[1] : s;
+                  return (
+                    <Badge key={s} variant="outline" className="text-xs">
+                      {label}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* イベント役割 */}
+          {publicInfo?.eventRole && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">イベント役割</p>
+              <div className="flex flex-wrap gap-1.5">
+                {publicInfo.eventRole.split(",").map((r) => (
+                  <Badge key={r} variant="outline" className="text-xs">
+                    {EVENT_ROLE_LABELS[r] ?? r}
                   </Badge>
-                </Link>
-              ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 自己紹介 */}
+          {publicInfo?.introduction && (
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">自己紹介</p>
+              <p className="whitespace-pre-wrap">{publicInfo.introduction}</p>
+            </div>
+          )}
+
+          {/* 興味分野 */}
+          {profileData?.interests && profileData.interests.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs text-muted-foreground">興味分野</p>
+              <div className="flex flex-wrap gap-2">
+                {profileData.interests.map((interest) => (
+                  <Badge key={interest.id} variant="outline">
+                    {interest.categoryName}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

@@ -1,4 +1,5 @@
 import {
+  User,
   CalendarDays,
   Star,
   BookOpen,
@@ -6,8 +7,6 @@ import {
   CalendarCheck,
   CheckSquare,
   StickyNote,
-  Pencil,
-  Globe,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -19,7 +18,8 @@ export interface ProfileNavItem {
 }
 
 export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
-  { label: "アクティビティ", segment: "", icon: CalendarDays },
+  { label: "プロフィール", segment: "", icon: User },
+  { label: "アクティビティ", segment: "activity", icon: CalendarDays },
   { label: "ポイント", segment: "points", icon: Star },
   { label: "マイライブラリー", segment: "library", icon: BookOpen },
   { label: "マイチケット", segment: "tickets", icon: Ticket },
@@ -29,8 +29,6 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
 ];
 
 export const PROFILE_SETTINGS_ITEMS: ProfileNavItem[] = [
-  { label: "プロフィール編集", segment: "edit", icon: Pencil },
-  { label: "公開情報編集", segment: "public-info", icon: Globe },
   { label: "個人設定", segment: "settings", icon: Settings },
 ];
 

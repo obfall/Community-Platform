@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -21,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Loader2, Plus, Trash2 } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
 
 const OCCUPATION_OPTIONS = [
   { value: "company_employee", label: "会社員" },
@@ -54,7 +54,6 @@ const affiliationSchema = z.object({
 
 const profileSchema = z.object({
   nameKana: z.string().max(100).optional().or(z.literal("")),
-  bio: z.string().optional().or(z.literal("")),
   phone: z.string().max(20).optional().or(z.literal("")),
   birthday: z.string().optional().or(z.literal("")),
   gender: z.string().optional().or(z.literal("")),
@@ -66,13 +65,47 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export function ProfileForm() {
+export function ProfileForm({ returnTo }: { returnTo?: string }) {
+  const router = useRouter();
   const { user } = useAuth();
   const { data: profileData, isLoading } = useMyProfile();
   const updateMutation = useUpdateProfile();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const headerInputRef = useRef<HTMLInputElement>(null);
+
+  const headerUpload = useMutation({
+    mutationFn: async (file: File) => {
+      const uploaded = await filesApi.upload(file, "image", true);
+      await updateMutation.mutateAsync({ headerImageUrl: uploaded.publicUrl ?? undefined });
+      return uploaded;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
+      toast.success("ヘッダー画像を更新しました");
+    },
+    onError: () => toast.error("画像のアップロードに失敗しました"),
+  });
+
+  const handleHeaderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("画像ファイルを選択してください");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("10MB 以下の画像を選択してください");
+      return;
+    }
+    headerUpload.mutate(file);
+  };
+
+  const handleHeaderRemove = async () => {
+    await updateMutation.mutateAsync({ headerImageUrl: "" });
+    queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
+  };
 
   const avatarUpload = useMutation({
     mutationFn: async (file: File) => {
@@ -105,7 +138,6 @@ export function ProfileForm() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       nameKana: "",
-      bio: "",
       phone: "",
       birthday: "",
       gender: "",
@@ -128,7 +160,6 @@ export function ProfileForm() {
       const lang = profileData.languages?.[0]?.languageCode;
       form.reset({
         nameKana: p?.nameKana ?? "",
-        bio: p?.bio ?? "",
         phone: p?.phone ?? "",
         birthday: p?.birthday ? p.birthday.split("T")[0] : "",
         gender: p?.gender ?? "",
@@ -171,6 +202,7 @@ export function ProfileForm() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
+      if (returnTo) router.push(returnTo);
     } finally {
       setIsSubmitting(false);
     }
@@ -193,6 +225,72 @@ export function ProfileForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* ヘッダー画像 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">ヘッダー画像</Label>
+              <input
+                ref={headerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleHeaderSelect}
+                className="hidden"
+              />
+              {profileData?.profile?.headerImageUrl ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={profileData.profile.headerImageUrl}
+                    alt="ヘッダー画像"
+                    className="h-40 w-full rounded-lg object-cover"
+                  />
+                  {headerUpload.isPending && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  )}
+                  <div className="absolute right-2 top-2 flex gap-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => headerInputRef.current?.click()}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleHeaderRemove}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => headerInputRef.current?.click()}
+                  disabled={headerUpload.isPending}
+                  className="flex h-32 w-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 transition-colors hover:border-muted-foreground/50"
+                >
+                  {headerUpload.isPending ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      <ImagePlus className="mx-auto mb-2 h-8 w-8" />
+                      <p className="text-sm">ヘッダー画像をアップロード</p>
+                    </div>
+                  )}
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                JPEG, PNG, WebP（10MB以下）推奨サイズ: 1200x300px
+              </p>
+            </div>
+
             {/* アバター */}
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
@@ -254,20 +352,6 @@ export function ProfileForm() {
                   <FormLabel>名前（カナ）</FormLabel>
                   <FormControl>
                     <Input placeholder="ヤマダ タロウ" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>自己紹介</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="自己紹介を入力してください" rows={3} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -465,9 +549,18 @@ export function ProfileForm() {
               )}
             />
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "保存中..." : "保存"}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "保存中..." : "保存"}
+              </Button>
+              {returnTo && (
+                <Link href={returnTo}>
+                  <Button type="button" variant="outline">
+                    戻る
+                  </Button>
+                </Link>
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>
