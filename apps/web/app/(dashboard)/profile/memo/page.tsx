@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  useMemos,
-  useMemoCategories,
-  useCreateMemoCategory,
-  useDeleteMemoCategory,
-} from "@/hooks/memo/use-memo";
+import { useMemos, useMemoCategories, useCreateMemoCategory } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +23,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, StickyNote, Trash2, FolderPlus } from "lucide-react";
+import { Plus, StickyNote, FolderPlus } from "lucide-react";
 
 export default function MemoPage() {
   const [search, setSearch] = useState("");
@@ -38,7 +33,6 @@ export default function MemoPage() {
   const { data: memos, isLoading } = useMemos({ categoryId, search: searchQuery || undefined });
   const { data: categories } = useMemoCategories();
   const createCategory = useCreateMemoCategory();
-  const deleteCategory = useDeleteMemoCategory();
 
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
