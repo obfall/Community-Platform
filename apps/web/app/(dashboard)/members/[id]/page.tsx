@@ -14,20 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ArrowLeft,
-  MessageCircle,
-  MapPin,
-  Globe,
-  Briefcase,
-  GraduationCap,
-  Languages,
-  CalendarDays,
-  FolderKanban,
-  Users,
-  Target,
-  Mic,
-} from "lucide-react";
+import { ArrowLeft, MessageCircle, MapPin, CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
 
 const ROLE_LABELS: Record<string, string> = {

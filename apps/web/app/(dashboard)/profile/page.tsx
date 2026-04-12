@@ -8,18 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  MapPin,
-  Globe,
-  Briefcase,
-  GraduationCap,
-  Languages,
-  Target,
-  Mic,
-  Star,
-  Pencil,
-  CalendarDays,
-} from "lucide-react";
+import { MapPin, Star, Pencil, CalendarDays } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "運営者",
