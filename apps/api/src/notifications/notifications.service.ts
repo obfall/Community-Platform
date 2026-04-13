@@ -7,6 +7,19 @@ import type { UpdatePreferencesDto } from "./dto/update-preferences.dto";
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** 通知を作成 */
+  async create(data: {
+    userId: string;
+    type: string;
+    title: string;
+    body?: string;
+    referenceType?: string;
+    referenceId?: string;
+    actorUserId?: string;
+  }) {
+    return this.prisma.notification.create({ data });
+  }
+
   async findAll(userId: string, query: NotificationQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;

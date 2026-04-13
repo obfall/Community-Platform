@@ -92,6 +92,7 @@ export function useMarkAsRead() {
     mutationFn: (roomId: string) => chatApi.markAsRead(roomId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 }

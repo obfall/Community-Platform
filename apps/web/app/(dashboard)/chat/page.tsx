@@ -101,6 +101,10 @@ export default function ChatPage() {
       }
     });
 
+    socket.on("chat:read", () => {
+      queryClient.invalidateQueries({ queryKey: ["chat", "messages"] });
+    });
+
     socket.on("chat:error", (data: { message: string }) => {
       console.error("Chat error:", data.message);
     });
@@ -128,7 +132,13 @@ export default function ChatPage() {
     socket.emit("chat:join", { roomId: selectedRoomId });
     prevRoomIdRef.current = selectedRoomId;
 
-    markAsRead.mutate(selectedRoomId);
+    // REST で既読更新 → 完了後に WebSocket で他メンバーに通知
+    const roomId = selectedRoomId;
+    markAsRead.mutate(roomId, {
+      onSuccess: () => {
+        socketRef.current?.emit("chat:read", { roomId });
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomId]);
 
@@ -427,12 +437,21 @@ export default function ChatPage() {
                         >
                           {msg.body ?? "📎 ファイル"}
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(msg.createdAt).toLocaleTimeString("ja-JP", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
+                        <div
+                          className={`mt-1 flex items-center gap-1.5 text-xs text-muted-foreground ${isOwn ? "justify-end" : ""}`}
+                        >
+                          {isOwn && msg.readCount > 0 && (
+                            <span className="text-primary">
+                              {selectedRoom.type === "dm" ? "既読" : `既読 ${msg.readCount}`}
+                            </span>
+                          )}
+                          <span>
+                            {new Date(msg.createdAt).toLocaleTimeString("ja-JP", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
