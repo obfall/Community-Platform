@@ -75,7 +75,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   /** 認証済みか確認し、userId を返す。未認証なら null */
   private assertAuth(client: AuthenticatedSocket): string | null {
-    const userId = client.data?.userId;
+    const userId: string | undefined = (client.data as { userId?: string })?.userId;
     if (!userId) {
       client.emit("chat:error", { message: "認証されていません" });
       return null;
