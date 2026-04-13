@@ -73,12 +73,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  /** 認証済みか確認し、userId を返す。未認証なら null */
+  private assertAuth(client: AuthenticatedSocket): string | null {
+    const userId: string | undefined = (client.data as { userId?: string })?.userId;
+    if (!userId) {
+      client.emit("chat:error", { message: "認証されていません" });
+      return null;
+    }
+    return userId;
+  }
+
   @SubscribeMessage("chat:join")
   async handleJoin(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string },
   ) {
-    const { userId } = client.data;
+    const userId = this.assertAuth(client);
+    if (!userId) return;
 
     // メンバーかどうか確認
     const membership = await this.prisma.chatRoomMember.findFirst({
@@ -105,7 +116,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       fileId?: string;
     },
   ) {
-    const { userId } = client.data;
+    const userId = this.assertAuth(client);
+    if (!userId) return;
 
     try {
       const message = await this.chatService.createMessage(
@@ -124,12 +136,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage("chat:read")
+  handleRead(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    const userId = this.assertAuth(client);
+    if (!userId) return;
+
+    // 送信者以外にブロードキャスト（既読表示の更新用）
+    // 既読のDB更新はREST API側で行うため、ここではブロードキャストのみ
+    client.to(`room:${data.roomId}`).emit("chat:read", {
+      roomId: data.roomId,
+      userId,
+    });
+  }
+
   @SubscribeMessage("chat:typing")
   handleTyping(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { roomId: string },
   ) {
-    const { userId, userName } = client.data;
+    const userId = this.assertAuth(client);
+    if (!userId) return;
+    const { userName } = client.data;
 
     // 送信者以外にブロードキャスト
     client.to(`room:${data.roomId}`).emit("chat:typing", {

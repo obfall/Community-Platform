@@ -30,7 +30,9 @@ export default function NotificationsPage() {
       markAsRead.mutate(notification.id);
     }
     // Navigate to the referenced resource if available
-    if (notification.referenceType === "board_post" && notification.referenceId) {
+    if (notification.referenceType === "chat_room") {
+      router.push("/chat");
+    } else if (notification.referenceType === "board_post" && notification.referenceId) {
       router.push(`/board/${notification.referenceId}`);
     }
   };

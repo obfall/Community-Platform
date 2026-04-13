@@ -1,10 +1,12 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { NotificationsService } from "@/notifications/notifications.service";
 import { ChatRoomType } from "@prisma/client";
 import type { CreateRoomDto } from "./dto/create-room.dto";
 import type { UpdateRoomDto } from "./dto/update-room.dto";
@@ -26,7 +28,12 @@ function mapMemberUser(user: {
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ChatService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /** ルーム一覧（自分が所属するルームのみ） */
   async findRooms(userId: string) {
@@ -252,7 +259,7 @@ export class ChatService {
     const limit = query.limit ?? 50;
     const skip = (page - 1) * limit;
 
-    const [messages, total] = await Promise.all([
+    const [messages, total, members] = await Promise.all([
       this.prisma.chatMessage.findMany({
         where: { chatRoomId: roomId, deletedAt: null },
         orderBy: { createdAt: "asc" },
@@ -265,21 +272,36 @@ export class ChatService {
       this.prisma.chatMessage.count({
         where: { chatRoomId: roomId, deletedAt: null },
       }),
+      this.prisma.chatRoomMember.findMany({
+        where: { chatRoomId: roomId },
+        select: { userId: true, lastReadAt: true },
+      }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: messages.map((m) => ({
-        id: m.id,
-        chatRoomId: m.chatRoomId,
-        messageType: m.messageType,
-        body: m.body,
-        fileId: m.fileId,
-        sender: mapMemberUser(m.sender),
-        createdAt: m.createdAt,
-        updatedAt: m.updatedAt,
-      })),
+      data: messages.map((m) => {
+        // 送信者以外のメンバーで、lastReadAt >= message.createdAt の人数
+        const readCount = members.filter(
+          (member) =>
+            member.userId !== m.senderUserId &&
+            member.lastReadAt &&
+            member.lastReadAt >= m.createdAt,
+        ).length;
+
+        return {
+          id: m.id,
+          chatRoomId: m.chatRoomId,
+          messageType: m.messageType,
+          body: m.body,
+          fileId: m.fileId,
+          sender: mapMemberUser(m.sender),
+          readCount,
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt,
+        };
+      }),
       meta: {
         total,
         page,
@@ -301,24 +323,54 @@ export class ChatService {
   ) {
     await this.assertMembership(roomId, userId);
 
-    const message = await this.prisma.chatMessage.create({
-      data: {
-        chatRoomId: roomId,
-        senderUserId: userId,
-        messageType,
-        body,
-        fileId,
-      },
-      include: {
-        sender: { select: MEMBER_USER_SELECT },
-      },
-    });
+    const [message, room] = await Promise.all([
+      this.prisma.chatMessage.create({
+        data: {
+          chatRoomId: roomId,
+          senderUserId: userId,
+          messageType,
+          body,
+          fileId,
+        },
+        include: {
+          sender: { select: MEMBER_USER_SELECT },
+        },
+      }),
+      this.prisma.chatRoom.findUnique({
+        where: { id: roomId },
+        select: {
+          type: true,
+          name: true,
+          members: { select: { userId: true, isMuted: true } },
+        },
+      }),
+    ]);
 
     // lastMessageAt を更新
     await this.prisma.chatRoom.update({
       where: { id: roomId },
       data: { lastMessageAt: message.createdAt },
     });
+
+    // 送信者以外・ミュートしていないメンバーに通知を作成（非同期・メッセージ送信をブロックしない）
+    if (room) {
+      const recipients = room.members.filter((m) => m.userId !== userId && !m.isMuted);
+
+      Promise.all(
+        recipients.map((m) =>
+          this.notificationsService.create({
+            userId: m.userId,
+            type: "chat_message",
+            title: "チャットに新着メッセージがあります",
+            referenceType: "chat_room",
+            referenceId: roomId,
+            actorUserId: userId,
+          }),
+        ),
+      ).catch((err) => {
+        this.logger.error("チャット通知の作成に失敗しました", err);
+      });
+    }
 
     return {
       id: message.id,
@@ -327,6 +379,7 @@ export class ChatService {
       body: message.body,
       fileId: message.fileId,
       sender: mapMemberUser(message.sender),
+      readCount: 0,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     };
@@ -393,10 +446,23 @@ export class ChatService {
     });
     if (!membership) throw new ForbiddenException("このルームのメンバーではありません");
 
-    await this.prisma.chatRoomMember.update({
-      where: { id: membership.id },
-      data: { lastReadAt: new Date() },
-    });
+    const now = new Date();
+    await Promise.all([
+      this.prisma.chatRoomMember.update({
+        where: { id: membership.id },
+        data: { lastReadAt: now },
+      }),
+      // このルームに紐づく未読通知も一括既読にする
+      this.prisma.notification.updateMany({
+        where: {
+          userId,
+          referenceType: "chat_room",
+          referenceId: roomId,
+          isRead: false,
+        },
+        data: { isRead: true, readAt: now },
+      }),
+    ]);
   }
 
   /** ミュート切替 */

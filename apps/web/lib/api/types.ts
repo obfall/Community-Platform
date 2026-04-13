@@ -482,6 +482,7 @@ export interface ChatMessage {
     name: string;
     avatarUrl: string | null;
   };
+  readCount: number;
   createdAt: string;
   updatedAt: string;
 }
