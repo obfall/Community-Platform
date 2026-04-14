@@ -20,13 +20,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const MATCH_TYPE_OPTIONS = [
+  { value: "exact", label: "完全一致" },
+  { value: "partial", label: "部分一致" },
+  { value: "regex", label: "正規表現" },
+];
+
+const ACTION_OPTIONS = [
+  { value: "flag", label: "フラグ" },
+  { value: "block", label: "ブロック" },
+  { value: "replace", label: "置換" },
+];
 import { ArrowLeft, Trash2 } from "lucide-react";
 
 export default function BannedWordsPage() {
@@ -81,29 +87,11 @@ export default function BannedWordsPage() {
             </div>
             <div>
               <Label>マッチ方式</Label>
-              <Select value={matchType} onValueChange={setMatchType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="exact">完全一致</SelectItem>
-                  <SelectItem value="partial">部分一致</SelectItem>
-                  <SelectItem value="regex">正規表現</SelectItem>
-                </SelectContent>
-              </Select>
+              <SelectField value={matchType} onChange={setMatchType} options={MATCH_TYPE_OPTIONS} />
             </div>
             <div>
               <Label>アクション</Label>
-              <Select value={action} onValueChange={setAction}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="flag">フラグ</SelectItem>
-                  <SelectItem value="block">ブロック</SelectItem>
-                  <SelectItem value="replace">置換</SelectItem>
-                </SelectContent>
-              </Select>
+              <SelectField value={action} onChange={setAction} options={ACTION_OPTIONS} />
             </div>
             <div>
               <Label>置換文字列</Label>

@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { ProductImageUpload, type ProductImage } from "@/components/product-image-upload";
+import { SelectField } from "@/components/select-field";
+import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const NONE_VALUE = "__none__";
 
@@ -151,16 +153,11 @@ export default function ProductNewPage() {
           </div>
           <div>
             <Label>公開ステータス</Label>
-            <Select value={publishStatus} onValueChange={setPublishStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">下書き</SelectItem>
-                <SelectItem value="published">公開</SelectItem>
-                <SelectItem value="archived">アーカイブ</SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              value={publishStatus}
+              onChange={setPublishStatus}
+              options={PUBLISH_STATUS_OPTIONS}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

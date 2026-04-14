@@ -15,13 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const MEMBER_SORT_OPTIONS = [
+  { value: "role-asc", label: "ロール順" },
+  { value: "name-asc", label: "名前 A→Z" },
+  { value: "name-desc", label: "名前 Z→A" },
+  { value: "createdAt-desc", label: "参加日が新しい順" },
+  { value: "createdAt-asc", label: "参加日が古い順" },
+];
 import { Users } from "lucide-react";
 import type { UserListQuery } from "@/lib/api/types";
 
@@ -69,27 +71,18 @@ export default function MembersPage() {
             検索
           </Button>
         </div>
-        <Select
+        <SelectField
           value={`${query.sortBy ?? "role"}-${query.sortOrder ?? "asc"}`}
-          onValueChange={(v) => {
+          onChange={(v) => {
             const [sortBy, sortOrder] = v.split("-") as [
               "role" | "name" | "createdAt",
               "asc" | "desc",
             ];
             setQuery((prev) => ({ ...prev, sortBy, sortOrder, page: 1 }));
           }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="role-asc">ロール順</SelectItem>
-            <SelectItem value="name-asc">名前 A→Z</SelectItem>
-            <SelectItem value="name-desc">名前 Z→A</SelectItem>
-            <SelectItem value="createdAt-desc">参加日が新しい順</SelectItem>
-            <SelectItem value="createdAt-asc">参加日が古い順</SelectItem>
-          </SelectContent>
-        </Select>
+          options={MEMBER_SORT_OPTIONS}
+          className="w-44"
+        />
       </div>
 
       {/* メンバー一覧 */}

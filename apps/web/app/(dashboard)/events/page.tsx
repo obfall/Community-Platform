@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const EVENT_STATUS_OPTIONS = [
+  { value: "draft", label: "下書き" },
+  { value: "recruiting", label: "募集中" },
+  { value: "closed", label: "締切" },
+  { value: "ended", label: "終了" },
+];
 import { Plus, CalendarDays, MapPin, Monitor, Users } from "lucide-react";
 import type { EventListItem, EventQuery } from "@/lib/api/types";
 
@@ -95,23 +96,16 @@ export default function EventsPage() {
             検索
           </Button>
         </div>
-        <Select
+        <SelectField
           value={query.status ?? "all"}
-          onValueChange={(v) =>
+          onChange={(v) =>
             setQuery((prev) => ({ ...prev, status: v === "all" ? undefined : v, page: 1 }))
           }
-        >
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="recruiting">募集中</SelectItem>
-            <SelectItem value="closed">締切</SelectItem>
-            <SelectItem value="ended">終了</SelectItem>
-          </SelectContent>
-        </Select>
+          options={EVENT_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-32"
+        />
       </div>
 
       {/* イベント一覧 */}

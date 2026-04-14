@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
-import { VideoPublishStatus } from "@prisma/client";
+import { PublishStatus } from "@prisma/client";
 
 export class UpdateVideoDto {
   @ApiPropertyOptional({ maxLength: 200 })
@@ -14,10 +14,10 @@ export class UpdateVideoDto {
   @IsString()
   description?: string | null;
 
-  @ApiPropertyOptional({ enum: VideoPublishStatus })
+  @ApiPropertyOptional({ enum: PublishStatus })
   @IsOptional()
-  @IsEnum(VideoPublishStatus)
-  publishStatus?: VideoPublishStatus;
+  @IsEnum(PublishStatus)
+  publishStatus?: PublishStatus;
 
   @ApiPropertyOptional()
   @IsOptional()

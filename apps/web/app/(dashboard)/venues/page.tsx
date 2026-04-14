@@ -6,14 +6,9 @@ import { useVenues } from "@/hooks/venues/use-venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, Building2, Users, MapPin } from "lucide-react";
+import { SelectField } from "@/components/select-field";
+import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
@@ -28,12 +23,6 @@ const VENUE_TYPE_LABELS: Record<string, string> = {
   live_house: "ライブハウス",
   gymnasium: "体育館",
   other: "その他",
-};
-
-const PUBLISH_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  archived: "アーカイブ",
 };
 
 export default function VenuesPage() {
@@ -53,17 +42,14 @@ export default function VenuesPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={publishStatus} onValueChange={setPublishStatus}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="published">公開</SelectItem>
-            <SelectItem value="archived">アーカイブ</SelectItem>
-          </SelectContent>
-        </Select>
+        <SelectField
+          value={publishStatus}
+          onChange={setPublishStatus}
+          options={PUBLISH_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-36"
+        />
       </div>
 
       {isLoading ? (

@@ -246,7 +246,7 @@ export interface BoardPost {
   id: string;
   title: string;
   body: string;
-  publishStatus: "draft" | "published" | "archived";
+  publishStatus: "draft" | "published" | "unpublished";
   isPinned: boolean;
   viewCount: number;
   commentCount: number;
@@ -293,7 +293,7 @@ export interface UpdatePostInput {
   title?: string;
   body?: string;
   categoryId?: string;
-  publishStatus?: "draft" | "published" | "archived";
+  publishStatus?: "draft" | "published" | "unpublished";
   tagIds?: string[];
   fileIds?: string[];
 }

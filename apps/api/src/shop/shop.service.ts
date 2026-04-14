@@ -18,7 +18,7 @@ export class ShopService {
 
     const where: Prisma.ProductWhereInput = { deletedAt: null };
     if (query.publishStatus && query.publishStatus !== "all")
-      where.publishStatus = query.publishStatus as "draft" | "published" | "archived";
+      where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
     if (query.search) where.name = { contains: query.search, mode: "insensitive" };
@@ -159,7 +159,7 @@ export class ShopService {
           saleEndAt: data.saleEndAt ? new Date(data.saleEndAt) : null,
         }),
         ...(data.publishStatus !== undefined && {
-          publishStatus: data.publishStatus as "draft" | "published" | "archived",
+          publishStatus: data.publishStatus as "draft" | "published" | "unpublished",
         }),
       },
     });
