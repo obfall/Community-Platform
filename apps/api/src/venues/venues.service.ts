@@ -53,7 +53,7 @@ export class VenuesService {
         address: dto.address,
         description: dto.description,
         accessInfo: dto.accessInfo,
-        venueType: dto.venueType ?? "other",
+        venueTypes: dto.venueTypes ?? [],
         capacity: dto.capacity,
         publishStatus: dto.publishStatus ?? "draft",
         createdByUserId: userId,
@@ -73,7 +73,11 @@ export class VenuesService {
 
   async updateVenue(
     id: string,
-    data: Partial<CreateVenueDto> & { publishStatus?: string; imageFileIds?: string[] },
+    data: Partial<CreateVenueDto> & {
+      publishStatus?: string;
+      imageFileIds?: string[];
+      venueTypes?: string[];
+    },
   ) {
     const venue = await this.prisma.venue.findUnique({ where: { id } });
     if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
@@ -99,7 +103,7 @@ export class VenuesService {
         ...(data.address !== undefined && { address: data.address }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.accessInfo !== undefined && { accessInfo: data.accessInfo }),
-        ...(data.venueType !== undefined && { venueType: data.venueType }),
+        ...(data.venueTypes !== undefined && { venueTypes: data.venueTypes }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
         ...(data.publishStatus !== undefined && { publishStatus: data.publishStatus }),
       },

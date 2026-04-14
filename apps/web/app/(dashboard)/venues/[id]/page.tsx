@@ -30,10 +30,16 @@ import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
-  concert_hall: "コンサートホール",
-  conference_room: "会議室",
-  stadium: "スタジアム",
-  outdoor: "屋外",
+  concert_hall: "コンサート（音楽）ホール",
+  lecture_hall: "講演ホール",
+  plaza: "広場",
+  classroom_large: "教室(大)",
+  exhibition_hall: "展示ホール",
+  reception_hall: "レセプションホール",
+  dining_space: "飲食スペース",
+  conference_room_large: "会議室(大)",
+  live_house: "ライブハウス",
+  gymnasium: "体育館",
   other: "その他",
 };
 
@@ -102,7 +108,11 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <Badge variant="outline">{VENUE_TYPE_LABELS[venue.venueType] ?? venue.venueType}</Badge>
+            {venue.venueTypes.map((t) => (
+              <Badge key={t} variant="outline">
+                {VENUE_TYPE_LABELS[t] ?? t}
+              </Badge>
+            ))}
             <Badge variant="secondary">
               {PUBLISH_STATUS_LABELS[venue.publishStatus] ?? venue.publishStatus}
             </Badge>

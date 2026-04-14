@@ -2301,14 +2301,7 @@ enum AlbumPublishStatus {
   archived
 }
 
-enum VenueType {
-  theater
-  concert_hall
-  conference_room
-  stadium
-  outdoor
-  other
-}
+// VenueType は String[] に移行（複数選択対応）
 
 enum SpaceType {
   meeting_room
@@ -2524,7 +2517,7 @@ model Venue {
   address          String?              @db.Text
   description      String?              @db.Text
   accessInfo       String?              @map("access_info") @db.Text
-  venueType        VenueType            @default(other) @map("venue_type")
+  venueTypes       String[]             @default([]) @map("venue_types")
   capacity         Int?
   publishStatus    ContentPublishStatus @default(draft) @map("publish_status")
   createdByUserId  String               @map("created_by_user_id") @db.Uuid
@@ -2537,7 +2530,7 @@ model Venue {
   images    VenueImage[]
   spaces    Space[]
 
-  @@index([publishStatus, venueType])
+  @@index([publishStatus])
   @@map("venues")
 }
 

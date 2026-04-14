@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
-import { VenueType, ContentPublishStatus } from "@prisma/client";
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { ContentPublishStatus } from "@prisma/client";
 
 export class CreateVenueDto {
   @ApiProperty({ maxLength: 200 })
@@ -23,10 +23,11 @@ export class CreateVenueDto {
   @IsString()
   accessInfo?: string;
 
-  @ApiPropertyOptional({ enum: VenueType })
+  @ApiPropertyOptional({ type: [String] })
   @IsOptional()
-  @IsEnum(VenueType)
-  venueType?: VenueType;
+  @IsArray()
+  @IsString({ each: true })
+  venueTypes?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
