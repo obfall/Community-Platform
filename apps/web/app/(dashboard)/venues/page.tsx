@@ -17,10 +17,16 @@ import { Plus, Building2, Users, MapPin } from "lucide-react";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
-  concert_hall: "コンサートホール",
-  conference_room: "会議室",
-  stadium: "スタジアム",
-  outdoor: "屋外",
+  concert_hall: "コンサート（音楽）ホール",
+  lecture_hall: "講演ホール",
+  plaza: "広場",
+  classroom_large: "教室(大)",
+  exhibition_hall: "展示ホール",
+  reception_hall: "レセプションホール",
+  dining_space: "飲食スペース",
+  conference_room_large: "会議室(大)",
+  live_house: "ライブハウス",
+  gymnasium: "体育館",
   other: "その他",
 };
 
@@ -73,7 +79,7 @@ export default function VenuesPage() {
             const imageUrl = v.images?.[0]?.file.publicUrl;
             return (
               <Link key={v.id} href={`/venues/${v.id}`}>
-                <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+                <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
                   <div className="flex aspect-video items-center justify-center bg-muted">
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -84,9 +90,11 @@ export default function VenuesPage() {
                   </div>
                   <CardContent className="p-4">
                     <div className="mb-2 flex flex-wrap items-center gap-1">
-                      <Badge variant="outline" className="text-xs">
-                        {VENUE_TYPE_LABELS[v.venueType] ?? v.venueType}
-                      </Badge>
+                      {v.venueTypes.map((t) => (
+                        <Badge key={t} variant="outline" className="text-xs">
+                          {VENUE_TYPE_LABELS[t] ?? t}
+                        </Badge>
+                      ))}
                       {v.publishStatus !== "published" && (
                         <Badge variant="secondary" className="text-xs">
                           {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}

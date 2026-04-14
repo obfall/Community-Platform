@@ -12,7 +12,7 @@ export const venuesApi = {
     address?: string;
     description?: string;
     accessInfo?: string;
-    venueType?: string;
+    venueTypes?: string[];
     capacity?: number;
     publishStatus?: string;
     imageFileIds?: string[];

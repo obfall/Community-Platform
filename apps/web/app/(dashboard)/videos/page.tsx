@@ -100,7 +100,7 @@ export default function VideosPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {videos.map((v: VideoListItem) => (
             <Link key={v.id} href={`/videos/${v.id}`}>
-              <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+              <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
                 <div className="relative h-40 bg-muted">
                   {v.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

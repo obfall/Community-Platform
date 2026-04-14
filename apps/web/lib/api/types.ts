@@ -1317,7 +1317,7 @@ export interface VenueListItem {
   name: string;
   address: string | null;
   description: string | null;
-  venueType: string;
+  venueTypes: string[];
   capacity: number | null;
   publishStatus: string;
   _count: { spaces: number };
