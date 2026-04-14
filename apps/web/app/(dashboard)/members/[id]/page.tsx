@@ -61,7 +61,7 @@ const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructi
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   active: "進行中",
   completed: "完了",
-  archived: "アーカイブ",
+  unpublished: "未公開",
   draft: "下書き",
 };
 

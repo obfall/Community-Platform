@@ -17,13 +17,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -32,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Shield, Settings } from "lucide-react";
+import { SelectField } from "@/components/select-field";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "未対応",
@@ -39,6 +33,28 @@ const STATUS_LABELS: Record<string, string> = {
   resolved: "解決",
   dismissed: "却下",
 };
+
+const STATUS_OPTIONS = [
+  { value: "pending", label: "未対応" },
+  { value: "reviewing", label: "確認中" },
+  { value: "resolved", label: "解決" },
+  { value: "dismissed", label: "却下" },
+];
+
+const TARGET_TYPE_OPTIONS = [
+  { value: "post", label: "投稿" },
+  { value: "comment", label: "コメント" },
+  { value: "user", label: "ユーザー" },
+  { value: "message", label: "メッセージ" },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: "spam", label: "スパム" },
+  { value: "harassment", label: "嫌がらせ" },
+  { value: "inappropriate", label: "不適切" },
+  { value: "copyright", label: "著作権侵害" },
+  { value: "other", label: "その他" },
+];
 
 export default function ModerationPage() {
   const [status, setStatus] = useState<string | undefined>(undefined);
@@ -90,17 +106,11 @@ export default function ModerationPage() {
               <div className="space-y-3">
                 <div>
                   <Label>対象種別</Label>
-                  <Select value={targetType} onValueChange={setTargetType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="post">投稿</SelectItem>
-                      <SelectItem value="comment">コメント</SelectItem>
-                      <SelectItem value="user">ユーザー</SelectItem>
-                      <SelectItem value="message">メッセージ</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SelectField
+                    value={targetType}
+                    onChange={setTargetType}
+                    options={TARGET_TYPE_OPTIONS}
+                  />
                 </div>
                 <div>
                   <Label>対象ID</Label>
@@ -108,18 +118,7 @@ export default function ModerationPage() {
                 </div>
                 <div>
                   <Label>カテゴリ</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="spam">スパム</SelectItem>
-                      <SelectItem value="harassment">嫌がらせ</SelectItem>
-                      <SelectItem value="inappropriate">不適切</SelectItem>
-                      <SelectItem value="copyright">著作権侵害</SelectItem>
-                      <SelectItem value="other">その他</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SelectField value={category} onChange={setCategory} options={CATEGORY_OPTIONS} />
                 </div>
                 <div>
                   <Label>詳細</Label>
@@ -141,21 +140,14 @@ export default function ModerationPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Select
+        <SelectField
           value={status ?? "all"}
-          onValueChange={(v) => setStatus(v === "all" ? undefined : v)}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="pending">未対応</SelectItem>
-            <SelectItem value="reviewing">確認中</SelectItem>
-            <SelectItem value="resolved">解決</SelectItem>
-            <SelectItem value="dismissed">却下</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(v) => setStatus(v === "all" ? undefined : v)}
+          options={STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-48"
+        />
       </div>
 
       {isLoading ? (

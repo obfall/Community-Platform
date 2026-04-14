@@ -9,13 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const REPORT_STATUS_OPTIONS = [
+  { value: "pending", label: "未対応" },
+  { value: "reviewing", label: "確認中" },
+  { value: "resolved", label: "解決" },
+  { value: "dismissed", label: "却下" },
+];
+
+const ACTION_TYPE_OPTIONS = [
+  { value: "warning", label: "警告" },
+  { value: "content_remove", label: "コンテンツ削除" },
+  { value: "user_mute", label: "ユーザーミュート" },
+  { value: "user_ban", label: "ユーザーBAN" },
+  { value: "no_action", label: "対応不要" },
+];
 import { ArrowLeft } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -108,17 +117,12 @@ export default function ModerationDetailPage({ params }: { params: Promise<{ id:
           )}
           <div>
             <Label>ステータス変更</Label>
-            <Select value={data.status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">未対応</SelectItem>
-                <SelectItem value="reviewing">確認中</SelectItem>
-                <SelectItem value="resolved">解決</SelectItem>
-                <SelectItem value="dismissed">却下</SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              value={data.status}
+              onChange={handleStatusChange}
+              options={REPORT_STATUS_OPTIONS}
+              className="mt-1"
+            />
           </div>
         </CardContent>
       </Card>
@@ -155,18 +159,11 @@ export default function ModerationDetailPage({ params }: { params: Promise<{ id:
         <CardContent className="space-y-3">
           <div>
             <Label>アクション種別</Label>
-            <Select value={actionType} onValueChange={setActionType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="warning">警告</SelectItem>
-                <SelectItem value="content_remove">コンテンツ削除</SelectItem>
-                <SelectItem value="user_mute">ユーザーミュート</SelectItem>
-                <SelectItem value="user_ban">ユーザーBAN</SelectItem>
-                <SelectItem value="no_action">対応不要</SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              value={actionType}
+              onChange={setActionType}
+              options={ACTION_TYPE_OPTIONS}
+            />
           </div>
           <div>
             <Label>理由</Label>

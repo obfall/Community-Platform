@@ -43,12 +43,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Upload, Plus, Pencil, Trash2, Video } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
-
-const PUBLISH_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  archived: "アーカイブ",
-};
+import { SelectField } from "@/components/select-field";
+import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const STREAM_STATUS_LABELS: Record<string, string> = {
   uploading: "アップロード中",
@@ -132,22 +128,16 @@ export default function VideoManagePage() {
           placeholder="動画を検索..."
           className="max-w-xs"
         />
-        <Select
+        <SelectField
           value={query.publishStatus ?? "all"}
-          onValueChange={(v) =>
+          onChange={(v) =>
             setQuery((p) => ({ ...p, publishStatus: v === "all" ? undefined : v, page: 1 }))
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="published">公開</SelectItem>
-            <SelectItem value="archived">アーカイブ</SelectItem>
-          </SelectContent>
-        </Select>
+          options={PUBLISH_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-36"
+        />
         <Select
           value={query.categoryId ?? "all"}
           onValueChange={(v) =>

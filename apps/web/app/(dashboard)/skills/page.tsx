@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const FORMAT_OPTIONS = [
+  { value: "online", label: "オンライン" },
+  { value: "offline", label: "オフライン" },
+  { value: "both", label: "両方" },
+];
 import { Plus, Share2, Clock, Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { SkillQuery } from "@/lib/api/types";
@@ -53,22 +53,16 @@ export default function SkillsPage() {
           placeholder="スキルを検索..."
           className="max-w-xs"
         />
-        <Select
+        <SelectField
           value={query.format ?? "all"}
-          onValueChange={(v) =>
+          onChange={(v) =>
             setQuery((p) => ({ ...p, format: v === "all" ? undefined : v, page: 1 }))
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="形式" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="online">オンライン</SelectItem>
-            <SelectItem value="offline">オフライン</SelectItem>
-            <SelectItem value="both">両方</SelectItem>
-          </SelectContent>
-        </Select>
+          options={FORMAT_OPTIONS}
+          includeAll
+          placeholder="形式"
+          className="w-36"
+        />
       </div>
 
       {isLoading ? (

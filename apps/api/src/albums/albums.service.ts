@@ -104,7 +104,7 @@ export class AlbumsService {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.publishStatus !== undefined && {
-          publishStatus: data.publishStatus as "draft" | "published" | "archived",
+          publishStatus: data.publishStatus as "draft" | "published" | "unpublished",
         }),
       },
     });

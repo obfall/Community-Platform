@@ -7,14 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, FileText, BookOpen } from "lucide-react";
+import { SelectField } from "@/components/select-field";
+import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
   article: "記事",
@@ -22,6 +17,13 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   document: "ドキュメント",
   other: "その他",
 };
+
+const CONTENT_TYPE_OPTIONS = [
+  { value: "article", label: "記事" },
+  { value: "course", label: "コース" },
+  { value: "document", label: "ドキュメント" },
+  { value: "other", label: "その他" },
+];
 
 export default function ContentPage() {
   const [query, setQuery] = useState<{
@@ -58,37 +60,24 @@ export default function ContentPage() {
           placeholder="コンテンツを検索..."
           className="max-w-xs"
         />
-        <Select
+        <SelectField
           value={query.contentType ?? "all"}
-          onValueChange={(v) =>
+          onChange={(v) =>
             setQuery((p) => ({ ...p, contentType: v === "all" ? undefined : v, page: 1 }))
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="種別" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="article">記事</SelectItem>
-            <SelectItem value="course">コース</SelectItem>
-            <SelectItem value="document">ドキュメント</SelectItem>
-            <SelectItem value="other">その他</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
+          options={CONTENT_TYPE_OPTIONS}
+          includeAll
+          placeholder="種別"
+          className="w-36"
+        />
+        <SelectField
           value={query.publishStatus ?? "all"}
-          onValueChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="published">公開</SelectItem>
-            <SelectItem value="archived">アーカイブ</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
+          options={PUBLISH_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-36"
+        />
       </div>
 
       {isLoading ? (

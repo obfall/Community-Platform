@@ -11,11 +11,11 @@ export class VenuesService {
   // --- 施設 ---
 
   async findAllVenues(publishStatus?: string) {
-    const where: { deletedAt: null; publishStatus?: "draft" | "published" | "archived" } = {
+    const where: { deletedAt: null; publishStatus?: "draft" | "published" | "unpublished" } = {
       deletedAt: null,
     };
     if (publishStatus && publishStatus !== "all") {
-      where.publishStatus = publishStatus as "draft" | "published" | "archived";
+      where.publishStatus = publishStatus as "draft" | "published" | "unpublished";
     }
     return this.prisma.venue.findMany({
       where,

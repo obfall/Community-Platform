@@ -13,13 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const PARTICIPANT_STATUS_OPTIONS = [
+  { value: "applied", label: "申込済" },
+  { value: "confirmed", label: "確定" },
+  { value: "attended", label: "出席" },
+  { value: "no_show", label: "欠席" },
+  { value: "canceled", label: "キャンセル" },
+];
 
 import type { EventParticipant } from "@/lib/api/types";
 
@@ -103,21 +105,12 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
                   {new Date(p.appliedAt).toLocaleDateString("ja-JP")}
                 </TableCell>
                 <TableCell>
-                  <Select
+                  <SelectField
                     value={p.status}
-                    onValueChange={(status) => updateStatus.mutate({ participantId: p.id, status })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="applied">申込済</SelectItem>
-                      <SelectItem value="confirmed">確定</SelectItem>
-                      <SelectItem value="attended">出席</SelectItem>
-                      <SelectItem value="no_show">欠席</SelectItem>
-                      <SelectItem value="canceled">キャンセル</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onChange={(status) => updateStatus.mutate({ participantId: p.id, status })}
+                    options={PARTICIPANT_STATUS_OPTIONS}
+                    className="h-8 text-xs"
+                  />
                 </TableCell>
               </TableRow>
             ))}

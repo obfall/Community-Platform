@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
+import { PUBLISH_STATUS_LABELS } from "@/lib/constants/publish-status";
 
 const VENUE_TYPE_LABELS: Record<string, string> = {
   theater: "劇場",
@@ -41,12 +42,6 @@ const VENUE_TYPE_LABELS: Record<string, string> = {
   live_house: "ライブハウス",
   gymnasium: "体育館",
   other: "その他",
-};
-
-const PUBLISH_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  archived: "アーカイブ",
 };
 
 interface VenueImageItem {

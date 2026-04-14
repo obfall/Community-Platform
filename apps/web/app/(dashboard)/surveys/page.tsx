@@ -6,13 +6,13 @@ import { useSurveys, useDeleteSurvey, useUpdateSurveyStatus } from "@/hooks/surv
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const SURVEY_STATUS_OPTIONS = [
+  { value: "draft", label: "下書き" },
+  { value: "active", label: "受付中" },
+  { value: "closed", label: "終了" },
+];
 import {
   Table,
   TableBody,
@@ -62,22 +62,16 @@ export default function SurveysPage() {
           placeholder="検索..."
           className="max-w-xs"
         />
-        <Select
+        <SelectField
           value={query.status ?? "all"}
-          onValueChange={(v) =>
+          onChange={(v) =>
             setQuery((p) => ({ ...p, status: v === "all" ? undefined : v, page: 1 }))
           }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="active">受付中</SelectItem>
-            <SelectItem value="closed">終了</SelectItem>
-          </SelectContent>
-        </Select>
+          options={SURVEY_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-36"
+        />
       </div>
 
       {isLoading ? (

@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString } from "class-validator";
-import { ProjectStatus, ProjectPublishStatus } from "@prisma/client";
+import { ProjectStatus, PublishStatus } from "@prisma/client";
 import { PaginationQueryDto } from "../../common/dto/pagination.dto";
 
 export class ProjectQueryDto extends PaginationQueryDto {
@@ -9,10 +9,10 @@ export class ProjectQueryDto extends PaginationQueryDto {
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
 
-  @ApiPropertyOptional({ enum: ProjectPublishStatus })
+  @ApiPropertyOptional({ enum: PublishStatus })
   @IsOptional()
-  @IsEnum(ProjectPublishStatus)
-  publishStatus?: ProjectPublishStatus;
+  @IsEnum(PublishStatus)
+  publishStatus?: PublishStatus;
 
   @ApiPropertyOptional({ description: "検索キーワード" })
   @IsOptional()

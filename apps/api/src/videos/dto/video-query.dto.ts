@@ -1,13 +1,13 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
-import { VideoPublishStatus } from "@prisma/client";
+import { PublishStatus } from "@prisma/client";
 import { PaginationQueryDto } from "../../common/dto/pagination.dto";
 
 export class VideoQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ enum: VideoPublishStatus })
+  @ApiPropertyOptional({ enum: PublishStatus })
   @IsOptional()
-  @IsEnum(VideoPublishStatus)
-  publishStatus?: VideoPublishStatus;
+  @IsEnum(PublishStatus)
+  publishStatus?: PublishStatus;
 
   @ApiPropertyOptional()
   @IsOptional()

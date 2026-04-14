@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsArray, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
-import { BoardPublishStatus, BoardViewPermission } from "@prisma/client";
+import { PublishStatus, BoardViewPermission } from "@prisma/client";
 
 export class CreatePostDto {
   @ApiProperty({ description: "タイトル", maxLength: 200, example: "初めての投稿" })
@@ -18,13 +18,13 @@ export class CreatePostDto {
   categoryId?: string;
 
   @ApiPropertyOptional({
-    enum: BoardPublishStatus,
-    default: BoardPublishStatus.draft,
+    enum: PublishStatus,
+    default: PublishStatus.draft,
     description: "公開ステータス",
   })
   @IsOptional()
-  @IsEnum(BoardPublishStatus)
-  publishStatus?: BoardPublishStatus;
+  @IsEnum(PublishStatus)
+  publishStatus?: PublishStatus;
 
   @ApiPropertyOptional({
     enum: BoardViewPermission,

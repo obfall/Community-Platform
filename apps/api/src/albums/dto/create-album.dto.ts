@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
-import { AlbumPublishStatus } from "@prisma/client";
+import { PublishStatus } from "@prisma/client";
 
 export class CreateAlbumDto {
   @ApiProperty({ maxLength: 200 })
@@ -18,8 +18,8 @@ export class CreateAlbumDto {
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ enum: AlbumPublishStatus })
+  @ApiPropertyOptional({ enum: PublishStatus })
   @IsOptional()
-  @IsEnum(AlbumPublishStatus)
-  publishStatus?: AlbumPublishStatus;
+  @IsEnum(PublishStatus)
+  publishStatus?: PublishStatus;
 }

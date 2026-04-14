@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const FORMAT_OPTIONS = [
+  { value: "online", label: "オンライン" },
+  { value: "offline", label: "オフライン" },
+  { value: "both", label: "両方" },
+];
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function SkillNewPage() {
@@ -98,16 +98,7 @@ export default function SkillNewPage() {
             </div>
             <div>
               <Label>形式</Label>
-              <Select value={format} onValueChange={setFormat}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="online">オンライン</SelectItem>
-                  <SelectItem value="offline">オフライン</SelectItem>
-                  <SelectItem value="both">両方</SelectItem>
-                </SelectContent>
-              </Select>
+              <SelectField value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-4">

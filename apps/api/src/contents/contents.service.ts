@@ -21,7 +21,7 @@ export class ContentsService {
 
     const where: Prisma.ContentWhereInput = { deletedAt: null };
     if (query.publishStatus && query.publishStatus !== "all") {
-      where.publishStatus = query.publishStatus as "draft" | "published" | "archived";
+      where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     }
     if (query.search) where.name = { contains: query.search, mode: "insensitive" };
     if (query.contentType) where.contentType = query.contentType;
@@ -90,7 +90,7 @@ export class ContentsService {
         price: dto.price,
         coverImageUrl: dto.coverImageUrl,
         inviteToken,
-        publishStatus: (dto.publishStatus as "draft" | "published" | "archived") ?? "draft",
+        publishStatus: (dto.publishStatus as "draft" | "published" | "unpublished") ?? "draft",
         createdByUserId: userId,
       },
     });
@@ -126,7 +126,7 @@ export class ContentsService {
         ...(data.price !== undefined && { price: data.price }),
         ...(data.coverImageUrl !== undefined && { coverImageUrl: data.coverImageUrl }),
         ...(data.publishStatus !== undefined && {
-          publishStatus: data.publishStatus as "draft" | "published" | "archived",
+          publishStatus: data.publishStatus as "draft" | "published" | "unpublished",
         }),
       },
     });

@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { SelectField } from "@/components/select-field";
+import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const NONE_VALUE = "__none__";
 
@@ -137,16 +139,11 @@ function VideoEditForm({
 
           <div>
             <Label>公開状態</Label>
-            <Select value={publishStatus} onValueChange={setPublishStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">下書き</SelectItem>
-                <SelectItem value="published">公開</SelectItem>
-                <SelectItem value="archived">アーカイブ</SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              value={publishStatus}
+              onChange={setPublishStatus}
+              options={PUBLISH_STATUS_OPTIONS}
+            />
           </div>
 
           <div>

@@ -13,13 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
+
+const MAIL_STATUS_OPTIONS = [
+  { value: "draft", label: "下書き" },
+  { value: "scheduled", label: "予約済み" },
+  { value: "sending", label: "送信中" },
+  { value: "sent", label: "送信済み" },
+  { value: "failed", label: "失敗" },
+];
 import { Plus, Mail } from "lucide-react";
 import type { MailMessage } from "@/lib/api/types";
 
@@ -66,25 +68,17 @@ export default function CampaignsPage() {
 
       {/* フィルタ */}
       <div className="flex items-center gap-4">
-        <Select
+        <SelectField
           value={statusFilter}
-          onValueChange={(v) => {
+          onChange={(v) => {
             setStatusFilter(v);
             setPage(1);
           }}
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="ステータス" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべて</SelectItem>
-            <SelectItem value="draft">下書き</SelectItem>
-            <SelectItem value="scheduled">予約済み</SelectItem>
-            <SelectItem value="sending">送信中</SelectItem>
-            <SelectItem value="sent">送信済み</SelectItem>
-            <SelectItem value="failed">失敗</SelectItem>
-          </SelectContent>
-        </Select>
+          options={MAIL_STATUS_OPTIONS}
+          includeAll
+          placeholder="ステータス"
+          className="w-40"
+        />
       </div>
 
       {/* テーブル */}

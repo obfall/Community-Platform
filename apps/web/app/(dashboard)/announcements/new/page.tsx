@@ -10,14 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { SelectField } from "@/components/select-field";
+
+const TARGET_AUDIENCE_OPTIONS = [
+  { value: "all", label: "全員" },
+  { value: "admin", label: "管理者" },
+  { value: "member", label: "メンバー" },
+];
 
 export default function AnnouncementNewPage() {
   const router = useRouter();
@@ -70,16 +70,11 @@ export default function AnnouncementNewPage() {
           </div>
           <div>
             <Label>対象</Label>
-            <Select value={targetAudience} onValueChange={setTargetAudience}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全員</SelectItem>
-                <SelectItem value="admin">管理者</SelectItem>
-                <SelectItem value="member">メンバー</SelectItem>
-              </SelectContent>
-            </Select>
+            <SelectField
+              value={targetAudience}
+              onChange={setTargetAudience}
+              options={TARGET_AUDIENCE_OPTIONS}
+            />
           </div>
           <div className="flex items-center justify-between">
             <Label>公開する</Label>

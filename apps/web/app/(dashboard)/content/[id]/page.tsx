@@ -12,7 +12,7 @@ import { toast } from "sonner";
 const STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
   published: "公開",
-  archived: "アーカイブ",
+  unpublished: "未公開",
 };
 
 const TYPE_LABELS: Record<string, string> = {
