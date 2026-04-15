@@ -37,7 +37,7 @@ export function useCreateSpace() {
       data,
     }: {
       venueId: string;
-      data: { name: string; description?: string; capacity?: number; spaceType?: string };
+      data: { name: string; description?: string; capacity?: number; spaceTypes?: string[] };
     }) => venuesApi.createSpace(venueId, data),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
@@ -68,6 +68,14 @@ export function useReservations(spaceId: string | undefined) {
   });
 }
 
+export function useVenueReservations(venueId: string | undefined) {
+  return useQuery({
+    queryKey: ["venue-reservations", venueId],
+    queryFn: () => venuesApi.getVenueReservations(venueId!),
+    enabled: !!venueId,
+  });
+}
+
 export function useCreateReservation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -80,6 +88,7 @@ export function useCreateReservation() {
     }) => venuesApi.createReservation(spaceId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["venue-reservations"] });
       toast.success("予約を登録しました");
     },
     onError: () => toast.error("予約登録に失敗しました"),
@@ -92,6 +101,7 @@ export function useCancelReservation() {
     mutationFn: (reservationId: string) => venuesApi.cancelReservation(reservationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["venue-reservations"] });
       toast.success("予約をキャンセルしました");
     },
     onError: () => toast.error("予約キャンセルに失敗しました"),

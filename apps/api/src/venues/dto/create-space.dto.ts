@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsArray, IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateSpaceDto {
   @ApiProperty({ maxLength: 200 })
@@ -18,8 +18,9 @@ export class CreateSpaceDto {
   @Min(1)
   capacity?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: [String] })
   @IsOptional()
-  @IsString()
-  spaceType?: string;
+  @IsArray()
+  @IsString({ each: true })
+  spaceTypes?: string[];
 }

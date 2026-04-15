@@ -2,8 +2,10 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { useVenue, useCreateSpace } from "@/hooks/venues/use-venues";
 import { ReservationSection } from "./_components/reservation-section";
+import { ReservationDialog } from "./_components/reservation-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,31 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
 import { PUBLISH_STATUS_LABELS } from "@/lib/constants/publish-status";
-
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  theater: "劇場",
-  concert_hall: "コンサート（音楽）ホール",
-  lecture_hall: "講演ホール",
-  plaza: "広場",
-  classroom_large: "教室(大)",
-  exhibition_hall: "展示ホール",
-  reception_hall: "レセプションホール",
-  dining_space: "飲食スペース",
-  conference_room_large: "会議室(大)",
-  live_house: "ライブハウス",
-  gymnasium: "体育館",
-  other: "その他",
-};
+import { VENUE_TYPE_LABELS, VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
 
 interface VenueImageItem {
   id: string;
@@ -51,14 +33,16 @@ interface VenueImageItem {
 
 export default function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
   const { data: venue, isLoading } = useVenue(id);
   const createSpace = useCreateSpace();
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
+  const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [spaceName, setSpaceName] = useState("");
   const [spaceDescription, setSpaceDescription] = useState("");
   const [spaceCapacity, setSpaceCapacity] = useState("");
-  const [spaceType, setSpaceType] = useState("meeting_room");
+  const [spaceTypes, setSpaceTypes] = useState<string[]>([]);
 
   const handleCreateSpace = () => {
     createSpace.mutate(
@@ -68,7 +52,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           name: spaceName,
           description: spaceDescription || undefined,
           capacity: spaceCapacity ? Number(spaceCapacity) : undefined,
-          spaceType,
+          spaceTypes,
         },
       },
       {
@@ -77,7 +61,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           setSpaceName("");
           setSpaceDescription("");
           setSpaceCapacity("");
-          setSpaceType("meeting_room");
+          setSpaceTypes([]);
         },
       },
     );
@@ -163,10 +147,12 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
             <Building2 className="h-5 w-5" />
             スペース一覧
           </CardTitle>
-          <Button size="sm" onClick={() => setSpaceDialogOpen(true)}>
-            <Plus className="mr-1 h-3 w-3" />
-            スペース追加
-          </Button>
+          {isAdmin && (
+            <Button size="sm" onClick={() => setSpaceDialogOpen(true)}>
+              <Plus className="mr-1 h-3 w-3" />
+              スペース追加
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {venue.spaces.length === 0 ? (
@@ -186,8 +172,18 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                   {venue.spaces.map((s) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {s.spaceType ?? "-"}
+                      <TableCell>
+                        {s.spaceTypes.length === 0 ? (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {s.spaceTypes.map((t) => (
+                              <Badge key={t} variant="outline" className="text-xs">
+                                {VENUE_TYPE_LABELS[t] ?? t}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {s.capacity != null ? `${s.capacity}人` : "-"}
@@ -208,34 +204,74 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
 
       {venue.spaces.filter((s) => s.isReservable).length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               予約
             </CardTitle>
+            <Button size="sm" onClick={() => setReservationDialogOpen(true)}>
+              <Plus className="mr-1 h-3 w-3" />
+              予約する
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>スペース</Label>
-              <Select value={selectedSpaceId} onValueChange={setSelectedSpaceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="スペースを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {venue.spaces
-                    .filter((s) => s.isReservable)
-                    .map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedSpaceId && <ReservationSection spaceId={selectedSpaceId} />}
+          <CardContent>
+            <ReservationSection venueId={id} />
           </CardContent>
         </Card>
       )}
+
+      <ReservationDialog
+        spaces={venue.spaces.filter((s) => s.isReservable).map((s) => ({ id: s.id, name: s.name }))}
+        open={reservationDialogOpen}
+        onOpenChange={setReservationDialogOpen}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            イベント活用状況 ({venue.events.length}件)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {venue.events.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              この施設を使用しているイベントはありません
+            </p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>イベント名</TableHead>
+                    <TableHead>開催日</TableHead>
+                    <TableHead className="text-right">参加者数</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {venue.events.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/events/${e.id}`} className="hover:underline">
+                          {e.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(e.startAt).toLocaleDateString("ja-JP", {
+                          year: "numeric",
+                          month: "numeric",
+                          day: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">{e.participantCount}人</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen}>
         <DialogContent>
@@ -261,32 +297,33 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                 rows={3}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label>タイプ</Label>
-                <Select value={spaceType} onValueChange={setSpaceType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="meeting_room">会議室</SelectItem>
-                    <SelectItem value="studio">スタジオ</SelectItem>
-                    <SelectItem value="hall">ホール</SelectItem>
-                    <SelectItem value="open_space">オープンスペース</SelectItem>
-                    <SelectItem value="other">その他</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div>
+              <Label>種別（複数選択可）</Label>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {VENUE_TYPE_OPTIONS.map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={spaceTypes.includes(opt.value)}
+                      onCheckedChange={(checked) => {
+                        setSpaceTypes((prev) =>
+                          checked ? [...prev, opt.value] : prev.filter((v) => v !== opt.value),
+                        );
+                      }}
+                    />
+                    {opt.label}
+                  </label>
+                ))}
               </div>
-              <div>
-                <Label>定員</Label>
-                <Input
-                  type="number"
-                  value={spaceCapacity}
-                  onChange={(e) => setSpaceCapacity(e.target.value)}
-                  placeholder="任意"
-                  min="1"
-                />
-              </div>
+            </div>
+            <div>
+              <Label>定員</Label>
+              <Input
+                type="number"
+                value={spaceCapacity}
+                onChange={(e) => setSpaceCapacity(e.target.value)}
+                placeholder="任意"
+                min="1"
+              />
             </div>
             <Button
               className="w-full"

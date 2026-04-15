@@ -40,6 +40,11 @@ export class VenuesService {
           orderBy: { sortOrder: "asc" },
           include: { file: { select: { publicUrl: true } } },
         },
+        events: {
+          where: { deletedAt: null },
+          orderBy: { startAt: "desc" },
+          select: { id: true, title: true, startAt: true, participantCount: true },
+        },
       },
     });
     if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
@@ -123,13 +128,7 @@ export class VenuesService {
         name: dto.name,
         description: dto.description,
         capacity: dto.capacity,
-        spaceType: dto.spaceType as
-          | "meeting_room"
-          | "studio"
-          | "hall"
-          | "open_space"
-          | "other"
-          | undefined,
+        spaceTypes: dto.spaceTypes ?? [],
         publishStatus: "published",
       },
     });
@@ -142,6 +141,20 @@ export class VenuesService {
       where: { spaceId },
       orderBy: { startAt: "asc" },
       include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  async getVenueReservations(venueId: string) {
+    return this.prisma.reservation.findMany({
+      where: {
+        space: { venueId, deletedAt: null },
+        status: { not: "canceled" },
+      },
+      orderBy: { startAt: "asc" },
+      include: {
+        user: { select: { id: true, name: true } },
+        space: { select: { id: true, name: true } },
+      },
     });
   }
 

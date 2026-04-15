@@ -9,21 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Building2, Users, MapPin } from "lucide-react";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-
-const VENUE_TYPE_LABELS: Record<string, string> = {
-  theater: "劇場",
-  concert_hall: "コンサート（音楽）ホール",
-  lecture_hall: "講演ホール",
-  plaza: "広場",
-  classroom_large: "教室(大)",
-  exhibition_hall: "展示ホール",
-  reception_hall: "レセプションホール",
-  dining_space: "飲食スペース",
-  conference_room_large: "会議室(大)",
-  live_house: "ライブハウス",
-  gymnasium: "体育館",
-  other: "その他",
-};
+import { VENUE_TYPE_LABELS } from "@/lib/constants/venue-types";
 
 export default function VenuesPage() {
   const [publishStatus, setPublishStatus] = useState("all");
