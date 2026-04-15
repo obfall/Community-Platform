@@ -2,11 +2,12 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { useContent } from "@/hooks/content/use-content";
+import { useRouter } from "next/navigation";
+import { useContent, useDeleteContent } from "@/hooks/content/use-content";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, Copy, Check } from "lucide-react";
+import { ArrowLeft, FileText, Copy, Check, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -24,8 +25,16 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function ContentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: content, isLoading } = useContent(id);
+  const deleteContent = useDeleteContent();
   const [copied, setCopied] = useState(false);
+
+  const handleDelete = () => {
+    if (confirm("本当に削除しますか?")) {
+      deleteContent.mutate(id, { onSuccess: () => router.push("/content") });
+    }
+  };
 
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -72,11 +81,22 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             {content.createdBy.name} ・ {new Date(content.createdAt).toLocaleDateString("ja-JP")}
           </p>
         </div>
-        <Link href={`/content/${content.id}/edit`}>
-          <Button variant="outline" size="sm">
-            編集
+        <div className="flex items-center gap-2">
+          <Link href={`/content/${content.id}/edit`}>
+            <Button variant="outline" size="sm">
+              編集
+            </Button>
+          </Link>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleteContent.isPending}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            削除
           </Button>
-        </Link>
+        </div>
       </div>
 
       <Card>

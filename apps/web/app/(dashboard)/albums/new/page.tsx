@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCreateAlbum, useAlbumCategories } from "@/hooks/albums/use-albums";
+import { useCreateAlbum, useAlbumCategories, useAddAlbumPhotos } from "@/hooks/albums/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,29 +19,40 @@ import {
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
+import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
 
 const NONE_VALUE = "__none__";
 
 export default function AlbumNewPage() {
   const router = useRouter();
   const createAlbum = useCreateAlbum();
+  const addPhotos = useAddAlbumPhotos();
   const { data: categories } = useAlbumCategories();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState(NONE_VALUE);
   const [publishStatus, setPublishStatus] = useState("draft");
+  const [photos, setPhotos] = useState<UploadedFileItem[]>([]);
 
-  const handleSubmit = () => {
-    createAlbum.mutate(
-      {
-        title,
-        description: description || undefined,
-        categoryId: categoryId === NONE_VALUE ? undefined : categoryId,
-        publishStatus,
-      },
-      { onSuccess: () => router.push("/albums") },
-    );
+  const submitting = createAlbum.isPending || addPhotos.isPending;
+
+  const handleSubmit = async () => {
+    const created = (await createAlbum.mutateAsync({
+      title,
+      description: description || undefined,
+      categoryId: categoryId === NONE_VALUE ? undefined : categoryId,
+      publishStatus,
+    })) as { id: string };
+
+    if (photos.length > 0) {
+      await addPhotos.mutateAsync({
+        albumId: created.id,
+        photos: photos.map((p) => ({ fileId: p.fileId })),
+      });
+    }
+
+    router.push(`/albums/${created.id}`);
   };
 
   return (
@@ -102,12 +113,22 @@ export default function AlbumNewPage() {
               options={PUBLISH_STATUS_OPTIONS}
             />
           </div>
+          <div>
+            <Label>写真</Label>
+            <FileUploadList
+              value={photos}
+              onChange={setPhotos}
+              fileCategory="image"
+              accept="image/*"
+              maxSizeMB={10}
+            />
+          </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/albums">
               <Button variant="outline">キャンセル</Button>
             </Link>
-            <Button onClick={handleSubmit} disabled={!title || createAlbum.isPending}>
-              {createAlbum.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleSubmit} disabled={!title || submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               作成
             </Button>
           </div>

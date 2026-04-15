@@ -128,36 +128,34 @@ export default function AlbumsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {albums.map((a) => (
             <Link key={a.id} href={`/albums/${a.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardContent className="p-0">
-                  <div className="flex h-40 items-center justify-center rounded-t-lg bg-muted">
-                    {a.coverPhotoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={a.coverPhotoUrl}
-                        alt={a.title}
-                        className="h-full w-full rounded-t-lg object-cover"
-                      />
-                    ) : (
-                      <Camera className="h-12 w-12 text-muted-foreground" />
+              <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
+                <div className="flex h-40 items-center justify-center bg-muted">
+                  {a.coverPhotoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={a.coverPhotoUrl}
+                      alt={a.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="h-12 w-12 text-muted-foreground" />
+                  )}
+                </div>
+                <CardContent className="p-4">
+                  <div className="mb-1 flex items-center gap-2">
+                    {a.category && (
+                      <Badge variant="secondary" className="text-xs">
+                        {a.category.name}
+                      </Badge>
                     )}
                   </div>
-                  <div className="p-4">
-                    <div className="mb-1 flex items-center gap-2">
-                      {a.category && (
-                        <Badge variant="secondary" className="text-xs">
-                          {a.category.name}
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="line-clamp-1 text-sm font-semibold">{a.title}</h3>
-                    <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Camera className="h-3 w-3" />
-                        {a.photoCount}枚
-                      </span>
-                      <span>{a.createdBy.name}</span>
-                    </div>
+                  <h3 className="line-clamp-1 text-sm font-semibold">{a.title}</h3>
+                  <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Camera className="h-3 w-3" />
+                      {a.photoCount}枚
+                    </span>
+                    <span>{a.createdBy.name}</span>
                   </div>
                 </CardContent>
               </Card>
