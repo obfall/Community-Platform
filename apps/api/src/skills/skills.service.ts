@@ -294,9 +294,14 @@ export class SkillsService {
   }
 
   async deleteComment(commentId: string, userId: string) {
-    const comment = await this.prisma.skillComment.findUnique({ where: { id: commentId } });
+    const comment = await this.prisma.skillComment.findUnique({
+      where: { id: commentId },
+      include: { skillListing: { select: { providerUserId: true } } },
+    });
     if (!comment || comment.deletedAt) throw new NotFoundException("コメントが見つかりません");
-    if (comment.authorUserId !== userId) throw new ForbiddenException();
+    if (comment.authorUserId !== userId && comment.skillListing.providerUserId !== userId) {
+      throw new ForbiddenException();
+    }
 
     await this.prisma.skillComment.update({
       where: { id: commentId },

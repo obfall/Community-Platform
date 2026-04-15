@@ -2,7 +2,9 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { useSkill, useCreateBooking } from "@/hooks/skills/use-skills";
+import { useRouter } from "next/navigation";
+import { useSkill, useCreateBooking, useDeleteSkill } from "@/hooks/skills/use-skills";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Clock, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CommentSection } from "./_components/comment-section";
 
@@ -22,8 +24,11 @@ const FORMAT_LABELS: Record<string, string> = {
 
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
+  const { user } = useAuth();
   const { data: skill, isLoading } = useSkill(id);
   const createBooking = useCreateBooking();
+  const deleteSkill = useDeleteSkill();
   const [message, setMessage] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
 
@@ -43,20 +48,49 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     );
   };
 
+  const handleDelete = () => {
+    if (confirm("本当に削除しますか?")) {
+      deleteSkill.mutate(id, { onSuccess: () => router.push("/skills") });
+    }
+  };
+
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
   if (!skill)
     return <div className="py-12 text-center text-muted-foreground">スキルが見つかりません</div>;
 
+  const isOwner = user?.id === skill.provider.id;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/skills">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold">{skill.title}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/skills">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">{skill.title}</h1>
+        </div>
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            <Link href={`/skills/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Pencil className="mr-2 h-4 w-4" />
+                編集
+              </Button>
+            </Link>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteSkill.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              削除
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card>
@@ -96,36 +130,38 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>予約リクエスト</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>希望日時</Label>
-            <Input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>メッセージ</Label>
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="提供者へのメッセージ（任意）"
-              rows={3}
-            />
-          </div>
-          <Button onClick={handleBook} disabled={createBooking.isPending} className="w-full">
-            {createBooking.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            予約リクエストを送信
-          </Button>
-        </CardContent>
-      </Card>
+      {!isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle>予約リクエスト</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>希望日時</Label>
+              <Input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>メッセージ</Label>
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="提供者へのメッセージ（任意）"
+                rows={3}
+              />
+            </div>
+            <Button onClick={handleBook} disabled={createBooking.isPending} className="w-full">
+              {createBooking.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              予約リクエストを送信
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-      <CommentSection listingId={id} />
+      <CommentSection listingId={id} providerId={skill.provider.id} />
     </div>
   );
 }
