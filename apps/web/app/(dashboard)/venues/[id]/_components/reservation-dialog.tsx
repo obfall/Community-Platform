@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useCreateReservation } from "@/hooks/venues/use-venues";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
 
-  useEffect(() => {
-    if (open && !spaceId && spaces[0]) {
-      setSpaceId(spaces[0].id);
-    }
-  }, [open, spaces, spaceId]);
+  const effectiveSpaceId = spaceId || spaces[0]?.id || "";
 
   const reset = () => {
     setSpaceId("");
@@ -43,7 +39,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
 
   const handleSubmit = () => {
     createReservation.mutate(
-      { spaceId, data: { title: title || undefined, startAt, endAt } },
+      { spaceId: effectiveSpaceId, data: { title: title || undefined, startAt, endAt } },
       {
         onSuccess: () => {
           reset();
@@ -68,7 +64,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
         <div className="space-y-4">
           <div>
             <Label>スペース</Label>
-            <Select value={spaceId} onValueChange={setSpaceId}>
+            <Select value={effectiveSpaceId} onValueChange={setSpaceId}>
               <SelectTrigger>
                 <SelectValue placeholder="スペースを選択" />
               </SelectTrigger>
@@ -110,7 +106,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={!spaceId || !startAt || !endAt || createReservation.isPending}
+            disabled={!effectiveSpaceId || !startAt || !endAt || createReservation.isPending}
           >
             {createReservation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             予約する
