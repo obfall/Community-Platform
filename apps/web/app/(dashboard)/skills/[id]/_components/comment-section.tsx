@@ -6,17 +6,26 @@ import {
   useAddSkillComment,
   useDeleteSkillComment,
 } from "@/hooks/skills/use-skills";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Trash2 } from "lucide-react";
 
-export function CommentSection({ listingId }: { listingId: string }) {
+export function CommentSection({
+  listingId,
+  providerId,
+}: {
+  listingId: string;
+  providerId: string;
+}) {
+  const { user } = useAuth();
   const { data: comments, isLoading } = useSkillComments(listingId);
   const addComment = useAddSkillComment();
   const deleteComment = useDeleteSkillComment();
   const [body, setBody] = useState("");
+  const isProvider = user?.id === providerId;
 
   const handleSubmit = () => {
     if (!body.trim()) return;
@@ -68,14 +77,16 @@ export function CommentSection({ listingId }: { listingId: string }) {
                         {new Date(c.createdAt).toLocaleDateString("ja-JP")}
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteComment.mutate(c.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    {(isProvider || user?.id === c.author.id) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteComment.mutate(c.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                   <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
                 </div>

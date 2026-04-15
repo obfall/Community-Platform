@@ -30,6 +30,32 @@ export function useCreateSkill() {
   });
 }
 
+export function useUpdateSkill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        title?: string;
+        description?: string;
+        price?: number;
+        durationMinutes?: number;
+        format?: string;
+        status?: string;
+      };
+    }) => skillsApi.update(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["skills"] });
+      queryClient.invalidateQueries({ queryKey: ["skills", variables.id] });
+      toast.success("スキルを更新しました");
+    },
+    onError: () => toast.error("スキル更新に失敗しました"),
+  });
+}
+
 export function useDeleteSkill() {
   const queryClient = useQueryClient();
   return useMutation({
