@@ -91,46 +91,44 @@ export default function ContentPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {contents.map((c) => (
             <Link key={c.id} href={`/content/${c.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardContent className="p-0">
-                  <div className="flex h-36 items-center justify-center rounded-t-lg bg-muted">
-                    {c.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={c.coverImageUrl}
-                        alt={c.name}
-                        className="h-full w-full rounded-t-lg object-cover"
-                      />
-                    ) : (
-                      <BookOpen className="h-12 w-12 text-muted-foreground" />
-                    )}
+              <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
+                <div className="flex h-36 items-center justify-center bg-muted">
+                  {c.coverImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.coverImageUrl}
+                      alt={c.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <BookOpen className="h-12 w-12 text-muted-foreground" />
+                  )}
+                </div>
+                <CardContent className="p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {CONTENT_TYPE_LABELS[c.contentType] ?? c.contentType}
+                    </Badge>
+                    <Badge
+                      variant={c.publishStatus === "published" ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {c.publishStatus === "published" ? "公開" : "下書き"}
+                    </Badge>
                   </div>
-                  <div className="p-4">
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {CONTENT_TYPE_LABELS[c.contentType] ?? c.contentType}
-                      </Badge>
-                      <Badge
-                        variant={c.publishStatus === "published" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {c.publishStatus === "published" ? "公開" : "下書き"}
-                      </Badge>
-                    </div>
-                    <h3 className="line-clamp-2 text-sm font-semibold">{c.name}</h3>
-                    {c.description && (
-                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                        {c.description}
-                      </p>
+                  <h3 className="line-clamp-2 text-sm font-semibold">{c.name}</h3>
+                  {c.description && (
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      {c.description}
+                    </p>
+                  )}
+                  <div className="mt-3 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
+                    <span>{c.createdBy.name}</span>
+                    {c.price != null && (
+                      <span className="font-semibold text-foreground">
+                        &yen;{c.price.toLocaleString()}
+                      </span>
                     )}
-                    <div className="mt-3 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-                      <span>{c.createdBy.name}</span>
-                      {c.price != null && (
-                        <span className="font-semibold text-foreground">
-                          &yen;{c.price.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </CardContent>
               </Card>
