@@ -82,6 +82,12 @@ export class VenuesController {
     return this.service.getReservations(spaceId);
   }
 
+  @Get(":id/reservations")
+  @ApiOperation({ summary: "施設内全予約一覧" })
+  getVenueReservations(@Param("id", ParseUUIDPipe) venueId: string) {
+    return this.service.getVenueReservations(venueId);
+  }
+
   @Post("spaces/:spaceId/reservations")
   @ApiOperation({ summary: "予約作成" })
   createReservation(

@@ -759,6 +759,7 @@ export interface EventListItem {
   title: string;
   description: string | null;
   locationType: string;
+  venueId: string | null;
   venueName: string | null;
   startAt: string;
   endAt: string;
@@ -802,6 +803,7 @@ export interface EventOrganization {
 }
 
 export interface EventDetail extends EventListItem {
+  venueId: string | null;
   venueAddress: string | null;
   onlineUrl: string | null;
   registrationDeadlineAt: string | null;
@@ -861,6 +863,7 @@ export interface CreateEventInput {
   title: string;
   description?: string;
   locationType: "venue" | "online" | "hybrid";
+  venueId?: string;
   venueName?: string;
   venueAddress?: string;
   onlineUrl?: string;
@@ -1331,8 +1334,14 @@ export interface VenueDetail extends VenueListItem {
     name: string;
     description: string | null;
     capacity: number | null;
-    spaceType: string | null;
+    spaceTypes: string[];
     isReservable: boolean;
+  }>;
+  events: Array<{
+    id: string;
+    title: string;
+    startAt: string;
+    participantCount: number;
   }>;
 }
 
@@ -1346,6 +1355,10 @@ export interface Reservation {
   note: string | null;
   user: { id: string; name: string };
   createdAt: string;
+}
+
+export interface VenueReservation extends Reservation {
+  space: { id: string; name: string };
 }
 
 // --- Announcements ---

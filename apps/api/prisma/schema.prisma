@@ -1104,6 +1104,7 @@ model Event {
   title                    String           @db.VarChar(200)
   description              String?          @db.Text
   locationType             EventLocationType @default(venue) @map("location_type")
+  venueId                  String?          @map("venue_id") @db.Uuid
   venueName                String?          @map("venue_name") @db.VarChar(300)
   venueAddress             String?          @map("venue_address") @db.VarChar(500)
   onlineUrl                String?          @map("online_url") @db.VarChar(500)
@@ -1136,6 +1137,7 @@ model Event {
   createdByUser  User                @relation("EventCreator", fields: [createdByUserId], references: [id])
   category       Category?           @relation(fields: [categoryId], references: [id])
   requiredRank   MemberRank?         @relation(fields: [requiredRankId], references: [id])
+  venue          Venue?              @relation(fields: [venueId], references: [id])
   tickets        EventTicket[]
   participants   EventParticipant[]
   speakers       EventSpeaker[]
@@ -1153,6 +1155,7 @@ model Event {
   @@index([startAt])
   @@index([createdByUserId])
   @@index([categoryId])
+  @@index([venueId])
   @@map("events")
 }
 
@@ -2271,15 +2274,7 @@ enum OrderStatus {
   canceled
 }
 
-// VenueType は String[] に移行（複数選択対応）
-
-enum SpaceType {
-  meeting_room
-  studio
-  hall
-  open_space
-  other
-}
+// VenueType / SpaceType は String[] に移行（複数選択対応）
 
 enum ReservationStatus {
   pending
@@ -2493,6 +2488,7 @@ model Venue {
   createdBy User         @relation("VenueCreator", fields: [createdByUserId], references: [id])
   images    VenueImage[]
   spaces    Space[]
+  events    Event[]
 
   @@index([publishStatus])
   @@map("venues")
@@ -2520,7 +2516,7 @@ model Space {
   name          String               @db.VarChar(200)
   description   String?              @db.Text
   capacity      Int?
-  spaceType     SpaceType?           @map("space_type")
+  spaceTypes    String[]             @default([]) @map("space_types")
   isReservable  Boolean              @default(true) @map("is_reservable")
   publishStatus PublishStatus @default(draft) @map("publish_status")
   sortOrder     Int                  @default(0) @map("sort_order")

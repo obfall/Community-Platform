@@ -39,11 +39,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
+import { VenuePicker } from "@/components/venue-picker";
 
 const schema = z.object({
   title: z.string().min(1, "タイトルは必須です").max(200),
   description: z.string().optional(),
   locationType: z.enum(["venue", "online", "hybrid"]),
+  venueId: z.string().optional(),
   venueName: z.string().optional(),
   venueAddress: z.string().optional(),
   onlineUrl: z.string().optional(),
@@ -84,6 +86,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
       title: "",
       description: "",
       locationType: "venue",
+      venueId: undefined,
       venueName: "",
       venueAddress: "",
       onlineUrl: "",
@@ -108,6 +111,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         title: event.title,
         description: event.description ?? "",
         locationType: event.locationType as "venue" | "online" | "hybrid",
+        venueId: event.venueId ?? undefined,
         venueName: event.venueName ?? "",
         venueAddress: event.venueAddress ?? "",
         onlineUrl: event.onlineUrl ?? "",
@@ -135,6 +139,7 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         id,
         data: {
           ...data,
+          venueId: data.venueId || undefined,
           registrationDeadlineAt: data.registrationDeadlineAt || undefined,
           eventType: data.eventType || undefined,
           accessInfo: data.accessInfo || undefined,
@@ -269,6 +274,25 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   />
                   {(locationType === "venue" || locationType === "hybrid") && (
                     <>
+                      <FormField
+                        control={form.control}
+                        name="venueId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>施設</FormLabel>
+                            <FormControl>
+                              <VenuePicker
+                                value={field.value}
+                                onChange={(venue) => {
+                                  field.onChange(venue?.id);
+                                  form.setValue("venueName", venue?.name ?? "");
+                                  form.setValue("venueAddress", venue?.address ?? "");
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="venueName"

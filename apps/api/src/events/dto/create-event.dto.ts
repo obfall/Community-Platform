@@ -25,6 +25,11 @@ export class CreateEventDto {
   @IsEnum(EventLocationType)
   locationType!: EventLocationType;
 
+  @ApiPropertyOptional({ description: "施設ID" })
+  @IsOptional()
+  @IsUUID()
+  venueId?: string;
+
   @ApiPropertyOptional({ description: "開催場所名" })
   @IsOptional()
   @IsString()

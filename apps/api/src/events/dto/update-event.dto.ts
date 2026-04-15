@@ -29,6 +29,11 @@ export class UpdateEventDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsUUID()
+  venueId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   venueName?: string;
 
