@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
 import type { CreateCategoryDto } from "../dto/create-category.dto";
 import type { UpdateCategoryDto } from "../dto/update-category.dto";
@@ -99,7 +100,7 @@ export class BoardCoreService {
     userId: string,
     dto: CreateCategoryDto,
     scopeId?: string,
-  ) {
+  ): Promise<unknown> {
     const data: Record<string, unknown> = {
       name: dto.name,
       description: dto.description,
@@ -109,16 +110,20 @@ export class BoardCoreService {
     };
     if (cfg.scopeField && scopeId) data[cfg.scopeField] = scopeId;
 
-    return this.delegate(cfg.categoryDelegate).create({ data });
+    return (await this.delegate(cfg.categoryDelegate).create({ data })) as unknown;
   }
 
-  async updateCategory(cfg: BoardScopeConfig, id: string, dto: UpdateCategoryDto) {
+  async updateCategory(
+    cfg: BoardScopeConfig,
+    id: string,
+    dto: UpdateCategoryDto,
+  ): Promise<unknown> {
     const category = await this.delegate(cfg.categoryDelegate).findUnique({
       where: { id, deletedAt: null },
     });
     if (!category) throw new NotFoundException("カテゴリが見つかりません");
 
-    return this.delegate(cfg.categoryDelegate).update({
+    return (await this.delegate(cfg.categoryDelegate).update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -128,17 +133,18 @@ export class BoardCoreService {
           allowTopicCreation: dto.allowTopicCreation,
         }),
       },
-    });
+    })) as unknown;
   }
 
   async reorderCategories(cfg: BoardScopeConfig, items: { id: string; sortOrder: number }[]) {
     const delegate = this.delegate(cfg.categoryDelegate);
     await this.prisma.$transaction(
-      items.map((item) =>
-        delegate.update({
-          where: { id: item.id },
-          data: { sortOrder: item.sortOrder },
-        }),
+      items.map(
+        (item) =>
+          delegate.update({
+            where: { id: item.id },
+            data: { sortOrder: item.sortOrder },
+          }) as Prisma.PrismaPromise<unknown>,
       ),
     );
   }
@@ -403,11 +409,12 @@ export class BoardCoreService {
   async reorderTopics(cfg: BoardScopeConfig, items: { id: string; sortOrder: number }[]) {
     const delegate = this.delegate(cfg.topicDelegate);
     await this.prisma.$transaction(
-      items.map((item) =>
-        delegate.update({
-          where: { id: item.id },
-          data: { sortOrder: item.sortOrder },
-        }),
+      items.map(
+        (item) =>
+          delegate.update({
+            where: { id: item.id },
+            data: { sortOrder: item.sortOrder },
+          }) as Prisma.PrismaPromise<unknown>,
       ),
     );
   }
