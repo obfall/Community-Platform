@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Video, Play } from "lucide-react";
+import { Video, Play, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/auth/use-auth";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
 function formatDuration(seconds: number | null) {
@@ -34,12 +35,24 @@ export default function VideosPage() {
   const { data, isLoading } = useVideos(query);
   const { data: categories } = useVideoCategories();
   const { data: seriesList } = useVideoSeries();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.role === "owner";
   const videos = data?.data ?? [];
   const meta = data?.meta;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">動画</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">動画</h1>
+        {isAdmin && (
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/videos/manage">
+              <Settings className="mr-1 h-4 w-4" />
+              動画管理
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -85,6 +98,69 @@ export default function VideosPage() {
                 {s.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        {isAdmin && (
+          <Select
+            value={query.publishStatus ?? "all"}
+            onValueChange={(v) =>
+              setQuery((p) => ({
+                ...p,
+                publishStatus: v === "all" ? undefined : v,
+                page: 1,
+              }))
+            }
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="公開状態" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべて</SelectItem>
+              <SelectItem value="draft">下書き</SelectItem>
+              <SelectItem value="published">公開</SelectItem>
+              <SelectItem value="unpublished">未公開</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        {isAdmin && (
+          <Select
+            value={query.viewPermission ?? "all"}
+            onValueChange={(v) =>
+              setQuery((p) => ({
+                ...p,
+                viewPermission: v === "all" ? undefined : v,
+                page: 1,
+              }))
+            }
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="閲覧範囲" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべて</SelectItem>
+              <SelectItem value="role_restricted">ロール制限</SelectItem>
+              <SelectItem value="rank_restricted">ランク制限</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <Select
+          value={query.taskProgress ?? "all"}
+          onValueChange={(v) =>
+            setQuery((p) => ({
+              ...p,
+              taskProgress: v === "all" ? undefined : (v as "incomplete" | "complete" | "none"),
+              page: 1,
+            }))
+          }
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="タスク進捗" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">すべて</SelectItem>
+            <SelectItem value="incomplete">未完了タスクあり</SelectItem>
+            <SelectItem value="complete">すべて完了</SelectItem>
+            <SelectItem value="none">タスクなし</SelectItem>
           </SelectContent>
         </Select>
       </div>

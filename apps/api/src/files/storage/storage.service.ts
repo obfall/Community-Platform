@@ -43,14 +43,22 @@ export class StorageService {
   async upload(key: string, body: Buffer, contentType: string): Promise<string | null> {
     this.ensureClient();
 
-    await this.client!.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    );
+    try {
+      await this.client!.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Storage upload failed: key=${key}, bucket=${this.bucket}, size=${body.length}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
 
     return this.getPublicUrl(key);
   }

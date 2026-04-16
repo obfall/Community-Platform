@@ -1728,6 +1728,13 @@ enum StreamStatus {
 enum VideoViewPermission {
   all
   rank_restricted
+  role_restricted
+}
+
+enum VideoTaskStatus {
+  not_started
+  in_progress
+  completed
 }
 
 // --- Video Models ---
@@ -1761,6 +1768,7 @@ model Video {
   durationSeconds   Int?                @map("duration_seconds")
   viewPermission    VideoViewPermission @default(all) @map("view_permission")
   requiredRankId    String?             @map("required_rank_id") @db.Uuid
+  allowedRoles      String[]            @default([]) @map("allowed_roles")
   availableUntil    DateTime?           @map("available_until") @db.Timestamptz()
   passwordHash      String?             @map("password_hash") @db.VarChar(255)
   publishStatus     PublishStatus  @default(draft) @map("publish_status")
@@ -1790,18 +1798,20 @@ model Video {
 }
 
 model VideoInstructor {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  videoId   String   @map("video_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId     String   @map("video_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  affiliation String?  @db.VarChar(200)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id])
+  user  User? @relation(fields: [userId], references: [id])
 
-  @@unique([videoId, userId])
   @@index([userId])
+  @@index([videoId, sortOrder])
   @@map("video_instructors")
 }
 
@@ -1860,11 +1870,13 @@ model VideoTask {
 }
 
 model VideoTaskCompletion {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  videoTaskId String   @map("video_task_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz()
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoTaskId String          @map("video_task_id") @db.Uuid
+  userId      String          @map("user_id") @db.Uuid
+  status      VideoTaskStatus @default(completed) @map("status")
+  completedAt DateTime?       @map("completed_at") @db.Timestamptz()
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   videoTask VideoTask @relation(fields: [videoTaskId], references: [id], onDelete: Cascade)

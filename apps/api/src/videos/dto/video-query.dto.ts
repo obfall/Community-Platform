@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
-import { PublishStatus } from "@prisma/client";
+import { IsEnum, IsIn, IsOptional, IsString, IsUUID } from "class-validator";
+import { PublishStatus, VideoViewPermission } from "@prisma/client";
 import { PaginationQueryDto } from "../../common/dto/pagination.dto";
 
 export class VideoQueryDto extends PaginationQueryDto {
@@ -23,4 +23,14 @@ export class VideoQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ enum: VideoViewPermission })
+  @IsOptional()
+  @IsEnum(VideoViewPermission)
+  viewPermission?: VideoViewPermission;
+
+  @ApiPropertyOptional({ description: "タスク進捗（自分視点）: incomplete / complete / none" })
+  @IsOptional()
+  @IsIn(["incomplete", "complete", "none"])
+  taskProgress?: "incomplete" | "complete" | "none";
 }

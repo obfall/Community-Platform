@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { videosApi } from "@/lib/api/videos";
-import type { VideoQuery } from "@/lib/api/types";
+import type { VideoQuery, InstructorInput, TaskInput, VideoTaskStatus } from "@/lib/api/types";
 
 export function useVideos(query?: VideoQuery) {
   return useQuery({
@@ -67,6 +67,16 @@ export function useVideoSeries() {
   });
 }
 
+/** シリーズ内で次に使う watchOrder */
+export function useNextWatchOrder(seriesId: string | undefined) {
+  return useQuery({
+    queryKey: ["videos", "series", seriesId, "next-watch-order"],
+    queryFn: () => videosApi.getNextWatchOrder(seriesId!),
+    enabled: !!seriesId,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useCreateVideoSeries() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -93,6 +103,15 @@ export function useUpdateVideo() {
         publishStatus?: string;
         categoryId?: string | null;
         seriesId?: string | null;
+        watchOrder?: number | null;
+        availableUntil?: string | null;
+        viewPermission?: string;
+        allowedRoles?: string[];
+        requiredRankId?: string | null;
+        password?: string | null;
+        instructors?: InstructorInput[];
+        attachmentFileIds?: string[];
+        tasks?: TaskInput[];
       };
     }) => videosApi.updateVideo(id, data),
     onSuccess: (_data, variables) => {
@@ -113,5 +132,66 @@ export function useDeleteVideo() {
       toast.success("動画を削除しました");
     },
     onError: () => toast.error("動画の削除に失敗しました"),
+  });
+}
+
+// パスワード検証
+export function useVerifyVideoPassword() {
+  return useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      videosApi.verifyPassword(id, password),
+  });
+}
+
+// タスクステータス更新
+export function useUpdateTaskStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: VideoTaskStatus }) =>
+      videosApi.updateTaskStatus(taskId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+    },
+  });
+}
+
+// タスク進捗（管理者用）
+export function useVideoTaskProgress(videoId: string | undefined) {
+  return useQuery({
+    queryKey: ["videos", videoId, "task-progress"],
+    queryFn: () => videosApi.getTaskProgress(videoId!),
+    enabled: !!videoId,
+  });
+}
+
+// タスクリマインド
+export function useSendTaskReminder() {
+  return useMutation({
+    mutationFn: ({
+      videoId,
+      taskId,
+      userIds,
+    }: {
+      videoId: string;
+      taskId: string;
+      userIds: string[];
+    }) => videosApi.sendTaskReminder(videoId, taskId, userIds),
+    onSuccess: (data) => {
+      toast.success(`${data.sentCount}件のリマインドを送信しました`);
+    },
+    onError: () => toast.error("リマインドの送信に失敗しました"),
+  });
+}
+
+// 動画ファイル差し替え
+export function useReplaceVideoFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) => videosApi.replaceFile(id, file),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
+      toast.success("動画ファイルの差し替えを開始しました");
+    },
+    onError: () => toast.error("動画ファイルの差し替えに失敗しました"),
   });
 }
