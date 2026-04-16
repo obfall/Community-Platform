@@ -1,87 +1,30 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@/prisma/prisma.service";
+import { Injectable } from "@nestjs/common";
+import { BoardCoreService } from "./core/board-core.service";
+import { GLOBAL_BOARD_SCOPE } from "./core/board-scope.config";
 import type { CreateCategoryDto } from "./dto/create-category.dto";
 import type { UpdateCategoryDto } from "./dto/update-category.dto";
 
 @Injectable()
 export class BoardCategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly core: BoardCoreService) {}
 
-  async findAll() {
-    const categories = await this.prisma.boardCategory.findMany({
-      where: { deletedAt: null },
-      orderBy: { sortOrder: "asc" },
-      include: {
-        _count: {
-          select: {
-            posts: { where: { publishStatus: "published", deletedAt: null } },
-          },
-        },
-      },
-    });
-
-    return categories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      sortOrder: c.sortOrder,
-      allowTopicCreation: c.allowTopicCreation,
-      postCount: c._count.posts,
-      createdAt: c.createdAt,
-    }));
+  findAll() {
+    return this.core.findAllCategories(GLOBAL_BOARD_SCOPE);
   }
 
-  async create(userId: string, dto: CreateCategoryDto) {
-    return this.prisma.boardCategory.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        sortOrder: dto.sortOrder ?? 0,
-        allowTopicCreation: dto.allowTopicCreation ?? true,
-        createdByUserId: userId,
-      },
-    });
+  create(userId: string, dto: CreateCategoryDto) {
+    return this.core.createCategory(GLOBAL_BOARD_SCOPE, userId, dto);
   }
 
-  async update(id: string, dto: UpdateCategoryDto) {
-    const category = await this.prisma.boardCategory.findUnique({
-      where: { id, deletedAt: null },
-    });
-    if (!category) throw new NotFoundException("カテゴリが見つかりません");
-
-    return this.prisma.boardCategory.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
-        ...(dto.allowTopicCreation !== undefined && {
-          allowTopicCreation: dto.allowTopicCreation,
-        }),
-      },
-    });
+  update(id: string, dto: UpdateCategoryDto) {
+    return this.core.updateCategory(GLOBAL_BOARD_SCOPE, id, dto);
   }
 
-  async reorder(items: { id: string; sortOrder: number }[]) {
-    await this.prisma.$transaction(
-      items.map((item) =>
-        this.prisma.boardCategory.update({
-          where: { id: item.id },
-          data: { sortOrder: item.sortOrder },
-        }),
-      ),
-    );
+  reorder(items: { id: string; sortOrder: number }[]) {
+    return this.core.reorderCategories(GLOBAL_BOARD_SCOPE, items);
   }
 
-  async softDelete(id: string) {
-    const category = await this.prisma.boardCategory.findUnique({
-      where: { id, deletedAt: null },
-    });
-    if (!category) throw new NotFoundException("カテゴリが見つかりません");
-
-    await this.prisma.boardCategory.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+  softDelete(id: string) {
+    return this.core.softDeleteCategory(GLOBAL_BOARD_SCOPE, id);
   }
 }

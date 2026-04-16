@@ -12,18 +12,6 @@ import { FeatureEnabledGuard } from "@/common/guards";
 export class BoardLikesController {
   constructor(private readonly likesService: BoardLikesService) {}
 
-  @Post("posts/:id/like")
-  @ApiOperation({ summary: "投稿いいねトグル" })
-  togglePostLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {
-    return this.likesService.togglePostLike(userId, id);
-  }
-
-  @Post("comments/:id/like")
-  @ApiOperation({ summary: "コメントいいねトグル" })
-  toggleCommentLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {
-    return this.likesService.toggleCommentLike(userId, id);
-  }
-
   @Post("topics/:id/like")
   @ApiOperation({ summary: "トピックいいねトグル" })
   toggleTopicLike(@CurrentUser("id") userId: string, @Param("id", ParseUUIDPipe) id: string) {

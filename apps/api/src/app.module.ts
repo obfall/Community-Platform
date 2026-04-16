@@ -15,7 +15,9 @@ import { ChatModule } from "./chat/chat.module";
 import { MailModule } from "./mail/mail.module";
 import { MemberAttributesModule } from "./member-attributes/member-attributes.module";
 import { EventsModule } from "./events/events.module";
+import { EventBoardModule } from "./events/board/event-board.module";
 import { ProjectsModule } from "./projects/projects.module";
+import { ProjectBoardModule } from "./projects/board/project-board.module";
 import { VideosModule } from "./videos/videos.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { PointsModule } from "./points/points.module";
@@ -78,9 +80,11 @@ import { validateEnv } from "./config/env.config";
 
     // Events
     EventsModule,
+    EventBoardModule,
 
     // Projects
     ProjectsModule,
+    ProjectBoardModule,
 
     // Videos
     VideosModule,

@@ -1,0 +1,176 @@
+"use client";
+
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useCategories, useTopic, useUpdateTopic } from "@/hooks/board/use-board";
+
+const topicSchema = z.object({
+  title: z.string().min(1, "タイトルを入力してください").max(200),
+  body: z.string().min(1, "本文を入力してください"),
+  categoryId: z.string().min(1, "カテゴリを選択してください"),
+  publishStatus: z.enum(["draft", "published"]),
+});
+
+type TopicFormValues = z.infer<typeof topicSchema>;
+
+interface EditTopicDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  topicId: string;
+}
+
+export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialogProps) {
+  const { data: categories } = useCategories();
+  const { data: topic } = useTopic(open ? topicId : undefined);
+  const updateTopic = useUpdateTopic();
+
+  const form = useForm<TopicFormValues>({
+    resolver: zodResolver(topicSchema),
+    defaultValues: { title: "", body: "", categoryId: "", publishStatus: "published" },
+  });
+
+  useEffect(() => {
+    if (open && topic) {
+      form.reset({
+        title: topic.title,
+        body: topic.body,
+        categoryId: topic.category.id,
+        publishStatus: topic.publishStatus as "draft" | "published",
+      });
+    }
+  }, [open, topic, form]);
+
+  const onSubmit = (data: TopicFormValues) => {
+    updateTopic.mutate(
+      { id: topicId, data },
+      {
+        onSuccess: () => onOpenChange(false),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>トピックを編集</DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>カテゴリ</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="カテゴリを選択" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>タイトル</FormLabel>
+                  <FormControl>
+                    <Input placeholder="トピックのタイトル" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="body"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>本文</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="内容を入力..." rows={8} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="publishStatus"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>公開ステータス</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="published">公開</SelectItem>
+                      <SelectItem value="draft">下書き</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                キャンセル
+              </Button>
+              <Button type="submit" disabled={updateTopic.isPending}>
+                {updateTopic.isPending ? "保存中..." : "保存"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
