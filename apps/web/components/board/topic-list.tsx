@@ -23,9 +23,11 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useTopics, useReorderTopics } from "@/hooks/board/use-board";
 import { Badge } from "@/components/ui/badge";
+import { useBoardPaths } from "./board-scope";
 import type { BoardTopic } from "@/lib/api/types";
 
 function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boolean }) {
+  const paths = useBoardPaths();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: topic.id,
   });
@@ -51,7 +53,7 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
           <GripVertical className="h-4 w-4" />
         </div>
       )}
-      <Link href={`/board/topics/${topic.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+      <Link href={paths.topic(topic.id)} className="flex min-w-0 flex-1 items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {topic.isPinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}

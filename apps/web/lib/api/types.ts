@@ -213,7 +213,7 @@ export interface BoardCategory {
   description: string | null;
   sortOrder: number;
   allowTopicCreation: boolean;
-  postCount: number;
+  topicCount: number;
   createdAt: string;
 }
 
@@ -234,84 +234,6 @@ export interface BoardPostAuthor {
   id: string;
   name: string;
   avatarUrl: string | null;
-}
-
-export interface BoardTag {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-export interface BoardPost {
-  id: string;
-  title: string;
-  body: string;
-  publishStatus: "draft" | "published" | "unpublished";
-  isPinned: boolean;
-  viewCount: number;
-  commentCount: number;
-  likeCount: number;
-  author: BoardPostAuthor;
-  category: { id: string; name: string } | null;
-  tags: BoardTag[];
-  isLiked: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface BoardPostAttachment {
-  id: string;
-  fileId: string;
-  url: string | null;
-  fileName: string | null;
-  sortOrder: number;
-}
-
-export interface BoardPostDetail extends BoardPost {
-  attachments: BoardPostAttachment[];
-}
-
-export interface PostListQuery {
-  page?: number;
-  limit?: number;
-  categoryId?: string;
-  tagId?: string;
-  authorId?: string;
-  status?: string;
-}
-
-export interface CreatePostInput {
-  title: string;
-  body: string;
-  categoryId?: string;
-  publishStatus?: "draft" | "published";
-  tagIds?: string[];
-  fileIds?: string[];
-}
-
-export interface UpdatePostInput {
-  title?: string;
-  body?: string;
-  categoryId?: string;
-  publishStatus?: "draft" | "published" | "unpublished";
-  tagIds?: string[];
-  fileIds?: string[];
-}
-
-export interface BoardComment {
-  id: string;
-  body: string;
-  likeCount: number;
-  isLiked: boolean;
-  author: BoardPostAuthor;
-  childComments?: BoardComment[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCommentInput {
-  body: string;
-  parentCommentId?: string;
 }
 
 export interface LikeResponse {

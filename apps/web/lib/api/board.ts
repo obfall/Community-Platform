@@ -1,17 +1,11 @@
 import { apiClient } from "./client";
+import { boardBasePath, type BoardScope } from "@/components/board/board-scope";
 import type {
   PaginatedResponse,
   BoardCategory,
-  BoardPost,
-  BoardPostDetail,
-  BoardComment,
   BoardTopic,
   BoardTopicPost,
   BoardTopicPostComment,
-  PostListQuery,
-  CreatePostInput,
-  UpdatePostInput,
-  CreateCommentInput,
   CreateCategoryInput,
   UpdateCategoryInput,
   TopicListQuery,
@@ -23,104 +17,91 @@ import type {
   LikeResponse,
 } from "./types";
 
-export const boardApi = {
-  // カテゴリ
-  getCategories: () => apiClient.get<BoardCategory[]>("/board/categories").then((r) => r.data),
+/**
+ * スコープに応じた API クライアントを生成する。
+ * Global/Project/Event のどのスコープでも同じメソッド群を提供する。
+ */
+export function createBoardApi(scope: BoardScope) {
+  const base = boardBasePath(scope);
 
-  createCategory: (data: CreateCategoryInput) =>
-    apiClient.post<BoardCategory>("/board/categories", data).then((r) => r.data),
+  return {
+    // カテゴリ
+    getCategories: () => apiClient.get<BoardCategory[]>(`${base}/categories`).then((r) => r.data),
 
-  updateCategory: (id: string, data: UpdateCategoryInput) =>
-    apiClient.patch<BoardCategory>(`/board/categories/${id}`, data).then((r) => r.data),
+    createCategory: (data: CreateCategoryInput) =>
+      apiClient.post<BoardCategory>(`${base}/categories`, data).then((r) => r.data),
 
-  deleteCategory: (id: string) => apiClient.delete(`/board/categories/${id}`),
+    updateCategory: (id: string, data: UpdateCategoryInput) =>
+      apiClient.patch<BoardCategory>(`${base}/categories/${id}`, data).then((r) => r.data),
 
-  reorderCategories: (data: ReorderInput) =>
-    apiClient.patch("/board/categories/reorder", data).then((r) => r.data),
+    deleteCategory: (id: string) => apiClient.delete(`${base}/categories/${id}`),
 
-  // 投稿
-  getPosts: (params?: PostListQuery) =>
-    apiClient.get<PaginatedResponse<BoardPost>>("/board/posts", { params }).then((r) => r.data),
+    reorderCategories: (data: ReorderInput) =>
+      apiClient.patch(`${base}/categories/reorder`, data).then((r) => r.data),
 
-  getPost: (id: string) => apiClient.get<BoardPostDetail>(`/board/posts/${id}`).then((r) => r.data),
+    // トピック
+    getTopics: (params?: TopicListQuery) =>
+      apiClient
+        .get<PaginatedResponse<BoardTopic>>(`${base}/topics`, { params })
+        .then((r) => r.data),
 
-  createPost: (data: CreatePostInput) =>
-    apiClient.post<BoardPost>("/board/posts", data).then((r) => r.data),
+    getTopic: (id: string) => apiClient.get<BoardTopic>(`${base}/topics/${id}`).then((r) => r.data),
 
-  updatePost: (id: string, data: UpdatePostInput) =>
-    apiClient.patch<BoardPost>(`/board/posts/${id}`, data).then((r) => r.data),
+    createTopic: (data: CreateTopicInput) =>
+      apiClient.post<BoardTopic>(`${base}/topics`, data).then((r) => r.data),
 
-  deletePost: (id: string) => apiClient.delete(`/board/posts/${id}`),
+    updateTopic: (id: string, data: UpdateTopicInput) =>
+      apiClient.patch<BoardTopic>(`${base}/topics/${id}`, data).then((r) => r.data),
 
-  togglePin: (id: string) =>
-    apiClient.patch<{ isPinned: boolean }>(`/board/posts/${id}/pin`).then((r) => r.data),
+    deleteTopic: (id: string) => apiClient.delete(`${base}/topics/${id}`),
 
-  // コメント
-  getComments: (postId: string, params?: { page?: number; limit?: number }) =>
-    apiClient
-      .get<PaginatedResponse<BoardComment>>(`/board/posts/${postId}/comments`, { params })
-      .then((r) => r.data),
+    reorderTopics: (data: ReorderInput) =>
+      apiClient.patch(`${base}/topics/reorder`, data).then((r) => r.data),
 
-  createComment: (postId: string, data: CreateCommentInput) =>
-    apiClient.post<BoardComment>(`/board/posts/${postId}/comments`, data).then((r) => r.data),
+    toggleTopicLike: (id: string) =>
+      apiClient.post<LikeResponse>(`${base}/topics/${id}/like`).then((r) => r.data),
 
-  updateComment: (id: string, data: { body: string }) =>
-    apiClient.patch<BoardComment>(`/board/comments/${id}`, data).then((r) => r.data),
+    // トピック投稿
+    getTopicPosts: (topicId: string, params?: { page?: number; limit?: number }) =>
+      apiClient
+        .get<PaginatedResponse<BoardTopicPost>>(`${base}/topics/${topicId}/posts`, { params })
+        .then((r) => r.data),
 
-  deleteComment: (id: string) => apiClient.delete(`/board/comments/${id}`),
+    createTopicPost: (topicId: string, data: CreateTopicPostInput) =>
+      apiClient.post<BoardTopicPost>(`${base}/topics/${topicId}/posts`, data).then((r) => r.data),
 
-  // いいね
-  togglePostLike: (id: string) =>
-    apiClient.post<LikeResponse>(`/board/posts/${id}/like`).then((r) => r.data),
+    updateTopicPost: (id: string, data: { body: string }) =>
+      apiClient.patch<BoardTopicPost>(`${base}/topic-posts/${id}`, data).then((r) => r.data),
 
-  toggleCommentLike: (id: string) =>
-    apiClient.post<LikeResponse>(`/board/comments/${id}/like`).then((r) => r.data),
+    deleteTopicPost: (id: string) => apiClient.delete(`${base}/topic-posts/${id}`),
 
-  // トピック
-  getTopics: (params?: TopicListQuery) =>
-    apiClient.get<PaginatedResponse<BoardTopic>>("/board/topics", { params }).then((r) => r.data),
+    toggleTopicPostLike: (id: string) =>
+      apiClient.post<LikeResponse>(`${base}/topic-posts/${id}/like`).then((r) => r.data),
 
-  getTopic: (id: string) => apiClient.get<BoardTopic>(`/board/topics/${id}`).then((r) => r.data),
+    // トピック投稿コメント
+    getTopicPostComments: (postId: string, params?: { page?: number; limit?: number }) =>
+      apiClient
+        .get<PaginatedResponse<BoardTopicPostComment>>(`${base}/topic-posts/${postId}/comments`, {
+          params,
+        })
+        .then((r) => r.data),
 
-  createTopic: (data: CreateTopicInput) =>
-    apiClient.post<BoardTopic>("/board/topics", data).then((r) => r.data),
+    createTopicPostComment: (postId: string, data: CreateTopicPostCommentInput) =>
+      apiClient
+        .post<BoardTopicPostComment>(`${base}/topic-posts/${postId}/comments`, data)
+        .then((r) => r.data),
 
-  updateTopic: (id: string, data: UpdateTopicInput) =>
-    apiClient.patch<BoardTopic>(`/board/topics/${id}`, data).then((r) => r.data),
+    updateTopicPostComment: (id: string, data: { body: string }) =>
+      apiClient
+        .patch<BoardTopicPostComment>(`${base}/topic-post-comments/${id}`, data)
+        .then((r) => r.data),
 
-  deleteTopic: (id: string) => apiClient.delete(`/board/topics/${id}`),
+    deleteTopicPostComment: (id: string) => apiClient.delete(`${base}/topic-post-comments/${id}`),
 
-  reorderTopics: (data: ReorderInput) =>
-    apiClient.patch("/board/topics/reorder", data).then((r) => r.data),
+    toggleTopicPostCommentLike: (id: string) =>
+      apiClient.post<LikeResponse>(`${base}/topic-post-comments/${id}/like`).then((r) => r.data),
+  };
+}
 
-  toggleTopicLike: (id: string) =>
-    apiClient.post<LikeResponse>(`/board/topics/${id}/like`).then((r) => r.data),
-
-  // トピック投稿
-  getTopicPosts: (topicId: string, params?: { page?: number; limit?: number }) =>
-    apiClient
-      .get<PaginatedResponse<BoardTopicPost>>(`/board/topics/${topicId}/posts`, { params })
-      .then((r) => r.data),
-
-  createTopicPost: (topicId: string, data: CreateTopicPostInput) =>
-    apiClient.post<BoardTopicPost>(`/board/topics/${topicId}/posts`, data).then((r) => r.data),
-
-  toggleTopicPostLike: (id: string) =>
-    apiClient.post<LikeResponse>(`/board/topic-posts/${id}/like`).then((r) => r.data),
-
-  // トピック投稿コメント
-  getTopicPostComments: (postId: string, params?: { page?: number; limit?: number }) =>
-    apiClient
-      .get<PaginatedResponse<BoardTopicPostComment>>(`/board/topic-posts/${postId}/comments`, {
-        params,
-      })
-      .then((r) => r.data),
-
-  createTopicPostComment: (postId: string, data: CreateTopicPostCommentInput) =>
-    apiClient
-      .post<BoardTopicPostComment>(`/board/topic-posts/${postId}/comments`, data)
-      .then((r) => r.data),
-
-  toggleTopicPostCommentLike: (id: string) =>
-    apiClient.post<LikeResponse>(`/board/topic-post-comments/${id}/like`).then((r) => r.data),
-};
+/** 後方互換: Global scope の API クライアント */
+export const boardApi = createBoardApi({ kind: "global" });

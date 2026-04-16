@@ -79,115 +79,118 @@ enum PublicStatus {
 // --- Models ---
 
 model User {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email            String    @unique @db.VarChar(255)
-  passwordHash     String    @map("password_hash") @db.VarChar(255)
-  name             String    @db.VarChar(100)
-  role             UserRole  @default(member)
-  status           UserStatus @default(active)
-  rankId           String?   @map("rank_id") @db.Uuid
-  availablePoints  Int       @default(0) @map("available_points")
-  emailVerifiedAt  DateTime? @map("email_verified_at") @db.Timestamptz()
-  isAdmin          Boolean   @default(false) @map("is_admin")
-  isActive         Boolean   @default(true) @map("is_active")
-  lastLoginAt      DateTime? @map("last_login_at") @db.Timestamptz()
-  joinedAt         DateTime? @map("joined_at") @db.Timestamptz()
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz()
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String     @unique @db.VarChar(255)
+  passwordHash    String     @map("password_hash") @db.VarChar(255)
+  name            String     @db.VarChar(100)
+  role            UserRole   @default(member)
+  status          UserStatus @default(active)
+  rankId          String?    @map("rank_id") @db.Uuid
+  availablePoints Int        @default(0) @map("available_points")
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz()
+  isAdmin         Boolean    @default(false) @map("is_admin")
+  isActive        Boolean    @default(true) @map("is_active")
+  lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz()
+  joinedAt        DateTime?  @map("joined_at") @db.Timestamptz()
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  rank                   MemberRank?         @relation(fields: [rankId], references: [id])
-  socialAccounts         SocialAccount[]
-  loginHistories         LoginHistory[]
-  refreshTokens          RefreshToken[]
-  passwordResetTokens    PasswordResetToken[]
-  profile                UserProfile?
-  interests              UserInterest[]
-  languages              UserLanguage[]
-  affiliations           UserAffiliation[]
-  publicInfo             UserPublicInfo?
-  files                  File[]
-  updatedFeatureSettings FeatureSetting[]    @relation("FeatureUpdatedBy")
-  updatedAppSettings     AppSetting[]        @relation("AppSettingUpdatedBy")
+  rank                          MemberRank?                    @relation(fields: [rankId], references: [id])
+  socialAccounts                SocialAccount[]
+  loginHistories                LoginHistory[]
+  refreshTokens                 RefreshToken[]
+  passwordResetTokens           PasswordResetToken[]
+  profile                       UserProfile?
+  interests                     UserInterest[]
+  languages                     UserLanguage[]
+  affiliations                  UserAffiliation[]
+  publicInfo                    UserPublicInfo?
+  files                         File[]
+  updatedFeatureSettings        FeatureSetting[]               @relation("FeatureUpdatedBy")
+  updatedAppSettings            AppSetting[]                   @relation("AppSettingUpdatedBy")
   // Phase 2
-  notifications           Notification[]           @relation("NotificationRecipient")
-  actedNotifications      Notification[]           @relation("NotificationActor")
-  notificationPreferences NotificationPreference[]
-  boardCategories         BoardCategory[]
-  boardPosts              BoardPost[]
-  boardComments           BoardComment[]
-  boardLikes              BoardLike[]
-  boardTopics             BoardTopic[]
-  boardTopicPosts         BoardTopicPost[]
-  boardTopicPostComments  BoardTopicPostComment[]
+  notifications                 Notification[]                 @relation("NotificationRecipient")
+  actedNotifications            Notification[]                 @relation("NotificationActor")
+  notificationPreferences       NotificationPreference[]
+  boardCategories               BoardCategory[]
+  boardLikes                    BoardLike[]
+  boardTopics                   BoardTopic[]
+  boardTopicPosts               BoardTopicPost[]
+  boardTopicPostComments        BoardTopicPostComment[]
   // Phase 3
-  createdChatRooms        ChatRoom[]               @relation("ChatRoomCreator")
-  chatRoomMemberships     ChatRoomMember[]
-  chatMessages            ChatMessage[]            @relation("ChatMessageSender")
-  createdMailMessages     MailMessage[]             @relation("MailMessageCreator")
-  mailRecipients          MailMessageRecipient[]    @relation("MailRecipient")
+  createdChatRooms              ChatRoom[]                     @relation("ChatRoomCreator")
+  chatRoomMemberships           ChatRoomMember[]
+  chatMessages                  ChatMessage[]                  @relation("ChatMessageSender")
+  createdMailMessages           MailMessage[]                  @relation("MailMessageCreator")
+  mailRecipients                MailMessageRecipient[]         @relation("MailRecipient")
   // Phase 4
-  attributeValues         MemberAttributeValue[]
+  attributeValues               MemberAttributeValue[]
   // Phase 5
-  createdEvents           Event[]              @relation("EventCreator")
-  eventParticipations     EventParticipant[]
-  eventSpeakerProfiles    EventSpeaker[]
-  eventBoardPosts         EventBoardPost[]
-  eventBoardComments      EventBoardComment[]
-  eventFiles              EventFile[]
-  eventResults            EventResult[]
+  createdEvents                 Event[]                        @relation("EventCreator")
+  eventParticipations           EventParticipant[]
+  eventSpeakerProfiles          EventSpeaker[]
+  eventBoardCategories          EventBoardCategory[]
+  eventBoardTopics              EventBoardTopic[]
+  eventBoardTopicPosts          EventBoardTopicPost[]
+  eventBoardTopicPostComments   EventBoardTopicPostComment[]
+  eventBoardLikes               EventBoardLike[]
+  eventFiles                    EventFile[]
+  eventResults                  EventResult[]
   // Phase 6
-  createdProjects         Project[]                @relation("ProjectCreator")
-  projectMemberships      ProjectMember[]
-  projectThreads          ProjectThread[]
-  projectThreadReplies    ProjectThreadReply[]
-  projectThreadLikes      ProjectThreadLike[]
-  projectFiles            ProjectFile[]
-  projectTasks            ProjectTask[]
-  projectTaskAssignees    ProjectTaskAssignee[]
-  projectBoardPosts       ProjectBoardPost[]
-  projectBoardComments    ProjectBoardComment[]
-  projectBoardLikes       ProjectBoardLike[]
+  createdProjects               Project[]                      @relation("ProjectCreator")
+  projectMemberships            ProjectMember[]
+  projectThreads                ProjectThread[]
+  projectThreadReplies          ProjectThreadReply[]
+  projectThreadLikes            ProjectThreadLike[]
+  projectFiles                  ProjectFile[]
+  projectTasks                  ProjectTask[]
+  projectTaskAssignees          ProjectTaskAssignee[]
+  projectBoardCategories        ProjectBoardCategory[]
+  projectBoardTopics            ProjectBoardTopic[]
+  projectBoardTopicPosts        ProjectBoardTopicPost[]
+  projectBoardTopicPostComments ProjectBoardTopicPostComment[]
+  projectBoardLikes             ProjectBoardLike[]
   // Phase 7
-  createdVideos           Video[]                  @relation("VideoCreator")
-  videoInstructorProfiles VideoInstructor[]
-  videoWatchProgress      VideoWatchProgress[]
-  videoTaskCompletions    VideoTaskCompletion[]
-  activityLogs            ActivityLog[]
-  engagementScore         EngagementScore?
-  activitySummary         MemberActivitySummary?
+  createdVideos                 Video[]                        @relation("VideoCreator")
+  videoInstructorProfiles       VideoInstructor[]
+  videoWatchProgress            VideoWatchProgress[]
+  videoTaskCompletions          VideoTaskCompletion[]
+  activityLogs                  ActivityLog[]
+  engagementScore               EngagementScore?
+  activitySummary               MemberActivitySummary?
   // Phase 8
-  pointSummary              PointSummary?
-  pointHistories            PointHistory[]           @relation("PointGrantee")
-  pointHistoriesGranted     PointHistory[]           @relation("PointGranter")
-  surveysCreated            Survey[]                 @relation("SurveyCreator")
-  surveyResponses           SurveyResponse[]         @relation("SurveyRespondent")
-  skillListings             SkillListing[]           @relation("SkillProvider")
-  skillBookingsRequested    SkillBooking[]           @relation("SkillRequester")
-  skillBookingsProviding    SkillBooking[]           @relation("SkillBookingProvider")
-  skillMessages             SkillMessage[]           @relation("SkillMessageSender")
-  skillComments             SkillComment[]           @relation("SkillCommentAuthor")
+  pointSummary                  PointSummary?
+  pointHistories                PointHistory[]                 @relation("PointGrantee")
+  pointHistoriesGranted         PointHistory[]                 @relation("PointGranter")
+  surveysCreated                Survey[]                       @relation("SurveyCreator")
+  surveyResponses               SurveyResponse[]               @relation("SurveyRespondent")
+  skillListings                 SkillListing[]                 @relation("SkillProvider")
+  skillBookingsRequested        SkillBooking[]                 @relation("SkillRequester")
+  skillBookingsProviding        SkillBooking[]                 @relation("SkillBookingProvider")
+  skillMessages                 SkillMessage[]                 @relation("SkillMessageSender")
+  skillComments                 SkillComment[]                 @relation("SkillCommentAuthor")
   // Phase 9
-  products                  Product[]                @relation("ProductSeller")
-  ordersBought              Order[]                  @relation("OrderBuyer")
-  ordersSold                Order[]                  @relation("OrderSeller")
-  albumsCreated             Album[]                  @relation("AlbumCreator")
-  albumPhotos               AlbumPhoto[]             @relation("AlbumPhotoUploader")
-  venuesCreated             Venue[]                  @relation("VenueCreator")
-  reservations              Reservation[]
-  contentsCreated           Content[]                @relation("ContentCreator")
-  shopSettingsUpdated       ShopSetting[]            @relation("ShopSettingUpdatedBy")
+  products                      Product[]                      @relation("ProductSeller")
+  ordersBought                  Order[]                        @relation("OrderBuyer")
+  ordersSold                    Order[]                        @relation("OrderSeller")
+  albumsCreated                 Album[]                        @relation("AlbumCreator")
+  albumPhotos                   AlbumPhoto[]                   @relation("AlbumPhotoUploader")
+  venuesCreated                 Venue[]                        @relation("VenueCreator")
+  reservations                  Reservation[]
+  contentsCreated               Content[]                      @relation("ContentCreator")
+  shopSettingsUpdated           ShopSetting[]                  @relation("ShopSettingUpdatedBy")
   // Phase 10
-  announcementsCreated      Announcement[]           @relation("AnnouncementCreator")
-  memoCategories            MemoCategory[]
-  memos                     Memo[]
-  schedules                 Schedule[]
-  contentReports            ContentReport[]          @relation("ReportReporter")
-  assignedReports           ContentReport[]          @relation("ReportAssignee")
-  moderationActions         ModerationAction[]       @relation("ModerationActor")
-  orientationCompletion     OrientationCompletion?
-  libraryItems              UserLibraryItem[]
+  announcementsCreated          Announcement[]                 @relation("AnnouncementCreator")
+  memoCategories                MemoCategory[]
+  memos                         Memo[]
+  schedules                     Schedule[]
+  contentReports                ContentReport[]                @relation("ReportReporter")
+  assignedReports               ContentReport[]                @relation("ReportAssignee")
+  moderationActions             ModerationAction[]             @relation("ModerationActor")
+  orientationCompletion         OrientationCompletion?
+  libraryItems                  UserLibraryItem[]
 
   @@index([role])
   @@index([status])
@@ -276,8 +279,8 @@ model FeatureSetting {
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  updatedByUser       User?               @relation("FeatureUpdatedBy", fields: [updatedByUserId], references: [id])
-  permissionSettings  PermissionSetting[]
+  updatedByUser      User?               @relation("FeatureUpdatedBy", fields: [updatedByUserId], references: [id])
+  permissionSettings PermissionSetting[]
 
   @@index([category])
   @@index([isEnabled])
@@ -298,23 +301,21 @@ model MemberRank {
   users              User[]
   permissionSettings PermissionSetting[]
   categories         Category[]
-  // Phase 2
-  boardPosts BoardPost[]
   // Phase 5
-  events Event[]
+  events             Event[]
   // Phase 7
-  videos Video[]
+  videos             Video[]
 
   @@index([sortOrder])
   @@map("member_ranks")
 }
 
 model PermissionSetting {
-  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  featureKey     String  @map("feature_key") @db.VarChar(50)
-  action         String  @db.VarChar(50)
-  allowedRoles   Json    @default("[\"owner\",\"admin\"]") @map("allowed_roles") @db.JsonB
-  requiredRankId String? @map("required_rank_id") @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  featureKey     String   @map("feature_key") @db.VarChar(50)
+  action         String   @db.VarChar(50)
+  allowedRoles   Json     @default("[\"owner\",\"admin\"]") @map("allowed_roles") @db.JsonB
+  requiredRankId String?  @map("required_rank_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -328,14 +329,14 @@ model PermissionSetting {
 }
 
 model AppSetting {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key             String          @unique @db.VarChar(100)
-  value           String          @db.Text
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String           @unique @db.VarChar(100)
+  value           String           @db.Text
   valueType       SettingValueType @default(string) @map("value_type")
-  description     String?         @db.Text
-  updatedByUserId String?         @map("updated_by_user_id") @db.Uuid
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
+  description     String?          @db.Text
+  updatedByUserId String?          @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   updatedByUser User? @relation("AppSettingUpdatedBy", fields: [updatedByUserId], references: [id])
@@ -344,19 +345,19 @@ model AppSetting {
 }
 
 model Category {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  parentId          String?   @map("parent_id") @db.Uuid
-  scope             String    @db.VarChar(50)
-  name              String    @db.VarChar(100)
-  slug              String    @db.VarChar(100)
-  description       String?   @db.Text
-  iconUrl           String?   @map("icon_url") @db.VarChar(500)
-  sortOrder         Int       @default(0) @map("sort_order")
-  allowPostCreation Boolean   @default(true) @map("allow_post_creation")
-  requiredRankId    String?   @map("required_rank_id") @db.Uuid
-  isActive          Boolean   @default(true) @map("is_active")
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parentId          String?  @map("parent_id") @db.Uuid
+  scope             String   @db.VarChar(50)
+  name              String   @db.VarChar(100)
+  slug              String   @db.VarChar(100)
+  description       String?  @db.Text
+  iconUrl           String?  @map("icon_url") @db.VarChar(500)
+  sortOrder         Int      @default(0) @map("sort_order")
+  allowPostCreation Boolean  @default(true) @map("allow_post_creation")
+  requiredRankId    String?  @map("required_rank_id") @db.Uuid
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   parent        Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -364,17 +365,16 @@ model Category {
   requiredRank  MemberRank?    @relation(fields: [requiredRankId], references: [id])
   userInterests UserInterest[]
   // Phase 5
-  events Event[]
+  events        Event[]
   // Phase 6
-  projects        Project[]
-  projectBoardPosts ProjectBoardPost[]
+  projects      Project[]
   // Phase 7
-  videos Video[]
+  videos        Video[]
   // Phase 8
   skillListings SkillListing[]
   // Phase 9
-  products Product[]
-  albums   Album[]
+  products      Product[]
+  albums        Album[]
 
   @@unique([scope, slug])
   @@index([scope, sortOrder])
@@ -389,14 +389,12 @@ model Tag {
   usageCount Int      @default(0) @map("usage_count")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-  // Phase 2
-  boardPostTags BoardPostTag[]
   // Phase 5
-  eventTags EventTag[]
+  eventTags   EventTag[]
   // Phase 6
   projectTags ProjectTag[]
   // Phase 9
-  albumTags AlbumTag[]
+  albumTags   AlbumTag[]
 
   @@map("tags")
 }
@@ -420,29 +418,26 @@ model File {
   deletedAt           DateTime?    @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
-  // Phase 2
-  boardPostAttachments BoardPostAttachment[]
+  uploadedByUser                User                           @relation(fields: [uploadedByUserId], references: [id])
   // Phase 3
-  chatMessages             ChatMessage[]
-  mailMessageAttachments   MailMessageAttachment[]
+  chatMessages                  ChatMessage[]
+  mailMessageAttachments        MailMessageAttachment[]
   // Phase 5
-  eventFiles               EventFile[]
-  eventResultAttachments   EventResultAttachment[]
+  eventFiles                    EventFile[]
+  eventResultAttachments        EventResultAttachment[]
   // Phase 6
-  projectFiles                   ProjectFile[]
-  projectThreadReplyAttachments  ProjectThreadReplyAttachment[]
-  projectTaskAttachments         ProjectTaskAttachment[]
-  projectBoardPostAttachments    ProjectBoardPostAttachment[]
+  projectFiles                  ProjectFile[]
+  projectThreadReplyAttachments ProjectThreadReplyAttachment[]
+  projectTaskAttachments        ProjectTaskAttachment[]
   // Phase 7
-  videoAttachments               VideoAttachment[]
+  videoAttachments              VideoAttachment[]
   // Phase 9
-  productImages                  ProductImage[]
-  albumPhotos                    AlbumPhoto[]
-  venueImages                    VenueImage[]
-  libraryItems                   UserLibraryItem[]
+  productImages                 ProductImage[]
+  albumPhotos                   AlbumPhoto[]
+  venueImages                   VenueImage[]
+  libraryItems                  UserLibraryItem[]
   // Phase 10
-  memoAttachments                MemoAttachment[]
+  memoAttachments               MemoAttachment[]
 
   @@index([uploadedByUserId])
   @@index([storageKey])
@@ -529,7 +524,7 @@ model UserPublicInfo {
   specialty      String?      @db.VarChar(200)
   prefecture     String?      @db.VarChar(50)
   city           String?      @db.VarChar(100)
-  foreignCountry String?     @map("foreign_country") @db.VarChar(100)
+  foreignCountry String?      @map("foreign_country") @db.VarChar(100)
   foreignCity    String?      @map("foreign_city") @db.VarChar(100)
   introduction   String?      @db.Text
   eventRole      String?      @map("event_role") @db.VarChar(50)
@@ -554,11 +549,6 @@ enum PublishStatus {
   draft
   published
   unpublished
-}
-
-enum BoardViewPermission {
-  all
-  rank_restricted
 }
 
 // --- Models ---
@@ -602,108 +592,22 @@ model NotificationPreference {
 }
 
 model BoardCategory {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name            String    @db.VarChar(100)
-  description     String?   @db.Text
-  sortOrder            Int       @default(0) @map("sort_order")
-  allowTopicCreation   Boolean   @default(true) @map("allow_topic_creation")
-  createdByUserId      String    @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String    @db.VarChar(100)
+  description        String?   @db.Text
+  sortOrder          Int       @default(0) @map("sort_order")
+  allowTopicCreation Boolean   @default(true) @map("allow_topic_creation")
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
   createdByUser User         @relation(fields: [createdByUserId], references: [id])
-  posts         BoardPost[]
   topics        BoardTopic[]
 
   @@index([sortOrder])
   @@map("board_categories")
-}
-
-model BoardPost {
-  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId      String?             @map("category_id") @db.Uuid
-  authorUserId    String              @map("author_user_id") @db.Uuid
-  language        String?             @default("ja") @db.VarChar(20)
-  title           String              @db.VarChar(200)
-  body            String              @db.Text
-  publishStatus   PublishStatus  @default(draft) @map("publish_status")
-  sortOrder       Int                 @default(0) @map("sort_order")
-  isPinned        Boolean             @default(false) @map("is_pinned")
-  viewCount       Int                 @default(0) @map("view_count")
-  commentCount    Int                 @default(0) @map("comment_count")
-  likeCount       Int                 @default(0) @map("like_count")
-  reactionCount   Int                 @default(0) @map("reaction_count")
-  viewPermission  BoardViewPermission @default(all) @map("view_permission")
-  requiredRankId  String?             @map("required_rank_id") @db.Uuid
-  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
-
-  // Relations
-  category     BoardCategory?        @relation(fields: [categoryId], references: [id])
-  author       User                  @relation(fields: [authorUserId], references: [id])
-  requiredRank MemberRank?           @relation(fields: [requiredRankId], references: [id])
-  attachments  BoardPostAttachment[]
-  tags         BoardPostTag[]
-  comments     BoardComment[]
-
-  @@index([publishStatus, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
-  @@index([categoryId])
-  @@index([authorUserId])
-  @@map("board_posts")
-}
-
-model BoardPostAttachment {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  postId    String   @map("post_id") @db.Uuid
-  fileId    String   @map("file_id") @db.Uuid
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-
-  // Relations
-  post BoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  file File      @relation(fields: [fileId], references: [id])
-
-  @@index([postId, sortOrder])
-  @@map("board_post_attachments")
-}
-
-model BoardPostTag {
-  postId String @map("post_id") @db.Uuid
-  tagId  String @map("tag_id") @db.Uuid
-
-  // Relations
-  post BoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag  Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([postId, tagId])
-  @@index([tagId])
-  @@map("board_post_tags")
-}
-
-model BoardComment {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  postId          String    @map("post_id") @db.Uuid
-  authorUserId    String    @map("author_user_id") @db.Uuid
-  parentCommentId String?   @map("parent_comment_id") @db.Uuid
-  body            String    @db.Text
-  likeCount       Int       @default(0) @map("like_count")
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
-
-  // Relations
-  post          BoardPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author        User          @relation(fields: [authorUserId], references: [id])
-  parentComment BoardComment? @relation("CommentHierarchy", fields: [parentCommentId], references: [id])
-  childComments BoardComment[] @relation("CommentHierarchy")
-
-  @@index([postId, createdAt])
-  @@index([parentCommentId])
-  @@index([authorUserId])
-  @@map("board_comments")
 }
 
 model BoardLike {
@@ -722,24 +626,24 @@ model BoardLike {
 }
 
 model BoardTopic {
-  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId      String              @map("category_id") @db.Uuid
-  authorUserId    String              @map("author_user_id") @db.Uuid
-  title           String              @db.VarChar(200)
-  body            String              @db.Text
-  publishStatus   PublishStatus  @default(published) @map("publish_status")
-  isPinned        Boolean             @default(false) @map("is_pinned")
-  sortOrder       Int                 @default(0) @map("sort_order")
-  viewCount       Int                 @default(0) @map("view_count")
-  postCount       Int                 @default(0) @map("post_count")
-  likeCount       Int                 @default(0) @map("like_count")
-  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId    String        @map("category_id") @db.Uuid
+  authorUserId  String        @map("author_user_id") @db.Uuid
+  title         String        @db.VarChar(200)
+  body          String        @db.Text
+  publishStatus PublishStatus @default(published) @map("publish_status")
+  isPinned      Boolean       @default(false) @map("is_pinned")
+  sortOrder     Int           @default(0) @map("sort_order")
+  viewCount     Int           @default(0) @map("view_count")
+  postCount     Int           @default(0) @map("post_count")
+  likeCount     Int           @default(0) @map("like_count")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category BoardCategory       @relation(fields: [categoryId], references: [id])
-  author   User                @relation(fields: [authorUserId], references: [id])
+  category BoardCategory    @relation(fields: [categoryId], references: [id])
+  author   User             @relation(fields: [authorUserId], references: [id])
   posts    BoardTopicPost[]
 
   @@index([categoryId, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
@@ -748,19 +652,19 @@ model BoardTopic {
 }
 
 model BoardTopicPost {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  topicId         String    @map("topic_id") @db.Uuid
-  authorUserId    String    @map("author_user_id") @db.Uuid
-  body            String    @db.Text
-  likeCount       Int       @default(0) @map("like_count")
-  commentCount    Int       @default(0) @map("comment_count")
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topicId      String    @map("topic_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String    @db.Text
+  likeCount    Int       @default(0) @map("like_count")
+  commentCount Int       @default(0) @map("comment_count")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  topic    BoardTopic             @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  author   User                   @relation(fields: [authorUserId], references: [id])
+  topic    BoardTopic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author   User                    @relation(fields: [authorUserId], references: [id])
   comments BoardTopicPostComment[]
 
   @@index([topicId, createdAt])
@@ -780,9 +684,9 @@ model BoardTopicPostComment {
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  post          BoardTopicPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author        User                   @relation(fields: [authorUserId], references: [id])
-  parentComment BoardTopicPostComment? @relation("TopicPostCommentHierarchy", fields: [parentCommentId], references: [id])
+  post          BoardTopicPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                    @relation(fields: [authorUserId], references: [id])
+  parentComment BoardTopicPostComment?  @relation("TopicPostCommentHierarchy", fields: [parentCommentId], references: [id])
   childComments BoardTopicPostComment[] @relation("TopicPostCommentHierarchy")
 
   @@index([postId, createdAt])
@@ -935,8 +839,8 @@ model MailMessage {
   updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  createdByUser User                   @relation("MailMessageCreator", fields: [createdByUserId], references: [id])
-  template      MailTemplate?          @relation(fields: [templateId], references: [id])
+  createdByUser User                    @relation("MailMessageCreator", fields: [createdByUserId], references: [id])
+  template      MailTemplate?           @relation(fields: [templateId], references: [id])
   recipients    MailMessageRecipient[]
   attachments   MailMessageAttachment[]
 
@@ -1100,56 +1004,57 @@ enum EventResultStatus {
 // --- Models ---
 
 model Event {
-  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title                    String           @db.VarChar(200)
-  description              String?          @db.Text
+  id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                    String            @db.VarChar(200)
+  description              String?           @db.Text
   locationType             EventLocationType @default(venue) @map("location_type")
-  venueId                  String?          @map("venue_id") @db.Uuid
-  venueName                String?          @map("venue_name") @db.VarChar(300)
-  venueAddress             String?          @map("venue_address") @db.VarChar(500)
-  onlineUrl                String?          @map("online_url") @db.VarChar(500)
-  startAt                  DateTime         @map("start_at") @db.Timestamptz()
-  endAt                    DateTime         @map("end_at") @db.Timestamptz()
-  registrationDeadlineAt   DateTime?        @map("registration_deadline_at") @db.Timestamptz()
-  ticketSaleStartAt        DateTime?        @map("ticket_sale_start_at") @db.Timestamptz()
-  allowMultiTicketPurchase Boolean          @default(false) @map("allow_multi_ticket_purchase")
-  acceptedPaymentMethods   Json?            @map("accepted_payment_methods") @db.JsonB
-  planningRole             String           @default("主催") @map("planning_role") @db.VarChar(30)
-  eventType                String?          @map("event_type") @db.VarChar(30)
-  categoryId               String?          @map("category_id") @db.Uuid
-  accessInfo               String?          @map("access_info") @db.Text
-  participationMethod      String?          @map("participation_method") @db.Text
-  contactInfo              String?          @map("contact_info") @db.Text
-  cancellationPolicy       String?          @map("cancellation_policy") @db.Text
-  language                 String?          @default("ja") @db.VarChar(20)
-  isAttendeeVisible        Boolean          @default(false) @map("is_attendee_visible")
-  status                   EventStatus      @default(draft)
-  coverImageUrl            String?          @map("cover_image_url") @db.VarChar(500)
-  createdByUserId          String           @map("created_by_user_id") @db.Uuid
-  requiredRankId           String?          @map("required_rank_id") @db.Uuid
-  participantCount         Int              @default(0) @map("participant_count")
-  isCalendarVisible        Boolean          @default(true) @map("is_calendar_visible")
-  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt                DateTime?        @map("deleted_at") @db.Timestamptz()
+  venueId                  String?           @map("venue_id") @db.Uuid
+  venueName                String?           @map("venue_name") @db.VarChar(300)
+  venueAddress             String?           @map("venue_address") @db.VarChar(500)
+  onlineUrl                String?           @map("online_url") @db.VarChar(500)
+  startAt                  DateTime          @map("start_at") @db.Timestamptz()
+  endAt                    DateTime          @map("end_at") @db.Timestamptz()
+  registrationDeadlineAt   DateTime?         @map("registration_deadline_at") @db.Timestamptz()
+  ticketSaleStartAt        DateTime?         @map("ticket_sale_start_at") @db.Timestamptz()
+  allowMultiTicketPurchase Boolean           @default(false) @map("allow_multi_ticket_purchase")
+  acceptedPaymentMethods   Json?             @map("accepted_payment_methods") @db.JsonB
+  planningRole             String            @default("主催") @map("planning_role") @db.VarChar(30)
+  eventType                String?           @map("event_type") @db.VarChar(30)
+  categoryId               String?           @map("category_id") @db.Uuid
+  accessInfo               String?           @map("access_info") @db.Text
+  participationMethod      String?           @map("participation_method") @db.Text
+  contactInfo              String?           @map("contact_info") @db.Text
+  cancellationPolicy       String?           @map("cancellation_policy") @db.Text
+  language                 String?           @default("ja") @db.VarChar(20)
+  isAttendeeVisible        Boolean           @default(false) @map("is_attendee_visible")
+  status                   EventStatus       @default(draft)
+  coverImageUrl            String?           @map("cover_image_url") @db.VarChar(500)
+  createdByUserId          String            @map("created_by_user_id") @db.Uuid
+  requiredRankId           String?           @map("required_rank_id") @db.Uuid
+  participantCount         Int               @default(0) @map("participant_count")
+  isCalendarVisible        Boolean           @default(true) @map("is_calendar_visible")
+  createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt                DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt                DateTime?         @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  createdByUser  User                @relation("EventCreator", fields: [createdByUserId], references: [id])
-  category       Category?           @relation(fields: [categoryId], references: [id])
-  requiredRank   MemberRank?         @relation(fields: [requiredRankId], references: [id])
-  venue          Venue?              @relation(fields: [venueId], references: [id])
-  tickets        EventTicket[]
-  participants   EventParticipant[]
-  speakers       EventSpeaker[]
-  organizations  EventOrganization[]
-  tags           EventTag[]
-  boardPosts     EventBoardPost[]
-  files          EventFile[]
-  result         EventResult?
+  createdByUser   User                 @relation("EventCreator", fields: [createdByUserId], references: [id])
+  category        Category?            @relation(fields: [categoryId], references: [id])
+  requiredRank    MemberRank?          @relation(fields: [requiredRankId], references: [id])
+  venue           Venue?               @relation(fields: [venueId], references: [id])
+  tickets         EventTicket[]
+  participants    EventParticipant[]
+  speakers        EventSpeaker[]
+  organizations   EventOrganization[]
+  tags            EventTag[]
+  boardCategories EventBoardCategory[]
+  boardTopics     EventBoardTopic[]
+  files           EventFile[]
+  result          EventResult?
   // Phase 6
-  projects       Project[]
+  projects        Project[]
   // Phase 8
-  surveys        Survey[]
+  surveys         Survey[]
 
   @@index([status, startAt])
   @@index([startAt])
@@ -1174,7 +1079,7 @@ model EventTicket {
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  event         Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event         Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
   participants  EventParticipant[]
   discountCodes EventDiscountCode[]
 
@@ -1183,19 +1088,19 @@ model EventTicket {
 }
 
 model EventParticipant {
-  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventId        String             @map("event_id") @db.Uuid
-  userId         String             @map("user_id") @db.Uuid
-  ticketId       String?            @map("ticket_id") @db.Uuid
-  quantity       Int                @default(1)
-  status         ParticipantStatus  @default(applied)
-  paymentStatus  PaymentStatus?     @map("payment_status")
-  paymentMethod  String?            @map("payment_method") @db.VarChar(30)
-  discountCodeId String?            @map("discount_code_id") @db.Uuid
-  appliedAt      DateTime           @default(now()) @map("applied_at") @db.Timestamptz()
-  canceledAt     DateTime?          @map("canceled_at") @db.Timestamptz()
-  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId        String            @map("event_id") @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  ticketId       String?           @map("ticket_id") @db.Uuid
+  quantity       Int               @default(1)
+  status         ParticipantStatus @default(applied)
+  paymentStatus  PaymentStatus?    @map("payment_status")
+  paymentMethod  String?           @map("payment_method") @db.VarChar(30)
+  discountCodeId String?           @map("discount_code_id") @db.Uuid
+  appliedAt      DateTime          @default(now()) @map("applied_at") @db.Timestamptz()
+  canceledAt     DateTime?         @map("canceled_at") @db.Timestamptz()
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -1257,59 +1162,131 @@ model EventTag {
   @@map("event_tags")
 }
 
-model EventBoardPost {
+model EventBoardCategory {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId            String    @map("event_id") @db.Uuid
+  name               String    @db.VarChar(100)
+  description        String?   @db.Text
+  sortOrder          Int       @default(0) @map("sort_order")
+  allowTopicCreation Boolean   @default(true) @map("allow_topic_creation")
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  event         Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdByUser User              @relation(fields: [createdByUserId], references: [id])
+  topics        EventBoardTopic[]
+
+  @@index([eventId, sortOrder])
+  @@map("event_board_categories")
+}
+
+model EventBoardTopic {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId       String        @map("event_id") @db.Uuid
+  categoryId    String        @map("category_id") @db.Uuid
+  authorUserId  String        @map("author_user_id") @db.Uuid
+  title         String        @db.VarChar(200)
+  body          String        @db.Text
+  publishStatus PublishStatus @default(published) @map("publish_status")
+  isPinned      Boolean       @default(false) @map("is_pinned")
+  sortOrder     Int           @default(0) @map("sort_order")
+  viewCount     Int           @default(0) @map("view_count")
+  postCount     Int           @default(0) @map("post_count")
+  likeCount     Int           @default(0) @map("like_count")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  event    Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category EventBoardCategory    @relation(fields: [categoryId], references: [id])
+  author   User                  @relation(fields: [authorUserId], references: [id])
+  posts    EventBoardTopicPost[]
+
+  @@index([eventId, categoryId, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@map("event_board_topics")
+}
+
+model EventBoardTopicPost {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventId      String    @map("event_id") @db.Uuid
+  topicId      String    @map("topic_id") @db.Uuid
   authorUserId String    @map("author_user_id") @db.Uuid
   body         String    @db.Text
   likeCount    Int       @default(0) @map("like_count")
+  commentCount Int       @default(0) @map("comment_count")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  event    Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  author   User               @relation(fields: [authorUserId], references: [id])
-  comments EventBoardComment[]
+  topic    EventBoardTopic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author   User                         @relation(fields: [authorUserId], references: [id])
+  comments EventBoardTopicPostComment[]
 
-  @@index([eventId, createdAt(sort: Desc)])
-  @@map("event_board_posts")
+  @@index([topicId, createdAt])
+  @@index([authorUserId])
+  @@map("event_board_topic_posts")
 }
 
-model EventBoardComment {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  postId       String    @map("post_id") @db.Uuid
-  authorUserId String    @map("author_user_id") @db.Uuid
-  body         String    @db.Text
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
+model EventBoardTopicPostComment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  authorUserId    String    @map("author_user_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  body            String    @db.Text
+  likeCount       Int       @default(0) @map("like_count")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  post   EventBoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User           @relation(fields: [authorUserId], references: [id])
+  post          EventBoardTopicPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                         @relation(fields: [authorUserId], references: [id])
+  parentComment EventBoardTopicPostComment?  @relation("EventTopicPostCommentHierarchy", fields: [parentCommentId], references: [id])
+  childComments EventBoardTopicPostComment[] @relation("EventTopicPostCommentHierarchy")
 
   @@index([postId, createdAt])
-  @@map("event_board_comments")
+  @@index([parentCommentId])
+  @@index([authorUserId])
+  @@map("event_board_topic_post_comments")
+}
+
+model EventBoardLike {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  targetType String   @map("target_type") @db.VarChar(30)
+  targetId   String   @map("target_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("event_board_likes")
 }
 
 model EventFile {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventId          String    @map("event_id") @db.Uuid
-  type             String    @default("file") @db.VarChar(10)
-  name             String?   @db.VarChar(200)
-  parentFolderId   String?   @map("parent_folder_id") @db.Uuid
-  fileId           String?   @map("file_id") @db.Uuid
-  sortOrder        Int       @default(0) @map("sort_order")
-  uploadedByUserId String    @map("uploaded_by_user_id") @db.Uuid
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId          String   @map("event_id") @db.Uuid
+  type             String   @default("file") @db.VarChar(10)
+  name             String?  @db.VarChar(200)
+  parentFolderId   String?  @map("parent_folder_id") @db.Uuid
+  fileId           String?  @map("file_id") @db.Uuid
+  sortOrder        Int      @default(0) @map("sort_order")
+  uploadedByUserId String   @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  parentFolder EventFile? @relation("EventFileHierarchy", fields: [parentFolderId], references: [id])
+  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parentFolder EventFile?  @relation("EventFileHierarchy", fields: [parentFolderId], references: [id])
   children     EventFile[] @relation("EventFileHierarchy")
-  file         File?      @relation(fields: [fileId], references: [id])
-  uploadedBy   User       @relation(fields: [uploadedByUserId], references: [id])
+  file         File?       @relation(fields: [fileId], references: [id])
+  uploadedBy   User        @relation(fields: [uploadedByUserId], references: [id])
 
   @@index([eventId, parentFolderId, sortOrder])
   @@map("event_files")
@@ -1401,35 +1378,36 @@ enum ProjectMemberStatus {
 // --- Models ---
 
 model Project {
-  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String               @db.VarChar(200)
-  description       String?              @db.Text
-  coverImageUrl     String?              @map("cover_image_url") @db.VarChar(500)
-  categoryId        String?              @map("category_id") @db.Uuid
-  eventId           String?              @map("event_id") @db.Uuid
-  startDate         DateTime?            @map("start_date") @db.Date
-  endDate           DateTime?            @map("end_date") @db.Date
-  status            ProjectStatus        @default(not_started)
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String        @db.VarChar(200)
+  description       String?       @db.Text
+  coverImageUrl     String?       @map("cover_image_url") @db.VarChar(500)
+  categoryId        String?       @map("category_id") @db.Uuid
+  eventId           String?       @map("event_id") @db.Uuid
+  startDate         DateTime?     @map("start_date") @db.Date
+  endDate           DateTime?     @map("end_date") @db.Date
+  status            ProjectStatus @default(not_started)
   publishStatus     PublishStatus @default(draft) @map("publish_status")
-  inviteToken       String               @unique @map("invite_token") @db.VarChar(100)
-  inviteLinkEnabled Boolean              @default(false) @map("invite_link_enabled")
-  memberCount       Int                  @default(0) @map("member_count")
-  activityCount     Int                  @default(0) @map("activity_count")
-  createdByUserId   String               @map("created_by_user_id") @db.Uuid
-  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz()
+  inviteToken       String        @unique @map("invite_token") @db.VarChar(100)
+  inviteLinkEnabled Boolean       @default(false) @map("invite_link_enabled")
+  memberCount       Int           @default(0) @map("member_count")
+  activityCount     Int           @default(0) @map("activity_count")
+  createdByUserId   String        @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  createdByUser User                @relation("ProjectCreator", fields: [createdByUserId], references: [id])
-  category      Category?           @relation(fields: [categoryId], references: [id])
-  event         Event?              @relation(fields: [eventId], references: [id])
-  members       ProjectMember[]
-  threads       ProjectThread[]
-  tags          ProjectTag[]
-  files         ProjectFile[]
-  tasks         ProjectTask[]
-  boardPosts    ProjectBoardPost[]
+  createdByUser   User                   @relation("ProjectCreator", fields: [createdByUserId], references: [id])
+  category        Category?              @relation(fields: [categoryId], references: [id])
+  event           Event?                 @relation(fields: [eventId], references: [id])
+  members         ProjectMember[]
+  threads         ProjectThread[]
+  tags            ProjectTag[]
+  files           ProjectFile[]
+  tasks           ProjectTask[]
+  boardCategories ProjectBoardCategory[]
+  boardTopics     ProjectBoardTopic[]
 
   @@index([publishStatus, status])
   @@index([createdByUserId])
@@ -1560,11 +1538,11 @@ model ProjectFile {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parentFolder ProjectFile? @relation("ProjectFileHierarchy", fields: [parentFolderId], references: [id])
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentFolder ProjectFile?  @relation("ProjectFileHierarchy", fields: [parentFolderId], references: [id])
   children     ProjectFile[] @relation("ProjectFileHierarchy")
-  file         File?        @relation(fields: [fileId], references: [id])
-  uploadedBy   User         @relation(fields: [uploadedByUserId], references: [id])
+  file         File?         @relation(fields: [fileId], references: [id])
+  uploadedBy   User          @relation(fields: [uploadedByUserId], references: [id])
 
   @@index([projectId, parentFolderId, sortOrder])
   @@map("project_files")
@@ -1624,52 +1602,77 @@ model ProjectTaskAttachment {
   @@map("project_task_attachments")
 }
 
-model ProjectBoardPost {
-  id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId     String                   @map("project_id") @db.Uuid
-  categoryId    String?                  @map("category_id") @db.Uuid
-  authorUserId  String                   @map("author_user_id") @db.Uuid
-  language      String?                  @default("ja") @db.VarChar(20)
-  title         String                   @db.VarChar(200)
-  body          String                   @db.Text
-  publishStatus PublishStatus @default(draft) @map("publish_status")
-  sortOrder     Int                      @default(0) @map("sort_order")
-  isPinned      Boolean                  @default(false) @map("is_pinned")
-  viewCount     Int                      @default(0) @map("view_count")
-  commentCount  Int                      @default(0) @map("comment_count")
-  likeCount     Int                      @default(0) @map("like_count")
-  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt     DateTime                 @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt     DateTime?                @map("deleted_at") @db.Timestamptz()
+model ProjectBoardCategory {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  name               String    @db.VarChar(100)
+  description        String?   @db.Text
+  sortOrder          Int       @default(0) @map("sort_order")
+  allowTopicCreation Boolean   @default(true) @map("allow_topic_creation")
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  project     Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  category    Category?                    @relation(fields: [categoryId], references: [id])
-  author      User                         @relation(fields: [authorUserId], references: [id])
-  attachments ProjectBoardPostAttachment[]
-  comments    ProjectBoardComment[]
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdByUser User                @relation(fields: [createdByUserId], references: [id])
+  topics        ProjectBoardTopic[]
 
-  @@index([projectId, publishStatus, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
+  @@index([projectId, sortOrder])
+  @@map("project_board_categories")
+}
+
+model ProjectBoardTopic {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId     String        @map("project_id") @db.Uuid
+  categoryId    String        @map("category_id") @db.Uuid
+  authorUserId  String        @map("author_user_id") @db.Uuid
+  title         String        @db.VarChar(200)
+  body          String        @db.Text
+  publishStatus PublishStatus @default(published) @map("publish_status")
+  isPinned      Boolean       @default(false) @map("is_pinned")
+  sortOrder     Int           @default(0) @map("sort_order")
+  viewCount     Int           @default(0) @map("view_count")
+  postCount     Int           @default(0) @map("post_count")
+  likeCount     Int           @default(0) @map("like_count")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz()
+
+  // Relations
+  project  Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category ProjectBoardCategory    @relation(fields: [categoryId], references: [id])
+  author   User                    @relation(fields: [authorUserId], references: [id])
+  posts    ProjectBoardTopicPost[]
+
+  @@index([projectId, categoryId, isPinned(sort: Desc), sortOrder, createdAt(sort: Desc)])
   @@index([authorUserId])
-  @@map("project_board_posts")
+  @@map("project_board_topics")
 }
 
-model ProjectBoardPostAttachment {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  postId    String   @map("post_id") @db.Uuid
-  fileId    String   @map("file_id") @db.Uuid
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+model ProjectBoardTopicPost {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  topicId      String    @map("topic_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String    @db.Text
+  likeCount    Int       @default(0) @map("like_count")
+  commentCount Int       @default(0) @map("comment_count")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  post ProjectBoardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  file File             @relation(fields: [fileId], references: [id])
+  topic    ProjectBoardTopic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author   User                           @relation(fields: [authorUserId], references: [id])
+  comments ProjectBoardTopicPostComment[]
 
-  @@index([postId, sortOrder])
-  @@map("project_board_post_attachments")
+  @@index([topicId, createdAt])
+  @@index([authorUserId])
+  @@map("project_board_topic_posts")
 }
 
-model ProjectBoardComment {
+model ProjectBoardTopicPostComment {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   postId          String    @map("post_id") @db.Uuid
   authorUserId    String    @map("author_user_id") @db.Uuid
@@ -1681,15 +1684,15 @@ model ProjectBoardComment {
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  post          ProjectBoardPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author        User                 @relation(fields: [authorUserId], references: [id])
-  parentComment ProjectBoardComment? @relation("ProjectCommentHierarchy", fields: [parentCommentId], references: [id])
-  childComments ProjectBoardComment[] @relation("ProjectCommentHierarchy")
+  post          ProjectBoardTopicPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User                           @relation(fields: [authorUserId], references: [id])
+  parentComment ProjectBoardTopicPostComment?  @relation("ProjectTopicPostCommentHierarchy", fields: [parentCommentId], references: [id])
+  childComments ProjectBoardTopicPostComment[] @relation("ProjectTopicPostCommentHierarchy")
 
   @@index([postId, createdAt])
   @@index([parentCommentId])
   @@index([authorUserId])
-  @@map("project_board_comments")
+  @@map("project_board_topic_post_comments")
 }
 
 model ProjectBoardLike {
@@ -1755,36 +1758,36 @@ model VideoSeries {
 }
 
 model Video {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId        String?             @map("category_id") @db.Uuid
-  seriesId          String?             @map("series_id") @db.Uuid
-  title             String              @db.VarChar(200)
-  description       String?             @db.Text
-  videoProvider     VideoProvider        @map("video_provider")
-  videoExternalId   String              @map("video_external_id") @db.VarChar(200)
-  playbackUrl       String?             @map("playback_url") @db.VarChar(500)
-  streamStatus      StreamStatus        @default(uploading) @map("stream_status")
-  thumbnailUrl      String?             @map("thumbnail_url") @db.VarChar(500)
-  durationSeconds   Int?                @map("duration_seconds")
-  viewPermission    VideoViewPermission @default(all) @map("view_permission")
-  requiredRankId    String?             @map("required_rank_id") @db.Uuid
-  allowedRoles      String[]            @default([]) @map("allowed_roles")
-  availableUntil    DateTime?           @map("available_until") @db.Timestamptz()
-  passwordHash      String?             @map("password_hash") @db.VarChar(255)
-  publishStatus     PublishStatus  @default(draft) @map("publish_status")
-  watchOrder        Int?                @map("watch_order")
-  sortOrder         Int                 @default(0) @map("sort_order")
-  viewCount         Int                 @default(0) @map("view_count")
-  createdByUserId   String              @map("created_by_user_id") @db.Uuid
-  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt         DateTime?           @map("deleted_at") @db.Timestamptz()
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String?             @map("category_id") @db.Uuid
+  seriesId        String?             @map("series_id") @db.Uuid
+  title           String              @db.VarChar(200)
+  description     String?             @db.Text
+  videoProvider   VideoProvider       @map("video_provider")
+  videoExternalId String              @map("video_external_id") @db.VarChar(200)
+  playbackUrl     String?             @map("playback_url") @db.VarChar(500)
+  streamStatus    StreamStatus        @default(uploading) @map("stream_status")
+  thumbnailUrl    String?             @map("thumbnail_url") @db.VarChar(500)
+  durationSeconds Int?                @map("duration_seconds")
+  viewPermission  VideoViewPermission @default(all) @map("view_permission")
+  requiredRankId  String?             @map("required_rank_id") @db.Uuid
+  allowedRoles    String[]            @default([]) @map("allowed_roles")
+  availableUntil  DateTime?           @map("available_until") @db.Timestamptz()
+  passwordHash    String?             @map("password_hash") @db.VarChar(255)
+  publishStatus   PublishStatus       @default(draft) @map("publish_status")
+  watchOrder      Int?                @map("watch_order")
+  sortOrder       Int                 @default(0) @map("sort_order")
+  viewCount       Int                 @default(0) @map("view_count")
+  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category      Category?          @relation(fields: [categoryId], references: [id])
-  series        VideoSeries?       @relation(fields: [seriesId], references: [id])
-  requiredRank  MemberRank?        @relation(fields: [requiredRankId], references: [id])
-  createdBy     User               @relation("VideoCreator", fields: [createdByUserId], references: [id])
+  category      Category?            @relation(fields: [categoryId], references: [id])
+  series        VideoSeries?         @relation(fields: [seriesId], references: [id])
+  requiredRank  MemberRank?          @relation(fields: [requiredRankId], references: [id])
+  createdBy     User                 @relation("VideoCreator", fields: [createdByUserId], references: [id])
   instructors   VideoInstructor[]
   attachments   VideoAttachment[]
   watchProgress VideoWatchProgress[]
@@ -1862,7 +1865,7 @@ model VideoTask {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  video       Video                @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video       Video                 @relation(fields: [videoId], references: [id], onDelete: Cascade)
   completions VideoTaskCompletion[]
 
   @@index([videoId, sortOrder])
@@ -1945,20 +1948,20 @@ model AnalyticsSnapshot {
 }
 
 model MemberActivitySummary {
-  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                   String    @unique @map("user_id") @db.Uuid
-  lastLoginAt              DateTime? @map("last_login_at") @db.Timestamptz()
-  loginCount               Int       @default(0) @map("login_count")
-  postCount                Int       @default(0) @map("post_count")
-  commentCount             Int       @default(0) @map("comment_count")
-  eventParticipationCount  Int       @default(0) @map("event_participation_count")
-  lastEventParticipatedAt  DateTime? @map("last_event_participated_at") @db.Timestamptz()
-  videoWatchCount          Int       @default(0) @map("video_watch_count")
-  chatMessageCount         Int       @default(0) @map("chat_message_count")
-  projectCount             Int       @default(0) @map("project_count")
-  calculatedAt             DateTime  @map("calculated_at") @db.Timestamptz()
-  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                  String    @unique @map("user_id") @db.Uuid
+  lastLoginAt             DateTime? @map("last_login_at") @db.Timestamptz()
+  loginCount              Int       @default(0) @map("login_count")
+  postCount               Int       @default(0) @map("post_count")
+  commentCount            Int       @default(0) @map("comment_count")
+  eventParticipationCount Int       @default(0) @map("event_participation_count")
+  lastEventParticipatedAt DateTime? @map("last_event_participated_at") @db.Timestamptz()
+  videoWatchCount         Int       @default(0) @map("video_watch_count")
+  chatMessageCount        Int       @default(0) @map("chat_message_count")
+  projectCount            Int       @default(0) @map("project_count")
+  calculatedAt            DateTime  @map("calculated_at") @db.Timestamptz()
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   user User @relation(fields: [userId], references: [id])
@@ -2053,17 +2056,17 @@ model PointSummary {
 }
 
 model PointHistory {
-  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId           String               @map("user_id") @db.Uuid
-  points           Int
-  type             PointTransactionType
-  referenceType    String?              @map("reference_type") @db.VarChar(30)
-  referenceId      String?              @map("reference_id") @db.Uuid
-  description      String?              @db.VarChar(200)
-  remainingPoints  Int                  @default(0) @map("remaining_points")
-  expiresAt        DateTime?            @map("expires_at") @db.Timestamptz()
-  grantedByUserId  String?              @map("granted_by_user_id") @db.Uuid
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  points          Int
+  type            PointTransactionType
+  referenceType   String?              @map("reference_type") @db.VarChar(30)
+  referenceId     String?              @map("reference_id") @db.Uuid
+  description     String?              @db.VarChar(200)
+  remainingPoints Int                  @default(0) @map("remaining_points")
+  expiresAt       DateTime?            @map("expires_at") @db.Timestamptz()
+  grantedByUserId String?              @map("granted_by_user_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   user      User  @relation("PointGrantee", fields: [userId], references: [id])
@@ -2092,31 +2095,31 @@ model PointRule {
 // --- アンケート ---
 
 model Survey {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title            String           @db.VarChar(200)
-  description      String?          @db.Text
-  eventId          String?          @map("event_id") @db.Uuid
-  isTemplate       Boolean          @default(false) @map("is_template")
-  templateId       String?          @map("template_id") @db.Uuid
-  isAnonymous      Boolean          @default(false) @map("is_anonymous")
-  status           SurveyStatus     @default(draft)
-  targetType       SurveyTargetType @default(all) @map("target_type")
-  targetFilter     Json?            @map("target_filter") @db.JsonB
-  startsAt         DateTime?        @map("starts_at") @db.Timestamptz()
-  endsAt           DateTime?        @map("ends_at") @db.Timestamptz()
-  responseCount    Int              @default(0) @map("response_count")
-  createdByUserId  String           @map("created_by_user_id") @db.Uuid
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt        DateTime?        @map("deleted_at") @db.Timestamptz()
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String           @db.VarChar(200)
+  description     String?          @db.Text
+  eventId         String?          @map("event_id") @db.Uuid
+  isTemplate      Boolean          @default(false) @map("is_template")
+  templateId      String?          @map("template_id") @db.Uuid
+  isAnonymous     Boolean          @default(false) @map("is_anonymous")
+  status          SurveyStatus     @default(draft)
+  targetType      SurveyTargetType @default(all) @map("target_type")
+  targetFilter    Json?            @map("target_filter") @db.JsonB
+  startsAt        DateTime?        @map("starts_at") @db.Timestamptz()
+  endsAt          DateTime?        @map("ends_at") @db.Timestamptz()
+  responseCount   Int              @default(0) @map("response_count")
+  createdByUserId String           @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?        @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  createdBy  User              @relation("SurveyCreator", fields: [createdByUserId], references: [id])
-  event      Event?            @relation(fields: [eventId], references: [id])
-  template   Survey?           @relation("SurveyTemplate", fields: [templateId], references: [id])
-  copies     Survey[]          @relation("SurveyTemplate")
-  questions  SurveyQuestion[]
-  responses  SurveyResponse[]
+  createdBy User             @relation("SurveyCreator", fields: [createdByUserId], references: [id])
+  event     Event?           @relation(fields: [eventId], references: [id])
+  template  Survey?          @relation("SurveyTemplate", fields: [templateId], references: [id])
+  copies    Survey[]         @relation("SurveyTemplate")
+  questions SurveyQuestion[]
+  responses SurveyResponse[]
 
   @@index([status])
   @@map("surveys")
@@ -2196,8 +2199,8 @@ model SkillListing {
   deletedAt       DateTime?          @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category Category?       @relation(fields: [categoryId], references: [id])
-  provider User            @relation("SkillProvider", fields: [providerUserId], references: [id])
+  category Category?      @relation(fields: [categoryId], references: [id])
+  provider User           @relation("SkillProvider", fields: [providerUserId], references: [id])
   bookings SkillBooking[]
   comments SkillComment[]
 
@@ -2208,17 +2211,17 @@ model SkillListing {
 }
 
 model SkillBooking {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  skillListingId   String             @map("skill_listing_id") @db.Uuid
-  requesterUserId  String             @map("requester_user_id") @db.Uuid
-  providerUserId   String             @map("provider_user_id") @db.Uuid
-  status           SkillBookingStatus @default(requested)
-  scheduledAt      DateTime?          @map("scheduled_at") @db.Timestamptz()
-  message          String?            @db.Text
-  completedAt      DateTime?          @map("completed_at") @db.Timestamptz()
-  canceledAt       DateTime?          @map("canceled_at") @db.Timestamptz()
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillListingId  String             @map("skill_listing_id") @db.Uuid
+  requesterUserId String             @map("requester_user_id") @db.Uuid
+  providerUserId  String             @map("provider_user_id") @db.Uuid
+  status          SkillBookingStatus @default(requested)
+  scheduledAt     DateTime?          @map("scheduled_at") @db.Timestamptz()
+  message         String?            @db.Text
+  completedAt     DateTime?          @map("completed_at") @db.Timestamptz()
+  canceledAt      DateTime?          @map("canceled_at") @db.Timestamptz()
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   skillListing SkillListing   @relation(fields: [skillListingId], references: [id])
@@ -2248,13 +2251,13 @@ model SkillMessage {
 }
 
 model SkillComment {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  skillListingId  String    @map("skill_listing_id") @db.Uuid
-  authorUserId    String    @map("author_user_id") @db.Uuid
-  body            String    @db.Text
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz()
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skillListingId String    @map("skill_listing_id") @db.Uuid
+  authorUserId   String    @map("author_user_id") @db.Uuid
+  body           String    @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
 
   // Relations
   skillListing SkillListing @relation(fields: [skillListingId], references: [id], onDelete: Cascade)
@@ -2297,14 +2300,14 @@ enum ReservationStatus {
 // --- ショップ ---
 
 model ShopSetting {
-  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  iconImageUrl    String?              @map("icon_image_url") @db.VarChar(500)
-  headerImageUrl  String?              @map("header_image_url") @db.VarChar(500)
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iconImageUrl    String?       @map("icon_image_url") @db.VarChar(500)
+  headerImageUrl  String?       @map("header_image_url") @db.VarChar(500)
   publishStatus   PublishStatus @default(draft) @map("publish_status")
-  autoTranslate   Boolean              @default(false) @map("auto_translate")
-  updatedByUserId String?              @map("updated_by_user_id") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+  autoTranslate   Boolean       @default(false) @map("auto_translate")
+  updatedByUserId String?       @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   updatedBy User? @relation("ShopSettingUpdatedBy", fields: [updatedByUserId], references: [id])
@@ -2327,30 +2330,30 @@ model ProductSeries {
 }
 
 model Product {
-  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId      String?              @map("category_id") @db.Uuid
-  seriesId        String?              @map("series_id") @db.Uuid
-  sellerUserId    String               @map("seller_user_id") @db.Uuid
-  name            String               @db.VarChar(200)
-  description     String?              @db.Text
-  price           Int
-  compareAtPrice  Int?                 @map("compare_at_price")
-  stock           Int?
-  sellerType      ProductSellerType    @default(admin) @map("seller_type")
-  publishStatus   PublishStatus @default(draft) @map("publish_status")
-  status          ProductSaleStatus    @default(on_sale)
-  saleStartAt     DateTime?            @map("sale_start_at") @db.Timestamptz()
-  saleEndAt       DateTime?            @map("sale_end_at") @db.Timestamptz()
-  salesCount      Int                  @default(0) @map("sales_count")
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime?            @map("deleted_at") @db.Timestamptz()
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId     String?           @map("category_id") @db.Uuid
+  seriesId       String?           @map("series_id") @db.Uuid
+  sellerUserId   String            @map("seller_user_id") @db.Uuid
+  name           String            @db.VarChar(200)
+  description    String?           @db.Text
+  price          Int
+  compareAtPrice Int?              @map("compare_at_price")
+  stock          Int?
+  sellerType     ProductSellerType @default(admin) @map("seller_type")
+  publishStatus  PublishStatus     @default(draft) @map("publish_status")
+  status         ProductSaleStatus @default(on_sale)
+  saleStartAt    DateTime?         @map("sale_start_at") @db.Timestamptz()
+  saleEndAt      DateTime?         @map("sale_end_at") @db.Timestamptz()
+  salesCount     Int               @default(0) @map("sales_count")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt      DateTime?         @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category Category?      @relation(fields: [categoryId], references: [id])
-  series   ProductSeries? @relation(fields: [seriesId], references: [id])
-  seller   User           @relation("ProductSeller", fields: [sellerUserId], references: [id])
-  images   ProductImage[]
+  category   Category?      @relation(fields: [categoryId], references: [id])
+  series     ProductSeries? @relation(fields: [seriesId], references: [id])
+  seller     User           @relation("ProductSeller", fields: [sellerUserId], references: [id])
+  images     ProductImage[]
   orderItems OrderItem[]
 
   @@index([publishStatus, status, createdAt(sort: Desc)])
@@ -2377,17 +2380,17 @@ model ProductImage {
 }
 
 model Order {
-  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  buyerUserId   String      @map("buyer_user_id") @db.Uuid
-  sellerUserId  String      @map("seller_user_id") @db.Uuid
-  orderNumber   String      @unique @map("order_number") @db.VarChar(50)
-  totalAmount   Int         @map("total_amount")
-  status        OrderStatus @default(in_progress)
-  notes         String?     @db.Text
-  completedAt   DateTime?   @map("completed_at") @db.Timestamptz()
-  canceledAt    DateTime?   @map("canceled_at") @db.Timestamptz()
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyerUserId  String      @map("buyer_user_id") @db.Uuid
+  sellerUserId String      @map("seller_user_id") @db.Uuid
+  orderNumber  String      @unique @map("order_number") @db.VarChar(50)
+  totalAmount  Int         @map("total_amount")
+  status       OrderStatus @default(in_progress)
+  notes        String?     @db.Text
+  completedAt  DateTime?   @map("completed_at") @db.Timestamptz()
+  canceledAt   DateTime?   @map("canceled_at") @db.Timestamptz()
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   buyer  User        @relation("OrderBuyer", fields: [buyerUserId], references: [id])
@@ -2422,18 +2425,18 @@ model OrderItem {
 // --- アルバム ---
 
 model Album {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId       String?            @map("category_id") @db.Uuid
-  title            String             @db.VarChar(200)
-  description      String?            @db.Text
-  coverPhotoUrl    String?            @map("cover_photo_url") @db.VarChar(500)
-  publishStatus    PublishStatus @default(draft) @map("publish_status")
-  photoCount       Int                @default(0) @map("photo_count")
-  sortOrder        Int                @default(0) @map("sort_order")
-  createdByUserId  String             @map("created_by_user_id") @db.Uuid
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt        DateTime?          @map("deleted_at") @db.Timestamptz()
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId      String?       @map("category_id") @db.Uuid
+  title           String        @db.VarChar(200)
+  description     String?       @db.Text
+  coverPhotoUrl   String?       @map("cover_photo_url") @db.VarChar(500)
+  publishStatus   PublishStatus @default(draft) @map("publish_status")
+  photoCount      Int           @default(0) @map("photo_count")
+  sortOrder       Int           @default(0) @map("sort_order")
+  createdByUserId String        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
   category  Category?    @relation(fields: [categoryId], references: [id])
@@ -2447,15 +2450,15 @@ model Album {
 }
 
 model AlbumPhoto {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  albumId          String             @map("album_id") @db.Uuid
-  fileId           String             @map("file_id") @db.Uuid
-  title            String?            @db.VarChar(200)
-  caption          String?            @db.VarChar(500)
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  albumId          String        @map("album_id") @db.Uuid
+  fileId           String        @map("file_id") @db.Uuid
+  title            String?       @db.VarChar(200)
+  caption          String?       @db.VarChar(500)
   publishStatus    PublishStatus @default(published) @map("publish_status")
-  sortOrder        Int                @default(0) @map("sort_order")
-  uploadedByUserId String             @map("uploaded_by_user_id") @db.Uuid
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  sortOrder        Int           @default(0) @map("sort_order")
+  uploadedByUserId String        @map("uploaded_by_user_id") @db.Uuid
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   album      Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
@@ -2483,18 +2486,18 @@ model AlbumTag {
 // --- 施設・会場 ---
 
 model Venue {
-  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String               @db.VarChar(200)
-  address          String?              @db.Text
-  description      String?              @db.Text
-  accessInfo       String?              @map("access_info") @db.Text
-  venueTypes       String[]             @default([]) @map("venue_types")
-  capacity         Int?
-  publishStatus    PublishStatus @default(draft) @map("publish_status")
-  createdByUserId  String               @map("created_by_user_id") @db.Uuid
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt        DateTime?            @map("deleted_at") @db.Timestamptz()
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String        @db.VarChar(200)
+  address         String?       @db.Text
+  description     String?       @db.Text
+  accessInfo      String?       @map("access_info") @db.Text
+  venueTypes      String[]      @default([]) @map("venue_types")
+  capacity        Int?
+  publishStatus   PublishStatus @default(draft) @map("publish_status")
+  createdByUserId String        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
   createdBy User         @relation("VenueCreator", fields: [createdByUserId], references: [id])
@@ -2523,18 +2526,18 @@ model VenueImage {
 }
 
 model Space {
-  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  venueId       String               @map("venue_id") @db.Uuid
-  name          String               @db.VarChar(200)
-  description   String?              @db.Text
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId       String        @map("venue_id") @db.Uuid
+  name          String        @db.VarChar(200)
+  description   String?       @db.Text
   capacity      Int?
-  spaceTypes    String[]             @default([]) @map("space_types")
-  isReservable  Boolean              @default(true) @map("is_reservable")
+  spaceTypes    String[]      @default([]) @map("space_types")
+  isReservable  Boolean       @default(true) @map("is_reservable")
   publishStatus PublishStatus @default(draft) @map("publish_status")
-  sortOrder     Int                  @default(0) @map("sort_order")
-  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt     DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt     DateTime?            @map("deleted_at") @db.Timestamptz()
+  sortOrder     Int           @default(0) @map("sort_order")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
   venue        Venue         @relation(fields: [venueId], references: [id])
@@ -2569,18 +2572,18 @@ model Reservation {
 // --- コンテンツ ---
 
 model Content {
-  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name             String               @db.VarChar(200)
-  contentType      String               @map("content_type") @db.VarChar(50)
-  description      String?              @db.Text
-  price            Int?
-  coverImageUrl    String?              @map("cover_image_url") @db.VarChar(500)
-  inviteToken      String               @unique @map("invite_token") @db.VarChar(100)
-  publishStatus    PublishStatus @default(draft) @map("publish_status")
-  createdByUserId  String               @map("created_by_user_id") @db.Uuid
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt        DateTime?            @map("deleted_at") @db.Timestamptz()
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String        @db.VarChar(200)
+  contentType     String        @map("content_type") @db.VarChar(50)
+  description     String?       @db.Text
+  price           Int?
+  coverImageUrl   String?       @map("cover_image_url") @db.VarChar(500)
+  inviteToken     String        @unique @map("invite_token") @db.VarChar(100)
+  publishStatus   PublishStatus @default(draft) @map("publish_status")
+  createdByUserId String        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
   createdBy User @relation("ContentCreator", fields: [createdByUserId], references: [id])
@@ -2722,8 +2725,8 @@ model Memo {
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz()
 
-  user        User              @relation(fields: [userId], references: [id])
-  category    MemoCategory?     @relation(fields: [categoryId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  category    MemoCategory?    @relation(fields: [categoryId], references: [id])
   attachments MemoAttachment[]
 
   @@index([userId, createdAt(sort: Desc)])
@@ -2775,17 +2778,17 @@ model Schedule {
 // --- モデレーション ---
 
 model ContentReport {
-  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  reporterUserId    String           @map("reporter_user_id") @db.Uuid
-  targetType        ReportTargetType @map("target_type")
-  targetId          String           @map("target_id") @db.Uuid
-  category          ReportCategory
-  description       String?          @db.Text
-  status            ReportStatus     @default(pending)
-  assignedToUserId  String?          @map("assigned_to_user_id") @db.Uuid
-  resolvedAt        DateTime?        @map("resolved_at") @db.Timestamptz()
-  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterUserId   String           @map("reporter_user_id") @db.Uuid
+  targetType       ReportTargetType @map("target_type")
+  targetId         String           @map("target_id") @db.Uuid
+  category         ReportCategory
+  description      String?          @db.Text
+  status           ReportStatus     @default(pending)
+  assignedToUserId String?          @map("assigned_to_user_id") @db.Uuid
+  resolvedAt       DateTime?        @map("resolved_at") @db.Timestamptz()
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
 
   reporter   User               @relation("ReportReporter", fields: [reporterUserId], references: [id])
   assignedTo User?              @relation("ReportAssignee", fields: [assignedToUserId], references: [id])

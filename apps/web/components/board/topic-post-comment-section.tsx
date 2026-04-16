@@ -3,13 +3,30 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Heart, Reply } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Reply,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/auth/use-auth";
+import {
   useTopicPostComments,
   useCreateTopicPostComment,
+  useUpdateTopicPostComment,
+  useDeleteTopicPostComment,
   useToggleTopicPostCommentLike,
 } from "@/hooks/board/use-board";
 import type { BoardTopicPostComment } from "@/lib/api/types";
@@ -27,7 +44,40 @@ function CommentCard({
   onReply?: (id: string) => void;
   replyForm?: React.ReactNode;
 }) {
+  const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editBody, setEditBody] = useState(comment.body);
+  const updateComment = useUpdateTopicPostComment();
+  const deleteComment = useDeleteTopicPostComment();
   const initials = comment.author.name.slice(0, 2);
+
+  const canEdit =
+    comment.author.id === user?.id || user?.role === "owner" || user?.role === "admin";
+
+  const handleEdit = () => {
+    setEditBody(comment.body);
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (!editBody.trim()) return;
+    updateComment.mutate(
+      { id: comment.id, body: editBody.trim() },
+      {
+        onSuccess: () => setIsEditing(false),
+      },
+    );
+  };
+
+  const handleCancel = () => {
+    setEditBody(comment.body);
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (!confirm("このコメントを削除しますか？")) return;
+    deleteComment.mutate(comment.id);
+  };
 
   return (
     <div className={isNested ? "ml-8 border-l-2 border-muted pl-4" : ""}>
@@ -36,31 +86,79 @@ function CommentCard({
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{comment.author.name}</span>
-            <span>
-              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: ja })}
-            </span>
-          </div>
-          <p className="mt-1 whitespace-pre-wrap text-sm">{comment.body}</p>
-          <div className="mt-1 flex items-center gap-3">
-            <button
-              onClick={() => onToggleLike(comment.id)}
-              className={`flex items-center gap-1 text-xs ${comment.isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
-            >
-              <Heart className={`h-3 w-3 ${comment.isLiked ? "fill-current" : ""}`} />
-              {comment.likeCount > 0 && comment.likeCount}
-            </button>
-            {!isNested && onReply && (
-              <button
-                onClick={() => onReply(comment.id)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Reply className="h-3 w-3" />
-                返信
-              </button>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{comment.author.name}</span>
+              <span>
+                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: ja })}
+              </span>
+            </div>
+            {canEdit && !isEditing && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreVertical className="h-3 w-3" />
+                    <span className="sr-only">メニューを開く</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleEdit}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    編集
+                  </DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    削除
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
+
+          {isEditing ? (
+            <div className="mt-1 space-y-2">
+              <Textarea
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                rows={2}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={handleCancel}>
+                  キャンセル
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={!editBody.trim() || updateComment.isPending}
+                >
+                  {updateComment.isPending ? "保存中..." : "保存"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="mt-1 whitespace-pre-wrap text-sm">{comment.body}</p>
+              <div className="mt-1 flex items-center gap-3">
+                <button
+                  onClick={() => onToggleLike(comment.id)}
+                  className={`flex items-center gap-1 text-xs ${comment.isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
+                >
+                  <Heart className={`h-3 w-3 ${comment.isLiked ? "fill-current" : ""}`} />
+                  {comment.likeCount > 0 && comment.likeCount}
+                </button>
+                {!isNested && onReply && (
+                  <button
+                    onClick={() => onReply(comment.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Reply className="h-3 w-3" />
+                    返信
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

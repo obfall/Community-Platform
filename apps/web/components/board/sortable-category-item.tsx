@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, Pencil, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -19,12 +24,14 @@ interface SortableCategoryItemProps {
   category: BoardCategory;
   canReorder: boolean;
   canManage: boolean;
+  onCreateTopic: (categoryId: string) => void;
 }
 
 export function SortableCategoryItem({
   category,
   canReorder,
   canManage,
+  onCreateTopic,
 }: SortableCategoryItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id,
@@ -81,52 +88,67 @@ export function SortableCategoryItem({
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <span className="font-medium">{category.name}</span>
-              <span className="text-sm text-muted-foreground">({category.postCount})</span>
+              <span className="text-sm text-muted-foreground">({category.topicCount})</span>
             </div>
           </AccordionTrigger>
-          {canManage && (
-            <div className="ml-auto flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditName(category.name);
-                  setEditDescription(category.description ?? "");
-                  setEditAllowTopicCreation(category.allowTopicCreation);
-                  setEditOpen(true);
-                }}
-              >
-                <Pencil className="mr-1 h-4 w-4" />
-                編集
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-destructive hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete();
-                }}
-              >
-                <Trash2 className="mr-1 h-4 w-4" />
-                削除
-              </Button>
+          {(category.allowTopicCreation || canManage) && (
+            <div className="ml-auto flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">メニューを開く</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {category.allowTopicCreation && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateTopic(category.id);
+                      }}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      新規トピック
+                    </DropdownMenuItem>
+                  )}
+                  {canManage && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditName(category.name);
+                          setEditDescription(category.description ?? "");
+                          setEditAllowTopicCreation(category.allowTopicCreation);
+                          setEditOpen(true);
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        編集
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete();
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        削除
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
         <AccordionContent>
-          {category.allowTopicCreation && (
-            <div className="mb-3 flex justify-end">
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/board/topics/new?categoryId=${category.id}`}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  新規トピック
-                </Link>
-              </Button>
-            </div>
-          )}
           <TopicList categoryId={category.id} isAdmin={canReorder} />
         </AccordionContent>
       </AccordionItem>
