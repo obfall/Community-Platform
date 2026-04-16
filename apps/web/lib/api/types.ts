@@ -996,6 +996,10 @@ export interface VideoListItem {
   publishStatus: string;
   streamStatus: string;
   viewCount: number;
+  viewPermission: string;
+  allowedRoles: string[];
+  availableUntil: string | null;
+  hasPassword: boolean;
   category: { id: string; name: string } | null;
   series: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
@@ -1006,14 +1010,42 @@ export interface VideoDetail extends VideoListItem {
   videoProvider: string;
   videoExternalId: string;
   playbackUrl: string | null;
-  viewPermission: string;
-  availableUntil: string | null;
   watchOrder: number | null;
   sortOrder: number;
-  instructors: { id: string; userId: string; name: string; avatarUrl: string | null }[];
-  attachments: { id: string; fileId: string; fileName: string; fileUrl: string | null }[];
-  tasks: { id: string; title: string; description: string | null; sortOrder: number }[];
+  instructors: VideoInstructor[];
+  attachments: VideoAttachment[];
+  tasks: VideoTaskItem[];
+  prevVideo: { id: string; title: string; watchOrder: number | null } | null;
+  nextVideo: { id: string; title: string; watchOrder: number | null } | null;
+  seriesVideoCount: number | null;
   updatedAt: string;
+}
+
+export interface VideoInstructor {
+  id: string;
+  userId: string | null;
+  name: string;
+  affiliation: string | null;
+  avatarUrl: string | null;
+}
+
+export interface VideoAttachment {
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileUrl: string | null;
+}
+
+export type VideoTaskStatus = "not_started" | "in_progress" | "completed";
+
+export interface VideoTaskItem {
+  id: string;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  status?: VideoTaskStatus;
+  statusUpdatedAt?: string;
+  completedAt?: string;
 }
 
 export interface VideoWatchProgress {
@@ -1038,6 +1070,52 @@ export interface VideoQuery {
   categoryId?: string;
   seriesId?: string;
   search?: string;
+  viewPermission?: string;
+  taskProgress?: "incomplete" | "complete" | "none";
+}
+
+export interface InstructorInput {
+  userId?: string;
+  name: string;
+  affiliation?: string;
+}
+
+export interface TaskInput {
+  id?: string;
+  title: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface VideoTaskProgress {
+  videoTitle: string;
+  totalMembers: number;
+  tasks: {
+    id: string;
+    title: string;
+    description: string | null;
+    completionCount: number;
+    inProgressCount: number;
+    notStartedCount: number;
+    completedBy: {
+      userId: string;
+      name: string;
+      avatarUrl: string | null;
+      statusUpdatedAt: string;
+      completedAt: string | null;
+    }[];
+    inProgressBy: {
+      userId: string;
+      name: string;
+      avatarUrl: string | null;
+      statusUpdatedAt: string;
+    }[];
+    notStartedBy: {
+      userId: string;
+      name: string;
+      avatarUrl: string | null;
+    }[];
+  }[];
 }
 
 // --- Analytics ---

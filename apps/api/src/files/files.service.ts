@@ -48,7 +48,11 @@ export class FilesService {
     this.validateFile(file, dto.fileCategory);
 
     const fileId = randomUUID();
-    const storageKey = `${dto.fileCategory}/${fileId}/${file.originalname}`;
+    // ストレージキーは ASCII セーフな UUID + 拡張子 のみを使う。
+    // 元ファイル名（日本語含む）は originalName カラムで保持する。
+    const extMatch = file.originalname.match(/\.[^./\\]+$/);
+    const ext = extMatch ? extMatch[0].toLowerCase() : "";
+    const storageKey = `${dto.fileCategory}/${fileId}${ext}`;
     const checksum = createHash("sha256").update(file.buffer).digest("hex");
 
     let imageWidth: number | null = null;

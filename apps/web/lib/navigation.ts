@@ -130,7 +130,6 @@ export const NAV_ITEMS: NavItem[] = [
 export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog },
-  { label: "動画管理", href: "/videos/manage", icon: Video },
   { label: "商品管理", href: "/shop/manage", icon: ShoppingBag },
   { label: "ポイント発行", href: "/points/grant", icon: Star },
 ];
