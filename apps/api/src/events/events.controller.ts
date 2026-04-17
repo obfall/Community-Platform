@@ -144,4 +144,12 @@ export class EventsController {
   ) {
     return this.eventsService.updateParticipantStatus(participantId, dto);
   }
+
+  @Get(":id/participants/stats")
+  @ApiOperation({ summary: "参加者統計（admin）" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  getParticipantStats(@Param("id", ParseUUIDPipe) eventId: string) {
+    return this.eventsService.getParticipantStats(eventId);
+  }
 }

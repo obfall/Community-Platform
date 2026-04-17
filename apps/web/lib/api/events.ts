@@ -11,6 +11,14 @@ import type {
   UpdateEventInput,
   CreateTicketInput,
   ParticipateEventInput,
+  ApplicationFormFull,
+  ApplicationFormPublic,
+  ApplicationFormConfig,
+  ApplicationQuestion,
+  UpsertApplicationFormConfigInput,
+  CreateApplicationQuestionInput,
+  UpdateApplicationQuestionInput,
+  ParticipantStats,
 } from "./types";
 
 export const eventsApi = {
@@ -56,4 +64,45 @@ export const eventsApi = {
 
   updateParticipantStatus: (participantId: string, status: string) =>
     apiClient.patch(`/events/participants/${participantId}/status`, { status }).then((r) => r.data),
+
+  // Application Form
+  getApplicationForm: (eventId: string) =>
+    apiClient.get<ApplicationFormFull>(`/events/${eventId}/application-form`).then((r) => r.data),
+
+  getApplicationFormPublic: (eventId: string) =>
+    apiClient
+      .get<ApplicationFormPublic>(`/events/${eventId}/application-form/public`)
+      .then((r) => r.data),
+
+  upsertApplicationFormConfig: (eventId: string, data: UpsertApplicationFormConfigInput) =>
+    apiClient
+      .put<ApplicationFormConfig>(`/events/${eventId}/application-form/config`, data)
+      .then((r) => r.data),
+
+  createQuestion: (eventId: string, data: CreateApplicationQuestionInput) =>
+    apiClient
+      .post<ApplicationQuestion>(`/events/${eventId}/application-form/questions`, data)
+      .then((r) => r.data),
+
+  updateQuestion: (eventId: string, questionId: string, data: UpdateApplicationQuestionInput) =>
+    apiClient
+      .patch<ApplicationQuestion>(
+        `/events/${eventId}/application-form/questions/${questionId}`,
+        data,
+      )
+      .then((r) => r.data),
+
+  deleteQuestion: (eventId: string, questionId: string) =>
+    apiClient.delete(`/events/${eventId}/application-form/questions/${questionId}`),
+
+  reorderQuestions: (eventId: string, items: Array<{ id: string; sortOrder: number }>) =>
+    apiClient
+      .patch<ApplicationQuestion[]>(`/events/${eventId}/application-form/questions/reorder`, {
+        items,
+      })
+      .then((r) => r.data),
+
+  // Stats
+  getParticipantStats: (eventId: string) =>
+    apiClient.get<ParticipantStats>(`/events/${eventId}/participants/stats`).then((r) => r.data),
 };

@@ -120,9 +120,9 @@ export default function EventsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event: EventListItem) => (
             <Link key={event.id} href={`/events/${event.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
+              <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
                 {event.coverImageUrl && (
-                  <div className="h-40 overflow-hidden rounded-t-lg bg-muted">
+                  <div className="h-40 bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={event.coverImageUrl}

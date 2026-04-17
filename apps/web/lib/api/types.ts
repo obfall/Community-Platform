@@ -821,10 +821,136 @@ export interface CreateTicketInput {
 }
 
 export interface ParticipateEventInput {
-  ticketId?: string;
+  ticketId: string;
   quantity?: number;
   discountCode?: string;
   paymentMethod?: string;
+  applicantEmail: string;
+  applicantName?: string;
+  applicantNameKana?: string;
+  applicantAffiliation?: string;
+  applicantGender?: string;
+  applicantAge?: number;
+  applicantOccupation?: string;
+  applicantNationality?: string;
+  answers?: Array<{ questionId: string; answer: string | string[] }>;
+}
+
+// --- Application Form ---
+
+export type FormFieldVisibility = "hidden" | "optional" | "required";
+
+export type ApplicationQuestionType = "text" | "textarea" | "radio" | "checkbox" | "select";
+
+export interface ApplicationQuestionOption {
+  value: string;
+  label: string;
+}
+
+export interface ApplicationQuestion {
+  id: string;
+  label: string;
+  description: string | null;
+  questionType: ApplicationQuestionType;
+  options: ApplicationQuestionOption[] | null;
+  isRequired: boolean;
+  sortOrder: number;
+}
+
+export interface ApplicationFormConfig {
+  id?: string;
+  notifyOnCapacityReached: boolean;
+  notifyOnRemainingThreshold: number | null;
+  completionMessageApp: string | null;
+  completionMessageEmail: string | null;
+  askName: FormFieldVisibility;
+  askNameKana: FormFieldVisibility;
+  askAffiliation: FormFieldVisibility;
+  askGender: FormFieldVisibility;
+  askAge: FormFieldVisibility;
+  askOccupation: FormFieldVisibility;
+  askNationality: FormFieldVisibility;
+}
+
+export interface ApplicationFormPublic {
+  config: Pick<
+    ApplicationFormConfig,
+    | "askName"
+    | "askNameKana"
+    | "askAffiliation"
+    | "askGender"
+    | "askAge"
+    | "askOccupation"
+    | "askNationality"
+  >;
+  questions: ApplicationQuestion[];
+}
+
+export interface ApplicationFormFull {
+  config: ApplicationFormConfig | null;
+  questions: ApplicationQuestion[];
+}
+
+export interface UpsertApplicationFormConfigInput {
+  notifyOnCapacityReached?: boolean;
+  notifyOnRemainingThreshold?: number | null;
+  completionMessageApp?: string | null;
+  completionMessageEmail?: string | null;
+  askName?: FormFieldVisibility;
+  askNameKana?: FormFieldVisibility;
+  askAffiliation?: FormFieldVisibility;
+  askGender?: FormFieldVisibility;
+  askAge?: FormFieldVisibility;
+  askOccupation?: FormFieldVisibility;
+  askNationality?: FormFieldVisibility;
+}
+
+export interface CreateApplicationQuestionInput {
+  label: string;
+  description?: string;
+  questionType: ApplicationQuestionType;
+  options?: ApplicationQuestionOption[];
+  isRequired?: boolean;
+  sortOrder?: number;
+}
+
+export interface UpdateApplicationQuestionInput {
+  label?: string;
+  description?: string | null;
+  questionType?: ApplicationQuestionType;
+  options?: ApplicationQuestionOption[] | null;
+  isRequired?: boolean;
+  sortOrder?: number;
+}
+
+export interface ParticipantStatsAttribute {
+  values: Array<{ key: string; count: number }>;
+  answered: number;
+}
+
+export interface ParticipantStats {
+  total: number;
+  canceledTotal: number;
+  tickets: Array<{
+    ticketId: string;
+    ticketName: string;
+    soldCount: number;
+    capacity: number | null;
+  }>;
+  basicAttributes: {
+    gender: ParticipantStatsAttribute;
+    ageBands: ParticipantStatsAttribute;
+    occupation: ParticipantStatsAttribute;
+    affiliation: ParticipantStatsAttribute;
+    nationality: ParticipantStatsAttribute;
+  };
+  questions: Array<{
+    questionId: string;
+    label: string;
+    questionType: ApplicationQuestionType;
+    answered: number;
+    optionCounts?: Array<{ value: string; label: string; count: number }>;
+  }>;
 }
 
 // --- Projects ---
@@ -1492,4 +1618,61 @@ export interface ContentListItem {
   publishStatus: string;
   createdBy: { id: string; name: string };
   createdAt: string;
+}
+
+// --- Event Results ---
+
+export type EventExecutionStatus =
+  | "as_planned"
+  | "modified"
+  | "partially_held"
+  | "postponed"
+  | "canceled";
+
+export type EventResultStatus = "draft" | "completed";
+
+export type EventResultPublishStatus = "public" | "private";
+
+export interface EventResultAttachmentFile {
+  id: string;
+  originalName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  storageKey: string;
+  storageBucket: string;
+  publicUrl: string | null;
+}
+
+export interface EventResultAttachment {
+  id: string;
+  sortOrder: number;
+  file: EventResultAttachmentFile;
+  createdAt: string;
+}
+
+export interface EventResult {
+  id: string;
+  eventId: string;
+  attendanceCount: number;
+  attendanceRate: number | null;
+  summary: string | null;
+  achievementNotes: string | null;
+  improvementNotes: string | null;
+  executionStatus: EventExecutionStatus;
+  status: EventResultStatus;
+  publishStatus: EventResultPublishStatus;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  attachments: EventResultAttachment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertEventResultInput {
+  attendanceCount: number;
+  summary?: string | null;
+  achievementNotes?: string | null;
+  improvementNotes?: string | null;
+  executionStatus: EventExecutionStatus;
+  status: EventResultStatus;
+  publishStatus: EventResultPublishStatus;
 }

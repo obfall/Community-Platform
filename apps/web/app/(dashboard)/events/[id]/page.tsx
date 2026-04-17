@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useEvent, useParticipate } from "@/hooks/events/use-events";
+import { useEvent } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { CalendarDays, MapPin, Monitor, Users, Clock, Pencil } from "lucide-react";
 import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
+import { ApplicationFormSection } from "./_components/application-form-section";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
@@ -60,7 +61,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id);
-  const participate = useParticipate();
 
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -92,32 +92,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl font-bold">{event.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">作成者: {event.createdBy.name}</p>
         </div>
-        <div className="flex gap-2">
-          {isAdmin && (
-            <>
-              <Link href={`/events/${id}/edit`}>
-                <Button variant="outline">
-                  <Pencil className="mr-2 h-4 w-4" />
-                  編集
-                </Button>
-              </Link>
-              <Link href={`/events/${id}/participants`}>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  参加者一覧
-                </Button>
-              </Link>
-            </>
-          )}
-          {event.status === "recruiting" && (
-            <Button
-              onClick={() => participate.mutate({ eventId: id })}
-              disabled={participate.isPending}
-            >
-              参加申込
+        {isAdmin && (
+          <Link href={`/events/${id}/edit`}>
+            <Button variant="outline">
+              <Pencil className="mr-2 h-4 w-4" />
+              編集
             </Button>
-          )}
-        </div>
+          </Link>
+        )}
       </div>
 
       {/* ステータスバナー */}
@@ -131,7 +113,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* カバー画像 */}
       {event.coverImageUrl && (
-        <div className="h-64 overflow-hidden rounded-lg bg-muted">
+        <div className="h-80 overflow-hidden rounded-lg bg-muted md:h-96">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={event.coverImageUrl} alt={event.title} className="h-full w-full object-cover" />
         </div>
@@ -297,10 +279,40 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </CardContent>
           </Card>
+
+          {/* 申込フォーム設定（admin のみ） */}
+          {isAdmin && <ApplicationFormSection eventId={id} />}
         </div>
 
         {/* 右: サイドバー */}
         <div className="space-y-4">
+          {/* 参加申込 CTA */}
+          {event.status === "recruiting" && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                {event.registrationDeadlineAt && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span>
+                      申込締切:{" "}
+                      {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+                <Link href={`/events/${id}/apply`}>
+                  <Button className="w-full" size="lg">
+                    参加申込
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           {/* チケット */}
           <TicketSection eventId={id} tickets={event.tickets} isAdmin={isAdmin} />
         </div>

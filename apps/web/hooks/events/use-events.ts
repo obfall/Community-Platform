@@ -7,6 +7,9 @@ import type {
   UpdateEventInput,
   CreateTicketInput,
   ParticipateEventInput,
+  UpsertApplicationFormConfigInput,
+  CreateApplicationQuestionInput,
+  UpdateApplicationQuestionInput,
 } from "@/lib/api/types";
 
 // --- Queries ---
@@ -140,5 +143,109 @@ export function useUpdateParticipantStatus() {
       toast.success("ステータスを変更しました");
     },
     onError: () => toast.error("ステータスの変更に失敗しました"),
+  });
+}
+
+// --- Application Form ---
+
+export function useApplicationForm(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["events", eventId, "application-form"],
+    queryFn: () => eventsApi.getApplicationForm(eventId!),
+    enabled: !!eventId,
+  });
+}
+
+export function useApplicationFormPublic(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["events", eventId, "application-form", "public"],
+    queryFn: () => eventsApi.getApplicationFormPublic(eventId!),
+    enabled: !!eventId,
+  });
+}
+
+export function useUpsertApplicationFormConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, data }: { eventId: string; data: UpsertApplicationFormConfigInput }) =>
+      eventsApi.upsertApplicationFormConfig(eventId, data),
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "application-form"] });
+      toast.success("設定を保存しました");
+    },
+    onError: () => toast.error("設定の保存に失敗しました"),
+  });
+}
+
+export function useCreateQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, data }: { eventId: string; data: CreateApplicationQuestionInput }) =>
+      eventsApi.createQuestion(eventId, data),
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "application-form"] });
+      toast.success("質問を追加しました");
+    },
+    onError: () => toast.error("質問の追加に失敗しました"),
+  });
+}
+
+export function useUpdateQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      questionId,
+      data,
+    }: {
+      eventId: string;
+      questionId: string;
+      data: UpdateApplicationQuestionInput;
+    }) => eventsApi.updateQuestion(eventId, questionId, data),
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "application-form"] });
+      toast.success("質問を更新しました");
+    },
+    onError: () => toast.error("質問の更新に失敗しました"),
+  });
+}
+
+export function useDeleteQuestion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, questionId }: { eventId: string; questionId: string }) =>
+      eventsApi.deleteQuestion(eventId, questionId),
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "application-form"] });
+      toast.success("質問を削除しました");
+    },
+    onError: () => toast.error("質問の削除に失敗しました"),
+  });
+}
+
+export function useReorderQuestions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      items,
+    }: {
+      eventId: string;
+      items: Array<{ id: string; sortOrder: number }>;
+    }) => eventsApi.reorderQuestions(eventId, items),
+    onSuccess: (_, { eventId }) => {
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "application-form"] });
+    },
+    onError: () => toast.error("並び順の更新に失敗しました"),
+  });
+}
+
+// --- Stats ---
+
+export function useParticipantStats(eventId: string | undefined) {
+  return useQuery({
+    queryKey: ["events", eventId, "participants", "stats"],
+    queryFn: () => eventsApi.getParticipantStats(eventId!),
+    enabled: !!eventId,
   });
 }
