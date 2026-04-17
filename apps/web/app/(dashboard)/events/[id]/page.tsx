@@ -1,16 +1,45 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { useEvent, useParticipate } from "@/hooks/events/use-events";
+import { useRouter } from "next/navigation";
+import { useEvent, useDuplicateEvent, useDeleteEvent } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, MapPin, Monitor, Users, Clock, Pencil } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  CalendarDays,
+  MapPin,
+  Monitor,
+  Users,
+  Clock,
+  Pencil,
+  Copy,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
+import { ApplicationFormSection } from "./_components/application-form-section";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
@@ -58,9 +87,13 @@ const STATUS_BANNER: Record<string, { bg: string; text: string; message: string 
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id);
-  const participate = useParticipate();
+  const duplicateEvent = useDuplicateEvent();
+  const deleteEvent = useDeleteEvent();
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   if (isLoading) {
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -72,6 +105,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
   const banner = STATUS_BANNER[event.status];
+
+  const handleDuplicate = () => {
+    duplicateEvent.mutate(id, {
+      onSuccess: (newEvent) => {
+        setDuplicateDialogOpen(false);
+        router.push(`/events/${newEvent.id}/edit`);
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -92,32 +134,35 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl font-bold">{event.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">作成者: {event.createdBy.name}</p>
         </div>
-        <div className="flex gap-2">
-          {isAdmin && (
-            <>
-              <Link href={`/events/${id}/edit`}>
-                <Button variant="outline">
+        {isAdmin && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/events/${id}/edit`}>
                   <Pencil className="mr-2 h-4 w-4" />
                   編集
-                </Button>
-              </Link>
-              <Link href={`/events/${id}/participants`}>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  参加者一覧
-                </Button>
-              </Link>
-            </>
-          )}
-          {event.status === "recruiting" && (
-            <Button
-              onClick={() => participate.mutate({ eventId: id })}
-              disabled={participate.isPending}
-            >
-              参加申込
-            </Button>
-          )}
-        </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+                <Copy className="mr-2 h-4 w-4" />
+                複製
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                削除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* ステータスバナー */}
@@ -131,7 +176,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       {/* カバー画像 */}
       {event.coverImageUrl && (
-        <div className="h-64 overflow-hidden rounded-lg bg-muted">
+        <div className="h-80 overflow-hidden rounded-lg bg-muted md:h-96">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={event.coverImageUrl} alt={event.title} className="h-full w-full object-cover" />
         </div>
@@ -297,14 +342,94 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               )}
             </CardContent>
           </Card>
+
+          {/* 申込フォーム設定（admin のみ） */}
+          {isAdmin && <ApplicationFormSection eventId={id} />}
         </div>
 
         {/* 右: サイドバー */}
         <div className="space-y-4">
+          {/* 参加申込 CTA */}
+          {event.status === "recruiting" && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                {event.registrationDeadlineAt && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span>
+                      申込締切:{" "}
+                      {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                )}
+                <Link href={`/events/${id}/apply`}>
+                  <Button className="w-full" size="lg">
+                    参加申込
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           {/* チケット */}
           <TicketSection eventId={id} tickets={event.tickets} isAdmin={isAdmin} />
         </div>
       </div>
+
+      {/* 複製確認ダイアログ */}
+      <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>イベントを複製</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>このイベントを元に新しいイベント（下書き）を作成します。</p>
+                <div>
+                  <p className="font-medium text-foreground">引き継がれる項目</p>
+                  <p>基本情報・チケット・申込フォーム設定・カスタム質問・登壇者・関係団体・タグ</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">引き継がれない項目</p>
+                  <p>参加者・回答データ・実施結果・割引コード・ファイル・チケット販売数</p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDuplicate} disabled={duplicateEvent.isPending}>
+              {duplicateEvent.isPending ? "複製中..." : "複製する"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>イベントを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{event.title}」を削除します。この操作は論理削除です。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteEvent.mutate(id, { onSuccess: () => router.push("/events") });
+              }}
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

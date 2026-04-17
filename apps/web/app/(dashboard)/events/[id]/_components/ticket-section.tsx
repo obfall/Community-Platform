@@ -143,33 +143,77 @@ export function TicketSection({ eventId, tickets, isAdmin }: TicketSectionProps)
         {tickets.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">チケットがありません</p>
         ) : (
-          tickets.map((ticket) => (
-            <div key={ticket.id} className="flex items-center justify-between rounded border p-3">
-              <div>
-                <p className="text-sm font-medium">{ticket.ticketName}</p>
-                {ticket.capacity != null && (
-                  <p className="text-xs text-muted-foreground">
-                    残り {ticket.capacity - ticket.soldCount} / {ticket.capacity}
-                  </p>
-                )}
+          tickets.map((ticket) => {
+            const remaining = ticket.capacity != null ? ticket.capacity - ticket.soldCount : null;
+            const soldOut = remaining != null && remaining <= 0;
+            const progressPercent =
+              ticket.capacity != null && ticket.capacity > 0
+                ? Math.min(100, (ticket.soldCount / ticket.capacity) * 100)
+                : 0;
+            return (
+              <div key={ticket.id} className="space-y-2 rounded border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{ticket.ticketName}</p>
+                      {!ticket.isActive && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          販売停止
+                        </span>
+                      )}
+                      {soldOut && ticket.isActive && (
+                        <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] text-destructive">
+                          完売
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold">
+                      {ticket.price === 0 ? "無料" : `¥${ticket.price.toLocaleString()}`}
+                    </p>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleDelete(ticket.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between">
+                    <span>申込数</span>
+                    <span className="tabular-nums">
+                      {ticket.soldCount}
+                      {ticket.capacity != null ? ` / ${ticket.capacity}` : " / 定員なし"}
+                    </span>
+                  </div>
+                  {ticket.capacity != null && (
+                    <>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full transition-all ${soldOut ? "bg-destructive" : "bg-primary"}`}
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>残り</span>
+                        <span className="tabular-nums">{Math.max(0, remaining ?? 0)}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span>1人あたり購入上限</span>
+                    <span className="tabular-nums">{ticket.purchaseLimit}枚</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold">
-                  {ticket.price === 0 ? "無料" : `¥${ticket.price.toLocaleString()}`}
-                </p>
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => handleDelete(ticket.id)}
-                  >
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </CardContent>
     </Card>

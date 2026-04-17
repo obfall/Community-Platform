@@ -20,6 +20,21 @@ export class NotificationsService {
     return this.prisma.notification.create({ data });
   }
 
+  /** 通知を一括作成 */
+  async createMany(
+    items: Array<{
+      userId: string;
+      type: string;
+      title: string;
+      body?: string;
+      referenceType?: string;
+      referenceId?: string;
+      actorUserId?: string;
+    }>,
+  ) {
+    return this.prisma.notification.createMany({ data: items });
+  }
+
   async findAll(userId: string, query: NotificationQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;

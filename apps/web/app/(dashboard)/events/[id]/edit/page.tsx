@@ -1,14 +1,14 @@
 /* eslint-disable react-hooks/incompatible-library */
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useEvent, useUpdateEvent, useDeleteEvent } from "@/hooks/events/use-events";
+import { useEvent, useUpdateEvent } from "@/hooks/events/use-events";
+import type { EventDetail } from "@/lib/api/types";
 import { ImageUpload } from "@/components/image-upload";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,19 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { StickyFooterBar } from "@/components/sticky-footer-bar";
 import { VenuePicker } from "@/components/venue-picker";
+import {
+  ApplicationFormEditor,
+  type ApplicationFormEditorHandle,
+} from "../_components/application-form-editor";
 
 const schema = z.object({
   title: z.string().min(1, "タイトルは必須です").max(200),
@@ -75,65 +68,57 @@ function toLocalDatetime(iso: string | null | undefined): string {
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data: event, isLoading } = useEvent(id);
+
+  if (isLoading) {
+    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  }
+
+  if (!event) {
+    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
+  }
+
+  return <EditEventForm id={id} event={event} />;
+}
+
+function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
+  const router = useRouter();
   const updateEvent = useUpdateEvent();
-  const deleteEvent = useDeleteEvent();
+  const formEditorRef = useRef<ApplicationFormEditorHandle>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: "",
-      description: "",
-      locationType: "venue",
-      venueId: undefined,
-      venueName: "",
-      venueAddress: "",
-      onlineUrl: "",
-      startAt: "",
-      endAt: "",
-      registrationDeadlineAt: "",
-      eventType: "",
-      planningRole: "主催",
-      accessInfo: "",
-      participationMethod: "",
-      contactInfo: "",
-      cancellationPolicy: "",
-      coverImageUrl: null,
-      status: "draft",
-      isCalendarVisible: true,
+      title: event.title,
+      description: event.description ?? "",
+      locationType: event.locationType as "venue" | "online" | "hybrid",
+      venueId: event.venueId ?? undefined,
+      venueName: event.venueName ?? "",
+      venueAddress: event.venueAddress ?? "",
+      onlineUrl: event.onlineUrl ?? "",
+      startAt: toLocalDatetime(event.startAt),
+      endAt: toLocalDatetime(event.endAt),
+      registrationDeadlineAt: toLocalDatetime(event.registrationDeadlineAt),
+      eventType: event.eventType ?? "",
+      planningRole: event.planningRole ?? "主催",
+      accessInfo: event.accessInfo ?? "",
+      participationMethod: event.participationMethod ?? "",
+      contactInfo: event.contactInfo ?? "",
+      cancellationPolicy: event.cancellationPolicy ?? "",
+      coverImageUrl: event.coverImageUrl ?? null,
+      status: event.status as FormValues["status"],
+      isCalendarVisible: event.isCalendarVisible,
     },
   });
-
-  useEffect(() => {
-    if (event) {
-      form.reset({
-        title: event.title,
-        description: event.description ?? "",
-        locationType: event.locationType as "venue" | "online" | "hybrid",
-        venueId: event.venueId ?? undefined,
-        venueName: event.venueName ?? "",
-        venueAddress: event.venueAddress ?? "",
-        onlineUrl: event.onlineUrl ?? "",
-        startAt: toLocalDatetime(event.startAt),
-        endAt: toLocalDatetime(event.endAt),
-        registrationDeadlineAt: toLocalDatetime(event.registrationDeadlineAt),
-        eventType: event.eventType ?? "",
-        planningRole: event.planningRole ?? "主催",
-        accessInfo: event.accessInfo ?? "",
-        participationMethod: event.participationMethod ?? "",
-        contactInfo: event.contactInfo ?? "",
-        cancellationPolicy: event.cancellationPolicy ?? "",
-        coverImageUrl: event.coverImageUrl ?? null,
-        status: event.status as FormValues["status"],
-        isCalendarVisible: event.isCalendarVisible,
-      });
-    }
-  }, [event, form]);
 
   const locationType = form.watch("locationType");
 
   const onSubmit = (data: FormValues) => {
+    // 申込フォーム設定も同時に保存
+    if (formEditorRef.current?.isDirty) {
+      formEditorRef.current.save();
+    }
+
     updateEvent.mutate(
       {
         id,
@@ -155,47 +140,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     );
   };
 
-  if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
-  }
-
-  if (!event) {
-    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold">イベント編集</h1>
-        <div className="ml-auto">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-1 h-4 w-4" />
-                削除
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>イベントを削除しますか？</AlertDialogTitle>
-                <AlertDialogDescription>
-                  「{event.title}」を削除します。この操作は論理削除です。
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    deleteEvent.mutate(id, { onSuccess: () => router.push("/events") });
-                  }}
-                >
-                  削除する
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold">イベント編集</h1>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -431,6 +378,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   />
                 </CardContent>
               </Card>
+
+              {/* 申込フォーム設定 */}
+              <ApplicationFormEditor eventId={id} handleRef={formEditorRef} />
             </div>
 
             {/* サイドバー */}
@@ -489,12 +439,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                   />
                 </CardContent>
               </Card>
-
-              <Button type="submit" className="w-full" disabled={updateEvent.isPending}>
-                更新する
-              </Button>
             </div>
           </div>
+
+          <StickyFooterBar
+            onCancel={() => router.push(`/events/${id}`)}
+            disabled={updateEvent.isPending}
+          />
         </form>
       </Form>
     </div>

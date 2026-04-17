@@ -24,6 +24,7 @@ import { EventQueryDto } from "./dto/event-query.dto";
 import { CreateTicketDto } from "./dto/create-ticket.dto";
 import { ParticipateEventDto } from "./dto/participate-event.dto";
 import { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
+import { NotifyParticipantsDto } from "./dto/notify-participants.dto";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
 
 @Controller("events")
@@ -134,6 +135,25 @@ export class EventsController {
     return this.eventsService.getParticipants(eventId, query);
   }
 
+  @Get(":id/participants/stats")
+  @ApiOperation({ summary: "参加者統計（admin）" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  getParticipantStats(@Param("id", ParseUUIDPipe) eventId: string) {
+    return this.eventsService.getParticipantStats(eventId);
+  }
+
+  @Get(":id/participants/:participantId")
+  @ApiOperation({ summary: "参加者詳細" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  getParticipantDetail(
+    @Param("id", ParseUUIDPipe) eventId: string,
+    @Param("participantId", ParseUUIDPipe) participantId: string,
+  ) {
+    return this.eventsService.getParticipantDetail(eventId, participantId);
+  }
+
   @Patch("participants/:participantId/status")
   @ApiOperation({ summary: "参加者ステータス変更" })
   @UseGuards(RolesGuard)
@@ -143,5 +163,27 @@ export class EventsController {
     @Body() dto: UpdateParticipantStatusDto,
   ) {
     return this.eventsService.updateParticipantStatus(participantId, dto);
+  }
+
+  @Post(":id/participants/notify")
+  @ApiOperation({ summary: "参加者への一括通知" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  notifyParticipants(
+    @Param("id", ParseUUIDPipe) eventId: string,
+    @CurrentUser("id") userId: string,
+    @Body() dto: NotifyParticipantsDto,
+  ) {
+    return this.eventsService.notifyParticipants(eventId, userId, dto);
+  }
+
+  // ========== Duplicate ==========
+
+  @Post(":id/duplicate")
+  @ApiOperation({ summary: "イベント複製" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  duplicate(@Param("id", ParseUUIDPipe) id: string, @CurrentUser("id") userId: string) {
+    return this.eventsService.duplicate(id, userId);
   }
 }
