@@ -1382,6 +1382,7 @@ model EventFile {
   sortOrder        Int      @default(0) @map("sort_order")
   uploadedByUserId String   @map("uploaded_by_user_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -1391,6 +1392,8 @@ model EventFile {
   uploadedBy   User        @relation(fields: [uploadedByUserId], references: [id])
 
   @@index([eventId, parentFolderId, sortOrder])
+  @@index([eventId, parentFolderId, name])
+  @@index([eventId, type])
   @@map("event_files")
 }
 
@@ -1639,6 +1642,7 @@ model ProjectFile {
   sortOrder        Int      @default(0) @map("sort_order")
   uploadedByUserId String   @map("uploaded_by_user_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1648,6 +1652,8 @@ model ProjectFile {
   uploadedBy   User          @relation(fields: [uploadedByUserId], references: [id])
 
   @@index([projectId, parentFolderId, sortOrder])
+  @@index([projectId, parentFolderId, name])
+  @@index([projectId, type])
   @@map("project_files")
 }
 

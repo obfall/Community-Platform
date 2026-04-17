@@ -1676,3 +1676,62 @@ export interface UpsertEventResultInput {
   status: EventResultStatus;
   publishStatus: EventResultPublishStatus;
 }
+
+// --- File Manager ---
+
+export type FileEntryType = "file" | "folder";
+export type FileSortField = "name" | "updatedAt" | "size";
+
+export interface FileEntryDetail {
+  id: string;
+  originalName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  publicUrl: string | null;
+  thumbnailUrl: string | null;
+}
+
+export interface FileEntry {
+  id: string;
+  type: FileEntryType;
+  name: string;
+  parentFolderId: string | null;
+  sortOrder: number;
+  uploadedBy: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+  updatedAt: string;
+  file: FileEntryDetail | null;
+}
+
+export interface FolderDetail {
+  id: string;
+  name: string;
+  parentFolderId: string | null;
+  breadcrumb: Array<{ id: string; name: string }>;
+}
+
+export interface CreateFolderInput {
+  parentFolderId?: string;
+  name: string;
+}
+
+export interface RegisterFileInput {
+  fileId: string;
+  parentFolderId?: string;
+  name?: string;
+}
+
+export interface RenameInput {
+  name: string;
+}
+
+export interface MoveInput {
+  parentFolderId?: string | null;
+}
+
+export interface FileListQuery {
+  folderId?: string;
+  q?: string;
+  sort?: FileSortField;
+  order?: "asc" | "desc";
+}

@@ -1,5 +1,9 @@
 "use client";
 
-export default function ProjectFilesPage() {
-  return <div className="py-12 text-center text-muted-foreground">ファイル（準備中）</div>;
+import { use } from "react";
+import { FileManagerView } from "@/components/files/file-manager-view";
+
+export default function ProjectFilesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return <FileManagerView scope={{ kind: "project", projectId: id }} />;
 }

@@ -1,6 +1,12 @@
 import { Injectable, Logger, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import type { Readable } from "stream";
 
 @Injectable()
 export class StorageService {
@@ -72,6 +78,17 @@ export class StorageService {
         Key: key,
       }),
     );
+  }
+
+  async getObject(key: string): Promise<{ stream: Readable; contentType: string }> {
+    this.ensureClient();
+
+    const res = await this.client!.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+
+    return {
+      stream: res.Body as Readable,
+      contentType: res.ContentType ?? "application/octet-stream",
+    };
   }
 
   getPublicUrl(key: string): string | null {
