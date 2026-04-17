@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { BullModule } from "@nestjs/bullmq";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { SentryModule, SentryGlobalFilter } from "@sentry/nestjs/setup";
 import { AppController } from "./app.controller";
@@ -47,6 +48,18 @@ import { validateEnv } from "./config/env.config";
       isGlobal: true,
       validate: validateEnv,
     }),
+
+    // BullMQ（Redis が設定されている場合のみ有効）
+    ...(process.env.REDIS_HOST
+      ? [
+          BullModule.forRoot({
+            connection: {
+              host: process.env.REDIS_HOST,
+              port: parseInt(process.env.REDIS_PORT ?? "6379", 10),
+            },
+          }),
+        ]
+      : []),
 
     // Database
     PrismaModule,

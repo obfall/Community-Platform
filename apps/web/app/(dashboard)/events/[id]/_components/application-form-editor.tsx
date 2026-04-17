@@ -27,6 +27,7 @@ import {
   Settings,
   MessageSquare,
   ClipboardList,
+  Bell,
   Plus,
   Pencil,
   Trash2,
@@ -54,6 +55,8 @@ const DEFAULT_COMPLETION_MESSAGE_APP =
   "イベントへの申込を受け付けました。当日のご参加をお待ちしております。";
 const DEFAULT_COMPLETION_MESSAGE_EMAIL =
   "イベントへの申込を受け付けました。当日のご参加をお待ちしております。";
+const DEFAULT_REMINDER_MESSAGE =
+  "イベントの開催が近づいています。当日のご参加をお待ちしております。";
 
 const VISIBILITY_LABELS: Record<FormFieldVisibility, string> = {
   hidden: "非表示",
@@ -107,6 +110,9 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
   const [msgApp, setMsgApp] = useState("");
   const [msgEmail, setMsgEmail] = useState("");
   const [basicFieldState, setBasicFieldState] = useState<Record<string, FormFieldVisibility>>({});
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderHours, setReminderHours] = useState("24");
+  const [reminderMessage, setReminderMessage] = useState("");
   const [initialized, setInitialized] = useState(false);
 
   // --- question dialog state ---
@@ -125,6 +131,9 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
     setMsgApp(form.config?.completionMessageApp ?? DEFAULT_COMPLETION_MESSAGE_APP);
     setMsgEmail(form.config?.completionMessageEmail ?? DEFAULT_COMPLETION_MESSAGE_EMAIL);
     setBasicFieldState(getDefaultBasicState(form.config as Record<string, unknown> | null));
+    setReminderEnabled(form.config?.reminderEnabled ?? false);
+    setReminderHours(form.config?.reminderHoursBefore?.toString() ?? "24");
+    setReminderMessage(form.config?.reminderMessage ?? DEFAULT_REMINDER_MESSAGE);
     setInitialized(true);
   }
 
@@ -134,6 +143,9 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
   const serverMsgApp = form?.config?.completionMessageApp ?? DEFAULT_COMPLETION_MESSAGE_APP;
   const serverMsgEmail = form?.config?.completionMessageEmail ?? DEFAULT_COMPLETION_MESSAGE_EMAIL;
   const serverBasicState = getDefaultBasicState(form?.config as Record<string, unknown> | null);
+  const serverReminderEnabled = form?.config?.reminderEnabled ?? false;
+  const serverReminderHours = form?.config?.reminderHoursBefore?.toString() ?? "24";
+  const serverReminderMessage = form?.config?.reminderMessage ?? DEFAULT_REMINDER_MESSAGE;
 
   const isDirty =
     initialized &&
@@ -141,6 +153,9 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
       threshold !== serverThreshold ||
       msgApp !== serverMsgApp ||
       msgEmail !== serverMsgEmail ||
+      reminderEnabled !== serverReminderEnabled ||
+      reminderHours !== serverReminderHours ||
+      reminderMessage !== serverReminderMessage ||
       BASIC_FIELDS.some((f) => basicFieldState[f.key] !== serverBasicState[f.key]));
 
   const handleSaveAll = () => {
@@ -153,6 +168,9 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
         completionMessageApp: msgApp || null,
         completionMessageEmail: msgEmail || null,
         ...(basicFieldState as Record<BasicFieldKey, FormFieldVisibility>),
+        reminderEnabled,
+        reminderHoursBefore: parseInt(reminderHours, 10) || 24,
+        reminderMessage: reminderMessage || null,
       },
     });
   };
@@ -315,6 +333,50 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                 placeholder="申込完了時に申込者へ送るメール本文"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* リマインダー設定 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bell className="h-4 w-4" />
+              リマインダー設定
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="reminder-enabled"
+                checked={reminderEnabled}
+                onCheckedChange={(v) => setReminderEnabled(!!v)}
+              />
+              <Label htmlFor="reminder-enabled">リマインダーを送信する</Label>
+            </div>
+            {reminderEnabled && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Label className="shrink-0">開始</Label>
+                  <Input
+                    type="number"
+                    className="w-20"
+                    min="1"
+                    max="168"
+                    value={reminderHours}
+                    onChange={(e) => setReminderHours(e.target.value)}
+                  />
+                  <Label className="shrink-0">時間前に送信</Label>
+                </div>
+                <div>
+                  <Label>リマインダーメッセージ（任意）</Label>
+                  <Textarea
+                    value={reminderMessage}
+                    onChange={(e) => setReminderMessage(e.target.value)}
+                    placeholder="未入力の場合、デフォルト��ッセージが使用されます"
+                  />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

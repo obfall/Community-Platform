@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from "class-validator";
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min, Max } from "class-validator";
 
 const VISIBILITY = ["hidden", "optional", "required"] as const;
 
@@ -59,4 +59,21 @@ export class UpsertApplicationFormConfigDto {
   @IsOptional()
   @IsEnum(VISIBILITY)
   askNationality?: (typeof VISIBILITY)[number];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  reminderEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  reminderHoursBefore?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  reminderMessage?: string | null;
 }

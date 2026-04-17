@@ -1140,6 +1140,7 @@ model EventParticipant {
 
   appliedAt  DateTime  @default(now()) @map("applied_at") @db.Timestamptz()
   canceledAt DateTime? @map("canceled_at") @db.Timestamptz()
+  attendedAt DateTime? @map("attended_at") @db.Timestamptz()
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -1173,6 +1174,10 @@ model EventApplicationFormConfig {
   askAge         FormFieldVisibility @default(hidden) @map("ask_age")
   askOccupation  FormFieldVisibility @default(hidden) @map("ask_occupation")
   askNationality FormFieldVisibility @default(hidden) @map("ask_nationality")
+
+  reminderEnabled     Boolean @default(false) @map("reminder_enabled")
+  reminderHoursBefore Int     @default(24) @map("reminder_hours_before")
+  reminderMessage     String? @map("reminder_message") @db.Text
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()

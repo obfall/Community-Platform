@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useEvent, useUpdateEvent, useDeleteEvent } from "@/hooks/events/use-events";
+import { useEvent, useUpdateEvent } from "@/hooks/events/use-events";
 import type { EventDetail } from "@/lib/api/types";
 import { ImageUpload } from "@/components/image-upload";
 import { Button } from "@/components/ui/button";
@@ -28,18 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
 import { StickyFooterBar } from "@/components/sticky-footer-bar";
 import { VenuePicker } from "@/components/venue-picker";
 import {
@@ -97,7 +85,6 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
 function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
   const router = useRouter();
   const updateEvent = useUpdateEvent();
-  const deleteEvent = useDeleteEvent();
   const formEditorRef = useRef<ApplicationFormEditorHandle>(null);
 
   const form = useForm<FormValues>({
@@ -156,37 +143,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold">イベント編集</h1>
-        <div className="ml-auto">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-1 h-4 w-4" />
-                削除
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>イベントを削除しますか？</AlertDialogTitle>
-                <AlertDialogDescription>
-                  「{event.title}」を削除します。この操作は論理削除です。
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    deleteEvent.mutate(id, { onSuccess: () => router.push("/events") });
-                  }}
-                >
-                  削除する
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+      <h1 className="text-2xl font-bold">イベント編集</h1>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

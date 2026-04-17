@@ -240,6 +240,48 @@ export function useReorderQuestions() {
   });
 }
 
+// --- Participant Detail ---
+
+export function useParticipantDetail(
+  eventId: string | undefined,
+  participantId: string | undefined,
+) {
+  return useQuery({
+    queryKey: ["events", eventId, "participants", participantId],
+    queryFn: () => eventsApi.getParticipantDetail(eventId!, participantId!),
+    enabled: !!eventId && !!participantId,
+  });
+}
+
+// --- Notify ---
+
+export function useNotifyParticipants() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eventId, data }: { eventId: string; data: { title: string; body: string } }) =>
+      eventsApi.notifyParticipants(eventId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("通知を送信しました");
+    },
+    onError: () => toast.error("通知の送信に失敗しました"),
+  });
+}
+
+// --- Duplicate ---
+
+export function useDuplicateEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (eventId: string) => eventsApi.duplicateEvent(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("イベントを複製しました");
+    },
+    onError: () => toast.error("イベントの複製に失敗しました"),
+  });
+}
+
 // --- Stats ---
 
 export function useParticipantStats(eventId: string | undefined) {

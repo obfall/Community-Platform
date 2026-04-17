@@ -758,6 +758,31 @@ export interface EventParticipant {
   paymentMethod: string | null;
   appliedAt: string;
   canceledAt: string | null;
+  attendedAt: string | null;
+}
+
+export interface EventParticipantDetail {
+  id: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+  ticket: { id: string; ticketName: string; price: number } | null;
+  quantity: number;
+  status: string;
+  applicantEmail: string;
+  applicantName: string | null;
+  applicantNameKana: string | null;
+  applicantAffiliation: string | null;
+  applicantGender: string | null;
+  applicantAge: number | null;
+  applicantOccupation: string | null;
+  applicantNationality: string | null;
+  appliedAt: string;
+  canceledAt: string | null;
+  answers: Array<{
+    questionId: string;
+    label: string;
+    questionType: string;
+    answer: string | string[];
+  }>;
 }
 
 export interface CalendarEvent {
@@ -870,6 +895,9 @@ export interface ApplicationFormConfig {
   askAge: FormFieldVisibility;
   askOccupation: FormFieldVisibility;
   askNationality: FormFieldVisibility;
+  reminderEnabled: boolean;
+  reminderHoursBefore: number;
+  reminderMessage: string | null;
 }
 
 export interface ApplicationFormPublic {
@@ -903,6 +931,9 @@ export interface UpsertApplicationFormConfigInput {
   askAge?: FormFieldVisibility;
   askOccupation?: FormFieldVisibility;
   askNationality?: FormFieldVisibility;
+  reminderEnabled?: boolean;
+  reminderHoursBefore?: number;
+  reminderMessage?: string | null;
 }
 
 export interface CreateApplicationQuestionInput {
@@ -931,6 +962,9 @@ export interface ParticipantStatsAttribute {
 export interface ParticipantStats {
   total: number;
   canceledTotal: number;
+  attendedTotal: number;
+  noShowTotal: number;
+  attendanceRate: number | null;
   tickets: Array<{
     ticketId: string;
     ticketName: string;

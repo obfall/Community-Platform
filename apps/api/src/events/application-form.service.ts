@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, forwardRef } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
+import { EventsService } from "./events.service";
 import type { UpsertApplicationFormConfigDto } from "./dto/upsert-application-form-config.dto";
 import type {
   CreateApplicationQuestionDto,
@@ -10,7 +11,11 @@ import type {
 
 @Injectable()
 export class ApplicationFormService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => EventsService))
+    private readonly eventsService: EventsService,
+  ) {}
 
   async getForm(eventId: string) {
     const event = await this.prisma.event.findUnique({
@@ -86,11 +91,22 @@ export class ApplicationFormService {
     });
     if (!event) throw new NotFoundException("イベントが見つかりません");
 
-    return this.prisma.eventApplicationFormConfig.upsert({
+    const config = await this.prisma.eventApplicationFormConfig.upsert({
       where: { eventId },
       create: { eventId, ...dto },
       update: dto,
     });
+
+    // リマインダー設定変更時にジョブを再スケジュール
+    if (dto.reminderEnabled !== undefined || dto.reminderHoursBefore !== undefined) {
+      if (config.reminderEnabled) {
+        await this.eventsService.scheduleReminder(eventId);
+      } else {
+        await this.eventsService.cancelReminder(eventId);
+      }
+    }
+
+    return config;
   }
 
   async createQuestion(eventId: string, dto: CreateApplicationQuestionDto) {

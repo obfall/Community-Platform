@@ -5,6 +5,7 @@ import type {
   EventDetail,
   EventTicket,
   EventParticipant,
+  EventParticipantDetail,
   CalendarEvent,
   EventQuery,
   CreateEventInput,
@@ -62,8 +63,19 @@ export const eventsApi = {
       .get<PaginatedResponse<EventParticipant>>(`/events/${eventId}/participants`, { params })
       .then((r) => r.data),
 
+  getParticipantDetail: (eventId: string, participantId: string) =>
+    apiClient
+      .get<EventParticipantDetail>(`/events/${eventId}/participants/${participantId}`)
+      .then((r) => r.data),
+
   updateParticipantStatus: (participantId: string, status: string) =>
     apiClient.patch(`/events/participants/${participantId}/status`, { status }).then((r) => r.data),
+
+  notifyParticipants: (eventId: string, data: { title: string; body: string }) =>
+    apiClient.post(`/events/${eventId}/participants/notify`, data).then((r) => r.data),
+
+  duplicateEvent: (eventId: string) =>
+    apiClient.post<EventDetail>(`/events/${eventId}/duplicate`).then((r) => r.data),
 
   // Application Form
   getApplicationForm: (eventId: string) =>

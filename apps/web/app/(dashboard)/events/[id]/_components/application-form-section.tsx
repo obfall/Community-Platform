@@ -3,7 +3,7 @@
 import { useApplicationForm } from "@/hooks/events/use-events";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, MessageSquare, ClipboardList } from "lucide-react";
+import { Settings, MessageSquare, ClipboardList, Bell } from "lucide-react";
 import type { FormFieldVisibility, ApplicationQuestionType } from "@/lib/api/types";
 
 const DEFAULT_COMPLETION_MESSAGE =
@@ -106,6 +106,36 @@ export function ApplicationFormSection({ eventId }: Props) {
               {config?.completionMessageEmail || DEFAULT_COMPLETION_MESSAGE}
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* リマインダー設定 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4" />
+            リマインダー設定
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">リマインダー</span>
+            <span>{config?.reminderEnabled ? "ON" : "OFF"}</span>
+          </div>
+          {config?.reminderEnabled && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">送信タイミング</span>
+                <span>開始{config.reminderHoursBefore ?? 24}時間前</span>
+              </div>
+              {config.reminderMessage && (
+                <div>
+                  <span className="text-muted-foreground">メッセー��:</span>
+                  <p className="mt-0.5 whitespace-pre-wrap">{config.reminderMessage}</p>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

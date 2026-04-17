@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Optional } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import type { Queue } from "bullmq";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
 import { Prisma } from "@prisma/client";
@@ -20,6 +22,7 @@ export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    @Optional() @InjectQueue("event-reminder") private readonly reminderQueue?: Queue,
   ) {}
 
   // ========== Events ==========
@@ -196,6 +199,14 @@ export class EventsService {
         ...(dto.isCalendarVisible !== undefined && { isCalendarVisible: dto.isCalendarVisible }),
       },
     });
+
+    // リマインダー再スケジュール
+    if (dto.status === "canceled") {
+      await this.cancelReminder(id);
+    } else if (dto.status === "recruiting" || dto.startAt !== undefined) {
+      await this.scheduleReminder(id);
+    }
+
     return this.findOne(id);
   }
 
@@ -508,6 +519,7 @@ export class EventsService {
         paymentMethod: p.paymentMethod,
         appliedAt: p.appliedAt,
         canceledAt: p.canceledAt,
+        attendedAt: p.attendedAt,
       })),
       meta: {
         total,
@@ -517,6 +529,50 @@ export class EventsService {
         hasNextPage: page < totalPages,
         hasPreviousPage: page > 1,
       },
+    };
+  }
+
+  async getParticipantDetail(eventId: string, participantId: string) {
+    const participant = await this.prisma.eventParticipant.findFirst({
+      where: { id: participantId, eventId },
+      include: {
+        user: { select: AUTHOR_SELECT },
+        ticket: { select: { id: true, ticketName: true, price: true } },
+        answers: {
+          include: {
+            question: { select: { id: true, label: true, questionType: true } },
+          },
+        },
+      },
+    });
+    if (!participant) throw new NotFoundException("参加者が見つかりません");
+
+    return {
+      id: participant.id,
+      user: {
+        id: participant.user.id,
+        name: participant.user.name,
+        avatarUrl: participant.user.profile?.avatarUrl ?? null,
+      },
+      ticket: participant.ticket,
+      quantity: participant.quantity,
+      status: participant.status,
+      applicantEmail: participant.applicantEmail,
+      applicantName: participant.applicantName,
+      applicantNameKana: participant.applicantNameKana,
+      applicantAffiliation: participant.applicantAffiliation,
+      applicantGender: participant.applicantGender,
+      applicantAge: participant.applicantAge,
+      applicantOccupation: participant.applicantOccupation,
+      applicantNationality: participant.applicantNationality,
+      appliedAt: participant.appliedAt,
+      canceledAt: participant.canceledAt,
+      answers: participant.answers.map((a) => ({
+        questionId: a.questionId,
+        label: a.question.label,
+        questionType: a.question.questionType,
+        answer: a.answer,
+      })),
     };
   }
 
@@ -531,8 +587,41 @@ export class EventsService {
       data: {
         status: dto.status,
         ...(dto.status === "canceled" && { canceledAt: new Date() }),
+        ...(dto.status === "attended" && { attendedAt: new Date() }),
+        ...(dto.status === "applied" && { canceledAt: null, attendedAt: null }),
       },
     });
+  }
+
+  // ========== Notify ==========
+
+  async notifyParticipants(
+    eventId: string,
+    actorUserId: string,
+    data: { title: string; body: string },
+  ) {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
+
+    const participants = await this.prisma.eventParticipant.findMany({
+      where: { eventId, status: { not: "canceled" } },
+      select: { userId: true },
+    });
+
+    if (participants.length === 0) return { notifiedCount: 0 };
+
+    const items = participants.map((p) => ({
+      userId: p.userId,
+      type: "event_announcement",
+      title: data.title,
+      body: data.body,
+      referenceType: "event",
+      referenceId: eventId,
+      actorUserId,
+    }));
+
+    await this.notificationsService.createMany(items);
+    return { notifiedCount: participants.length };
   }
 
   // ========== Stats ==========
@@ -545,7 +634,7 @@ export class EventsService {
     if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
 
     const activeWhere = { eventId, status: { not: "canceled" as const } };
-    const [participants, canceledTotal] = await Promise.all([
+    const [participants, canceledTotal, attendedTotal, noShowTotal] = await Promise.all([
       this.prisma.eventParticipant.findMany({
         where: activeWhere,
         include: { answers: { include: { question: true } } },
@@ -553,9 +642,16 @@ export class EventsService {
       this.prisma.eventParticipant.count({
         where: { eventId, status: "canceled" },
       }),
+      this.prisma.eventParticipant.count({
+        where: { eventId, status: "attended" },
+      }),
+      this.prisma.eventParticipant.count({
+        where: { eventId, status: "no_show" },
+      }),
     ]);
 
     const total = participants.length;
+    const attendanceRate = total > 0 ? Math.round((attendedTotal / total) * 100) : null;
 
     const tickets = event.tickets.map((t) => ({
       ticketId: t.id,
@@ -671,6 +767,9 @@ export class EventsService {
     return {
       total,
       canceledTotal,
+      attendedTotal,
+      noShowTotal,
+      attendanceRate,
       tickets,
       basicAttributes: {
         gender: { values: topN(genderCounts), answered: genderAnswered },
@@ -681,6 +780,154 @@ export class EventsService {
       },
       questions: questionStats,
     };
+  }
+
+  // ========== Duplicate ==========
+
+  async duplicate(id: string, userId: string) {
+    const source = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        tickets: true,
+        applicationFormConfig: true,
+        applicationQuestions: { orderBy: { sortOrder: "asc" } },
+        speakers: { orderBy: { sortOrder: "asc" } },
+        organizations: { orderBy: { sortOrder: "asc" } },
+        tags: true,
+      },
+    });
+    if (!source || source.deletedAt) throw new NotFoundException("イベントが見つかりません");
+
+    const newEvent = await this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.create({
+        data: {
+          title: `${source.title}（コピー）`,
+          description: source.description,
+          locationType: source.locationType,
+          venueId: source.venueId,
+          venueName: source.venueName,
+          venueAddress: source.venueAddress,
+          onlineUrl: source.onlineUrl,
+          startAt: source.startAt,
+          endAt: source.endAt,
+          registrationDeadlineAt: source.registrationDeadlineAt,
+          ticketSaleStartAt: source.ticketSaleStartAt,
+          allowMultiTicketPurchase: source.allowMultiTicketPurchase,
+          acceptedPaymentMethods: source.acceptedPaymentMethods ?? undefined,
+          planningRole: source.planningRole,
+          eventType: source.eventType,
+          categoryId: source.categoryId,
+          accessInfo: source.accessInfo,
+          participationMethod: source.participationMethod,
+          contactInfo: source.contactInfo,
+          cancellationPolicy: source.cancellationPolicy,
+          language: source.language,
+          isAttendeeVisible: source.isAttendeeVisible,
+          status: "draft",
+          coverImageUrl: source.coverImageUrl,
+          requiredRankId: source.requiredRankId,
+          createdByUserId: userId,
+          participantCount: 0,
+          isCalendarVisible: source.isCalendarVisible,
+        },
+      });
+
+      // チケット複製
+      if (source.tickets.length > 0) {
+        await tx.eventTicket.createMany({
+          data: source.tickets.map((t) => ({
+            eventId: event.id,
+            ticketName: t.ticketName,
+            price: t.price,
+            currency: t.currency,
+            capacity: t.capacity,
+            purchaseLimit: t.purchaseLimit,
+            sortOrder: t.sortOrder,
+            isActive: t.isActive,
+            soldCount: 0,
+          })),
+        });
+      }
+
+      // 申込フォーム設定複製
+      if (source.applicationFormConfig) {
+        const cfg = source.applicationFormConfig;
+        await tx.eventApplicationFormConfig.create({
+          data: {
+            eventId: event.id,
+            notifyOnCapacityReached: cfg.notifyOnCapacityReached,
+            notifyOnRemainingThreshold: cfg.notifyOnRemainingThreshold,
+            completionMessageApp: cfg.completionMessageApp,
+            completionMessageEmail: cfg.completionMessageEmail,
+            askName: cfg.askName,
+            askNameKana: cfg.askNameKana,
+            askAffiliation: cfg.askAffiliation,
+            askGender: cfg.askGender,
+            askAge: cfg.askAge,
+            askOccupation: cfg.askOccupation,
+            askNationality: cfg.askNationality,
+            reminderEnabled: cfg.reminderEnabled,
+            reminderHoursBefore: cfg.reminderHoursBefore,
+            reminderMessage: cfg.reminderMessage,
+          },
+        });
+      }
+
+      // カスタム質問複製
+      if (source.applicationQuestions.length > 0) {
+        await tx.eventApplicationQuestion.createMany({
+          data: source.applicationQuestions.map((q) => ({
+            eventId: event.id,
+            label: q.label,
+            description: q.description,
+            questionType: q.questionType,
+            options: q.options ?? undefined,
+            isRequired: q.isRequired,
+            sortOrder: q.sortOrder,
+          })),
+        });
+      }
+
+      // 登壇者複製
+      if (source.speakers.length > 0) {
+        await tx.eventSpeaker.createMany({
+          data: source.speakers.map((s) => ({
+            eventId: event.id,
+            userId: s.userId,
+            name: s.name,
+            title: s.title,
+            role: s.role,
+            sortOrder: s.sortOrder,
+          })),
+        });
+      }
+
+      // 関係団体複製
+      if (source.organizations.length > 0) {
+        await tx.eventOrganization.createMany({
+          data: source.organizations.map((o) => ({
+            eventId: event.id,
+            organizationName: o.organizationName,
+            role: o.role,
+            sortOrder: o.sortOrder,
+          })),
+        });
+      }
+
+      // タグ複製
+      if (source.tags.length > 0) {
+        await tx.eventTag.createMany({
+          data: source.tags.map((t) => ({
+            eventId: event.id,
+            tagId: t.tagId,
+          })),
+        });
+      }
+
+      return event;
+    });
+
+    return this.findOne(newEvent.id);
   }
 
   // ========== Calendar ==========
@@ -703,6 +950,49 @@ export class EventsService {
       },
       orderBy: { startAt: "asc" },
     });
+  }
+
+  // ========== Reminder ==========
+
+  async scheduleReminder(eventId: string) {
+    if (!this.reminderQueue) return;
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: { applicationFormConfig: true },
+    });
+    if (!event || event.deletedAt) return;
+
+    const config = event.applicationFormConfig;
+    if (!config?.reminderEnabled || !event.startAt) return;
+
+    // Remove existing job for this event
+    await this.cancelReminder(eventId);
+
+    const delay =
+      event.startAt.getTime() - config.reminderHoursBefore * 60 * 60 * 1000 - Date.now();
+    if (delay <= 0) return; // Already past the reminder time
+
+    await this.reminderQueue.add(
+      `event-reminder-${eventId}`,
+      { eventId },
+      {
+        jobId: `event-reminder-${eventId}`,
+        delay,
+        removeOnComplete: true,
+        removeOnFail: 5,
+      },
+    );
+  }
+
+  async cancelReminder(eventId: string) {
+    if (!this.reminderQueue) return;
+
+    const jobId = `event-reminder-${eventId}`;
+    const job = await this.reminderQueue.getJob(jobId);
+    if (job) {
+      await job.remove().catch(() => {});
+    }
   }
 
   // ========== Helpers ==========
