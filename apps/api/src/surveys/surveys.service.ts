@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { NotificationsService } from "@/notifications/notifications.service";
 import { Prisma } from "@prisma/client";
 import type { CreateSurveyDto } from "./dto/create-survey.dto";
 import type { SubmitResponseDto } from "./dto/submit-response.dto";
@@ -7,7 +8,10 @@ import type { SurveyQueryDto } from "./dto/survey-query.dto";
 
 @Injectable()
 export class SurveysService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async findAll(query: SurveyQueryDto) {
     const page = query.page ?? 1;
@@ -17,6 +21,12 @@ export class SurveysService {
     const where: Prisma.SurveyWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
     if (query.search) where.title = { contains: query.search, mode: "insensitive" };
+    if (query.eventId) {
+      where.eventId = query.eventId;
+    } else {
+      // eventId 未指定時は汎用アンケートのみ（イベント紐づきなし）
+      where.eventId = null;
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.survey.findMany({
@@ -43,7 +53,10 @@ export class SurveysService {
         targetType: s.targetType,
         startsAt: s.startsAt,
         endsAt: s.endsAt,
+        eventId: s.eventId,
         responseCount: s.responseCount,
+        notifiedAt: s.notifiedAt,
+        remindedAt: s.remindedAt,
         questionCount: s._count.questions,
         createdBy: s.createdBy,
         createdAt: s.createdAt,
@@ -89,7 +102,7 @@ export class SurveysService {
             questionText: q.questionText,
             isRequired: q.isRequired ?? false,
             sortOrder: q.sortOrder ?? i,
-            options: q.options ?? Prisma.JsonNull,
+            options: q.options ? (q.options as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
             minValue: q.minValue,
             maxValue: q.maxValue,
           })),
@@ -168,10 +181,40 @@ export class SurveysService {
     const survey = await this.prisma.survey.findUnique({ where: { id } });
     if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");
 
-    return this.prisma.survey.update({
+    const now = new Date();
+    const updated = await this.prisma.survey.update({
       where: { id },
-      data: { status },
+      data: {
+        status,
+        // 初回 active 化時に notifiedAt を記録
+        ...(status === "active" && survey.status !== "active" && !survey.notifiedAt
+          ? { notifiedAt: now }
+          : {}),
+      },
     });
+
+    // active に変更時、メンバー全員に初回通知を発行
+    if (status === "active" && survey.status !== "active") {
+      const members = await this.prisma.user.findMany({
+        where: { isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+
+      if (members.length > 0) {
+        await this.notifications.createMany(
+          members.map((m: { id: string }) => ({
+            userId: m.id,
+            type: "survey",
+            title: "新しいアンケートが届きました",
+            body: survey.title,
+            referenceType: "survey",
+            referenceId: id,
+          })),
+        );
+      }
+    }
+
+    return updated;
   }
 
   async remove(id: string) {
@@ -225,6 +268,19 @@ export class SurveysService {
       data: { responseCount: { increment: 1 } },
     });
 
+    // 回答者のアンケート関連通知を自動既読にする
+    if (userId) {
+      await this.prisma.notification.updateMany({
+        where: {
+          userId,
+          referenceType: "survey",
+          referenceId: surveyId,
+          isRead: false,
+        },
+        data: { isRead: true, readAt: new Date() },
+      });
+    }
+
     return response;
   }
 
@@ -271,6 +327,166 @@ export class SurveysService {
       survey: { id: survey.id, title: survey.title, responseCount: survey.responseCount },
       results,
     };
+  }
+
+  /** 未回答アンケート一覧（メンバー向け） */
+  async findPending(userId: string) {
+    // ユーザーが既に回答済みのアンケートIDを取得
+    const responded = await this.prisma.surveyResponse.findMany({
+      where: { respondentUserId: userId },
+      select: { surveyId: true },
+    });
+    const respondedIds = responded.map((r) => r.surveyId);
+
+    const surveys = await this.prisma.survey.findMany({
+      where: {
+        deletedAt: null,
+        status: "active",
+        id: respondedIds.length > 0 ? { notIn: respondedIds } : undefined,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        event: { select: { id: true, title: true } },
+        _count: { select: { questions: true } },
+      },
+    });
+
+    return surveys.map((s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      eventId: s.eventId,
+      eventTitle: s.event?.title ?? null,
+      questionCount: s._count.questions,
+      createdAt: s.createdAt,
+    }));
+  }
+
+  /** 送信先一覧 + 回答状況 */
+  async getRecipients(surveyId: string) {
+    const survey = await this.prisma.survey.findUnique({
+      where: { id: surveyId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        notifiedAt: true,
+        remindedAt: true,
+        responseCount: true,
+        deletedAt: true,
+      },
+    });
+    if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");
+
+    // 全アクティブメンバー
+    const members = await this.prisma.user.findMany({
+      where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        profile: { select: { avatarUrl: true } },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    // 回答済みユーザーIDセット
+    const responses = await this.prisma.surveyResponse.findMany({
+      where: { surveyId },
+      select: { respondentUserId: true, submittedAt: true },
+    });
+    const respondedMap = new Map(
+      responses.filter((r) => r.respondentUserId).map((r) => [r.respondentUserId!, r.submittedAt]),
+    );
+
+    return {
+      survey: {
+        id: survey.id,
+        title: survey.title,
+        status: survey.status,
+        notifiedAt: survey.notifiedAt,
+        remindedAt: survey.remindedAt,
+        responseCount: survey.responseCount,
+      },
+      recipients: members.map((m) => ({
+        userId: m.id,
+        name: m.name,
+        avatarUrl: m.profile?.avatarUrl ?? null,
+        responded: respondedMap.has(m.id),
+        respondedAt: respondedMap.get(m.id) ?? null,
+      })),
+    };
+  }
+
+  /** 未回答者全員にリマインド通知を送信 */
+  async sendReminder(surveyId: string) {
+    const survey = await this.prisma.survey.findUnique({
+      where: { id: surveyId },
+    });
+    if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");
+    if (survey.status !== "active")
+      throw new BadRequestException("受付中のアンケートのみリマインドを送信できます");
+
+    // 回答済みユーザーIDを取得
+    const responded = await this.prisma.surveyResponse.findMany({
+      where: { surveyId },
+      select: { respondentUserId: true },
+    });
+    const respondedIds = new Set(responded.map((r) => r.respondentUserId).filter(Boolean));
+
+    // 未回答のアクティブメンバー
+    const members = await this.prisma.user.findMany({
+      where: { isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    const unreplied = members.filter((m) => !respondedIds.has(m.id));
+
+    if (unreplied.length > 0) {
+      await this.notifications.createMany(
+        unreplied.map((m) => ({
+          userId: m.id,
+          type: "survey",
+          title: "アンケートの回答をお願いします",
+          body: survey.title,
+          referenceType: "survey",
+          referenceId: surveyId,
+        })),
+      );
+    }
+
+    await this.prisma.survey.update({
+      where: { id: surveyId },
+      data: { remindedAt: new Date() },
+    });
+
+    return { sentCount: unreplied.length };
+  }
+
+  /** 個別ユーザーにリマインド通知を送信 */
+  async sendReminderToUser(surveyId: string, targetUserId: string) {
+    const survey = await this.prisma.survey.findUnique({
+      where: { id: surveyId },
+    });
+    if (!survey || survey.deletedAt) throw new NotFoundException("アンケートが見つかりません");
+    if (survey.status !== "active")
+      throw new BadRequestException("受付中のアンケートのみリマインドを送信できます");
+
+    // 既に回答済みか確認
+    const existing = await this.prisma.surveyResponse.findFirst({
+      where: { surveyId, respondentUserId: targetUserId },
+    });
+    if (existing) throw new BadRequestException("このユーザーは既に回答済みです");
+
+    await this.notifications.create({
+      userId: targetUserId,
+      type: "survey",
+      title: "アンケートの回答をお願いします",
+      body: survey.title,
+      referenceType: "survey",
+      referenceId: surveyId,
+    });
+
+    return { sent: true };
   }
 
   private countOptions(answers: Array<{ selectedOptions: unknown }>) {

@@ -123,8 +123,8 @@ model User {
   createdChatRooms              ChatRoom[]                     @relation("ChatRoomCreator")
   chatRoomMemberships           ChatRoomMember[]
   chatMessages                  ChatMessage[]                  @relation("ChatMessageSender")
-  createdMailMessages           MailMessage[]                  @relation("MailMessageCreator")
-  mailRecipients                MailMessageRecipient[]         @relation("MailRecipient")
+  createdBroadcasts             Broadcast[]                    @relation("BroadcastCreator")
+  broadcastRecipients           BroadcastRecipient[]           @relation("BroadcastRecipientUser")
   // Phase 4
   attributeValues               MemberAttributeValue[]
   // Phase 5
@@ -2222,6 +2222,8 @@ model Survey {
   startsAt        DateTime?        @map("starts_at") @db.Timestamptz()
   endsAt          DateTime?        @map("ends_at") @db.Timestamptz()
   responseCount   Int              @default(0) @map("response_count")
+  notifiedAt      DateTime?        @map("notified_at") @db.Timestamptz()
+  remindedAt      DateTime?        @map("reminded_at") @db.Timestamptz()
   createdByUserId String           @map("created_by_user_id") @db.Uuid
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()

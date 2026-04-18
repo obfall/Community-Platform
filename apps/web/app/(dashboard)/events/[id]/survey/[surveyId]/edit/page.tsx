@@ -6,9 +6,13 @@ import { useSurvey, useUpdateSurvey } from "@/hooks/surveys/use-surveys";
 import { SurveyFormBuilder } from "@/components/surveys/survey-form-builder";
 import type { SurveyFormData } from "@/components/surveys/survey-form-builder";
 
-export default function SurveyEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { data: survey, isLoading } = useSurvey(id);
+export default function EventSurveyEditPage({
+  params,
+}: {
+  params: Promise<{ id: string; surveyId: string }>;
+}) {
+  const { id: eventId, surveyId } = use(params);
+  const { data: survey, isLoading } = useSurvey(surveyId);
 
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -17,12 +21,13 @@ export default function SurveyEditPage({ params }: { params: Promise<{ id: strin
       <div className="py-12 text-center text-muted-foreground">アンケートが見つかりません</div>
     );
 
-  return <SurveyEditForm survey={survey} id={id} />;
+  return <EditForm survey={survey} eventId={eventId} surveyId={surveyId} />;
 }
 
-function SurveyEditForm({
+function EditForm({
   survey,
-  id,
+  eventId,
+  surveyId,
 }: {
   survey: {
     title: string;
@@ -35,7 +40,8 @@ function SurveyEditForm({
       options: Array<{ value: string; label: string }> | null;
     }>;
   };
-  id: string;
+  eventId: string;
+  surveyId: string;
 }) {
   const router = useRouter();
   const updateSurvey = useUpdateSurvey();
@@ -43,14 +49,14 @@ function SurveyEditForm({
   const handleSubmit = (data: SurveyFormData) => {
     updateSurvey.mutate(
       {
-        id,
+        id: surveyId,
         data: {
           title: data.title,
           description: data.description ?? null,
           questions: data.questions,
         },
       },
-      { onSuccess: () => router.push("/surveys") },
+      { onSuccess: () => router.push(`/events/${eventId}/survey`) },
     );
   };
 
@@ -60,8 +66,8 @@ function SurveyEditForm({
       onSubmit={handleSubmit}
       isSubmitting={updateSurvey.isPending}
       submitLabel="保存"
-      backHref="/surveys"
-      pageTitle="アンケート編集"
+      backHref={`/events/${eventId}/survey`}
+      pageTitle="イベントアンケート編集"
     />
   );
 }

@@ -21,23 +21,39 @@ const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   board_comment: "掲示板コメント",
   board_like: "掲示板いいね",
   board_post: "掲示板新規投稿",
+  survey: "アンケート",
   system: "システム通知",
 };
+
+const ALL_NOTIFICATION_TYPES = Object.keys(NOTIFICATION_TYPE_LABELS);
 
 export function PreferenceForm() {
   const { data: preferences, isLoading } = useNotificationPreferences();
   const updatePreferences = useUpdatePreferences();
 
-  const initialItems = useMemo(
-    () =>
+  const initialItems = useMemo(() => {
+    const saved =
       preferences?.map((p) => ({
         notificationType: p.notificationType,
         emailEnabled: p.emailEnabled,
         inAppEnabled: p.inAppEnabled,
         lineEnabled: p.lineEnabled,
-      })) ?? [],
-    [preferences],
-  );
+      })) ?? [];
+    const savedTypes = new Set(saved.map((s) => s.notificationType));
+    const missing = ALL_NOTIFICATION_TYPES.filter((t) => !savedTypes.has(t)).map((t) => ({
+      notificationType: t,
+      emailEnabled: true,
+      inAppEnabled: true,
+      lineEnabled: false,
+    }));
+    // 定義順に並べる
+    const merged = [...saved, ...missing];
+    return merged.sort(
+      (a, b) =>
+        ALL_NOTIFICATION_TYPES.indexOf(a.notificationType) -
+        ALL_NOTIFICATION_TYPES.indexOf(b.notificationType),
+    );
+  }, [preferences]);
 
   const [items, setItems] = useState<PreferenceItem[]>([]);
   const displayItems = items.length > 0 ? items : initialItems;

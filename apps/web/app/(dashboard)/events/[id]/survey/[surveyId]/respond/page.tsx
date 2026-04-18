@@ -5,13 +5,17 @@ import { useSurvey, useSubmitSurveyResponse } from "@/hooks/surveys/use-surveys"
 import { SurveyResponseForm } from "@/components/surveys/survey-response-form";
 import type { AnswerPayload } from "@/components/surveys/survey-response-form";
 
-export default function SurveyRespondPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { data: survey, isLoading } = useSurvey(id);
+export default function EventSurveyRespondPage({
+  params,
+}: {
+  params: Promise<{ id: string; surveyId: string }>;
+}) {
+  const { id: eventId, surveyId } = use(params);
+  const { data: survey, isLoading } = useSurvey(surveyId);
   const submitResponse = useSubmitSurveyResponse();
 
   const handleSubmit = (answers: AnswerPayload[]) => {
-    submitResponse.mutate({ surveyId: id, answers });
+    submitResponse.mutate({ surveyId, answers });
   };
 
   if (isLoading)
@@ -26,7 +30,7 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
       survey={survey}
       onSubmit={handleSubmit}
       isSubmitting={submitResponse.isPending}
-      backHref="/dashboard"
+      backHref={`/events/${eventId}`}
       showCompleted
     />
   );

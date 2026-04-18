@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Megaphone, CalendarDays, FileText, ArrowRight, MapPin, Clock } from "lucide-react";
+import { PendingSurveysWidget } from "@/components/surveys/pending-surveys-widget";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -68,6 +69,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">ようこそ{user?.name ? `、${user.name}さん` : ""}</h1>
+
+      <PendingSurveysWidget />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* 最新のお知らせ */}
