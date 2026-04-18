@@ -15,6 +15,16 @@ import {
 import { Type } from "class-transformer";
 import { SurveyTargetType, SurveyQuestionType } from "@prisma/client";
 
+export class SurveyOptionDto {
+  @ApiProperty()
+  @IsString()
+  value!: string;
+
+  @ApiProperty()
+  @IsString()
+  label!: string;
+}
+
 export class CreateSurveyQuestionDto {
   @ApiProperty({ enum: SurveyQuestionType })
   @IsEnum(SurveyQuestionType)
@@ -35,9 +45,12 @@ export class CreateSurveyQuestionDto {
   @Min(0)
   sortOrder?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: [SurveyOptionDto] })
   @IsOptional()
-  options?: Array<{ value: string; label: string }>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SurveyOptionDto)
+  options?: SurveyOptionDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

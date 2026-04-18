@@ -86,6 +86,8 @@ export function useSubmitSurveyResponse() {
     }) => surveysApi.submitResponse(surveyId, answers),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["surveys"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("回答を送信しました");
     },
     onError: (error: unknown) => {
@@ -102,5 +104,56 @@ export function useSurveyResults(id: string | undefined) {
     queryKey: ["surveys", id, "results"],
     queryFn: () => surveysApi.getResults(id!),
     enabled: !!id,
+  });
+}
+
+export function usePendingSurveys() {
+  return useQuery({
+    queryKey: ["surveys", "pending"],
+    queryFn: () => surveysApi.getPending(),
+  });
+}
+
+export function useSurveyRecipients(id: string | undefined) {
+  return useQuery({
+    queryKey: ["surveys", id, "recipients"],
+    queryFn: () => surveysApi.getRecipients(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSendReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => surveysApi.sendReminder(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["surveys"] });
+      queryClient.invalidateQueries({ queryKey: ["surveys", id, "recipients"] });
+      toast.success("未回答者全員にリマインドを送信しました");
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "リマインド送信に失敗しました";
+      toast.error(msg);
+    },
+  });
+}
+
+export function useSendReminderToUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ surveyId, userId }: { surveyId: string; userId: string }) =>
+      surveysApi.sendReminderToUser(surveyId, userId),
+    onSuccess: (_data, { surveyId }) => {
+      queryClient.invalidateQueries({ queryKey: ["surveys", surveyId, "recipients"] });
+      toast.success("リマインドを送信しました");
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "リマインド送信に失敗しました";
+      toast.error(msg);
+    },
   });
 }

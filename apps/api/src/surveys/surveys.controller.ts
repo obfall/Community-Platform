@@ -34,6 +34,12 @@ export class SurveysController {
     return this.service.findAll(query);
   }
 
+  @Get("pending")
+  @ApiOperation({ summary: "未回答アンケート一覧（メンバー向け）" })
+  findPending(@CurrentUser("id") userId: string) {
+    return this.service.findPending(userId);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "アンケート詳細" })
   findOne(@Param("id", ParseUUIDPipe) id: string) {
@@ -92,5 +98,32 @@ export class SurveysController {
   @Roles("admin", "owner")
   getResults(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.getResults(id);
+  }
+
+  @Get(":id/recipients")
+  @ApiOperation({ summary: "アンケート送信先一覧・回答状況" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  getRecipients(@Param("id", ParseUUIDPipe) id: string) {
+    return this.service.getRecipients(id);
+  }
+
+  @Post(":id/remind")
+  @ApiOperation({ summary: "未回答者全員にリマインド通知を送信" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  sendReminder(@Param("id", ParseUUIDPipe) id: string) {
+    return this.service.sendReminder(id);
+  }
+
+  @Post(":id/remind/:userId")
+  @ApiOperation({ summary: "個別ユーザーにリマインド通知を送信" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  sendReminderToUser(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("userId", ParseUUIDPipe) userId: string,
+  ) {
+    return this.service.sendReminderToUser(id, userId);
   }
 }

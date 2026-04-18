@@ -5,6 +5,8 @@ import type {
   SurveyDetail,
   SurveyResults,
   SurveyQuery,
+  SurveyPendingItem,
+  SurveyRecipientsResponse,
 } from "./types";
 
 export const surveysApi = {
@@ -13,9 +15,12 @@ export const surveysApi = {
 
   getOne: (id: string) => apiClient.get<SurveyDetail>(`/surveys/${id}`).then((r) => r.data),
 
+  getPending: () => apiClient.get<SurveyPendingItem[]>("/surveys/pending").then((r) => r.data),
+
   create: (data: {
     title: string;
     description?: string;
+    eventId?: string;
     isAnonymous?: boolean;
     startsAt?: string;
     endsAt?: string;
@@ -50,4 +55,13 @@ export const surveysApi = {
 
   getResults: (id: string) =>
     apiClient.get<SurveyResults>(`/surveys/${id}/results`).then((r) => r.data),
+
+  getRecipients: (id: string) =>
+    apiClient.get<SurveyRecipientsResponse>(`/surveys/${id}/recipients`).then((r) => r.data),
+
+  sendReminder: (id: string) =>
+    apiClient.post<{ sentCount: number }>(`/surveys/${id}/remind`).then((r) => r.data),
+
+  sendReminderToUser: (id: string, userId: string) =>
+    apiClient.post<{ sent: boolean }>(`/surveys/${id}/remind/${userId}`).then((r) => r.data),
 };

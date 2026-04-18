@@ -1298,7 +1298,10 @@ export interface SurveyListItem {
   targetType: string;
   startsAt: string | null;
   endsAt: string | null;
+  eventId: string | null;
   responseCount: number;
+  notifiedAt: string | null;
+  remindedAt: string | null;
   questionCount: number;
   createdBy: { id: string; name: string };
   createdAt: string;
@@ -1326,6 +1329,8 @@ export interface SurveyDetail {
   startsAt: string | null;
   endsAt: string | null;
   responseCount: number;
+  notifiedAt: string | null;
+  remindedAt: string | null;
   createdBy: { id: string; name: string };
   questions: SurveyQuestion[];
   createdAt: string;
@@ -1336,6 +1341,37 @@ export interface SurveyQuery {
   limit?: number;
   status?: string;
   search?: string;
+  eventId?: string;
+}
+
+export interface SurveyPendingItem {
+  id: string;
+  title: string;
+  description: string | null;
+  eventId: string | null;
+  eventTitle: string | null;
+  questionCount: number;
+  createdAt: string;
+}
+
+export interface SurveyRecipient {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  responded: boolean;
+  respondedAt: string | null;
+}
+
+export interface SurveyRecipientsResponse {
+  survey: {
+    id: string;
+    title: string;
+    status: string;
+    notifiedAt: string | null;
+    remindedAt: string | null;
+    responseCount: number;
+  };
+  recipients: SurveyRecipient[];
 }
 
 export interface SurveyResultQuestion {

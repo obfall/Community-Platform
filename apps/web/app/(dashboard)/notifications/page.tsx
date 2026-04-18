@@ -34,6 +34,8 @@ export default function NotificationsPage() {
       router.push("/chat");
     } else if (notification.referenceType === "board_post" && notification.referenceId) {
       router.push(`/board/${notification.referenceId}`);
+    } else if (notification.referenceType === "survey" && notification.referenceId) {
+      router.push(`/surveys/${notification.referenceId}/respond`);
     }
   };
 

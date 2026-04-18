@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsInt, Min, IsEnum, IsString } from "class-validator";
+import { IsOptional, IsInt, Min, IsEnum, IsString, IsUUID } from "class-validator";
 import { Type } from "class-transformer";
 import { SurveyStatus } from "@prisma/client";
 
@@ -27,4 +27,9 @@ export class SurveyQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ description: "イベントIDでフィルタ" })
+  @IsOptional()
+  @IsUUID()
+  eventId?: string;
 }
