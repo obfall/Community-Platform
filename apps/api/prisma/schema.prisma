@@ -123,8 +123,8 @@ model User {
   createdChatRooms              ChatRoom[]                     @relation("ChatRoomCreator")
   chatRoomMemberships           ChatRoomMember[]
   chatMessages                  ChatMessage[]                  @relation("ChatMessageSender")
-  createdBroadcasts             Broadcast[]                    @relation("BroadcastCreator")
-  broadcastRecipients           BroadcastRecipient[]           @relation("BroadcastRecipientUser")
+  createdMailMessages           MailMessage[]                  @relation("MailMessageCreator")
+  mailRecipients                MailMessageRecipient[]         @relation("MailRecipient")
   // Phase 4
   attributeValues               MemberAttributeValue[]
   // Phase 5
@@ -421,7 +421,7 @@ model File {
   uploadedByUser                User                           @relation(fields: [uploadedByUserId], references: [id])
   // Phase 3
   chatMessages                  ChatMessage[]
-  mailMessageAttachments        MailMessageAttachment[]
+  broadcastAttachments          BroadcastAttachment[]
   // Phase 5
   eventFiles                    EventFile[]
   eventResultAttachments        EventResultAttachment[]
