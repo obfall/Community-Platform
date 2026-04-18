@@ -421,7 +421,7 @@ model File {
   uploadedByUser                User                           @relation(fields: [uploadedByUserId], references: [id])
   // Phase 3
   chatMessages                  ChatMessage[]
-  broadcastAttachments          BroadcastAttachment[]
+  mailMessageAttachments        MailMessageAttachment[]
   // Phase 5
   eventFiles                    EventFile[]
   eventResultAttachments        EventResultAttachment[]
