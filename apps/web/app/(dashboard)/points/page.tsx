@@ -26,10 +26,15 @@ export default function PointsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">ポイント</h1>
-        <Link href="/points/history">
-          <Button variant="outline">履歴を見る</Button>
-        </Link>
+        <h1 className="text-2xl font-bold">ポイント管理</h1>
+        <div className="flex gap-2">
+          <Link href="/points/history">
+            <Button variant="outline">履歴を見る</Button>
+          </Link>
+          <Link href="/points/grant">
+            <Button>ポイントを発行</Button>
+          </Link>
+        </div>
       </div>
 
       {summary && (

@@ -11,9 +11,7 @@ import {
   Star,
   Share2,
   ClipboardList,
-  Megaphone,
   Mail,
-  Smartphone,
   GraduationCap,
   BarChart3,
   MapPin,
@@ -37,6 +35,7 @@ export interface AdminNavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  featureKey?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -50,42 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { featureKey: "album", label: "アルバム", href: "/albums", icon: Image },
   { featureKey: "content", label: "コンテンツ", href: "/content", icon: FileText },
   { featureKey: "ec_shop", label: "EC・ショップ", href: "/shop", icon: ShoppingBag },
-  {
-    featureKey: "point",
-    label: "ポイント管理",
-    href: "/points",
-    icon: Star,
-    roles: ["admin", "owner"],
-  },
   { featureKey: "skill_share", label: "スキルシェア", href: "/skills", icon: Share2 },
-  {
-    featureKey: "survey",
-    label: "アンケート",
-    href: "/surveys",
-    icon: ClipboardList,
-    roles: ["admin", "owner"],
-  },
-  {
-    featureKey: "advertising",
-    label: "広告",
-    href: "/ads",
-    icon: Megaphone,
-    roles: ["admin", "owner"],
-  },
-  {
-    featureKey: "mail_campaign",
-    label: "配信",
-    href: "/broadcasts",
-    icon: Mail,
-    roles: ["admin", "owner"],
-  },
-  {
-    featureKey: "line_integration",
-    label: "LINE連携",
-    href: "/line",
-    icon: Smartphone,
-    roles: ["admin", "owner"],
-  },
   {
     featureKey: "orientation",
     label: "オリエンテーション",
@@ -93,37 +57,21 @@ export const NAV_ITEMS: NavItem[] = [
     icon: GraduationCap,
     roles: ["admin", "owner"],
   },
-  {
-    featureKey: "analytics",
-    label: "アナリティクス",
-    href: "/analytics",
-    icon: BarChart3,
-    roles: ["admin", "owner"],
-  },
   { featureKey: "venue", label: "施設・会場", href: "/venues", icon: MapPin },
-  {
-    featureKey: "usage_history",
-    label: "利用履歴",
-    href: "/usage-history",
-    icon: Bookmark,
-    roles: ["admin", "owner"],
-  },
-  {
-    featureKey: "moderation",
-    label: "モデレーション",
-    href: "/moderation",
-    icon: Shield,
-    roles: ["admin", "owner"],
-  },
 ];
 
-/** コミュニティ運営メニュー（owner 以上） */
+/** コミュニティ管理メニュー（owner 以上） */
 export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
-  { label: "メンバー管理", href: "/settings/members", icon: UserCog },
-  { label: "動画管理", href: "/videos/manage", icon: Video },
-  { label: "商品管理", href: "/shop/manage", icon: ShoppingBag },
-  { label: "ポイント発行", href: "/points/grant", icon: Star },
+  { label: "メンバー管理", href: "/settings/members", icon: UserCog, featureKey: "member" },
+  { label: "動画管理", href: "/videos/manage", icon: Video, featureKey: "video" },
+  { label: "商品管理", href: "/shop/manage", icon: ShoppingBag, featureKey: "ec_shop" },
+  { label: "ポイント管理", href: "/points", icon: Star, featureKey: "point" },
+  { label: "アンケート管理", href: "/surveys", icon: ClipboardList, featureKey: "survey" },
+  { label: "配信", href: "/broadcasts", icon: Mail, featureKey: "mail_campaign" },
+  { label: "アナリティクス", href: "/analytics", icon: BarChart3, featureKey: "analytics" },
+  { label: "利用履歴", href: "/usage-history", icon: Bookmark, featureKey: "usage_history" },
+  { label: "モデレーション", href: "/moderation", icon: Shield, featureKey: "moderation" },
 ];
 
 /** システム管理メニュー（admin のみ） */
