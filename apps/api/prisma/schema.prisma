@@ -123,8 +123,8 @@ model User {
   createdChatRooms              ChatRoom[]                     @relation("ChatRoomCreator")
   chatRoomMemberships           ChatRoomMember[]
   chatMessages                  ChatMessage[]                  @relation("ChatMessageSender")
-  createdMailMessages           MailMessage[]                  @relation("MailMessageCreator")
-  mailRecipients                MailMessageRecipient[]         @relation("MailRecipient")
+  createdBroadcasts             Broadcast[]                    @relation("BroadcastCreator")
+  broadcastRecipients           BroadcastRecipient[]           @relation("BroadcastRecipientUser")
   // Phase 4
   attributeValues               MemberAttributeValue[]
   // Phase 5
@@ -182,7 +182,6 @@ model User {
   contentsCreated               Content[]                      @relation("ContentCreator")
   shopSettingsUpdated           ShopSetting[]                  @relation("ShopSettingUpdatedBy")
   // Phase 10
-  announcementsCreated          Announcement[]                 @relation("AnnouncementCreator")
   memoCategories                MemoCategory[]
   memos                         Memo[]
   schedules                     Schedule[]
@@ -421,7 +420,7 @@ model File {
   uploadedByUser                User                           @relation(fields: [uploadedByUserId], references: [id])
   // Phase 3
   chatMessages                  ChatMessage[]
-  mailMessageAttachments        MailMessageAttachment[]
+  broadcastAttachments          BroadcastAttachment[]
   // Phase 5
   eventFiles                    EventFile[]
   eventResultAttachments        EventResultAttachment[]
@@ -717,14 +716,14 @@ enum ChatMessageType {
   file
 }
 
-enum MailTargetType {
+enum BroadcastTargetType {
   all
   rank
   custom
   event
 }
 
-enum MailStatus {
+enum BroadcastStatus {
   draft
   scheduled
   sending
@@ -732,7 +731,7 @@ enum MailStatus {
   failed
 }
 
-enum MailRecipientStatus {
+enum BroadcastRecipientStatus {
   pending
   sent
   delivered
@@ -742,16 +741,27 @@ enum MailRecipientStatus {
   failed
 }
 
-enum MailSuppressionReason {
+enum BroadcastSuppressionReason {
   unsubscribe
   bounce
   complaint
   manual
 }
 
-enum MailTemplateCategory {
+enum BroadcastTemplateCategory {
   event
   general
+}
+
+enum BroadcastChannel {
+  in_app
+  email
+  line
+}
+
+enum BroadcastScope {
+  global
+  event
 }
 
 // --- Models ---
@@ -818,97 +828,100 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
-model MailMessage {
-  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  subject         String         @db.VarChar(200)
-  bodyHtml        String         @map("body_html") @db.Text
-  bodyText        String?        @map("body_text") @db.Text
-  targetType      MailTargetType @map("target_type")
-  targetFilter    Json?          @map("target_filter") @db.JsonB
-  templateId      String?        @map("template_id") @db.Uuid
-  status          MailStatus     @default(draft)
-  scheduledAt     DateTime?      @map("scheduled_at") @db.Timestamptz()
-  sentAt          DateTime?      @map("sent_at") @db.Timestamptz()
-  totalRecipients Int            @default(0) @map("total_recipients")
-  sentCount       Int            @default(0) @map("sent_count")
-  deliveredCount  Int            @default(0) @map("delivered_count")
-  failedCount     Int            @default(0) @map("failed_count")
-  lineSentCount   Int            @default(0) @map("line_sent_count")
-  createdByUserId String         @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
+model Broadcast {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subject         String              @db.VarChar(200)
+  bodyHtml        String              @map("body_html") @db.Text
+  bodyText        String?             @map("body_text") @db.Text
+  scope           BroadcastScope      @default(global)
+  channels        BroadcastChannel[]  @default([email])
+  targetType      BroadcastTargetType @map("target_type")
+  targetFilter    Json?               @map("target_filter") @db.JsonB
+  templateId      String?             @map("template_id") @db.Uuid
+  status          BroadcastStatus     @default(draft)
+  scheduledAt     DateTime?           @map("scheduled_at") @db.Timestamptz()
+  sentAt          DateTime?           @map("sent_at") @db.Timestamptz()
+  totalRecipients Int                 @default(0) @map("total_recipients")
+  sentCount       Int                 @default(0) @map("sent_count")
+  deliveredCount  Int                 @default(0) @map("delivered_count")
+  failedCount     Int                 @default(0) @map("failed_count")
+  lineSentCount   Int                 @default(0) @map("line_sent_count")
+  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  createdByUser User                    @relation("MailMessageCreator", fields: [createdByUserId], references: [id])
-  template      MailTemplate?           @relation(fields: [templateId], references: [id])
-  recipients    MailMessageRecipient[]
-  attachments   MailMessageAttachment[]
+  createdByUser User                  @relation("BroadcastCreator", fields: [createdByUserId], references: [id])
+  template      BroadcastTemplate?    @relation(fields: [templateId], references: [id])
+  recipients    BroadcastRecipient[]
+  attachments   BroadcastAttachment[]
 
   @@index([status, createdAt(sort: Desc)])
-  @@map("mail_messages")
+  @@map("broadcasts")
 }
 
-model MailMessageRecipient {
-  id        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String              @map("message_id") @db.Uuid
-  userId    String              @map("user_id") @db.Uuid
-  email     String              @db.VarChar(255)
-  status    MailRecipientStatus @default(pending)
-  sentAt    DateTime?           @map("sent_at") @db.Timestamptz()
-  openedAt  DateTime?           @map("opened_at") @db.Timestamptz()
-  clickedAt DateTime?           @map("clicked_at") @db.Timestamptz()
-  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz()
+model BroadcastRecipient {
+  id          String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcastId String                   @map("broadcast_id") @db.Uuid
+  userId      String                   @map("user_id") @db.Uuid
+  channel     BroadcastChannel         @default(email)
+  email       String                   @db.VarChar(255)
+  status      BroadcastRecipientStatus @default(pending)
+  sentAt      DateTime?                @map("sent_at") @db.Timestamptz()
+  openedAt    DateTime?                @map("opened_at") @db.Timestamptz()
+  clickedAt   DateTime?                @map("clicked_at") @db.Timestamptz()
+  createdAt   DateTime                 @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  message MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User        @relation("MailRecipient", fields: [userId], references: [id])
+  broadcast Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user      User      @relation("BroadcastRecipientUser", fields: [userId], references: [id])
 
-  @@unique([messageId, userId])
-  @@index([messageId, status])
-  @@map("mail_message_recipients")
+  @@unique([broadcastId, userId, channel])
+  @@index([broadcastId, status])
+  @@map("broadcast_recipients")
 }
 
-model MailMessageAttachment {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId String   @map("message_id") @db.Uuid
-  fileId    String   @map("file_id") @db.Uuid
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+model BroadcastAttachment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broadcastId String   @map("broadcast_id") @db.Uuid
+  fileId      String   @map("file_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  message MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  file    File        @relation(fields: [fileId], references: [id])
+  broadcast Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  file      File      @relation(fields: [fileId], references: [id])
 
-  @@index([messageId, sortOrder])
-  @@map("mail_message_attachments")
+  @@index([broadcastId, sortOrder])
+  @@map("broadcast_attachments")
 }
 
-model MailSuppression {
-  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email     String                @unique @db.VarChar(255)
-  reason    MailSuppressionReason
-  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz()
+model BroadcastSuppression {
+  id        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String                     @unique @db.VarChar(255)
+  reason    BroadcastSuppressionReason
+  createdAt DateTime                   @default(now()) @map("created_at") @db.Timestamptz()
 
-  @@map("mail_suppressions")
+  @@map("broadcast_suppressions")
 }
 
-model MailTemplate {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name               String               @db.VarChar(100)
-  category           MailTemplateCategory
-  subjectTemplate    String               @map("subject_template") @db.VarChar(200)
-  bodyHtmlTemplate   String               @map("body_html_template") @db.Text
-  bodyTextTemplate   String?              @map("body_text_template") @db.Text
-  availableVariables Json?                @map("available_variables") @db.JsonB
-  sortOrder          Int                  @default(0) @map("sort_order")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
+model BroadcastTemplate {
+  id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String                    @db.VarChar(100)
+  category           BroadcastTemplateCategory
+  subjectTemplate    String                    @map("subject_template") @db.VarChar(200)
+  bodyHtmlTemplate   String                    @map("body_html_template") @db.Text
+  bodyTextTemplate   String?                   @map("body_text_template") @db.Text
+  availableVariables Json?                     @map("available_variables") @db.JsonB
+  sortOrder          Int                       @default(0) @map("sort_order")
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  mailMessages MailMessage[]
+  broadcasts Broadcast[]
 
   @@index([category, sortOrder])
-  @@map("mail_templates")
+  @@map("broadcast_templates")
 }
 
 // ============================================================
@@ -2714,12 +2727,6 @@ model Content {
 
 // --- Enums ---
 
-enum AnnouncementAudience {
-  all
-  admin
-  member
-}
-
 enum ScheduleSourceType {
   event
   project_task
@@ -2775,26 +2782,6 @@ enum BannedWordAction {
   flag
   block
   replace
-}
-
-// --- お知らせ ---
-
-model Announcement {
-  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title           String               @db.VarChar(200)
-  body            String               @db.Text
-  targetAudience  AnnouncementAudience @default(all) @map("target_audience")
-  isPublished     Boolean              @default(false) @map("is_published")
-  publishedAt     DateTime?            @map("published_at") @db.Timestamptz()
-  pinnedUntil     DateTime?            @map("pinned_until") @db.Timestamptz()
-  createdByUserId String               @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz()
-
-  createdBy User @relation("AnnouncementCreator", fields: [createdByUserId], references: [id])
-
-  @@index([isPublished, publishedAt(sort: Desc)])
-  @@map("announcements")
 }
 
 // --- FAQ ---

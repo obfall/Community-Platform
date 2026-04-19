@@ -24,7 +24,6 @@ import { EventQueryDto } from "./dto/event-query.dto";
 import { CreateTicketDto } from "./dto/create-ticket.dto";
 import { ParticipateEventDto } from "./dto/participate-event.dto";
 import { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
-import { NotifyParticipantsDto } from "./dto/notify-participants.dto";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
 
 @Controller("events")
@@ -163,18 +162,6 @@ export class EventsController {
     @Body() dto: UpdateParticipantStatusDto,
   ) {
     return this.eventsService.updateParticipantStatus(participantId, dto);
-  }
-
-  @Post(":id/participants/notify")
-  @ApiOperation({ summary: "参加者への一括通知" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
-  notifyParticipants(
-    @Param("id", ParseUUIDPipe) eventId: string,
-    @CurrentUser("id") userId: string,
-    @Body() dto: NotifyParticipantsDto,
-  ) {
-    return this.eventsService.notifyParticipants(eventId, userId, dto);
   }
 
   // ========== Duplicate ==========

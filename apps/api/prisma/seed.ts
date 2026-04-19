@@ -223,13 +223,6 @@ async function main() {
       sortOrder: 28,
     },
     {
-      featureKey: "announcement",
-      featureName: "お知らせ",
-      category: "optional" as const,
-      description: "お知らせ作成・配信",
-      sortOrder: 29,
-    },
-    {
       featureKey: "faq",
       featureName: "FAQ",
       category: "optional" as const,
@@ -402,8 +395,8 @@ async function main() {
     console.log("Skipped board categories (no owner user found)");
   }
 
-  // --- Mail Templates ---
-  const mailTemplates = [
+  // --- Broadcast Templates ---
+  const broadcastTemplates = [
     {
       name: "イベント案内",
       category: "event" as const,
@@ -477,15 +470,15 @@ async function main() {
     },
   ];
 
-  for (const tmpl of mailTemplates) {
-    const existing = await prisma.mailTemplate.findFirst({
+  for (const tmpl of broadcastTemplates) {
+    const existing = await prisma.broadcastTemplate.findFirst({
       where: { name: tmpl.name },
     });
     if (!existing) {
-      await prisma.mailTemplate.create({ data: tmpl });
+      await prisma.broadcastTemplate.create({ data: tmpl });
     }
   }
-  console.log(`Seeded ${mailTemplates.length} mail templates`);
+  console.log(`Seeded ${broadcastTemplates.length} broadcast templates`);
 
   // --- Member Attributes ---
   const memberAttributes = [

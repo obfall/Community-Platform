@@ -593,37 +593,6 @@ export class EventsService {
     });
   }
 
-  // ========== Notify ==========
-
-  async notifyParticipants(
-    eventId: string,
-    actorUserId: string,
-    data: { title: string; body: string },
-  ) {
-    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
-    if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
-
-    const participants = await this.prisma.eventParticipant.findMany({
-      where: { eventId, status: { not: "canceled" } },
-      select: { userId: true },
-    });
-
-    if (participants.length === 0) return { notifiedCount: 0 };
-
-    const items = participants.map((p) => ({
-      userId: p.userId,
-      type: "event_announcement",
-      title: data.title,
-      body: data.body,
-      referenceType: "event",
-      referenceId: eventId,
-      actorUserId,
-    }));
-
-    await this.notificationsService.createMany(items);
-    return { notifiedCount: participants.length };
-  }
-
   // ========== Stats ==========
 
   async getParticipantStats(eventId: string) {

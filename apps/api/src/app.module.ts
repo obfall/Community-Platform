@@ -13,7 +13,7 @@ import { FilesModule } from "./files/files.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { BoardModule } from "./board/board.module";
 import { ChatModule } from "./chat/chat.module";
-import { MailModule } from "./mail/mail.module";
+import { BroadcastsModule } from "./broadcasts/broadcasts.module";
 import { MemberAttributesModule } from "./member-attributes/member-attributes.module";
 import { EventsModule } from "./events/events.module";
 import { EventBoardModule } from "./events/board/event-board.module";
@@ -28,7 +28,6 @@ import { ShopModule } from "./shop/shop.module";
 import { AlbumsModule } from "./albums/albums.module";
 import { VenuesModule } from "./venues/venues.module";
 import { ContentsModule } from "./contents/contents.module";
-import { AnnouncementsModule } from "./announcements/announcements.module";
 import { FaqModule } from "./faq/faq.module";
 import { MemosModule } from "./memos/memos.module";
 import { SchedulesModule } from "./schedules/schedules.module";
@@ -88,8 +87,8 @@ import { validateEnv } from "./config/env.config";
     // Chat
     ChatModule,
 
-    // Mail
-    MailModule,
+    // Broadcasts（旧 Mail）
+    BroadcastsModule,
 
     // Events
     EventsModule,
@@ -125,9 +124,6 @@ import { validateEnv } from "./config/env.config";
 
     // Contents
     ContentsModule,
-
-    // Announcements
-    AnnouncementsModule,
 
     // FAQ
     FaqModule,
