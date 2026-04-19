@@ -269,7 +269,7 @@ export default function ProfileCalendarPage() {
                               : "border-blue-200 bg-blue-50/50"
                         }`}
                         onClick={() => {
-                          s && openEditForm(s);
+                          if (s) openEditForm(s);
                           item.onClick?.();
                         }}
                       >

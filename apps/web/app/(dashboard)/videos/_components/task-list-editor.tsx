@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Plus, X, ArrowUp, ArrowDown, Paperclip, Copy, MoreHorizontal } from "lucide-react";

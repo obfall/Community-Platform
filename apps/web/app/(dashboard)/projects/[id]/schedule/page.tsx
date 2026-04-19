@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo, useCallback } from "react";
+import { use, useState, useCallback } from "react";
 import {
   useProject,
   useProjectTasks,
@@ -94,66 +94,58 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
     setShowForm(false);
   };
 
-  // CalendarItem に変換
-  const calendarItems = useMemo<CalendarItem[]>(() => {
-    const scheduleItems: CalendarItem[] = showSchedules
-      ? (schedules ?? []).map((s) => ({
-          id: s.id,
-          title: s.title,
-          startAt: s.startAt,
-          endAt: s.endAt,
-          isAllDay: s.isAllDay,
-          color: "blue" as const,
-          onClick: isAdmin ? () => openEditForm(s) : undefined,
-        }))
+  // CalendarItem に変換（React Compiler が自動メモ化するため useMemo 不要）
+  const scheduleCalendarItems: CalendarItem[] = showSchedules
+    ? (schedules ?? []).map((s) => ({
+        id: s.id,
+        title: s.title,
+        startAt: s.startAt,
+        endAt: s.endAt,
+        isAllDay: s.isAllDay,
+        color: "blue" as const,
+        onClick: isAdmin ? () => openEditForm(s) : undefined,
+      }))
+    : [];
+
+  const taskCalendarItems: CalendarItem[] = (tasks ?? [])
+    .filter((t): t is ProjectTask & { dueDate: string } => !!t.dueDate)
+    .map((t) => {
+      const dateStr = new Date(t.dueDate).toISOString().slice(0, 10);
+      const isMine = t.assignees.some((a) => a.userId === user?.id);
+      if (isMine && !showMyTasks) return null;
+      if (!isMine && !showOtherTasks) return null;
+      return {
+        id: `task-${t.id}`,
+        title: isMine ? `★ ${t.title}` : t.title,
+        startAt: `${dateStr}T00:00:00`,
+        endAt: `${dateStr}T23:59:59`,
+        isAllDay: true,
+        color: isMine ? ("orange" as const) : ("gray" as const),
+        onClick: () => router.push(`/projects/${projectId}/tasks`),
+      };
+    })
+    .filter((t) => t !== null) as CalendarItem[];
+
+  const eventCalendarItems: CalendarItem[] =
+    showEvent && relatedEvent
+      ? [
+          {
+            id: `event-${relatedEvent.id}`,
+            title: relatedEvent.title,
+            startAt: relatedEvent.startAt,
+            endAt: relatedEvent.endAt,
+            isAllDay: false,
+            color: "green" as const,
+            onClick: () => router.push(`/events/${relatedEvent.id}`),
+          },
+        ]
       : [];
 
-    const taskItems: CalendarItem[] = (tasks ?? [])
-      .filter((t): t is ProjectTask & { dueDate: string } => !!t.dueDate)
-      .map((t) => {
-        const dateStr = new Date(t.dueDate).toISOString().slice(0, 10);
-        const isMine = t.assignees.some((a) => a.userId === user?.id);
-        if (isMine && !showMyTasks) return null;
-        if (!isMine && !showOtherTasks) return null;
-        return {
-          id: `task-${t.id}`,
-          title: isMine ? `★ ${t.title}` : t.title,
-          startAt: `${dateStr}T00:00:00`,
-          endAt: `${dateStr}T23:59:59`,
-          isAllDay: true,
-          color: isMine ? ("orange" as const) : ("gray" as const),
-          onClick: () => router.push(`/projects/${projectId}/tasks`),
-        };
-      })
-      .filter((t) => t !== null) as CalendarItem[];
-
-    const eventItems: CalendarItem[] =
-      showEvent && relatedEvent
-        ? [
-            {
-              id: `event-${relatedEvent.id}`,
-              title: relatedEvent.title,
-              startAt: relatedEvent.startAt,
-              endAt: relatedEvent.endAt,
-              isAllDay: false,
-              color: "green" as const,
-              onClick: () => router.push(`/events/${relatedEvent.id}`),
-            },
-          ]
-        : [];
-
-    return [...scheduleItems, ...taskItems, ...eventItems];
-  }, [
-    schedules,
-    tasks,
-    relatedEvent,
-    isAdmin,
-    showSchedules,
-    showMyTasks,
-    showOtherTasks,
-    showEvent,
-    user?.id,
-  ]);
+  const calendarItems: CalendarItem[] = [
+    ...scheduleCalendarItems,
+    ...taskCalendarItems,
+    ...eventCalendarItems,
+  ];
 
   const handleDayClick = useCallback((date: Date, items: CalendarItem[]) => {
     setSelectedDay(date);
@@ -217,7 +209,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
     });
   };
 
-  const scheduleMap = useMemo(() => new Map((schedules ?? []).map((s) => [s.id, s])), [schedules]);
+  const scheduleMap = new Map((schedules ?? []).map((s) => [s.id, s]));
 
   return (
     <div className="space-y-4">

@@ -6,7 +6,7 @@ import { useProject, useDeleteProject } from "@/hooks/projects/use-projects";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,

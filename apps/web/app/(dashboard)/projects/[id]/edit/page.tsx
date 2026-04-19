@@ -71,7 +71,7 @@ function ProjectEditForm({
           coverImageUrl: coverImageUrl ?? undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
-          status: status as any,
+          status,
           publishStatus,
           eventId: eventId === NONE_VALUE ? undefined : eventId,
         },
