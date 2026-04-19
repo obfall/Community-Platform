@@ -171,8 +171,76 @@ export class ProjectsController {
   @ApiOperation({ summary: "タスク更新" })
   updateTask(
     @Param("taskId", ParseUUIDPipe) taskId: string,
-    @Body() data: { title?: string; description?: string; progress?: number; dueDate?: string },
+    @Body()
+    data: {
+      title?: string;
+      description?: string;
+      status?: string;
+      requestedDate?: string | null;
+      dueDate?: string | null;
+      assigneeIds?: string[];
+      fileIds?: string[];
+    },
   ) {
     return this.service.updateTask(taskId, data);
+  }
+
+  @Delete("tasks/:taskId")
+  @ApiOperation({ summary: "タスク削除" })
+  deleteTask(@Param("taskId", ParseUUIDPipe) taskId: string) {
+    return this.service.deleteTask(taskId);
+  }
+
+  // ========== Schedules ==========
+
+  @Get(":id/schedules")
+  @ApiOperation({ summary: "プロジェクトスケジュール一覧" })
+  getSchedules(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Query("startAt") startAt?: string,
+    @Query("endAt") endAt?: string,
+  ) {
+    return this.service.getSchedules(projectId, startAt, endAt);
+  }
+
+  @Post(":id/schedules")
+  @ApiOperation({ summary: "プロジェクトスケジュール作成" })
+  createSchedule(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @CurrentUser("id") userId: string,
+    @Body()
+    data: {
+      title: string;
+      description?: string;
+      startAt: string;
+      endAt: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) {
+    return this.service.createSchedule(projectId, userId, data);
+  }
+
+  @Patch(":id/schedules/:scheduleId")
+  @ApiOperation({ summary: "プロジェクトスケジュール更新" })
+  updateSchedule(
+    @Param("scheduleId", ParseUUIDPipe) scheduleId: string,
+    @Body()
+    data: {
+      title?: string;
+      description?: string;
+      startAt?: string;
+      endAt?: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) {
+    return this.service.updateSchedule(scheduleId, data);
+  }
+
+  @Delete(":id/schedules/:scheduleId")
+  @ApiOperation({ summary: "プロジェクトスケジュール削除" })
+  deleteSchedule(@Param("scheduleId", ParseUUIDPipe) scheduleId: string) {
+    return this.service.deleteSchedule(scheduleId);
   }
 }

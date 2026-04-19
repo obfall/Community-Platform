@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Video, Play, Settings } from "lucide-react";
+import { Video, Play } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
@@ -44,14 +44,6 @@ export default function VideosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">動画</h1>
-        {isAdmin && (
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/videos/manage">
-              <Settings className="mr-1 h-4 w-4" />
-              動画管理
-            </Link>
-          </Button>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -197,13 +189,23 @@ export default function VideosPage() {
                   )}
                 </div>
                 <CardContent className="p-4">
-                  {v.category && (
-                    <div className="mb-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-1">
+                    {v.category && (
                       <Badge variant="outline" className="text-[10px]">
                         {v.category.name}
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                    {v.incompleteTaskCount > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        未完了ワーク {v.incompleteTaskCount}件
+                      </Badge>
+                    )}
+                    {v.taskCount > 0 && v.incompleteTaskCount === 0 && (
+                      <Badge variant="default" className="text-[10px]">
+                        ワーク完了
+                      </Badge>
+                    )}
+                  </div>
                   <h3 className="line-clamp-2 text-sm font-semibold">{v.title}</h3>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{v.createdBy.name}</span>

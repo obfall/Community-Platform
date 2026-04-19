@@ -142,11 +142,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/events/${id}/edit`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  編集
-                </Link>
+              <DropdownMenuItem onClick={() => router.push(`/events/${id}/edit`)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                編集
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
                 <Copy className="mr-2 h-4 w-4" />

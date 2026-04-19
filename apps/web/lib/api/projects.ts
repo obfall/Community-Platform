@@ -5,6 +5,7 @@ import type {
   ProjectDetail,
   ProjectThread,
   ProjectTask,
+  ProjectScheduleItem,
   ProjectQuery,
   CreateProjectInput,
 } from "./types";
@@ -69,6 +70,57 @@ export const projectsApi = {
     },
   ) => apiClient.post(`/projects/${projectId}/tasks`, data).then((r) => r.data),
 
-  updateTask: (taskId: string, data: { title?: string; progress?: number; dueDate?: string }) =>
-    apiClient.patch(`/projects/tasks/${taskId}`, data).then((r) => r.data),
+  updateTask: (
+    taskId: string,
+    data: {
+      title?: string;
+      description?: string;
+      status?: string;
+      requestedDate?: string | null;
+      dueDate?: string | null;
+      assigneeIds?: string[];
+      fileIds?: string[];
+    },
+  ) => apiClient.patch(`/projects/tasks/${taskId}`, data).then((r) => r.data),
+
+  deleteTask: (taskId: string) => apiClient.delete(`/projects/tasks/${taskId}`).then((r) => r.data),
+
+  getSchedules: (projectId: string, params?: { startAt?: string; endAt?: string }) =>
+    apiClient
+      .get<ProjectScheduleItem[]>(`/projects/${projectId}/schedules`, { params })
+      .then((r) => r.data),
+
+  createSchedule: (
+    projectId: string,
+    data: {
+      title: string;
+      description?: string;
+      startAt: string;
+      endAt: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) =>
+    apiClient
+      .post<ProjectScheduleItem>(`/projects/${projectId}/schedules`, data)
+      .then((r) => r.data),
+
+  updateSchedule: (
+    projectId: string,
+    scheduleId: string,
+    data: {
+      title?: string;
+      description?: string;
+      startAt?: string;
+      endAt?: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) =>
+    apiClient
+      .patch<ProjectScheduleItem>(`/projects/${projectId}/schedules/${scheduleId}`, data)
+      .then((r) => r.data),
+
+  deleteSchedule: (projectId: string, scheduleId: string) =>
+    apiClient.delete(`/projects/${projectId}/schedules/${scheduleId}`),
 };

@@ -651,7 +651,7 @@ export interface MyTaskItem {
   id: string;
   title: string;
   description: string | null;
-  progress: number;
+  status: VideoTaskStatus;
   dueDate: string | null;
   requestedDate: string | null;
   project: { id: string; name: string };
@@ -1022,6 +1022,8 @@ export interface ProjectMember {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  occupation: string | null;
+  bio: string | null;
   role: string;
   joinedAt: string;
 }
@@ -1048,17 +1050,26 @@ export interface ProjectThread {
   createdAt: string;
 }
 
+export interface ProjectTaskAttachmentItem {
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileUrl: string | null;
+}
+
 export interface ProjectTask {
   id: string;
   title: string;
   description: string | null;
-  progress: number;
+  status: VideoTaskStatus;
   requestedDate: string | null;
   dueDate: string | null;
   sortOrder: number;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   assignees: { id: string; userId: string; name: string; avatarUrl: string | null }[];
+  attachments: ProjectTaskAttachmentItem[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProjectQuery {
@@ -1078,6 +1089,22 @@ export interface CreateProjectInput {
   startDate?: string;
   endDate?: string;
   status?: string;
+  publishStatus?: string;
+  inviteLinkEnabled?: boolean;
+}
+
+export interface ProjectScheduleItem {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  isAllDay: boolean;
+  location: string | null;
+  createdBy: { id: string; name: string; avatarUrl: string | null };
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- Videos ---
@@ -1098,6 +1125,8 @@ export interface VideoListItem {
   category: { id: string; name: string } | null;
   series: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
+  taskCount: number;
+  incompleteTaskCount: number;
   createdAt: string;
 }
 
@@ -1133,11 +1162,19 @@ export interface VideoAttachment {
 
 export type VideoTaskStatus = "not_started" | "in_progress" | "completed";
 
+export interface VideoTaskAttachmentItem {
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileUrl: string | null;
+}
+
 export interface VideoTaskItem {
   id: string;
   title: string;
   description: string | null;
   sortOrder: number;
+  attachments: VideoTaskAttachmentItem[];
   status?: VideoTaskStatus;
   statusUpdatedAt?: string;
   completedAt?: string;
@@ -1180,6 +1217,7 @@ export interface TaskInput {
   title: string;
   description?: string;
   sortOrder?: number;
+  fileIds?: string[];
 }
 
 export interface VideoTaskProgress {

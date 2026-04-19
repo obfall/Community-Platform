@@ -17,7 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Download, CheckCircle, Shield, Clock, BarChart3 } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  CheckCircle,
+  Shield,
+  Clock,
+  BarChart3,
+  Paperclip,
+} from "lucide-react";
 import { HlsPlayer } from "./_components/hls-player";
 import { VideoPasswordDialog, isVideoUnlocked } from "../_components/video-password-dialog";
 import { SeriesNav } from "../_components/series-nav";
@@ -249,6 +257,23 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
                               {task.description && (
                                 <div className="mt-1 text-xs text-muted-foreground">
                                   {task.description}
+                                </div>
+                              )}
+                              {task.attachments.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {task.attachments.map((a) => (
+                                    <a
+                                      key={a.id}
+                                      href={a.fileUrl ?? "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      download
+                                      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
+                                    >
+                                      <Paperclip className="h-2.5 w-2.5 shrink-0" />
+                                      <span className="max-w-[120px] truncate">{a.fileName}</span>
+                                    </a>
+                                  ))}
                                 </div>
                               )}
                             </TableCell>

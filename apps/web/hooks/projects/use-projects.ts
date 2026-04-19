@@ -162,12 +162,99 @@ export function useUpdateTask() {
       data,
     }: {
       taskId: string;
-      data: { title?: string; progress?: number; dueDate?: string };
+      data: {
+        title?: string;
+        description?: string;
+        status?: string;
+        requestedDate?: string | null;
+        dueDate?: string | null;
+        assigneeIds?: string[];
+        fileIds?: string[];
+      };
     }) => projectsApi.updateTask(taskId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("タスクを更新しました");
     },
     onError: () => toast.error("タスクの更新に失敗しました"),
+  });
+}
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => projectsApi.deleteTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("タスクを削除しました");
+    },
+    onError: () => toast.error("タスクの削除に失敗しました"),
+  });
+}
+
+export function useProjectSchedules(
+  projectId: string | undefined,
+  query?: { startAt?: string; endAt?: string },
+) {
+  return useQuery({
+    queryKey: ["projects", projectId, "schedules", query],
+    queryFn: () => projectsApi.getSchedules(projectId!, query),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateProjectSchedule(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      title: string;
+      description?: string;
+      startAt: string;
+      endAt: string;
+      isAllDay?: boolean;
+      location?: string;
+    }) => projectsApi.createSchedule(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
+      toast.success("予定を追加しました");
+    },
+    onError: () => toast.error("予定の追加に失敗しました"),
+  });
+}
+
+export function useUpdateProjectSchedule(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      scheduleId,
+      data,
+    }: {
+      scheduleId: string;
+      data: {
+        title?: string;
+        description?: string;
+        startAt?: string;
+        endAt?: string;
+        isAllDay?: boolean;
+        location?: string;
+      };
+    }) => projectsApi.updateSchedule(projectId, scheduleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
+      toast.success("予定を更新しました");
+    },
+    onError: () => toast.error("予定の更新に失敗しました"),
+  });
+}
+
+export function useDeleteProjectSchedule(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scheduleId: string) => projectsApi.deleteSchedule(projectId, scheduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
+      toast.success("予定を削除しました");
+    },
+    onError: () => toast.error("予定の削除に失敗しました"),
   });
 }

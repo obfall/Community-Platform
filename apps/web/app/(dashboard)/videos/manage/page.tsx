@@ -41,7 +41,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, Plus, Pencil, Trash2, Video } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Upload, Plus, Pencil, Trash2, Video, ArrowLeft, MoreHorizontal } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
@@ -97,24 +103,37 @@ export default function VideoManagePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <Link href="/videos">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
         <h1 className="text-2xl font-bold">動画管理</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
-            <Plus className="mr-1 h-3 w-3" />
-            カテゴリ追加
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setSeriesDialogOpen(true)}>
-            <Plus className="mr-1 h-3 w-3" />
-            シリーズ追加
-          </Button>
-          <Link href="/videos/new">
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              アップロード
+      </div>
+      <div className="flex items-center justify-between">
+        <div />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
-          </Link>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => router.push("/videos/new")}>
+              <Upload className="mr-2 h-3.5 w-3.5" />
+              アップロード
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCatDialogOpen(true)}>
+              <Plus className="mr-2 h-3.5 w-3.5" />
+              カテゴリ追加
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSeriesDialogOpen(true)}>
+              <Plus className="mr-2 h-3.5 w-3.5" />
+              シリーズ追加
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Filters */}
@@ -226,24 +245,26 @@ export default function VideoManagePage() {
                 <TableCell>{v.viewCount}</TableCell>
                 <TableCell>{formatDate(v.createdAt)}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => router.push(`/videos/${v.id}/edit`)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteTarget(v)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => router.push(`/videos/${v.id}/edit`)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        編集
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(v)}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        削除
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

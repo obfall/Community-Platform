@@ -5,6 +5,7 @@ import {
   CheckSquare,
   Newspaper,
   FolderOpen,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,6 +20,7 @@ export const PROJECT_DETAIL_NAV_ITEMS: ProjectDetailNavItem[] = [
   { label: "メンバー", segment: "members", icon: Users },
   { label: "メッセージ", segment: "messages", icon: MessageSquare },
   { label: "タスク", segment: "tasks", icon: CheckSquare },
+  { label: "スケジュール", segment: "schedule", icon: CalendarDays },
   { label: "掲示板", segment: "board", icon: Newspaper },
   { label: "ファイル", segment: "files", icon: FolderOpen },
 ];

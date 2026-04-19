@@ -5,17 +5,17 @@ import { useMyTasks } from "@/hooks/members/use-members";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Clock, FolderKanban } from "lucide-react";
-import type { MyTaskItem } from "@/lib/api/types";
+import type { MyTaskItem, VideoTaskStatus } from "@/lib/api/types";
 
-function getProgressLabel(progress: number) {
-  if (progress === 0) return "未着手";
-  if (progress === 100) return "完了";
-  return `${progress}%`;
-}
+const STATUS_LABEL: Record<VideoTaskStatus, string> = {
+  not_started: "未着手",
+  in_progress: "進行中",
+  completed: "完了",
+};
 
-function getProgressVariant(progress: number): "default" | "secondary" | "outline" {
-  if (progress === 100) return "default";
-  if (progress > 0) return "secondary";
+function statusVariant(status: VideoTaskStatus): "default" | "secondary" | "outline" {
+  if (status === "completed") return "default";
+  if (status === "in_progress") return "secondary";
   return "outline";
 }
 
@@ -41,7 +41,11 @@ export default function ProfileTasksPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{task.title}</p>
+                      <p
+                        className={`text-sm font-semibold ${task.status === "completed" ? "line-through text-muted-foreground" : ""}`}
+                      >
+                        {task.title}
+                      </p>
                       <div className="mt-1 space-y-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <FolderKanban className="h-3 w-3" />
@@ -59,18 +63,10 @@ export default function ProfileTasksPage() {
                         )}
                       </div>
                     </div>
-                    <Badge variant={getProgressVariant(task.progress)} className="shrink-0 text-xs">
-                      {getProgressLabel(task.progress)}
+                    <Badge variant={statusVariant(task.status)} className="shrink-0 text-xs">
+                      {STATUS_LABEL[task.status]}
                     </Badge>
                   </div>
-                  {task.progress > 0 && task.progress < 100 && (
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${task.progress}%` }}
-                      />
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </Link>
