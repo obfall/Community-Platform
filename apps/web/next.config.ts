@@ -7,6 +7,21 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+  async redirects() {
+    return [
+      { source: "/mail", destination: "/broadcasts", permanent: true },
+      { source: "/mail/new", destination: "/broadcasts/new", permanent: true },
+      { source: "/mail/:id", destination: "/broadcasts/:id", permanent: true },
+      {
+        source: "/events/:id/mail",
+        destination: "/events/:id/broadcasts",
+        permanent: true,
+      },
+      { source: "/announcements", destination: "/broadcasts", permanent: true },
+      { source: "/announcements/new", destination: "/broadcasts/new", permanent: true },
+      { source: "/announcements/:id", destination: "/broadcasts", permanent: true },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {

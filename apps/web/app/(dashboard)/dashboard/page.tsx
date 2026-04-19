@@ -2,18 +2,16 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { useAnnouncements } from "@/hooks/announcements/use-announcements";
 import { useEvents } from "@/hooks/events/use-events";
 import { useContents } from "@/hooks/content/use-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Megaphone, CalendarDays, FileText, ArrowRight, MapPin, Clock } from "lucide-react";
+import { CalendarDays, FileText, ArrowRight, MapPin, Clock } from "lucide-react";
 import { PendingSurveysWidget } from "@/components/surveys/pending-surveys-widget";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: announcements, isLoading: announcementsLoading } = useAnnouncements();
   const { data: eventsData, isLoading: eventsLoading } = useEvents({
     limit: 3,
     status: "published",
@@ -22,8 +20,6 @@ export default function DashboardPage() {
     limit: 3,
     publishStatus: "published",
   });
-
-  const recentAnnouncements = (announcements ?? []).filter((a) => a.isPublished).slice(0, 3);
 
   const upcomingEvents = (eventsData?.data ?? eventsData ?? []) as Array<{
     id: string;
@@ -73,44 +69,6 @@ export default function DashboardPage() {
       <PendingSurveysWidget />
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* 最新のお知らせ */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Megaphone className="h-5 w-5" />
-              最新の配信
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/announcements">
-                すべて見る <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {announcementsLoading ? (
-              <p className="text-sm text-muted-foreground">読み込み中...</p>
-            ) : recentAnnouncements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">お知らせはありません</p>
-            ) : (
-              <ul className="space-y-3">
-                {recentAnnouncements.map((a) => (
-                  <li key={a.id}>
-                    <Link
-                      href={`/announcements/${a.id}`}
-                      className="block rounded-md p-2 hover:bg-accent"
-                    >
-                      <p className="font-medium">{a.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {a.publishedAt ? formatDate(a.publishedAt) : formatDate(a.createdAt)}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
         {/* 今後のイベント */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">

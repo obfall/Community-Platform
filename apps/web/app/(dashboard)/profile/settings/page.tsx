@@ -48,7 +48,7 @@ const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   project: "プロジェクト",
   chat: "チャット",
   board: "掲示板",
-  announcement: "お知らせ",
+  announcement: "配信",
   system: "システム",
 };
 

@@ -42,13 +42,6 @@ export interface AdminNavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { featureKey: "news", label: "ホーム", href: "/dashboard", icon: Home },
-  {
-    featureKey: "announcement",
-    label: "配信",
-    href: "/announcements",
-    icon: Megaphone,
-    roles: ["admin", "owner"],
-  },
   { featureKey: "member", label: "メンバー", href: "/members", icon: Users },
   { featureKey: "calendar", label: "カレンダー", href: "/calendar", icon: Calendar },
   { featureKey: "board", label: "掲示板", href: "/board", icon: MessageSquare },
@@ -83,8 +76,8 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     featureKey: "mail_campaign",
-    label: "メール配信",
-    href: "/mail",
+    label: "配信",
+    href: "/broadcasts",
     icon: Mail,
     roles: ["admin", "owner"],
   },

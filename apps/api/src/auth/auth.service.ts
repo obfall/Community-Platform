@@ -9,7 +9,7 @@ import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import * as crypto from "crypto";
 import { PrismaService } from "@/prisma/prisma.service";
-import { MailService } from "@/mail/mail.service";
+import { EmailService } from "@/broadcasts/email.service";
 import type { RegisterDto } from "./dto/register.dto";
 import type { LoginDto } from "./dto/login.dto";
 import type { RefreshTokenDto } from "./dto/refresh-token.dto";
@@ -26,7 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly mailService: MailService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -149,7 +149,7 @@ export class AuthService {
       },
     });
 
-    this.mailService.sendPasswordResetEmail(user.email, token);
+    this.emailService.sendPasswordResetEmail(user.email, token);
   }
 
   async resetPassword(dto: ResetPasswordDto) {

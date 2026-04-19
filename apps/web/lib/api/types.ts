@@ -421,17 +421,24 @@ export interface UpdateChatRoomInput {
   description?: string;
 }
 
-// --- Mail ---
+// --- Broadcasts ---
 
-export interface MailMessage {
+export type BroadcastChannel = "in_app" | "email" | "line";
+export type BroadcastScope = "global" | "event";
+export type BroadcastStatus = "draft" | "scheduled" | "sending" | "sent" | "failed";
+export type BroadcastTargetType = "all" | "rank" | "custom" | "event";
+
+export interface Broadcast {
   id: string;
   subject: string;
   bodyHtml: string;
   bodyText: string | null;
-  targetType: string;
+  scope: BroadcastScope;
+  channels: BroadcastChannel[];
+  targetType: BroadcastTargetType;
   targetFilter: Record<string, unknown> | null;
   templateId: string | null;
-  status: "draft" | "scheduled" | "sending" | "sent" | "failed";
+  status: BroadcastStatus;
   scheduledAt: string | null;
   sentAt: string | null;
   totalRecipients: number;
@@ -443,9 +450,10 @@ export interface MailMessage {
   updatedAt: string;
 }
 
-export interface MailMessageRecipient {
+export interface BroadcastRecipient {
   id: string;
   userId: string;
+  channel: BroadcastChannel;
   email: string;
   status: string;
   sentAt: string | null;
@@ -453,31 +461,34 @@ export interface MailMessageRecipient {
   clickedAt: string | null;
 }
 
-export interface MailMessageDetail extends MailMessage {
-  recipients: MailMessageRecipient[];
+export interface BroadcastDetail extends Broadcast {
+  recipients: BroadcastRecipient[];
 }
 
-export interface CreateMailMessageInput {
+export interface CreateBroadcastInput {
   subject: string;
   bodyHtml: string;
   bodyText?: string;
-  targetType: string;
+  scope?: BroadcastScope;
+  channels?: BroadcastChannel[];
+  targetType: BroadcastTargetType;
   targetFilter?: Record<string, unknown>;
   templateId?: string;
   scheduledAt?: string;
 }
 
-export interface UpdateMailMessageInput {
+export interface UpdateBroadcastInput {
   subject?: string;
   bodyHtml?: string;
   bodyText?: string;
-  targetType?: string;
+  channels?: BroadcastChannel[];
+  targetType?: BroadcastTargetType;
   targetFilter?: Record<string, unknown>;
   templateId?: string;
   scheduledAt?: string;
 }
 
-export interface MailTemplate {
+export interface BroadcastTemplate {
   id: string;
   name: string;
   category: string;
@@ -490,7 +501,7 @@ export interface MailTemplate {
   updatedAt: string;
 }
 
-export interface CreateMailTemplateInput {
+export interface CreateBroadcastTemplateInput {
   name: string;
   category: "event" | "general";
   subjectTemplate: string;
@@ -499,7 +510,7 @@ export interface CreateMailTemplateInput {
   availableVariables?: string[];
 }
 
-export interface UpdateMailTemplateInput {
+export interface UpdateBroadcastTemplateInput {
   name?: string;
   category?: "event" | "general";
   subjectTemplate?: string;
@@ -508,22 +519,24 @@ export interface UpdateMailTemplateInput {
   availableVariables?: string[];
 }
 
-export interface MailSuppression {
+export interface BroadcastSuppression {
   id: string;
   email: string;
   reason: string;
   createdAt: string;
 }
 
-export interface CreateMailSuppressionInput {
+export interface CreateBroadcastSuppressionInput {
   email: string;
   reason: "unsubscribe" | "bounce" | "complaint" | "manual";
 }
 
-export interface MailMessageQuery {
+export interface BroadcastQuery {
   page?: number;
   limit?: number;
-  status?: string;
+  status?: BroadcastStatus;
+  scope?: BroadcastScope;
+  eventId?: string;
 }
 
 // --- Member Attributes ---
@@ -1555,19 +1568,6 @@ export interface Reservation {
 
 export interface VenueReservation extends Reservation {
   space: { id: string; name: string };
-}
-
-// --- Announcements ---
-export interface Announcement {
-  id: string;
-  title: string;
-  body: string;
-  targetAudience: string;
-  isPublished: boolean;
-  publishedAt: string | null;
-  pinnedUntil: string | null;
-  createdBy: { id: string; name: string };
-  createdAt: string;
 }
 
 // --- FAQ ---

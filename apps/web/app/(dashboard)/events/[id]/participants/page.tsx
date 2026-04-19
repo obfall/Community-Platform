@@ -2,11 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import {
-  useEventParticipants,
-  useUpdateParticipantStatus,
-  useNotifyParticipants,
-} from "@/hooks/events/use-events";
+import { useEventParticipants, useUpdateParticipantStatus } from "@/hooks/events/use-events";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -18,11 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { BarChart3, ClipboardCheck, Bell } from "lucide-react";
+import { BarChart3, ClipboardCheck } from "lucide-react";
 import { ParticipantDetailDialog } from "../_components/participant-detail-dialog";
 import type { EventParticipant } from "@/lib/api/types";
 
@@ -45,7 +37,6 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
   const [page, setPage] = useState(1);
   const { data, isLoading } = useEventParticipants(id, { page, limit: 50 });
   const updateStatus = useUpdateParticipantStatus();
-  const notifyMutation = useNotifyParticipants();
 
   // Detail dialog state
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
@@ -53,11 +44,6 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
 
   // Check-in mode state
   const [checkinMode, setCheckinMode] = useState(false);
-
-  // Notify dialog state
-  const [notifyOpen, setNotifyOpen] = useState(false);
-  const [notifyTitle, setNotifyTitle] = useState("");
-  const [notifyBody, setNotifyBody] = useState("");
 
   const participants = data?.data ?? [];
   const meta = data?.meta;
@@ -72,20 +58,6 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
     if (checkinMode) return;
     setSelectedParticipantId(participantId);
     setDetailOpen(true);
-  };
-
-  const handleNotifySend = () => {
-    if (!notifyTitle.trim() || !notifyBody.trim()) return;
-    notifyMutation.mutate(
-      { eventId: id, data: { title: notifyTitle, body: notifyBody } },
-      {
-        onSuccess: () => {
-          setNotifyOpen(false);
-          setNotifyTitle("");
-          setNotifyBody("");
-        },
-      },
-    );
   };
 
   return (
@@ -108,10 +80,6 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
           >
             <ClipboardCheck className="mr-1 h-4 w-4" />
             {checkinMode ? "チェックイン中" : "チェックイン"}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setNotifyOpen(true)}>
-            <Bell className="mr-1 h-4 w-4" />
-            一括通知
           </Button>
           <Link href={`/events/${id}/stats`}>
             <Button variant="outline" size="sm">
@@ -268,41 +236,6 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
-
-      {/* 一括通知ダイアログ */}
-      <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>参加者への一括通知</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>タイトル</Label>
-              <Input
-                value={notifyTitle}
-                onChange={(e) => setNotifyTitle(e.target.value)}
-                placeholder="通知タイトル"
-              />
-            </div>
-            <div>
-              <Label>本文</Label>
-              <Textarea
-                value={notifyBody}
-                onChange={(e) => setNotifyBody(e.target.value)}
-                placeholder="通知メッセージを入力"
-                rows={5}
-              />
-            </div>
-            <Button
-              onClick={handleNotifySend}
-              disabled={!notifyTitle.trim() || !notifyBody.trim() || notifyMutation.isPending}
-              className="w-full"
-            >
-              {notifyMutation.isPending ? "送信中..." : "送信"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

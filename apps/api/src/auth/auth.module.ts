@@ -5,7 +5,7 @@ import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
-import { MailModule } from "@/mail/mail.module";
+import { BroadcastsModule } from "@/broadcasts/broadcasts.module";
 
 @Module({
   imports: [
@@ -19,7 +19,7 @@ import { MailModule } from "@/mail/mail.module";
         },
       }),
     }),
-    MailModule,
+    BroadcastsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
