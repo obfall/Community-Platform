@@ -73,6 +73,18 @@ export class VideosService {
           category: { select: { id: true, name: true } },
           series: { select: { id: true, name: true } },
           createdBy: { select: AUTHOR_SELECT },
+          tasks: {
+            select: {
+              id: true,
+              completions: currentUserId
+                ? {
+                    where: { userId: currentUserId, status: "completed" },
+                    select: { id: true },
+                    take: 1,
+                  }
+                : { select: { id: true }, take: 0 },
+            },
+          },
         },
       }),
       this.prisma.video.count({ where }),
@@ -81,28 +93,34 @@ export class VideosService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: videos.map((v) => ({
-        id: v.id,
-        title: v.title,
-        description: v.description,
-        thumbnailUrl: v.thumbnailUrl,
-        durationSeconds: v.durationSeconds,
-        publishStatus: v.publishStatus,
-        streamStatus: v.streamStatus,
-        viewCount: v.viewCount,
-        viewPermission: v.viewPermission,
-        allowedRoles: v.allowedRoles,
-        availableUntil: v.availableUntil,
-        hasPassword: !!v.passwordHash,
-        category: v.category,
-        series: v.series,
-        createdBy: {
-          id: v.createdBy.id,
-          name: v.createdBy.name,
-          avatarUrl: v.createdBy.profile?.avatarUrl ?? null,
-        },
-        createdAt: v.createdAt,
-      })),
+      data: videos.map((v) => {
+        const taskCount = v.tasks.length;
+        const incompleteTaskCount = v.tasks.filter((t) => t.completions.length === 0).length;
+        return {
+          id: v.id,
+          title: v.title,
+          description: v.description,
+          thumbnailUrl: v.thumbnailUrl,
+          durationSeconds: v.durationSeconds,
+          publishStatus: v.publishStatus,
+          streamStatus: v.streamStatus,
+          viewCount: v.viewCount,
+          viewPermission: v.viewPermission,
+          allowedRoles: v.allowedRoles,
+          availableUntil: v.availableUntil,
+          hasPassword: !!v.passwordHash,
+          category: v.category,
+          series: v.series,
+          createdBy: {
+            id: v.createdBy.id,
+            name: v.createdBy.name,
+            avatarUrl: v.createdBy.profile?.avatarUrl ?? null,
+          },
+          taskCount,
+          incompleteTaskCount,
+          createdAt: v.createdAt,
+        };
+      }),
       meta: {
         total,
         page,
@@ -135,6 +153,10 @@ export class VideosService {
           orderBy: { sortOrder: "asc" },
           include: {
             completions: currentUserId ? { where: { userId: currentUserId }, take: 1 } : false,
+            attachments: {
+              include: { file: { select: { id: true, originalName: true, publicUrl: true } } },
+              orderBy: { sortOrder: "asc" },
+            },
           },
         },
       },
@@ -210,6 +232,12 @@ export class VideosService {
           title: t.title,
           description: t.description,
           sortOrder: t.sortOrder,
+          attachments: t.attachments.map((a) => ({
+            id: a.id,
+            fileId: a.file.id,
+            fileName: a.file.originalName,
+            fileUrl: a.file.publicUrl,
+          })),
           ...(currentUserId && {
             status: completion?.status ?? "not_started",
             statusUpdatedAt: completion?.updatedAt.toISOString(),
@@ -269,19 +297,41 @@ export class VideosService {
             },
           },
         }),
-        ...(dto.tasks?.length && {
-          tasks: {
-            createMany: {
-              data: dto.tasks.map((t, idx) => ({
-                title: t.title,
-                description: t.description ?? null,
-                sortOrder: t.sortOrder ?? idx,
-              })),
+        ...(dto.tasks?.length &&
+          !dto.tasks.some((t) => t.fileIds?.length) && {
+            tasks: {
+              createMany: {
+                data: dto.tasks.map((t, idx) => ({
+                  title: t.title,
+                  description: t.description ?? null,
+                  sortOrder: t.sortOrder ?? idx,
+                })),
+              },
             },
-          },
-        }),
+          }),
       },
     });
+
+    // fileIds 付きタスクは個別に create（createMany はネスト不可）
+    if (dto.tasks?.some((t) => t.fileIds?.length)) {
+      for (let idx = 0; idx < dto.tasks.length; idx++) {
+        const t = dto.tasks[idx]!;
+        if (t.fileIds?.length) {
+          await this.prisma.videoTask.create({
+            data: {
+              videoId: video.id,
+              title: t.title,
+              description: t.description ?? null,
+              sortOrder: t.sortOrder ?? idx,
+              attachments: {
+                createMany: { data: t.fileIds.map((fileId, i) => ({ fileId, sortOrder: i })) },
+              },
+            },
+          });
+        }
+      }
+    }
+
     return this.findOne(video.id);
   }
 
@@ -456,9 +506,18 @@ export class VideosService {
                 sortOrder: t.sortOrder ?? idx,
               },
             });
+            // fileIds が指定されていれば添付ファイルを置き換え
+            if (t.fileIds !== undefined) {
+              await tx.videoTaskAttachment.deleteMany({ where: { taskId: t.id } });
+              if (t.fileIds.length > 0) {
+                await tx.videoTaskAttachment.createMany({
+                  data: t.fileIds.map((fileId, i) => ({ taskId: t.id!, fileId, sortOrder: i })),
+                });
+              }
+            }
           } else {
             // 新規
-            await tx.videoTask.create({
+            const newTask = await tx.videoTask.create({
               data: {
                 videoId: id,
                 title: t.title,
@@ -466,6 +525,11 @@ export class VideosService {
                 sortOrder: t.sortOrder ?? idx,
               },
             });
+            if (t.fileIds?.length) {
+              await tx.videoTaskAttachment.createMany({
+                data: t.fileIds.map((fileId, i) => ({ taskId: newTask.id, fileId, sortOrder: i })),
+              });
+            }
           }
         }
       }

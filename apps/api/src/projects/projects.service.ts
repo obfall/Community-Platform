@@ -81,7 +81,16 @@ export class ProjectsService {
         event: { select: { id: true, title: true } },
         members: {
           where: { status: "active" },
-          include: { user: { select: AUTHOR_SELECT } },
+          include: {
+            user: {
+              select: {
+                ...AUTHOR_SELECT,
+                profile: {
+                  select: { avatarUrl: true, occupation: true, bio: true },
+                },
+              },
+            },
+          },
           orderBy: { joinedAt: "asc" },
         },
         tags: { include: { tag: true } },
@@ -112,6 +121,8 @@ export class ProjectsService {
         userId: m.user.id,
         name: m.user.name,
         avatarUrl: m.user.profile?.avatarUrl ?? null,
+        occupation: m.user.profile?.occupation ?? null,
+        bio: m.user.profile?.bio ?? null,
         role: m.role,
         joinedAt: m.joinedAt,
       })),
@@ -387,14 +398,39 @@ export class ProjectsService {
   // ========== Tasks ==========
 
   async getTasks(projectId: string) {
-    return this.prisma.projectTask.findMany({
+    const tasks = await this.prisma.projectTask.findMany({
       where: { projectId },
       orderBy: { sortOrder: "asc" },
       include: {
         createdBy: { select: AUTHOR_SELECT },
         assignees: { include: { user: { select: AUTHOR_SELECT } } },
+        attachments: {
+          include: { file: { select: { id: true, originalName: true, publicUrl: true } } },
+          orderBy: { sortOrder: "asc" },
+        },
       },
     });
+
+    return tasks.map((t) => ({
+      ...t,
+      createdBy: {
+        id: t.createdBy.id,
+        name: t.createdBy.name,
+        avatarUrl: t.createdBy.profile?.avatarUrl ?? null,
+      },
+      assignees: t.assignees.map((a) => ({
+        id: a.id,
+        userId: a.user.id,
+        name: a.user.name,
+        avatarUrl: a.user.profile?.avatarUrl ?? null,
+      })),
+      attachments: t.attachments.map((a) => ({
+        id: a.id,
+        fileId: a.file.id,
+        fileName: a.file.originalName,
+        fileUrl: a.file.publicUrl,
+      })),
+    }));
   }
 
   async createTask(
@@ -456,18 +492,135 @@ export class ProjectsService {
 
   async updateTask(
     taskId: string,
-    data: { title?: string; description?: string; progress?: number; dueDate?: string },
+    data: {
+      title?: string;
+      description?: string;
+      status?: string;
+      requestedDate?: string | null;
+      dueDate?: string | null;
+      assigneeIds?: string[];
+      fileIds?: string[];
+    },
   ) {
-    return this.prisma.projectTask.update({
-      where: { id: taskId },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.projectTask.update({
+        where: { id: taskId },
+        data: {
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.status !== undefined && { status: data.status as any }),
+          ...(data.requestedDate !== undefined && {
+            requestedDate: data.requestedDate ? new Date(data.requestedDate) : null,
+          }),
+          ...(data.dueDate !== undefined && {
+            dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          }),
+        },
+      });
+
+      if (data.assigneeIds !== undefined) {
+        await tx.projectTaskAssignee.deleteMany({ where: { taskId } });
+        if (data.assigneeIds.length > 0) {
+          await tx.projectTaskAssignee.createMany({
+            data: data.assigneeIds.map((userId) => ({ taskId, userId })),
+          });
+        }
+      }
+
+      if (data.fileIds !== undefined) {
+        await tx.projectTaskAttachment.deleteMany({ where: { taskId } });
+        if (data.fileIds.length > 0) {
+          await tx.projectTaskAttachment.createMany({
+            data: data.fileIds.map((fileId, i) => ({ taskId, fileId, sortOrder: i })),
+          });
+        }
+      }
+
+      return tx.projectTask.findUnique({
+        where: { id: taskId },
+        include: {
+          createdBy: { select: AUTHOR_SELECT },
+          assignees: { include: { user: { select: AUTHOR_SELECT } } },
+          attachments: {
+            include: { file: { select: { id: true, originalName: true, publicUrl: true } } },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      });
+    });
+  }
+
+  async deleteTask(taskId: string) {
+    await this.prisma.projectTask.delete({ where: { id: taskId } });
+  }
+
+  // ───────────────────── Schedules ─────────────────────
+
+  async getSchedules(projectId: string, startAt?: string, endAt?: string) {
+    const where: any = { projectId };
+    if (startAt && endAt) {
+      where.AND = [{ endAt: { gte: new Date(startAt) } }, { startAt: { lte: new Date(endAt) } }];
+    }
+    return this.prisma.projectSchedule.findMany({
+      where,
+      orderBy: { startAt: "asc" },
+      include: { createdBy: { select: AUTHOR_SELECT } },
+    });
+  }
+
+  async createSchedule(
+    projectId: string,
+    userId: string,
+    data: {
+      title: string;
+      description?: string;
+      startAt: string;
+      endAt: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) {
+    return this.prisma.projectSchedule.create({
+      data: {
+        projectId,
+        createdByUserId: userId,
+        title: data.title,
+        description: data.description,
+        startAt: new Date(data.startAt),
+        endAt: new Date(data.endAt),
+        isAllDay: data.isAllDay ?? false,
+        location: data.location,
+      },
+      include: { createdBy: { select: AUTHOR_SELECT } },
+    });
+  }
+
+  async updateSchedule(
+    scheduleId: string,
+    data: {
+      title?: string;
+      description?: string;
+      startAt?: string;
+      endAt?: string;
+      isAllDay?: boolean;
+      location?: string;
+    },
+  ) {
+    return this.prisma.projectSchedule.update({
+      where: { id: scheduleId },
       data: {
         ...(data.title !== undefined && { title: data.title }),
         ...(data.description !== undefined && { description: data.description }),
-        ...(data.progress !== undefined && { progress: data.progress }),
-        ...(data.dueDate !== undefined && {
-          dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        }),
+        ...(data.startAt !== undefined && { startAt: new Date(data.startAt) }),
+        ...(data.endAt !== undefined && { endAt: new Date(data.endAt) }),
+        ...(data.isAllDay !== undefined && { isAllDay: data.isAllDay }),
+        ...(data.location !== undefined && { location: data.location }),
       },
+      include: { createdBy: { select: AUTHOR_SELECT } },
     });
+  }
+
+  async deleteSchedule(scheduleId: string) {
+    await this.prisma.projectSchedule.delete({ where: { id: scheduleId } });
   }
 }

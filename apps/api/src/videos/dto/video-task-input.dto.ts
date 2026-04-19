@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from "class-validator";
+import { IsArray, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from "class-validator";
 
 export class VideoTaskInputDto {
   @ApiPropertyOptional({ description: "既存タスクの更新時のみ指定" })
@@ -22,4 +22,10 @@ export class VideoTaskInputDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  @ApiPropertyOptional({ description: "添付ファイルのID一覧（指定時に置き換え）", type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID("all", { each: true })
+  fileIds?: string[];
 }

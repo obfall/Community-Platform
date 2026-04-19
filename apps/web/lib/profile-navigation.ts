@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   CheckSquare,
   StickyNote,
+  Calendar,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { label: "マイチケット", segment: "tickets", icon: Ticket },
   { label: "マイ予約", segment: "reservations", icon: CalendarCheck },
   { label: "マイタスク", segment: "tasks", icon: CheckSquare },
+  { label: "カレンダー", segment: "calendar", icon: Calendar },
   { label: "メモ", segment: "memo", icon: StickyNote },
 ];
 

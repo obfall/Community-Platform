@@ -12,9 +12,9 @@ import { Plus, FolderKanban, Users } from "lucide-react";
 import type { ProjectListItem, ProjectQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
-  not_started: "未着手",
+  not_started: "開始前",
   in_progress: "進行中",
-  completed: "完了",
+  completed: "終了",
   cancelled: "中止",
 };
 

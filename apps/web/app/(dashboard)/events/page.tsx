@@ -16,7 +16,7 @@ const EVENT_STATUS_OPTIONS = [
   { value: "closed", label: "締切" },
   { value: "ended", label: "終了" },
 ];
-import { Plus, CalendarDays, MapPin, Monitor, Users } from "lucide-react";
+import { Plus, MapPin, Monitor, Users, CalendarDays } from "lucide-react";
 import type { EventListItem, EventQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -65,12 +65,6 @@ export default function EventsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">イベント</h1>
         <div className="flex gap-2">
-          <Link href="/events/calendar">
-            <Button variant="outline">
-              <CalendarDays className="mr-2 h-4 w-4" />
-              カレンダー
-            </Button>
-          </Link>
           {isAdmin && (
             <Link href="/events/new">
               <Button>

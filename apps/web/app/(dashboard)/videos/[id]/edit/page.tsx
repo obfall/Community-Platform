@@ -177,7 +177,15 @@ function VideoEditForm({
           password: passwordValue,
           instructors: instructors.filter((i) => i.name),
           attachmentFileIds: attachments.map((a) => a.fileId),
-          tasks: tasks.filter((t) => t.title),
+          tasks: tasks
+            .filter((t) => t.title)
+            .map(({ id, title, description, sortOrder, fileIds }) => ({
+              id,
+              title,
+              description,
+              sortOrder,
+              fileIds,
+            })),
         },
       },
       {

@@ -19,7 +19,6 @@ import {
   MapPin,
   FileText,
   Bookmark,
-  Calendar,
   Settings,
   Shield,
   UserCog,
@@ -43,7 +42,6 @@ export interface AdminNavItem {
 export const NAV_ITEMS: NavItem[] = [
   { featureKey: "news", label: "ホーム", href: "/dashboard", icon: Home },
   { featureKey: "member", label: "メンバー", href: "/members", icon: Users },
-  { featureKey: "calendar", label: "カレンダー", href: "/calendar", icon: Calendar },
   { featureKey: "board", label: "掲示板", href: "/board", icon: MessageSquare },
   { featureKey: "event", label: "イベント", href: "/events", icon: CalendarDays },
   { featureKey: "chat", label: "チャット", href: "/chat", icon: MessageCircle },
@@ -123,6 +121,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog },
+  { label: "動画管理", href: "/videos/manage", icon: Video },
   { label: "商品管理", href: "/shop/manage", icon: ShoppingBag },
   { label: "ポイント発行", href: "/points/grant", icon: Star },
 ];
