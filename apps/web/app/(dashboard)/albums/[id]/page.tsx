@@ -108,7 +108,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
       {album.description && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">概要</CardTitle>
+            <CardTitle className="text-base">キャプション</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap text-sm">{album.description}</p>
