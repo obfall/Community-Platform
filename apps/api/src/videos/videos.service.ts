@@ -39,27 +39,25 @@ export class VideosService {
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
     if (query.search) where.title = { contains: query.search, mode: "insensitive" };
-    if (query.viewPermission) where.viewPermission = query.viewPermission;
 
-    // タスク進捗フィルタ（自分視点）
-    if (query.taskProgress && currentUserId) {
-      if (query.taskProgress === "none") {
-        where.tasks = { none: {} };
-      } else if (query.taskProgress === "complete") {
-        // 全タスクが自分で完了済み
-        where.AND = [
-          { tasks: { some: {} } },
-          {
-            tasks: {
-              every: { completions: { some: { userId: currentUserId } } },
-            },
-          },
-        ];
-      } else if (query.taskProgress === "incomplete") {
-        // 未完了タスクがある
-        where.tasks = {
-          some: { completions: { none: { userId: currentUserId } } },
-        };
+    // admin/owner 以外は公開中の動画のみに制限
+    const currentUser = currentUserId
+      ? await this.prisma.user.findUnique({
+          where: { id: currentUserId },
+          select: { role: true },
+        })
+      : null;
+    const isPrivileged = currentUser?.role === "admin" || currentUser?.role === "owner";
+    if (!isPrivileged) {
+      where.publishStatus = "published";
+    }
+
+    // 視聴状態フィルタ（自分視点）
+    if (query.watchStatus && currentUserId) {
+      if (query.watchStatus === "watched") {
+        where.watchProgress = { some: { userId: currentUserId, isCompleted: true } };
+      } else if (query.watchStatus === "unwatched") {
+        where.watchProgress = { none: { userId: currentUserId, isCompleted: true } };
       }
     }
 
@@ -85,6 +83,13 @@ export class VideosService {
                 : { select: { id: true }, take: 0 },
             },
           },
+          watchProgress: currentUserId
+            ? {
+                where: { userId: currentUserId },
+                select: { isCompleted: true },
+                take: 1,
+              }
+            : { select: { isCompleted: true }, take: 0 },
         },
       }),
       this.prisma.video.count({ where }),
@@ -96,6 +101,7 @@ export class VideosService {
       data: videos.map((v) => {
         const taskCount = v.tasks.length;
         const incompleteTaskCount = v.tasks.filter((t) => t.completions.length === 0).length;
+        const isWatched = v.watchProgress[0]?.isCompleted ?? false;
         return {
           id: v.id,
           title: v.title,
@@ -118,6 +124,7 @@ export class VideosService {
           },
           taskCount,
           incompleteTaskCount,
+          isWatched,
           createdAt: v.createdAt,
         };
       }),
@@ -135,8 +142,21 @@ export class VideosService {
   // ───────────────────── findOne ─────────────────────
 
   async findOne(id: string, currentUserId?: string) {
-    const video = await this.prisma.video.findUnique({
-      where: { id },
+    // admin/owner 以外は公開中の動画のみ閲覧可能
+    const currentUser = currentUserId
+      ? await this.prisma.user.findUnique({
+          where: { id: currentUserId },
+          select: { role: true },
+        })
+      : null;
+    const isPrivileged = currentUser?.role === "admin" || currentUser?.role === "owner";
+
+    const video = await this.prisma.video.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        ...(isPrivileged ? {} : { publishStatus: "published" as const }),
+      },
       include: {
         category: { select: { id: true, name: true } },
         series: { select: { id: true, name: true } },
@@ -161,7 +181,7 @@ export class VideosService {
         },
       },
     });
-    if (!video || video.deletedAt) throw new NotFoundException("動画が見つかりません");
+    if (!video) throw new NotFoundException("動画が見つかりません");
 
     await this.prisma.video.update({ where: { id }, data: { viewCount: { increment: 1 } } });
 
