@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useProducts, useProductCategories, useProductSeries } from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,14 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShoppingBag, Package } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import type { ProductQuery } from "@/lib/api/types";
+import { ProductCard } from "./_components/product-card";
 
 export default function ShopPage() {
   const [query, setQuery] = useState<ProductQuery>({
     page: 1,
-    limit: 12,
+    limit: 24,
     publishStatus: "published",
+    hideExpired: true,
   });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useProducts(query);
@@ -50,7 +49,7 @@ export default function ShopPage() {
             setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
           }
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="ml-auto w-40">
             <SelectValue placeholder="カテゴリ" />
           </SelectTrigger>
           <SelectContent>
@@ -92,53 +91,7 @@ export default function ShopPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((p) => (
-            <Link key={p.id} href={`/shop/${p.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
-                <CardContent className="p-0">
-                  <div className="flex h-40 items-center justify-center rounded-t-lg bg-muted">
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        className="h-full w-full rounded-t-lg object-cover"
-                      />
-                    ) : (
-                      <Package className="h-12 w-12 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <div className="mb-2 flex flex-wrap items-center gap-1">
-                      {p.category && (
-                        <Badge variant="secondary" className="text-xs">
-                          {p.category.name}
-                        </Badge>
-                      )}
-                      {p.series && (
-                        <Badge variant="outline" className="text-xs">
-                          {p.series.name}
-                        </Badge>
-                      )}
-                      {p.stock !== null && p.stock <= 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          売切
-                        </Badge>
-                      )}
-                      {p.stock !== null && p.stock > 0 && p.stock <= 5 && (
-                        <Badge variant="outline" className="text-xs">
-                          残り{p.stock}
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="line-clamp-2 text-sm font-semibold">{p.name}</h3>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-lg font-bold">&yen;{p.price.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground">{p.salesCount}件販売</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       )}

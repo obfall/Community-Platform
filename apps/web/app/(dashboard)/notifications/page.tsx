@@ -36,6 +36,8 @@ export default function NotificationsPage() {
       router.push(`/board/${notification.referenceId}`);
     } else if (notification.referenceType === "survey" && notification.referenceId) {
       router.push(`/surveys/${notification.referenceId}/respond`);
+    } else if (notification.referenceType === "shop_order" && notification.referenceId) {
+      router.push(`/shop/orders/${notification.referenceId}`);
     }
   };
 

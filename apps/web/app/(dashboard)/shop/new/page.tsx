@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCreateProduct, useProductCategories, useProductSeries } from "@/hooks/shop/use-shop";
+import {
+  useCreateProduct,
+  useProductCategories,
+  useProductSeries,
+  useShopCapabilities,
+} from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +29,23 @@ import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 const NONE_VALUE = "__none__";
 
 export default function ProductNewPage() {
+  const router = useRouter();
+  const { data: capabilities, isLoading: capLoading } = useShopCapabilities();
+
+  useEffect(() => {
+    if (!capLoading && capabilities && !capabilities.canCreateProduct) {
+      router.replace("/shop");
+    }
+  }, [capLoading, capabilities, router]);
+
+  if (capLoading || !capabilities?.canCreateProduct) {
+    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  }
+
+  return <ProductNewForm />;
+}
+
+function ProductNewForm() {
   const router = useRouter();
   const createProduct = useCreateProduct();
   const { data: categories } = useProductCategories();
@@ -51,6 +73,7 @@ export default function ProductNewPage() {
         seriesId: seriesId === NONE_VALUE ? undefined : seriesId,
         saleStartAt: saleStartAt || undefined,
         saleEndAt: saleEndAt || undefined,
+        publishStatus,
         imageFileIds: images.map((i) => i.fileId),
       },
       { onSuccess: () => router.push("/shop") },

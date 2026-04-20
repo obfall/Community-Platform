@@ -1525,6 +1525,21 @@ export interface ProductQuery {
   seriesId?: string;
   search?: string;
   publishStatus?: string;
+  hideExpired?: boolean;
+}
+
+export interface ShopCapabilities {
+  canCreateProduct: boolean;
+  canManageAllProducts: boolean;
+}
+
+export interface SellerSummary {
+  totalRevenue: number;
+  orderCount: number;
+  inProgressCount: number;
+  inNegotiationCount: number;
+  completedCount: number;
+  canceledCount: number;
 }
 
 export interface OrderItem {
@@ -1545,6 +1560,8 @@ export interface Order {
   buyer: { id: string; name: string };
   seller: { id: string; name: string };
   items: OrderItem[];
+  completedAt?: string | null;
+  canceledAt?: string | null;
   createdAt: string;
 }
 

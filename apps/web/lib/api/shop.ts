@@ -1,5 +1,12 @@
 import { apiClient } from "./client";
-import type { PaginatedResponse, ProductListItem, Order, ProductQuery } from "./types";
+import type {
+  PaginatedResponse,
+  ProductListItem,
+  Order,
+  ProductQuery,
+  ShopCapabilities,
+  SellerSummary,
+} from "./types";
 
 export const shopApi = {
   getProducts: (params?: ProductQuery) =>
@@ -10,6 +17,8 @@ export const shopApi = {
   getProduct: (id: string) =>
     apiClient.get<ProductListItem>(`/shop/products/${id}`).then((r) => r.data),
 
+  getCapabilities: () => apiClient.get<ShopCapabilities>("/shop/capabilities").then((r) => r.data),
+
   createProduct: (data: {
     name: string;
     description?: string;
@@ -19,8 +28,9 @@ export const shopApi = {
     seriesId?: string;
     saleStartAt?: string;
     saleEndAt?: string;
+    publishStatus?: string;
     imageFileIds?: string[];
-  }) => apiClient.post("/shop/products", data).then((r) => r.data),
+  }) => apiClient.post<{ id: string }>("/shop/products", data).then((r) => r.data),
 
   updateProduct: (id: string, data: Record<string, unknown>) =>
     apiClient.patch(`/shop/products/${id}`, data).then((r) => r.data),
@@ -31,6 +41,24 @@ export const shopApi = {
     apiClient.post<Order>("/shop/orders", data).then((r) => r.data),
 
   getOrders: () => apiClient.get<Order[]>("/shop/orders").then((r) => r.data),
+
+  getOrder: (id: string) => apiClient.get<Order>(`/shop/orders/${id}`).then((r) => r.data),
+
+  updateOrderStatus: (id: string, status: string) =>
+    apiClient.patch<Order>(`/shop/orders/${id}/status`, { status }).then((r) => r.data),
+
+  getSellerProducts: (params?: ProductQuery) =>
+    apiClient
+      .get<PaginatedResponse<ProductListItem>>("/shop/seller/products", { params })
+      .then((r) => r.data),
+
+  getSellerOrders: (status?: string) =>
+    apiClient
+      .get<Order[]>("/shop/seller/orders", { params: status ? { status } : undefined })
+      .then((r) => r.data),
+
+  getSellerSummary: (params?: { from?: string; to?: string }) =>
+    apiClient.get<SellerSummary>("/shop/seller/summary", { params }).then((r) => r.data),
 
   // カテゴリ・シリーズ
   getCategories: () =>
