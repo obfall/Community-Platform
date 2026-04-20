@@ -43,7 +43,7 @@ export default function SkillsPage() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -53,16 +53,18 @@ export default function SkillsPage() {
           placeholder="スキルを検索..."
           className="max-w-xs"
         />
-        <SelectField
-          value={query.format ?? "all"}
-          onChange={(v) =>
-            setQuery((p) => ({ ...p, format: v === "all" ? undefined : v, page: 1 }))
-          }
-          options={FORMAT_OPTIONS}
-          includeAll
-          placeholder="形式"
-          className="w-36"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <SelectField
+            value={query.format ?? "all"}
+            onChange={(v) =>
+              setQuery((p) => ({ ...p, format: v === "all" ? undefined : v, page: 1 }))
+            }
+            options={FORMAT_OPTIONS}
+            includeAll
+            placeholder="形式"
+            className="w-36"
+          />
+        </div>
       </div>
 
       {isLoading ? (

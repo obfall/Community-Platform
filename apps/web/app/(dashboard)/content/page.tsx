@@ -50,7 +50,7 @@ export default function ContentPage() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -60,24 +60,26 @@ export default function ContentPage() {
           placeholder="コンテンツを検索..."
           className="max-w-xs"
         />
-        <SelectField
-          value={query.contentType ?? "all"}
-          onChange={(v) =>
-            setQuery((p) => ({ ...p, contentType: v === "all" ? undefined : v, page: 1 }))
-          }
-          options={CONTENT_TYPE_OPTIONS}
-          includeAll
-          placeholder="種別"
-          className="w-36"
-        />
-        <SelectField
-          value={query.publishStatus ?? "all"}
-          onChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
-          options={PUBLISH_STATUS_OPTIONS}
-          includeAll
-          placeholder="ステータス"
-          className="w-36"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <SelectField
+            value={query.contentType ?? "all"}
+            onChange={(v) =>
+              setQuery((p) => ({ ...p, contentType: v === "all" ? undefined : v, page: 1 }))
+            }
+            options={CONTENT_TYPE_OPTIONS}
+            includeAll
+            placeholder="種別"
+            className="w-36"
+          />
+          <SelectField
+            value={query.publishStatus ?? "all"}
+            onChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
+            options={PUBLISH_STATUS_OPTIONS}
+            includeAll
+            placeholder="ステータス"
+            className="w-36"
+          />
+        </div>
       </div>
 
       {isLoading ? (

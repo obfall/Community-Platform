@@ -81,11 +81,11 @@ export default function AlbumNewPage() {
             />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>キャプション</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="アルバムの説明（任意）"
+              placeholder="アルバムのキャプション（任意）"
               rows={4}
             />
           </div>

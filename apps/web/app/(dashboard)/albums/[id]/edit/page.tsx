@@ -88,7 +88,7 @@ function AlbumEditForm({ id, album }: { id: string; album: AlbumDetail }) {
             <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>キャプション</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
