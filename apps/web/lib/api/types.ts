@@ -1127,6 +1127,7 @@ export interface VideoListItem {
   createdBy: { id: string; name: string; avatarUrl: string | null };
   taskCount: number;
   incompleteTaskCount: number;
+  isWatched: boolean;
   createdAt: string;
 }
 
@@ -1202,8 +1203,7 @@ export interface VideoQuery {
   categoryId?: string;
   seriesId?: string;
   search?: string;
-  viewPermission?: string;
-  taskProgress?: "incomplete" | "complete" | "none";
+  watchStatus?: "watched" | "unwatched";
 }
 
 export interface InstructorInput {
