@@ -49,6 +49,11 @@ export class CreateProductDto {
   @IsDateString()
   saleEndAt?: string;
 
+  @ApiPropertyOptional({ enum: ["draft", "published", "unpublished"] })
+  @IsOptional()
+  @IsString()
+  publishStatus?: string;
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   imageFileIds?: string[];

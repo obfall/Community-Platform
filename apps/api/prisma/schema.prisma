@@ -2454,6 +2454,7 @@ enum ProductSellerType {
 
 enum OrderStatus {
   in_progress
+  in_negotiation
   completed
   canceled
 }

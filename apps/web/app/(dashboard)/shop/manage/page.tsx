@@ -10,6 +10,7 @@ import {
   useCreateProductCategory,
   useProductSeries,
   useCreateProductSeries,
+  useShopCapabilities,
 } from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ export default function ShopManagePage() {
   const createCategory = useCreateProductCategory();
   const createSeries = useCreateProductSeries();
   const deleteProduct = useDeleteProduct();
+  const { data: capabilities } = useShopCapabilities();
 
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
@@ -79,12 +81,14 @@ export default function ShopManagePage() {
             <Plus className="mr-1 h-3 w-3" />
             シリーズ追加
           </Button>
-          <Link href="/shop/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              商品登録
-            </Button>
-          </Link>
+          {capabilities?.canCreateProduct && (
+            <Link href="/shop/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                商品登録
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

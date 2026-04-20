@@ -22,14 +22,16 @@ import { Sidebar } from "./sidebar";
 import { EventDetailSidebar } from "@/app/(dashboard)/events/[id]/_components/sidebar";
 import { ProjectDetailSidebar } from "@/app/(dashboard)/projects/[id]/_components/sidebar";
 import { ProfileSidebar } from "@/app/(dashboard)/profile/_components/sidebar";
+import { ShopSidebar } from "@/app/(dashboard)/shop/_components/sidebar";
 
 interface HeaderProps {
   eventId?: string | null;
   projectId?: string | null;
   isProfile?: boolean;
+  isShop?: boolean;
 }
 
-export function Header({ eventId, projectId, isProfile }: HeaderProps) {
+export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
@@ -94,6 +96,8 @@ export function Header({ eventId, projectId, isProfile }: HeaderProps) {
               <ProjectDetailSidebar projectId={projectId} />
             ) : isProfile ? (
               <ProfileSidebar />
+            ) : isShop ? (
+              <ShopSidebar />
             ) : (
               <Sidebar />
             )}

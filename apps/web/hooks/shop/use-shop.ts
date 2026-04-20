@@ -3,6 +3,14 @@ import { toast } from "sonner";
 import { shopApi } from "@/lib/api/shop";
 import type { ProductQuery } from "@/lib/api/types";
 
+export function useShopCapabilities() {
+  return useQuery({
+    queryKey: ["shop", "capabilities"],
+    queryFn: () => shopApi.getCapabilities(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useProducts(query?: ProductQuery) {
   return useQuery({
     queryKey: ["products", query],
@@ -102,6 +110,14 @@ export function useOrders() {
   });
 }
 
+export function useOrder(id: string | undefined) {
+  return useQuery({
+    queryKey: ["orders", id],
+    queryFn: () => shopApi.getOrder(id!),
+    enabled: !!id,
+  });
+}
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -109,8 +125,48 @@ export function useCreateOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("注文が完了しました");
+      toast.success("注文を申し込みました");
     },
     onError: () => toast.error("注文に失敗しました"),
+  });
+}
+
+export function useSellerProducts(query?: ProductQuery) {
+  return useQuery({
+    queryKey: ["shop", "seller", "products", query],
+    queryFn: () => shopApi.getSellerProducts(query),
+  });
+}
+
+export function useSellerOrders(status?: string) {
+  return useQuery({
+    queryKey: ["shop", "seller", "orders", status ?? "all"],
+    queryFn: () => shopApi.getSellerOrders(status),
+  });
+}
+
+export function useSellerSummary(params?: { from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ["shop", "seller", "summary", params?.from ?? "", params?.to ?? ""],
+    queryFn: () => shopApi.getSellerSummary(params),
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      shopApi.updateOrderStatus(id, status),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", variables.id] });
+      toast.success("注文ステータスを更新しました");
+    },
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "ステータス更新に失敗しました";
+      toast.error(message);
+    },
   });
 }
