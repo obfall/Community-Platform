@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useVenues } from "@/hooks/venues/use-venues";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,20 +15,24 @@ import { VENUE_TYPE_LABELS } from "@/lib/constants/venue-types";
 export default function VenuesPage() {
   const [publishStatus, setPublishStatus] = useState("all");
   const { data: venues, isLoading } = useVenues({ publishStatus });
+  const { user } = useAuth();
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">施設・スペース</h1>
-        <Link href="/venues/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            施設登録
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href="/venues/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              施設登録
+            </Button>
+          </Link>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <SelectField
           value={publishStatus}
           onChange={setPublishStatus}
