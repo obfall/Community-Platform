@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Upload } from "lucide-react";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
@@ -118,6 +118,7 @@ function VideoEditForm({
     video.availableUntil ? video.availableUntil.slice(0, 16) : "",
   );
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [clearPassword, setClearPassword] = useState(false);
 
   // 講師
@@ -364,43 +365,49 @@ function VideoEditForm({
           <div>
             <Label>パスワード（4桁数字）</Label>
             {video.hasPassword && !clearPassword && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">パスワード設定済み</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setClearPassword(true)}
-                >
-                  パスワード削除
-                </Button>
-              </div>
-            )}
-            {clearPassword && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-destructive">パスワードを削除します</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setClearPassword(false)}
-                >
-                  取消
-                </Button>
-              </div>
+              <Input type="password" value="0000" disabled className="mb-2" />
             )}
             {!clearPassword && (
-              <Input
-                type="password"
-                inputMode="numeric"
-                pattern="\d{4}"
-                maxLength={4}
-                value={password}
-                onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder={
-                  video.hasPassword ? "変更する場合のみ入力" : "空欄の場合はパスワードなし"
-                }
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  inputMode="numeric"
+                  pattern="\d{4}"
+                  maxLength={4}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder={
+                    video.hasPassword ? "変更する場合のみ入力" : "空欄の場合はパスワードなし"
+                  }
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+            {video.hasPassword && (
+              <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={clearPassword}
+                  onChange={(e) => {
+                    setClearPassword(e.target.checked);
+                    if (e.target.checked) setPassword("");
+                  }}
+                />
+                パスワード保護を解除する
+              </label>
+            )}
+            {video.hasPassword && !clearPassword && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                既存パスワードは表示できません。変更する場合のみ入力してください。
+              </p>
             )}
           </div>
         </CardContent>

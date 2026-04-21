@@ -1115,6 +1115,7 @@ export interface VideoListItem {
   description: string | null;
   thumbnailUrl: string | null;
   durationSeconds: number | null;
+  watchOrder: number | null;
   publishStatus: string;
   streamStatus: string;
   viewCount: number;
@@ -1135,7 +1136,6 @@ export interface VideoDetail extends VideoListItem {
   videoProvider: string;
   videoExternalId: string;
   playbackUrl: string | null;
-  watchOrder: number | null;
   sortOrder: number;
   instructors: VideoInstructor[];
   attachments: VideoAttachment[];

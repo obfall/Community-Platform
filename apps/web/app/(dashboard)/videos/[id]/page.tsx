@@ -2,6 +2,7 @@
 
 import { use, useState, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useVideo, useVideoProgress, useUpdateTaskStatus } from "@/hooks/videos/use-videos";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 import { HlsPlayer } from "./_components/hls-player";
 import { VideoPasswordDialog, isVideoUnlocked } from "../_components/video-password-dialog";
 import { SeriesNav } from "../_components/series-nav";
+import { SeriesVideoList } from "../_components/series-video-list";
 import type { VideoTaskStatus } from "@/lib/api/types";
 
 const TASK_STATUS_OPTIONS: { value: VideoTaskStatus; label: string }[] = [
@@ -58,10 +60,19 @@ function formatDuration(seconds: number | null) {
 
 export default function VideoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: video, isLoading } = useVideo(id);
   const { data: progress } = useVideoProgress(id);
   const { user } = useAuth();
   const updateStatus = useUpdateTaskStatus();
+
+  const handleBack = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/videos");
+    }
+  }, [router]);
 
   const [passwordUnlocked, setPasswordUnlocked] = useState(false);
 
@@ -96,11 +107,9 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
       )}
 
       <div className="flex items-center gap-4">
-        <Link href="/videos">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={handleBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div className="flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {video.category && <Badge variant="outline">{video.category.name}</Badge>}
@@ -191,6 +200,15 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
           nextVideo={video.nextVideo}
           currentOrder={video.watchOrder}
           seriesVideoCount={video.seriesVideoCount}
+        />
+      )}
+
+      {/* シリーズ動画一覧 */}
+      {video.series && (
+        <SeriesVideoList
+          seriesId={video.series.id}
+          seriesName={video.series.name}
+          currentVideoId={video.id}
         />
       )}
 
