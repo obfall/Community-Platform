@@ -147,52 +147,54 @@ export default function VideoManagePage() {
           placeholder="動画を検索..."
           className="max-w-xs"
         />
-        <SelectField
-          value={query.publishStatus ?? "all"}
-          onChange={(v) =>
-            setQuery((p) => ({ ...p, publishStatus: v === "all" ? undefined : v, page: 1 }))
-          }
-          options={PUBLISH_STATUS_OPTIONS}
-          includeAll
-          placeholder="ステータス"
-          className="w-36"
-        />
-        <Select
-          value={query.categoryId ?? "all"}
-          onValueChange={(v) =>
-            setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
-          }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="カテゴリ" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべてのカテゴリ</SelectItem>
-            {categories?.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={query.seriesId ?? "all"}
-          onValueChange={(v) =>
-            setQuery((p) => ({ ...p, seriesId: v === "all" ? undefined : v, page: 1 }))
-          }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="シリーズ" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">すべてのシリーズ</SelectItem>
-            {seriesList?.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <SelectField
+            value={query.publishStatus ?? "all"}
+            onChange={(v) =>
+              setQuery((p) => ({ ...p, publishStatus: v === "all" ? undefined : v, page: 1 }))
+            }
+            options={PUBLISH_STATUS_OPTIONS}
+            includeAll
+            placeholder="ステータス"
+            className="w-36"
+          />
+          <Select
+            value={query.categoryId ?? "all"}
+            onValueChange={(v) =>
+              setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
+            }
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="カテゴリ" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべてのカテゴリ</SelectItem>
+              {categories?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={query.seriesId ?? "all"}
+            onValueChange={(v) =>
+              setQuery((p) => ({ ...p, seriesId: v === "all" ? undefined : v, page: 1 }))
+            }
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="シリーズ" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべてのシリーズ</SelectItem>
+              {seriesList?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
@@ -245,26 +247,48 @@ export default function VideoManagePage() {
                 <TableCell>{v.viewCount}</TableCell>
                 <TableCell>{formatDate(v.createdAt)}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/videos/${v.id}/edit`)}>
-                        <Pencil className="mr-2 h-3.5 w-3.5" />
-                        編集
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeleteTarget(v)}
-                      >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        削除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="hidden justify-end gap-1 xl:flex">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => router.push(`/videos/${v.id}/edit`)}
+                      aria-label="編集"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(v)}
+                      aria-label="削除"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="xl:hidden">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/videos/${v.id}/edit`)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" />
+                          編集
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget(v)}
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          削除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

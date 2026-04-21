@@ -64,7 +64,9 @@ export class VideosService {
     const [videos, total] = await Promise.all([
       this.prisma.video.findMany({
         where,
-        orderBy: { sortOrder: "asc" },
+        orderBy: query.seriesId
+          ? [{ watchOrder: "asc" }, { sortOrder: "asc" }]
+          : { sortOrder: "asc" },
         skip,
         take: limit,
         include: {
@@ -108,6 +110,7 @@ export class VideosService {
           description: v.description,
           thumbnailUrl: v.thumbnailUrl,
           durationSeconds: v.durationSeconds,
+          watchOrder: v.watchOrder,
           publishStatus: v.publishStatus,
           streamStatus: v.streamStatus,
           viewCount: v.viewCount,
@@ -143,13 +146,15 @@ export class VideosService {
 
   async findOne(id: string, currentUserId?: string) {
     // admin/owner 以外は公開中の動画のみ閲覧可能
+    // currentUserId が未指定の場合は内部呼び出し扱いで公開状態フィルタをスキップ
     const currentUser = currentUserId
       ? await this.prisma.user.findUnique({
           where: { id: currentUserId },
           select: { role: true },
         })
       : null;
-    const isPrivileged = currentUser?.role === "admin" || currentUser?.role === "owner";
+    const isPrivileged =
+      !currentUserId || currentUser?.role === "admin" || currentUser?.role === "owner";
 
     const video = await this.prisma.video.findFirst({
       where: {
