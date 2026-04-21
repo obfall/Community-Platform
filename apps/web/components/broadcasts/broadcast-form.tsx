@@ -63,12 +63,16 @@ export function BroadcastForm({
     }
   };
 
-  const canSubmit = subject.trim().length > 0 && bodyHtml.trim().length > 0 && channels.length > 0;
+  const requiresHtml = channels.includes("email");
+  const canSubmit =
+    subject.trim().length > 0 &&
+    channels.length > 0 &&
+    (requiresHtml ? bodyHtml.trim().length > 0 : bodyText.trim().length > 0);
 
   const handleSubmit = () => {
     onSubmit({
       subject,
-      bodyHtml,
+      bodyHtml: requiresHtml ? bodyHtml : "",
       bodyText: bodyText || undefined,
       channels,
       templateId: templateId || undefined,
@@ -91,23 +95,25 @@ export function BroadcastForm({
                 placeholder="配信の件名を入力"
               />
             </div>
+            {requiresHtml && (
+              <div>
+                <Label>HTML本文</Label>
+                <Textarea
+                  value={bodyHtml}
+                  onChange={(e) => setBodyHtml(e.target.value)}
+                  placeholder="HTML形式の本文を入力"
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+              </div>
+            )}
             <div>
-              <Label>HTML本文</Label>
-              <Textarea
-                value={bodyHtml}
-                onChange={(e) => setBodyHtml(e.target.value)}
-                placeholder="HTML形式の本文を入力"
-                rows={12}
-                className="font-mono text-sm"
-              />
-            </div>
-            <div>
-              <Label>テキスト本文（オプション）</Label>
+              <Label>{requiresHtml ? "テキスト本文（オプション）" : "本文"}</Label>
               <Textarea
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
-                placeholder="プレーンテキスト版を入力"
-                rows={6}
+                placeholder={requiresHtml ? "プレーンテキスト版を入力" : "本文を入力"}
+                rows={requiresHtml ? 6 : 12}
               />
             </div>
           </CardContent>
