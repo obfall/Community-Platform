@@ -89,10 +89,16 @@ export function BroadcastDetail({ broadcast, backHref, onSend, isSending }: Prop
           <CardTitle>本文</CardTitle>
         </CardHeader>
         <CardContent>
-          <div
-            className="prose prose-sm max-w-none rounded border p-4"
-            dangerouslySetInnerHTML={{ __html: broadcast.bodyHtml }}
-          />
+          {broadcast.bodyHtml ? (
+            <div
+              className="prose prose-sm max-w-none rounded border p-4"
+              dangerouslySetInnerHTML={{ __html: broadcast.bodyHtml }}
+            />
+          ) : (
+            <div className="whitespace-pre-wrap rounded border p-4 text-sm">
+              {broadcast.bodyText}
+            </div>
+          )}
         </CardContent>
       </Card>
 

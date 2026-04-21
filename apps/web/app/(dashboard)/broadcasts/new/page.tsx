@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,14 +10,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { BroadcastForm } from "@/components/broadcasts/broadcast-form";
 import { AudienceSelectorGlobal } from "@/components/broadcasts/audience-selector-global";
-import type { BroadcastTargetType } from "@/lib/api/types";
 
 export default function NewBroadcastPage() {
   const router = useRouter();
   const create = useCreateAndSendBroadcast();
   const { data: templates } = useBroadcastTemplates();
-
-  const [targetType, setTargetType] = useState<BroadcastTargetType>("all");
 
   return (
     <div className="space-y-6">
@@ -33,12 +29,10 @@ export default function NewBroadcastPage() {
 
       <BroadcastForm
         templates={templates}
-        audienceSelector={
-          <AudienceSelectorGlobal targetType={targetType} onTargetTypeChange={setTargetType} />
-        }
+        audienceSelector={<AudienceSelectorGlobal />}
         onSubmit={(data) => {
           create.mutate(
-            { ...data, scope: "global", targetType },
+            { ...data, scope: "global", targetType: "all" },
             { onSuccess: (broadcast) => router.push(`/broadcasts/${broadcast.id}`) },
           );
         }}
