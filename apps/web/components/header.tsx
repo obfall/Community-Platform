@@ -7,6 +7,7 @@ import { Menu, LogOut, Settings, LayoutDashboard, Bell, HelpCircle } from "lucid
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useUnreadCount } from "@/hooks/notifications/use-notifications";
 import { useAppSettings } from "@/hooks/settings/use-app-settings";
+import { getContrastForeground } from "@/lib/utils/color";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -59,16 +60,15 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
   const isAdmin = user?.role === "owner" || user?.role === "admin";
 
   const headerBg = settings?.find((s) => s.key === "header_bg_color")?.value ?? "";
-  const headerText = settings?.find((s) => s.key === "header_text_color")?.value ?? "";
+  const headerText = headerBg ? getContrastForeground(headerBg) : "";
 
   return (
     <header
       className={`sticky top-0 z-30 flex h-14 items-center gap-4 border-b px-4 ${
-        headerBg ? "" : "bg-background"
-      } ${headerText ? "" : "text-foreground"}`}
+        headerBg ? "" : "bg-background text-foreground"
+      }`}
       style={{
-        ...(headerBg && { backgroundColor: headerBg }),
-        ...(headerText && { color: headerText }),
+        ...(headerBg && { backgroundColor: headerBg, color: headerText }),
       }}
     >
       {/* モバイル: ハンバーガーメニュー */}

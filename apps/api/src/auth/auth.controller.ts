@@ -1,4 +1,14 @@
-import { Controller, Post, Patch, Get, Body, Req, HttpCode, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Patch,
+  Get,
+  Body,
+  Req,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { AuthService } from "./auth.service";
@@ -13,6 +23,7 @@ import {
 } from "./dto";
 import { Public } from "@/common/decorators";
 import { CurrentUser } from "@/common/decorators";
+import { RegistrationAllowedGuard } from "@/common/guards";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -21,6 +32,7 @@ export class AuthController {
 
   @Public()
   @Post("register")
+  @UseGuards(RegistrationAllowedGuard)
   @ApiOperation({ summary: "ユーザー登録" })
   @ApiResponse({ status: 201, type: AuthResponseDto })
   register(@Body() dto: RegisterDto) {

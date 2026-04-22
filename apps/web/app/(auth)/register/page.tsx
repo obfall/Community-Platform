@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useAuth } from "@/hooks/auth/use-auth";
+import { useAppSettings } from "@/hooks/settings/use-app-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,8 +47,12 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const { register: registerUser } = useAuth();
+  const { data: settings, isLoading: settingsLoading } = useAppSettings();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const allowRegistration =
+    settings?.find((s) => s.key === "allow_registration")?.value !== "false";
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -65,19 +70,47 @@ export default function RegisterPage() {
       });
       router.push("/dashboard");
     } catch (err: unknown) {
-      if (
-        err &&
-        typeof err === "object" &&
-        "response" in err &&
-        (err as { response?: { status?: number } }).response?.status === 409
-      ) {
+      const response = (err as { response?: { status?: number } })?.response;
+      if (response?.status === 409) {
         setError("このメールアドレスは既に登録されています");
+      } else if (response?.status === 403) {
+        setError("現在新規登録を受け付けていません");
       } else {
         setError("登録に失敗しました。もう一度お試しください");
       }
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (settingsLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+      </Card>
+    );
+  }
+
+  if (!allowRegistration) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>新規登録</CardTitle>
+          <CardDescription>現在新規登録を受け付けていません</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">管理者により新規登録が停止されています。</p>
+        </CardContent>
+        <CardFooter className="justify-center text-sm">
+          <p className="text-muted-foreground">
+            アカウントをお持ちの方は{" "}
+            <Link href="/login" className="text-foreground underline">
+              ログイン
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    );
   }
 
   return (

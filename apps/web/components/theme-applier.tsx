@@ -2,19 +2,22 @@
 
 import { useEffect } from "react";
 import { useAppSettings } from "@/hooks/settings/use-app-settings";
+import { getContrastForeground } from "@/lib/utils/color";
 
 /**
  * app_settings からデザイン関連の値を読み取り、document に動的適用する。
  *
+ * ダークモードは非対応。
+ *
  * 適用対象:
- * - --color-primary / --color-accent: shadcn の Button 等で使用される CSS 変数
- *   (Tailwind v4 では --color-* がトークン名)
+ * - --color-primary / --color-accent / --color-sidebar / --color-sidebar-accent:
+ *   背景色とペアで foreground（文字色）を背景色の明度から自動計算する
  * - --color-background / --color-foreground: ページ全体の背景・文字色
- * - --header-bg / --header-text: ヘッダーで参照するカスタム変数
+ * - --header-bg: ヘッダー背景色（文字色は header.tsx で自動計算）
  * - body の font-family
  * - <link rel="icon"> のファビコン
  *
- * 値が空欄の場合は何もせず、Tailwind のデフォルト値を維持する。
+ * 値が空欄の場合は CSS 変数を削除し、globals.css のデフォルトに戻す。
  */
 export function ThemeApplier() {
   const { data: settings } = useAppSettings();
@@ -33,23 +36,29 @@ export function ThemeApplier() {
       }
     };
 
-    // globals.css の `@theme` で Tailwind v4 が bg-primary などを
-    // `background-color: var(--color-primary)` として生成するため、
-    // :root の CSS 変数を上書きすれば bg-primary などにも反映される。
-    apply("--color-primary", get("primary_color"));
-    apply("--color-accent", get("accent_color"));
+    const applyPair = (bgVar: string, fgVar: string, bgValue: string) => {
+      if (bgValue) {
+        root.style.setProperty(bgVar, bgValue);
+        root.style.setProperty(fgVar, getContrastForeground(bgValue));
+      } else {
+        root.style.removeProperty(bgVar);
+        root.style.removeProperty(fgVar);
+      }
+    };
+
+    applyPair("--color-primary", "--color-primary-foreground", get("primary_color"));
+    applyPair("--color-accent", "--color-accent-foreground", get("accent_color"));
+    applyPair("--color-sidebar", "--color-sidebar-foreground", get("sidebar_bg_color"));
+    applyPair(
+      "--color-sidebar-accent",
+      "--color-sidebar-accent-foreground",
+      get("sidebar_accent_color"),
+    );
+
     apply("--color-background", get("background_color"));
     apply("--color-foreground", get("text_color"));
-    // サイドバー (shadcn の独自カラー系統)
-    apply("--color-sidebar", get("sidebar_bg_color"));
-    apply("--color-sidebar-foreground", get("sidebar_text_color"));
-    apply("--color-sidebar-accent", get("sidebar_accent_color"));
-    apply("--color-sidebar-accent-foreground", get("sidebar_accent_text_color"));
-    // ヘッダー専用のカスタム変数
     apply("--header-bg", get("header_bg_color"));
-    apply("--header-text", get("header_text_color"));
 
-    // ページ背景・文字色は body と html にも直接適用（保険）
     const bg = get("background_color");
     const fg = get("text_color");
     if (bg) {
@@ -65,7 +74,6 @@ export function ThemeApplier() {
       document.body.style.removeProperty("color");
     }
 
-    // フォント
     const font = get("font_family");
     if (font) {
       document.body.style.fontFamily = font;
@@ -73,7 +81,6 @@ export function ThemeApplier() {
       document.body.style.removeProperty("font-family");
     }
 
-    // ファビコン
     const faviconUrl = get("favicon_url");
     if (faviconUrl) {
       let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');

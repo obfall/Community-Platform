@@ -18,20 +18,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const appSettingsSchema = z.object({
   site_name: z.string().min(1, "サイト名を入力してください"),
   site_description: z.string().min(1, "サイト説明を入力してください"),
-  max_upload_size_mb: z.string().min(1, "値を入力してください"),
   allow_registration: z.boolean(),
   default_language: z.string().min(1, "言語を入力してください"),
 });
 
 type AppSettingsFormValues = z.infer<typeof appSettingsSchema>;
 
+const FORM_KEYS = new Set<keyof AppSettingsFormValues>([
+  "site_name",
+  "site_description",
+  "allow_registration",
+  "default_language",
+]);
+
 export function AppSettingsForm() {
   const { data: settings, isLoading } = useAppSettings();
-  const updateMutation = useUpdateAppSetting();
+  const updateMutation = useUpdateAppSetting({ silent: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AppSettingsFormValues>({
@@ -39,7 +46,6 @@ export function AppSettingsForm() {
     defaultValues: {
       site_name: "",
       site_description: "",
-      max_upload_size_mb: "10",
       allow_registration: true,
       default_language: "ja",
     },
@@ -49,6 +55,7 @@ export function AppSettingsForm() {
     if (settings) {
       const values: Record<string, string | boolean> = {};
       for (const setting of settings) {
+        if (!FORM_KEYS.has(setting.key as keyof AppSettingsFormValues)) continue;
         if (setting.valueType === "boolean") {
           values[setting.key] = setting.value === "true";
         } else {
@@ -66,10 +73,8 @@ export function AppSettingsForm() {
     try {
       const promises: Promise<unknown>[] = [];
       for (const setting of settings) {
-        const newValue =
-          setting.valueType === "boolean"
-            ? String(values[setting.key as keyof AppSettingsFormValues])
-            : String(values[setting.key as keyof AppSettingsFormValues]);
+        if (!FORM_KEYS.has(setting.key as keyof AppSettingsFormValues)) continue;
+        const newValue = String(values[setting.key as keyof AppSettingsFormValues]);
 
         if (newValue !== setting.value) {
           promises.push(
@@ -77,7 +82,15 @@ export function AppSettingsForm() {
           );
         }
       }
-      await Promise.all(promises);
+      if (promises.length === 0) {
+        toast.info("変更はありません");
+        return;
+      }
+      const results = await Promise.allSettled(promises);
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed === 0) toast.success("基本設定を保存しました");
+      else if (failed < results.length) toast.warning(`${failed}件の項目の保存に失敗しました`);
+      else toast.error("保存に失敗しました");
     } finally {
       setIsSubmitting(false);
     }
@@ -124,21 +137,9 @@ export function AppSettingsForm() {
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription>コミュニティの説明文</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="max_upload_size_mb"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>最大アップロードサイズ（MB）</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={100} {...field} />
-                  </FormControl>
+                  <FormDescription>
+                    Google 検索結果やSNSシェア時に表示される説明文（画面上には直接表示されません）
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
