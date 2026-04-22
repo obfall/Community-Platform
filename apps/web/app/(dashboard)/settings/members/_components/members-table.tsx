@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import type { UserListItem } from "@/lib/api/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -67,10 +68,12 @@ export function MembersTable({ users, isLoading, onSelectUser }: MembersTablePro
               .slice(0, 2)
               .toUpperCase();
 
+            const isSuspended = user.status === "suspended";
+
             return (
               <TableRow
                 key={user.id}
-                className="cursor-pointer"
+                className={cn("cursor-pointer", isSuspended && "bg-muted/40 text-muted-foreground")}
                 onClick={() => onSelectUser(user.id)}
               >
                 <TableCell>

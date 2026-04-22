@@ -21,7 +21,9 @@ export class UsersService {
 
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
-      ...(query.status ? { status: query.status } : { status: "active" }),
+      ...(query.status
+        ? { status: query.status }
+        : { status: { in: ["active", "suspended"] as const } }),
       ...(query.role && { role: query.role }),
       ...(query.search && {
         OR: [
@@ -272,16 +274,6 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id: target.id },
       data: { status: dto.status },
-      select: { id: true, email: true, name: true, role: true, status: true },
-    });
-  }
-
-  async softDelete(targetUserId: string, currentUser: { id: string; role: string }) {
-    const target = await this.validateAdminAction(targetUserId, currentUser);
-
-    return this.prisma.user.update({
-      where: { id: target.id },
-      data: { deletedAt: new Date(), status: "withdrawn", isActive: false },
       select: { id: true, email: true, name: true, role: true, status: true },
     });
   }

@@ -38,8 +38,6 @@ export const usersApi = {
   updateStatus: (id: string, status: string) =>
     apiClient.patch<UserListItem>(`/users/${id}/status`, { status }).then((r) => r.data),
 
-  deleteUser: (id: string) => apiClient.delete(`/users/${id}`),
-
   getUserAttributes: (id: string) =>
     apiClient.get<UserAttributeValue[]>(`/users/${id}/attributes`).then((r) => r.data),
 

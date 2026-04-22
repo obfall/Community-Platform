@@ -3,14 +3,11 @@ import {
   Get,
   Patch,
   Put,
-  Delete,
   Body,
   Param,
   Query,
   ParseUUIDPipe,
   UseGuards,
-  HttpCode,
-  HttpStatus,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
@@ -139,17 +136,5 @@ export class UsersController {
     @Body() dto: UpdateUserStatusDto,
   ) {
     return this.usersService.updateStatus(id, currentUser, dto);
-  }
-
-  @Delete(":id")
-  @Roles("admin", "owner")
-  @UseGuards(RolesGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: "ユーザー削除（ソフトデリート、管理者専用）" })
-  async remove(
-    @Param("id", ParseUUIDPipe) id: string,
-    @CurrentUser() currentUser: { id: string; role: string },
-  ) {
-    await this.usersService.softDelete(id, currentUser);
   }
 }

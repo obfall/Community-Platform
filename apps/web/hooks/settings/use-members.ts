@@ -45,18 +45,6 @@ export function useUpdateUserStatus() {
   });
 }
 
-export function useDeleteUser() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => usersApi.deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast.success("メンバーを削除しました");
-    },
-    onError: () => toast.error("メンバーの削除に失敗しました"),
-  });
-}
-
 export function useUserAttributes(userId: string | undefined) {
   return useQuery({
     queryKey: ["users", userId, "attributes"],
