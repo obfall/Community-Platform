@@ -75,6 +75,30 @@ export function useDeleteProject() {
   });
 }
 
+export function useAddProjectMember(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => projectsApi.addMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      toast.success("メンバーを追加しました");
+    },
+    onError: () => toast.error("メンバーの追加に失敗しました"),
+  });
+}
+
+export function useRemoveProjectMember(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => projectsApi.removeMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      toast.success("メンバーを削除しました");
+    },
+    onError: () => toast.error("メンバーの削除に失敗しました"),
+  });
+}
+
 export function useCreateThread() {
   const queryClient = useQueryClient();
   return useMutation({
