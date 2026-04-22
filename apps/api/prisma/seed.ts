@@ -353,6 +353,31 @@ async function main() {
       valueType: "string" as const,
       description: "サイドバー選択中文字色（HEX、空欄でデフォルト）",
     },
+    {
+      key: "email_from_name",
+      value: "Community Platform",
+      valueType: "string" as const,
+      description: "メール送信時の差出人名",
+    },
+    {
+      key: "email_reply_to",
+      value: "noreply@example.com",
+      valueType: "string" as const,
+      description: "メール送信時の返信先アドレス",
+    },
+    {
+      key: "email_welcome_subject",
+      value: "【{{site_name}}】ご登録ありがとうございます",
+      valueType: "string" as const,
+      description: "メンバー登録完了メールの件名",
+    },
+    {
+      key: "email_welcome_body",
+      value:
+        "{{user_name}} 様\n\nこの度は {{site_name}} にご登録いただき、誠にありがとうございます。\n\nご登録メールアドレス: {{email}}",
+      valueType: "string" as const,
+      description: "メンバー登録完了メールの本文",
+    },
   ];
 
   for (const setting of appSettings) {
