@@ -85,6 +85,7 @@ export class ProjectsService {
             user: {
               select: {
                 ...AUTHOR_SELECT,
+                role: true,
                 profile: {
                   select: { avatarUrl: true, occupation: true, bio: true },
                 },
@@ -123,7 +124,7 @@ export class ProjectsService {
         avatarUrl: m.user.profile?.avatarUrl ?? null,
         occupation: m.user.profile?.occupation ?? null,
         bio: m.user.profile?.bio ?? null,
-        role: m.role,
+        role: m.user.role,
         joinedAt: m.joinedAt,
       })),
       tags: project.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
