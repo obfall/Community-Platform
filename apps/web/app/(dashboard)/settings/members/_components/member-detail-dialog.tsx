@@ -5,22 +5,11 @@ import {
   useUser,
   useUpdateUserRole,
   useUpdateUserStatus,
-  useDeleteUser,
   useUserAttributes,
   useSetUserAttributes,
 } from "@/hooks/settings/use-members";
+import type { UserDetail } from "@/lib/api/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
 import type { UserAttributeValue } from "@/lib/api/types";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -60,9 +48,6 @@ interface MemberDetailDialogProps {
 
 export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailDialogProps) {
   const { data: user, isLoading } = useUser(userId);
-  const updateRole = useUpdateUserRole();
-  const updateStatus = useUpdateUserStatus();
-  const deleteUser = useDeleteUser();
 
   const initials = user?.name
     ? user.name
@@ -98,64 +83,7 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
               </div>
             </div>
 
-            {/* アクション */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                defaultValue={user.role}
-                onValueChange={(role) => updateRole.mutate({ id: user.id, role })}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="ロール変更" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">オーナー</SelectItem>
-                  <SelectItem value="admin">管理者</SelectItem>
-                  <SelectItem value="moderator">モデレーター</SelectItem>
-                  <SelectItem value="member">メンバー</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                defaultValue={user.status}
-                onValueChange={(status) => updateStatus.mutate({ id: user.id, status })}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="ステータス変更" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">有効</SelectItem>
-                  <SelectItem value="suspended">停止</SelectItem>
-                  <SelectItem value="withdrawn">退会</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="mr-1 h-3 w-3" />
-                    削除
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>メンバーを削除しますか？</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {user.name} を削除します。この操作は論理削除です。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => {
-                        deleteUser.mutate(user.id, { onSuccess: () => onOpenChange(false) });
-                      }}
-                    >
-                      削除する
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            <MemberActions key={user.id} user={user} />
 
             <Separator />
 
@@ -244,6 +172,62 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MemberActions({ user }: { user: UserDetail }) {
+  const updateRole = useUpdateUserRole();
+  const updateStatus = useUpdateUserStatus();
+  const [role, setRole] = useState(user.role);
+  const [status, setStatus] = useState(user.status);
+
+  const isDirty = role !== user.role || status !== user.status;
+  const isSaving = updateRole.isPending || updateStatus.isPending;
+
+  const handleSave = async () => {
+    const tasks: Promise<unknown>[] = [];
+    if (role !== user.role) tasks.push(updateRole.mutateAsync({ id: user.id, role }));
+    if (status !== user.status) tasks.push(updateStatus.mutateAsync({ id: user.id, status }));
+    await Promise.all(tasks);
+  };
+
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">ロール</label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="owner">オーナー</SelectItem>
+              <SelectItem value="admin">管理者</SelectItem>
+              <SelectItem value="moderator">モデレーター</SelectItem>
+              <SelectItem value="member">メンバー</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">ステータス</label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">有効</SelectItem>
+              <SelectItem value="suspended">停止</SelectItem>
+              <SelectItem value="withdrawn">退会</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button size="sm" disabled={!isDirty || isSaving} onClick={handleSave} className="ml-auto">
+          保存
+        </Button>
+      </div>
+    </div>
   );
 }
 
