@@ -219,7 +219,6 @@ model SocialAccount {
 model LoginHistory {
   id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId        String      @map("user_id") @db.Uuid
-  ipAddress     String      @map("ip_address") @db.Inet
   userAgent     String?     @map("user_agent") @db.Text
   status        LoginStatus
   failureReason String?     @map("failure_reason") @db.VarChar(50)
