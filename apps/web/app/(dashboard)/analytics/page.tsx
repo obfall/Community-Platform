@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useAnalyticsDashboard,
-  useMemberActivity,
-  useEngagementRanking,
-} from "@/hooks/analytics/use-analytics";
+import { useAnalyticsDashboard, useEngagementRanking } from "@/hooks/analytics/use-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,15 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Video, TrendingUp, BarChart3 } from "lucide-react";
-import type { MemberActivityItem, EngagementScoreItem } from "@/lib/api/types";
+import { Users, CalendarDays, Video, TrendingUp, BarChart3, CalendarCheck } from "lucide-react";
+import type { EngagementScoreItem } from "@/lib/api/types";
+import { EventParticipationTab } from "./_components/event-participation-tab";
 
 export default function AnalyticsPage() {
   const { data: dashboard, isLoading } = useAnalyticsDashboard();
-  const [memberPage, setMemberPage] = useState(1);
   const [engagementPage] = useState(1);
-  const { data: memberData } = useMemberActivity({ page: memberPage, limit: 20 });
   const { data: engagementData } = useEngagementRanking({ page: engagementPage, limit: 20 });
 
   if (isLoading)
@@ -38,7 +32,7 @@ export default function AnalyticsPage() {
       <h1 className="text-2xl font-bold">アナリティクス</h1>
 
       {/* サマリーカード */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
             <Users className="h-5 w-5 text-blue-500" />
@@ -68,6 +62,15 @@ export default function AnalyticsPage() {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 pt-6">
+            <CalendarCheck className="h-5 w-5 text-pink-500" />
+            <div>
+              <p className="text-2xl font-bold">{summary?.recentAttendedCount ?? 0}</p>
+              <p className="text-xs text-muted-foreground">参加延べ（30日）</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
             <Video className="h-5 w-5 text-purple-500" />
             <div>
               <p className="text-2xl font-bold">{summary?.totalVideos ?? 0}</p>
@@ -78,74 +81,15 @@ export default function AnalyticsPage() {
       </div>
 
       {/* タブ */}
-      <Tabs defaultValue="members">
+      <Tabs defaultValue="event-participation">
         <TabsList>
-          <TabsTrigger value="members">メンバー活動</TabsTrigger>
+          <TabsTrigger value="event-participation">イベント参加</TabsTrigger>
           <TabsTrigger value="engagement">エンゲージメント</TabsTrigger>
           <TabsTrigger value="trends">推移</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="members" className="pt-4">
-          {!memberData?.data?.length ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">データがありません</p>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>メンバー</TableHead>
-                    <TableHead className="text-right">ログイン</TableHead>
-                    <TableHead className="text-right">投稿</TableHead>
-                    <TableHead className="text-right">コメント</TableHead>
-                    <TableHead className="text-right">イベント</TableHead>
-                    <TableHead className="text-right">動画</TableHead>
-                    <TableHead className="text-right">チャット</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {memberData.data.map((m: MemberActivityItem) => (
-                    <TableRow key={m.userId}>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{m.user.name}</p>
-                          <p className="text-xs text-muted-foreground">{m.user.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{m.loginCount}</TableCell>
-                      <TableCell className="text-right">{m.postCount}</TableCell>
-                      <TableCell className="text-right">{m.commentCount}</TableCell>
-                      <TableCell className="text-right">{m.eventParticipationCount}</TableCell>
-                      <TableCell className="text-right">{m.videoWatchCount}</TableCell>
-                      <TableCell className="text-right">{m.chatMessageCount}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {memberData.meta.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
-                    disabled={!memberData.meta.hasPreviousPage}
-                  >
-                    前へ
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {memberData.meta.page} / {memberData.meta.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setMemberPage((p) => p + 1)}
-                    disabled={!memberData.meta.hasNextPage}
-                  >
-                    次へ
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
+        <TabsContent value="event-participation" className="pt-4">
+          <EventParticipationTab />
         </TabsContent>
 
         <TabsContent value="engagement" className="pt-4">

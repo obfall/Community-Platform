@@ -58,6 +58,25 @@ const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructi
   draft: "secondary",
 };
 
+const PARTICIPANT_STATUS_LABELS: Record<string, string> = {
+  applied: "申込済",
+  confirmed: "確定",
+  attended: "出席",
+  canceled: "キャンセル",
+  no_show: "欠席",
+};
+
+const PARTICIPANT_STATUS_VARIANTS: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  applied: "secondary",
+  confirmed: "secondary",
+  attended: "default",
+  canceled: "destructive",
+  no_show: "outline",
+};
+
 const PROJECT_STATUS_LABELS: Record<string, string> = {
   active: "進行中",
   completed: "完了",
@@ -352,6 +371,15 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                             {event.category.name}
                           </Badge>
                         )}
+                        <Badge
+                          variant={
+                            PARTICIPANT_STATUS_VARIANTS[event.participantStatus] ?? "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {PARTICIPANT_STATUS_LABELS[event.participantStatus] ??
+                            event.participantStatus}
+                        </Badge>
                         <Badge
                           variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
                           className="text-xs"
