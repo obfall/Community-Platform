@@ -6,6 +6,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { BroadcastsModule } from "@/broadcasts/broadcasts.module";
+import { AnalyticsModule } from "@/analytics/analytics.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BroadcastsModule } from "@/broadcasts/broadcasts.module";
       }),
     }),
     BroadcastsModule,
+    AnalyticsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

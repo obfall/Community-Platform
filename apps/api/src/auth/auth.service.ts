@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   ConflictException,
   BadRequestException,
@@ -10,6 +11,7 @@ import * as bcrypt from "bcrypt";
 import * as crypto from "crypto";
 import { PrismaService } from "@/prisma/prisma.service";
 import { EmailService } from "@/broadcasts/email.service";
+import { AnalyticsService } from "@/analytics/analytics.service";
 import type { RegisterDto } from "./dto/register.dto";
 import type { LoginDto } from "./dto/login.dto";
 import type { RefreshTokenDto } from "./dto/refresh-token.dto";
@@ -22,11 +24,14 @@ const BCRYPT_SALT_ROUNDS = 12;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -61,26 +66,27 @@ export class AuthService {
     });
 
     if (!user || user.deletedAt) {
-      await this.recordLoginHistory(user?.id, ip, userAgent, "failure", "invalid_credentials");
+      await this.recordLoginHistory(user?.id, userAgent, "failure", "invalid_credentials");
       throw new UnauthorizedException("メールアドレスまたはパスワードが正しくありません");
     }
 
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) {
-      await this.recordLoginHistory(user.id, ip, userAgent, "failure", "invalid_credentials");
+      await this.recordLoginHistory(user.id, userAgent, "failure", "invalid_credentials");
       throw new UnauthorizedException("メールアドレスまたはパスワードが正しくありません");
     }
 
     if (user.status !== "active") {
-      await this.recordLoginHistory(user.id, ip, userAgent, "failure", "account_inactive");
+      await this.recordLoginHistory(user.id, userAgent, "failure", "account_inactive");
       throw new UnauthorizedException("アカウントが無効です");
     }
 
-    await this.recordLoginHistory(user.id, ip, userAgent, "success");
+    await this.recordLoginHistory(user.id, userAgent, "success");
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
+    await this.safeLogActivity(user.id, "login");
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.saveRefreshToken(user.id, tokens.refreshToken, ip, userAgent);
@@ -129,6 +135,7 @@ export class AuthService {
       where: { userId, tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    await this.safeLogActivity(userId, "logout");
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
@@ -269,14 +276,22 @@ export class AuthService {
 
   private async recordLoginHistory(
     userId: string | undefined,
-    ip: string,
     userAgent: string | undefined,
     status: "success" | "failure",
     failureReason?: string,
   ) {
     if (!userId) return;
     await this.prisma.loginHistory.create({
-      data: { userId, ipAddress: ip, userAgent, status, failureReason },
+      data: { userId, userAgent, status, failureReason },
     });
+  }
+
+  private async safeLogActivity(userId: string, action: string) {
+    try {
+      await this.analytics.logActivity(userId, action);
+    } catch (err) {
+      // 監査ログの失敗で認証フローを壊さない
+      this.logger.warn(`Failed to log activity (${action}): ${String(err)}`);
+    }
   }
 }

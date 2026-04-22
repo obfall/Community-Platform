@@ -1316,6 +1316,59 @@ export interface EngagementScoreItem {
   calculatedAt: string;
 }
 
+// --- Usage History ---
+
+export interface UsageHistoryUser {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export interface ActivityLogItem {
+  id: string;
+  userId: string;
+  action: string;
+  resourceType: string | null;
+  resourceId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  user: UsageHistoryUser;
+}
+
+export type LoginHistoryStatus = "success" | "failure";
+
+export interface LoginHistoryItem {
+  id: string;
+  userId: string;
+  userAgent: string | null;
+  status: LoginHistoryStatus;
+  failureReason: string | null;
+  createdAt: string;
+  user: UsageHistoryUser;
+}
+
+export interface ActivityLogQuery {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  search?: string;
+  action?: string;
+  resourceType?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface LoginHistoryQuery {
+  page?: number;
+  limit?: number;
+  userId?: string;
+  search?: string;
+  status?: LoginHistoryStatus;
+  from?: string;
+  to?: string;
+}
+
 // --- Points ---
 
 export interface PointSummary {
