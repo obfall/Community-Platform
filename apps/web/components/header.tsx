@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, LogOut, Settings, LayoutDashboard, Bell, HelpCircle } from "lucide-react";
+import { Menu, LogOut, LayoutDashboard, Bell, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useUnreadCount } from "@/hooks/notifications/use-notifications";
 import { useAppSettings } from "@/hooks/settings/use-app-settings";
@@ -56,8 +56,6 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         .slice(0, 2)
         .toUpperCase()
     : "?";
-
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
 
   const headerBg = settings?.find((s) => s.key === "header_bg_color")?.value ?? "";
   const headerText = headerBg ? getContrastForeground(headerBg) : "";
@@ -161,14 +159,6 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
               マイページ
             </Link>
           </DropdownMenuItem>
-          {isAdmin && (
-            <DropdownMenuItem asChild>
-              <Link href="/settings/community" className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                設定
-              </Link>
-            </DropdownMenuItem>
-          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
