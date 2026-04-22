@@ -7,12 +7,8 @@ import { z } from "zod/v4";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/auth/use-auth";
-import {
-  useNotificationPreferences,
-  useUpdatePreferences,
-} from "@/hooks/notifications/use-notifications";
 import { authApi } from "@/lib/api/auth";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -22,7 +18,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -41,21 +36,8 @@ const passwordSchema = z
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
-// --- 通知タイプのラベル ---
-
-const NOTIFICATION_TYPE_LABELS: Record<string, string> = {
-  event: "イベント",
-  project: "プロジェクト",
-  chat: "チャット",
-  board: "掲示板",
-  announcement: "配信",
-  system: "システム",
-};
-
 export default function ProfileSettingsPage() {
   const { user } = useAuth();
-  const { data: preferences } = useNotificationPreferences();
-  const updatePreferences = useUpdatePreferences();
 
   // --- パスワード変更 ---
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -86,26 +68,6 @@ export default function ProfileSettingsPage() {
       newPassword: values.newPassword,
     });
   }
-
-  // --- 通知設定 ---
-  const handleNotificationToggle = (
-    notificationType: string,
-    channel: "emailEnabled" | "inAppEnabled",
-    checked: boolean,
-  ) => {
-    if (!preferences) return;
-    const updated = preferences.map((p) =>
-      p.notificationType === notificationType ? { ...p, [channel]: checked } : p,
-    );
-    updatePreferences.mutate({
-      preferences: updated.map((p) => ({
-        notificationType: p.notificationType,
-        emailEnabled: p.emailEnabled,
-        inAppEnabled: p.inAppEnabled,
-        lineEnabled: p.lineEnabled,
-      })),
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -193,54 +155,6 @@ export default function ProfileSettingsPage() {
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* 通知設定 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>通知設定</CardTitle>
-          <CardDescription>通知の受け取り方法を設定します</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!preferences || preferences.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              通知設定はまだありません
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {preferences.map((pref) => (
-                <div key={pref.notificationType}>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      {NOTIFICATION_TYPE_LABELS[pref.notificationType] ?? pref.notificationType}
-                    </p>
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={pref.inAppEnabled}
-                          onCheckedChange={(checked) =>
-                            handleNotificationToggle(pref.notificationType, "inAppEnabled", checked)
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground">アプリ</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={pref.emailEnabled}
-                          onCheckedChange={(checked) =>
-                            handleNotificationToggle(pref.notificationType, "emailEnabled", checked)
-                          }
-                        />
-                        <span className="text-xs text-muted-foreground">メール</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Separator className="mt-4" />
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
