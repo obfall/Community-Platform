@@ -11,18 +11,19 @@ export function useAppSettings() {
   });
 }
 
-export function useUpdateAppSetting() {
+export function useUpdateAppSetting(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
+  const silent = options?.silent ?? false;
 
   return useMutation({
     mutationFn: ({ key, data }: { key: string; data: UpdateAppSettingInput }) =>
       settingsApi.updateAppSetting(key, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings", "app"] });
-      toast.success("設定を更新しました");
+      if (!silent) toast.success("設定を更新しました");
     },
     onError: () => {
-      toast.error("設定の更新に失敗しました");
+      if (!silent) toast.error("設定の更新に失敗しました");
     },
   });
 }

@@ -1,12 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { filesApi } from "@/lib/api/files";
+import { getContrastForeground } from "@/lib/utils/color";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -14,88 +29,91 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Form, FormField, FormItem } from "@/components/ui/form";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
-const DEFAULT_PRIMARY = "#0a0a0a";
-const DEFAULT_ACCENT = "#f3f4f6";
+const DEFAULT_PRIMARY = "#171717";
+const DEFAULT_ACCENT = "#f5f5f5";
+const COLOR_EMPTY_FALLBACK = "#cccccc";
 
 const FONT_OPTIONS = [
   { label: "デフォルト（システム）", value: "" },
-  {
-    label: "Noto Sans JP（ゴシック・読みやすい）",
-    value: "'Noto Sans JP', sans-serif",
-  },
-  {
-    label: "Noto Serif JP（明朝・上品）",
-    value: "'Noto Serif JP', serif",
-  },
-  {
-    label: "游ゴシック",
-    value: "'Yu Gothic', YuGothic, sans-serif",
-  },
-  {
-    label: "游明朝",
-    value: "'Yu Mincho', YuMincho, serif",
-  },
-  {
-    label: "ヒラギノ角ゴ",
-    value: "'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif",
-  },
-  {
-    label: "ヒラギノ明朝",
-    value: "'Hiragino Mincho ProN', serif",
-  },
-  {
-    label: "Meiryo",
-    value: "Meiryo, sans-serif",
-  },
+  { label: "Noto Sans JP（ゴシック）", value: "var(--font-noto-sans-jp)" },
+  { label: "Noto Serif JP（明朝）", value: "var(--font-noto-serif-jp)" },
 ];
+const FONT_VALUES = new Set(FONT_OPTIONS.map((opt) => opt.value));
+
+const designSchema = z.object({
+  logo_url: z.string(),
+  favicon_url: z.string(),
+  primary_color: z.string(),
+  accent_color: z.string(),
+  header_bg_color: z.string(),
+  sidebar_bg_color: z.string(),
+  sidebar_accent_color: z.string(),
+  font_family: z.string(),
+});
+
+type DesignFormValues = z.infer<typeof designSchema>;
+
+const DESIGN_KEYS = [
+  "logo_url",
+  "favicon_url",
+  "primary_color",
+  "accent_color",
+  "header_bg_color",
+  "sidebar_bg_color",
+  "sidebar_accent_color",
+  "font_family",
+] as const satisfies readonly (keyof DesignFormValues)[];
+
+const DEFAULT_VALUES: DesignFormValues = {
+  logo_url: "",
+  favicon_url: "",
+  primary_color: DEFAULT_PRIMARY,
+  accent_color: DEFAULT_ACCENT,
+  header_bg_color: "",
+  sidebar_bg_color: "",
+  sidebar_accent_color: "",
+  font_family: "",
+};
+
+const RESET_VALUES: DesignFormValues = {
+  ...DEFAULT_VALUES,
+  primary_color: DEFAULT_PRIMARY,
+  accent_color: DEFAULT_ACCENT,
+};
 
 export function DesignSettingsForm() {
   const { data: settings, isLoading } = useAppSettings();
-  const updateMutation = useUpdateAppSetting();
+  const updateMutation = useUpdateAppSetting({ silent: true });
 
-  const [logoUrl, setLogoUrl] = useState("");
-  const [faviconUrl, setFaviconUrl] = useState("");
-  const [primaryColor, setPrimaryColor] = useState(DEFAULT_PRIMARY);
-  const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT);
-  const [headerBgColor, setHeaderBgColor] = useState("");
-  const [headerTextColor, setHeaderTextColor] = useState("");
-  const [backgroundColor, setBackgroundColor] = useState("");
-  const [textColor, setTextColor] = useState("");
-  const [sidebarBgColor, setSidebarBgColor] = useState("");
-  const [sidebarTextColor, setSidebarTextColor] = useState("");
-  const [sidebarAccentColor, setSidebarAccentColor] = useState("");
-  const [sidebarAccentTextColor, setSidebarAccentTextColor] = useState("");
-  const [fontFamily, setFontFamily] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // 設定読み込み後に初期値をセット
+  const form = useForm<DesignFormValues>({
+    resolver: zodResolver(designSchema),
+    defaultValues: DEFAULT_VALUES,
+  });
+
   useEffect(() => {
     if (!settings) return;
-    const get = (key: string) => settings.find((s) => s.key === key)?.value ?? "";
-    setLogoUrl(get("logo_url"));
-    setFaviconUrl(get("favicon_url"));
-    setPrimaryColor(get("primary_color") || DEFAULT_PRIMARY);
-    setAccentColor(get("accent_color") || DEFAULT_ACCENT);
-    setHeaderBgColor(get("header_bg_color"));
-    setHeaderTextColor(get("header_text_color"));
-    setBackgroundColor(get("background_color"));
-    setTextColor(get("text_color"));
-    setSidebarBgColor(get("sidebar_bg_color"));
-    setSidebarTextColor(get("sidebar_text_color"));
-    setSidebarAccentColor(get("sidebar_accent_color"));
-    setSidebarAccentTextColor(get("sidebar_accent_text_color"));
-    setFontFamily(get("font_family"));
-  }, [settings]);
+    const next: DesignFormValues = { ...DEFAULT_VALUES };
+    for (const key of DESIGN_KEYS) {
+      const saved = settings.find((s) => s.key === key)?.value;
+      if (saved !== undefined && saved !== "") next[key] = saved;
+    }
+    form.reset(next);
+  }, [settings, form]);
+
+  const values = form.watch();
 
   const handleUpload = async (
     file: File,
+    fieldName: "logo_url" | "favicon_url",
     setUploading: (v: boolean) => void,
-    setUrl: (v: string) => void,
   ) => {
     if (!file.type.startsWith("image/")) {
       toast.error("画像ファイルを選択してください");
@@ -108,8 +126,11 @@ export function DesignSettingsForm() {
     setUploading(true);
     try {
       const result = await filesApi.upload(file, "image", true);
-      if (result.publicUrl) setUrl(result.publicUrl);
-      else toast.error("URL が取得できませんでした");
+      if (result.publicUrl) {
+        form.setValue(fieldName, result.publicUrl, { shouldDirty: true });
+      } else {
+        toast.error("URL が取得できませんでした");
+      }
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -120,80 +141,30 @@ export function DesignSettingsForm() {
     }
   };
 
-  const buildUpdates = (): Array<{ key: string; value: string }> => [
-    { key: "logo_url", value: logoUrl },
-    { key: "favicon_url", value: faviconUrl },
-    { key: "primary_color", value: primaryColor },
-    { key: "accent_color", value: accentColor },
-    { key: "header_bg_color", value: headerBgColor },
-    { key: "header_text_color", value: headerTextColor },
-    { key: "background_color", value: backgroundColor },
-    { key: "text_color", value: textColor },
-    { key: "sidebar_bg_color", value: sidebarBgColor },
-    { key: "sidebar_text_color", value: sidebarTextColor },
-    { key: "sidebar_accent_color", value: sidebarAccentColor },
-    { key: "sidebar_accent_text_color", value: sidebarAccentTextColor },
-    { key: "font_family", value: fontFamily },
-  ];
-
-  const handleSave = async () => {
+  const persist = async (targetValues: DesignFormValues) => {
     if (!settings) return;
     setSaving(true);
     try {
-      const updates = buildUpdates();
-      const promises = updates
-        .filter((u) => settings.find((s) => s.key === u.key)?.value !== u.value)
-        .map((u) => updateMutation.mutateAsync({ key: u.key, data: { value: u.value } }));
-      await Promise.all(promises);
+      const promises = DESIGN_KEYS.filter(
+        (key) => (settings.find((s) => s.key === key)?.value ?? "") !== targetValues[key],
+      ).map((key) => updateMutation.mutateAsync({ key, data: { value: targetValues[key] } }));
+      if (promises.length === 0) {
+        toast.info("変更はありません");
+        return;
+      }
+      const results = await Promise.allSettled(promises);
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed === 0) toast.success("デザイン設定を保存しました");
+      else if (failed < results.length) toast.warning(`${failed}件の項目の保存に失敗しました`);
+      else toast.error("保存に失敗しました");
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = async () => {
-    if (!settings) return;
-    if (!confirm("デザイン設定をすべてデフォルトに戻します。よろしいですか？")) return;
-
-    // フォーム state をリセット
-    setLogoUrl("");
-    setFaviconUrl("");
-    setPrimaryColor(DEFAULT_PRIMARY);
-    setAccentColor(DEFAULT_ACCENT);
-    setHeaderBgColor("");
-    setHeaderTextColor("");
-    setBackgroundColor("");
-    setTextColor("");
-    setSidebarBgColor("");
-    setSidebarTextColor("");
-    setSidebarAccentColor("");
-    setSidebarAccentTextColor("");
-    setFontFamily("");
-
-    // 保存
-    setSaving(true);
-    try {
-      const resetValues: Record<string, string> = {
-        logo_url: "",
-        favicon_url: "",
-        primary_color: DEFAULT_PRIMARY,
-        accent_color: DEFAULT_ACCENT,
-        header_bg_color: "",
-        header_text_color: "",
-        background_color: "",
-        text_color: "",
-        sidebar_bg_color: "",
-        sidebar_text_color: "",
-        sidebar_accent_color: "",
-        sidebar_accent_text_color: "",
-        font_family: "",
-      };
-      const promises = Object.entries(resetValues)
-        .filter(([key, value]) => settings.find((s) => s.key === key)?.value !== value)
-        .map(([key, value]) => updateMutation.mutateAsync({ key, data: { value } }));
-      await Promise.all(promises);
-    } finally {
-      setSaving(false);
-    }
+    form.reset(RESET_VALUES);
+    await persist(RESET_VALUES);
   };
 
   if (isLoading) {
@@ -208,372 +179,377 @@ export function DesignSettingsForm() {
     <Card>
       <CardHeader>
         <CardTitle>デザイン設定</CardTitle>
-        <CardDescription>サイトのロゴ・カラーをカスタマイズします</CardDescription>
+        <CardDescription>サイトのロゴ・カラー・フォントをカスタマイズします</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* ロゴ */}
-        <div className="space-y-2">
-          <Label>ロゴ画像</Label>
-          <p className="text-xs text-muted-foreground">
-            空欄の場合はサイト名がテキストで表示されます (最大 5MB)
-          </p>
-          {logoUrl && (
-            <div className="relative inline-block rounded-md border bg-muted p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logoUrl} alt="ロゴ" className="h-16 w-auto" />
-              <button
-                type="button"
-                onClick={() => setLogoUrl("")}
-                className="absolute -right-2 -top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-                aria-label="削除"
-              >
-                <X className="h-3 w-3" />
-              </button>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(persist)} className="space-y-6">
+            <LogoField
+              label="ロゴ画像"
+              hint="空欄の場合はサイト名がテキストで表示されます (最大 5MB)"
+              url={values.logo_url}
+              uploading={uploadingLogo}
+              onUpload={(f) => handleUpload(f, "logo_url", setUploadingLogo)}
+              onClear={() => form.setValue("logo_url", "", { shouldDirty: true })}
+              previewClassName="h-16 w-auto"
+              inputId="logo-upload"
+            />
+
+            <LogoField
+              label="ファビコン"
+              hint="ブラウザタブに表示される小さなアイコン (最大 5MB、推奨 32x32 以上)"
+              url={values.favicon_url}
+              uploading={uploadingFavicon}
+              onUpload={(f) => handleUpload(f, "favicon_url", setUploadingFavicon)}
+              onClear={() => form.setValue("favicon_url", "", { shouldDirty: true })}
+              previewClassName="h-8 w-8"
+              inputId="favicon-upload"
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="primary_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="primary-color"
+                      label="プライマリーカラー"
+                      description="ボタン・バッジ・リンクなど、主要なアクションや強調表示に使われるメインカラー"
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder={DEFAULT_PRIMARY}
+                    />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="accent_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="accent-color"
+                      label="アクセントカラー"
+                      description="メニューやボタンにマウスを乗せたとき・選択したときに表示されるハイライト色"
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder={DEFAULT_ACCENT}
+                    />
+                  </FormItem>
+                )}
+              />
             </div>
-          )}
-          <div>
-            <Input
-              id="logo-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f, setUploadingLogo, setLogoUrl);
-                e.target.value = "";
+
+            <FormField
+              control={form.control}
+              name="header_bg_color"
+              render={({ field }) => (
+                <FormItem>
+                  <ColorField
+                    id="header-bg-color"
+                    label="ヘッダー背景色"
+                    description="文字色は背景の明度から自動で白/黒が選ばれます"
+                    value={field.value}
+                    onChange={field.onChange}
+                    clearable
+                  />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-3 rounded-lg border p-4">
+              <p className="text-sm font-medium">サイドバー</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="sidebar_bg_color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorField
+                        id="sidebar-bg-color"
+                        label="サイドバー背景色"
+                        description="文字色は自動"
+                        value={field.value}
+                        onChange={field.onChange}
+                        clearable
+                      />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sidebar_accent_color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <ColorField
+                        id="sidebar-accent-color"
+                        label="サイドバー選択時背景色"
+                        description="hover / 選択時のハイライト色"
+                        value={field.value}
+                        onChange={field.onChange}
+                        clearable
+                      />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="font_family"
+              render={({ field }) => {
+                const selectValue = FONT_VALUES.has(field.value)
+                  ? field.value || "__default__"
+                  : "__default__";
+                return (
+                  <FormItem>
+                    <Label htmlFor="font-family">フォント</Label>
+                    <Select
+                      value={selectValue}
+                      onValueChange={(v) => field.onChange(v === "__default__" ? "" : v)}
+                    >
+                      <SelectTrigger id="font-family">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_OPTIONS.map((opt) => (
+                          <SelectItem
+                            key={opt.value || "__default__"}
+                            value={opt.value || "__default__"}
+                          >
+                            <span style={{ fontFamily: opt.value || undefined }}>{opt.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                );
               }}
             />
-            <label htmlFor="logo-upload">
-              <Button type="button" variant="outline" size="sm" disabled={uploadingLogo} asChild>
-                <span>
-                  {uploadingLogo ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
-                  ロゴをアップロード
-                </span>
+
+            <PreviewPanel values={values} />
+
+            <div className="flex justify-between">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="outline" disabled={saving}>
+                    初期化
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>デザイン設定を初期化しますか？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      すべてのデザイン設定がデフォルトに戻ります。この操作は取り消せません。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>初期化する</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                保存
               </Button>
-            </label>
-          </div>
-        </div>
-
-        {/* ファビコン */}
-        <div className="space-y-2">
-          <Label>ファビコン</Label>
-          <p className="text-xs text-muted-foreground">
-            ブラウザタブに表示される小さなアイコン (最大 5MB、推奨 32x32 以上)
-          </p>
-          {faviconUrl && (
-            <div className="relative inline-block rounded-md border bg-muted p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={faviconUrl} alt="ファビコン" className="h-8 w-8" />
-              <button
-                type="button"
-                onClick={() => setFaviconUrl("")}
-                className="absolute -right-2 -top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-                aria-label="削除"
-              >
-                <X className="h-3 w-3" />
-              </button>
             </div>
-          )}
-          <div>
-            <Input
-              id="favicon-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUpload(f, setUploadingFavicon, setFaviconUrl);
-                e.target.value = "";
-              }}
-            />
-            <label htmlFor="favicon-upload">
-              <Button type="button" variant="outline" size="sm" disabled={uploadingFavicon} asChild>
-                <span>
-                  {uploadingFavicon ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 h-4 w-4" />
-                  )}
-                  ファビコンをアップロード
-                </span>
-              </Button>
-            </label>
-          </div>
-        </div>
-
-        {/* カラー */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>プライマリーカラー</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                placeholder="#3b82f6"
-                className="font-mono"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>アクセントカラー</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                placeholder="#8b5cf6"
-                className="font-mono"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ヘッダー色 */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>ヘッダー背景色</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={headerBgColor || "#ffffff"}
-                onChange={(e) => setHeaderBgColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={headerBgColor}
-                onChange={(e) => setHeaderBgColor(e.target.value)}
-                placeholder="空欄でデフォルト"
-                className="font-mono"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>ヘッダー文字色</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={headerTextColor || "#000000"}
-                onChange={(e) => setHeaderTextColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={headerTextColor}
-                onChange={(e) => setHeaderTextColor(e.target.value)}
-                placeholder="空欄でデフォルト"
-                className="font-mono"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 背景色・文字色 */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>ページ背景色</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={backgroundColor || "#ffffff"}
-                onChange={(e) => setBackgroundColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={backgroundColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
-                placeholder="空欄でデフォルト"
-                className="font-mono"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>本文文字色</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="color"
-                value={textColor || "#000000"}
-                onChange={(e) => setTextColor(e.target.value)}
-                className="h-10 w-16 cursor-pointer p-1"
-              />
-              <Input
-                type="text"
-                value={textColor}
-                onChange={(e) => setTextColor(e.target.value)}
-                placeholder="空欄でデフォルト"
-                className="font-mono"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* サイドバー */}
-        <div className="space-y-3 rounded-lg border p-4">
-          <p className="text-sm font-medium">サイドバー</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>サイドバー背景色</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={sidebarBgColor || "#ffffff"}
-                  onChange={(e) => setSidebarBgColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer p-1"
-                />
-                <Input
-                  type="text"
-                  value={sidebarBgColor}
-                  onChange={(e) => setSidebarBgColor(e.target.value)}
-                  placeholder="空欄でデフォルト"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>サイドバー文字色</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={sidebarTextColor || "#000000"}
-                  onChange={(e) => setSidebarTextColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer p-1"
-                />
-                <Input
-                  type="text"
-                  value={sidebarTextColor}
-                  onChange={(e) => setSidebarTextColor(e.target.value)}
-                  placeholder="空欄でデフォルト"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>hover/選択色（背景）</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={sidebarAccentColor || "#f3f4f6"}
-                  onChange={(e) => setSidebarAccentColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer p-1"
-                />
-                <Input
-                  type="text"
-                  value={sidebarAccentColor}
-                  onChange={(e) => setSidebarAccentColor(e.target.value)}
-                  placeholder="空欄でデフォルト"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>hover/選択色（文字）</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={sidebarAccentTextColor || "#000000"}
-                  onChange={(e) => setSidebarAccentTextColor(e.target.value)}
-                  className="h-10 w-16 cursor-pointer p-1"
-                />
-                <Input
-                  type="text"
-                  value={sidebarAccentTextColor}
-                  onChange={(e) => setSidebarAccentTextColor(e.target.value)}
-                  placeholder="空欄でデフォルト"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* フォント */}
-        <div className="space-y-2">
-          <Label>フォント</Label>
-          <Select
-            value={fontFamily || "__default__"}
-            onValueChange={(v) => setFontFamily(v === "__default__" ? "" : v)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FONT_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value || "__default__"} value={opt.value || "__default__"}>
-                  <span style={{ fontFamily: opt.value || undefined }}>{opt.label}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* プレビュー */}
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            backgroundColor: backgroundColor || undefined,
-            color: textColor || undefined,
-            fontFamily: fontFamily || undefined,
-          }}
-        >
-          <p className="mb-3 text-sm font-medium">プレビュー</p>
-          <div
-            className="mb-3 -mx-4 -mt-4 rounded-t-lg border-b px-4 py-2 text-sm font-bold"
-            style={{
-              backgroundColor: headerBgColor || undefined,
-              color: headerTextColor || undefined,
-            }}
-          >
-            ヘッダーのサンプル
-          </div>
-          <p className="mb-3 text-sm">
-            これは本文のサンプルテキストです。あいうえおカタカナ漢字 ABCDEabcde 12345
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="rounded px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: primaryColor }}
-            >
-              プライマリーボタン
-            </button>
-            <button
-              type="button"
-              className="rounded px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: accentColor }}
-            >
-              アクセントボタン
-            </button>
-          </div>
-        </div>
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={handleReset} disabled={saving}>
-            初期化
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            保存
-          </Button>
-        </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
+  );
+}
+
+interface LogoFieldProps {
+  label: string;
+  hint: string;
+  url: string;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+  onClear: () => void;
+  previewClassName: string;
+  inputId: string;
+}
+
+function LogoField({
+  label,
+  hint,
+  url,
+  uploading,
+  onUpload,
+  onClear,
+  previewClassName,
+  inputId,
+}: LogoFieldProps) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <p className="text-xs text-muted-foreground">{hint}</p>
+      {url && (
+        <div className="relative inline-block rounded-md border bg-muted p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={label} className={previewClassName} />
+          <button
+            type="button"
+            onClick={onClear}
+            className="absolute -right-2 -top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+            aria-label="削除"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+      <div>
+        <Input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onUpload(f);
+            e.target.value = "";
+          }}
+        />
+        <label htmlFor={inputId}>
+          <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+            <span>
+              {uploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              アップロード
+            </span>
+          </Button>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+interface ColorFieldProps {
+  id: string;
+  label: string;
+  description?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  clearable?: boolean;
+}
+
+function ColorField({
+  id,
+  label,
+  description,
+  value,
+  onChange,
+  placeholder,
+  clearable,
+}: ColorFieldProps) {
+  const colorValue = /^#[0-9a-f]{6}$/i.test(value) ? value : COLOR_EMPTY_FALLBACK;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id}>{label}</Label>
+        {clearable && value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+          >
+            デフォルトに戻す
+          </button>
+        )}
+      </div>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      <div className="flex items-center gap-2">
+        <Input
+          id={id}
+          type="color"
+          value={colorValue}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-16 cursor-pointer p-1"
+          aria-label={`${label}のカラーピッカー`}
+        />
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder ?? "空欄でデフォルト"}
+          className="font-mono"
+          aria-label={`${label}のHEX値`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PreviewPanel({ values }: { values: DesignFormValues }) {
+  const primaryBg = values.primary_color || DEFAULT_PRIMARY;
+  const primaryFg = getContrastForeground(primaryBg);
+  const accentBg = values.accent_color || DEFAULT_ACCENT;
+  const accentFg = getContrastForeground(accentBg);
+  const sidebarAccentBg = values.sidebar_accent_color || DEFAULT_ACCENT;
+  const sidebarAccentFg = getContrastForeground(sidebarAccentBg);
+
+  return (
+    <div
+      className="space-y-3 rounded-lg border p-4"
+      style={{
+        fontFamily: values.font_family || undefined,
+      }}
+    >
+      <p className="text-sm font-medium">プレビュー</p>
+      <div
+        className="-mx-4 -mt-1 border-b px-4 py-2 text-sm font-bold"
+        style={{
+          backgroundColor: values.header_bg_color || undefined,
+          color: values.header_bg_color ? getContrastForeground(values.header_bg_color) : undefined,
+        }}
+      >
+        ヘッダーのサンプル
+      </div>
+      <p className="text-sm">
+        これは本文のサンプルテキストです。あいうえおカタカナ漢字 ABCDEabcde 12345
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="rounded px-3 py-1.5 text-sm font-medium"
+          style={{ backgroundColor: primaryBg, color: primaryFg }}
+        >
+          プライマリーボタン
+        </button>
+        <button
+          type="button"
+          className="rounded px-3 py-1.5 text-sm font-medium"
+          style={{ backgroundColor: accentBg, color: accentFg }}
+        >
+          メニュー項目（hover時）
+        </button>
+      </div>
+      <div
+        className="mt-2 rounded border p-2"
+        style={{
+          backgroundColor: values.sidebar_bg_color || undefined,
+          color: values.sidebar_bg_color
+            ? getContrastForeground(values.sidebar_bg_color)
+            : undefined,
+        }}
+      >
+        <p className="mb-1 text-xs opacity-60">サイドバー</p>
+        <div className="rounded px-2 py-1 text-sm">通常の項目</div>
+        <div
+          className="rounded px-2 py-1 text-sm font-medium"
+          style={{ backgroundColor: sidebarAccentBg, color: sidebarAccentFg }}
+        >
+          選択中の項目
+        </div>
+      </div>
+    </div>
   );
 }
