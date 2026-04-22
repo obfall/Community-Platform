@@ -1259,6 +1259,7 @@ export interface AnalyticsDashboard {
     activeMembers: number;
     totalEvents: number;
     totalVideos: number;
+    recentAttendedCount: number;
   };
   snapshots: Array<{
     snapshotDate: string;
@@ -1271,17 +1272,37 @@ export interface AnalyticsDashboard {
   }>;
 }
 
-export interface MemberActivityItem {
+export type ParticipationBucket = "0" | "1" | "2-4" | "5-9" | "10+";
+
+export interface ParticipationDistribution {
+  totalActiveUsers: number;
+  buckets: Array<{ bucket: ParticipationBucket; label: string; count: number }>;
+}
+
+export interface MonthlyParticipationTrend {
+  months: number;
+  data: Array<{ month: string; uniqueParticipants: number; totalParticipations: number }>;
+}
+
+export interface EventRankingItem {
+  eventId: string;
+  title: string;
+  startAt: string;
+  coverImageUrl: string | null;
+  appliedCount: number;
+  attendedCount: number;
+  canceledCount: number;
+  attendanceRate: number | null;
+  cancellationRate: number | null;
+  repeaterRate: number | null;
+}
+
+export interface DropoutRiskItem {
   userId: string;
-  user: { id: string; name: string; email: string; role: string; status: string };
-  lastLoginAt: string | null;
-  loginCount: number;
-  postCount: number;
-  commentCount: number;
-  eventParticipationCount: number;
-  videoWatchCount: number;
-  chatMessageCount: number;
-  projectCount: number;
+  user: { id: string; name: string; email: string; avatarUrl: string | null };
+  totalAttended: number;
+  lastAttendedAt: string;
+  elapsedDays: number;
 }
 
 export interface EngagementScoreItem {
