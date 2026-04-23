@@ -7,3 +7,4 @@ export { UpdateLanguagesDto, LanguageItemDto } from "./update-languages.dto";
 export { UpdateAffiliationsDto, AffiliationItemDto } from "./update-affiliations.dto";
 export { UpdateUserRoleDto } from "./update-user-role.dto";
 export { UpdateUserStatusDto } from "./update-user-status.dto";
+export { UpdateUserEmailDto } from "./update-user-email.dto";

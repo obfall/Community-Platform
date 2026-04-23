@@ -7,16 +7,38 @@ import {
   useUpdateUserStatus,
   useUserAttributes,
   useSetUserAttributes,
+  useForcePasswordReset,
+  useUpdateUserEmail,
 } from "@/hooks/settings/use-members";
+import { useAuth } from "@/hooks/auth/use-auth";
 import type { UserDetail } from "@/lib/api/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { KeyRound, Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -176,13 +198,20 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
 }
 
 function MemberActions({ user }: { user: UserDetail }) {
+  const { user: currentUser } = useAuth();
   const updateRole = useUpdateUserRole();
   const updateStatus = useUpdateUserStatus();
+  const forceReset = useForcePasswordReset();
   const [role, setRole] = useState(user.role);
   const [status, setStatus] = useState(user.status);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const isDirty = role !== user.role || status !== user.status;
   const isSaving = updateRole.isPending || updateStatus.isPending;
+
+  const isSelf = currentUser?.id === user.id;
+  const isOwnerTargetingAdmin = currentUser?.role === "owner" && user.role === "admin";
+  const canAdminAction = !isSelf && !isOwnerTargetingAdmin;
 
   const handleSave = async () => {
     const tasks: Promise<unknown>[] = [];
@@ -227,7 +256,144 @@ function MemberActions({ user }: { user: UserDetail }) {
           保存
         </Button>
       </div>
+
+      {canAdminAction && (
+        <div className="flex flex-wrap gap-2 border-t pt-3">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" disabled={forceReset.isPending}>
+                <KeyRound className="mr-2 h-3.5 w-3.5" />
+                パスワード強制リセット
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>パスワードを強制リセットしますか？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {user.name} さん（{user.email}）にパスワードリセットメールを送信します。
+                  既存のリセットリンクは無効になります。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                <AlertDialogAction onClick={() => forceReset.mutate(user.id)}>
+                  送信する
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button size="sm" variant="outline" onClick={() => setEmailDialogOpen(true)}>
+            <Mail className="mr-2 h-3.5 w-3.5" />
+            メールアドレス変更
+          </Button>
+
+          <EmailChangeDialog user={user} open={emailDialogOpen} onOpenChange={setEmailDialogOpen} />
+        </div>
+      )}
     </div>
+  );
+}
+
+function EmailChangeDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: UserDetail;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const updateEmail = useUpdateUserEmail();
+  const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+
+  const reset = () => {
+    setEmail("");
+    setConfirmEmail("");
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) reset();
+    onOpenChange(next);
+  };
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailPattern.test(email);
+  const isMatch = email === confirmEmail;
+  const isSame = email === user.email;
+  const canSubmit = isEmailValid && isMatch && !isSame && !updateEmail.isPending;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    updateEmail.mutate(
+      { id: user.id, email },
+      {
+        onSuccess: () => {
+          reset();
+          onOpenChange(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>メールアドレス変更</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="text-sm">
+            <p className="text-muted-foreground">現在のメールアドレス</p>
+            <p className="font-medium">{user.email}</p>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="new-email">新しいメールアドレス</Label>
+            <Input
+              id="new-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="new@example.com"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="confirm-email">確認用</Label>
+            <Input
+              id="confirm-email"
+              type="email"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              placeholder="new@example.com"
+            />
+            {confirmEmail && !isMatch && (
+              <p className="text-xs text-destructive">メールアドレスが一致しません</p>
+            )}
+          </div>
+
+          {isSame && email && (
+            <p className="text-xs text-destructive">現在のメールアドレスと同じです</p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            変更後、対象ユーザーのセッションは全て無効化されます。
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+            キャンセル
+          </Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit}>
+            変更する
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -268,10 +434,7 @@ function AttributesForm({ userId }: { userId: string }) {
     <div className="space-y-4">
       {attributes.map((attr: UserAttributeValue) => (
         <div key={attr.attributeId} className="space-y-1">
-          <label className="text-sm font-medium">
-            {attr.attributeName}
-            {attr.isRequired && <span className="ml-1 text-destructive">*</span>}
-          </label>
+          <label className="text-sm font-medium">{attr.attributeName}</label>
           <AttributeField
             attr={attr}
             value={values[attr.attributeId] ?? ""}

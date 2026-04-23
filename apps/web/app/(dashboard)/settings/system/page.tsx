@@ -2,24 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { PermissionsTable } from "../permissions/_components/permissions-table";
-import { PermissionFilter } from "../permissions/_components/permission-filter";
-import { PermissionDialog } from "../permissions/_components/permission-dialog";
-import {
-  useMemberAttributes,
-  useCreateMemberAttribute,
-  useUpdateMemberAttribute,
-  useDeleteMemberAttribute,
-} from "@/hooks/settings/use-member-attributes";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useOptions, useToggleOption } from "@/hooks/settings/use-options";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,15 +15,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -46,8 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
-import type { MemberAttribute } from "@/lib/api/types";
 
 export default function SystemSettingsPage() {
   const { user, isLoading } = useAuth();
@@ -70,184 +46,88 @@ export default function SystemSettingsPage() {
       <div>
         <h1 className="text-2xl font-bold">システム設定</h1>
         <p className="mt-1 text-muted-foreground">
-          権限設定やカスタム属性など、システムレベルの設定を管理します
+          オプション機能など、システムレベルの設定を管理します
         </p>
       </div>
 
-      <Tabs defaultValue="permissions">
-        <TabsList>
-          <TabsTrigger value="permissions">権限設定</TabsTrigger>
-          <TabsTrigger value="attributes">カスタム属性</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="permissions" className="mt-6">
-          <PermissionsTab />
-        </TabsContent>
-
-        <TabsContent value="attributes" className="mt-6">
-          <AttributesTab />
-        </TabsContent>
-      </Tabs>
+      <OptionsTab />
     </div>
   );
 }
 
-function PermissionsTab() {
-  const [featureKeyFilter, setFeatureKeyFilter] = useState<string | undefined>();
-  const [dialogOpen, setDialogOpen] = useState(false);
+// 画面上に表示するオプション機能のホワイトリスト（暫定。仕様確定前につき UI フィルタのみ）
+const VISIBLE_OPTION_KEYS = new Set([
+  "line_integration",
+  "point",
+  "advertising",
+  "analytics",
+  "ec_shop",
+  "skill_share",
+  "orientation",
+]);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <PermissionFilter value={featureKeyFilter} onChange={setFeatureKeyFilter} />
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          権限を追加
-        </Button>
-      </div>
-      <PermissionsTable featureKeyFilter={featureKeyFilter} />
-      <PermissionDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-    </div>
-  );
-}
+function OptionsTab() {
+  const { data: options, isLoading } = useOptions();
+  const toggle = useToggleOption();
+  const [pendingDisable, setPendingDisable] = useState<{
+    featureKey: string;
+    featureName: string;
+  } | null>(null);
 
-const TYPE_LABELS: Record<string, string> = {
-  text: "テキスト",
-  number: "数値",
-  date: "日付",
-  select: "単一選択",
-  multi_select: "複数選択",
-};
+  const visibleOptions = options?.filter((opt) => VISIBLE_OPTION_KEYS.has(opt.featureKey));
 
-function AttributesTab() {
-  const { data: attributes, isLoading } = useMemberAttributes();
-  const createAttr = useCreateMemberAttribute();
-  const updateAttr = useUpdateMemberAttribute();
-  const deleteAttr = useDeleteMemberAttribute();
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAttr, setEditingAttr] = useState<MemberAttribute | null>(null);
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [type, setType] = useState<string>("text");
-  const [optionsText, setOptionsText] = useState("");
-  const [isRequired, setIsRequired] = useState(false);
-
-  const openCreate = () => {
-    setEditingAttr(null);
-    setName("");
-    setSlug("");
-    setType("text");
-    setOptionsText("");
-    setIsRequired(false);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (attr: MemberAttribute) => {
-    setEditingAttr(attr);
-    setName(attr.name);
-    setSlug(attr.slug);
-    setType(attr.type);
-    setOptionsText(attr.options?.join(", ") ?? "");
-    setIsRequired(attr.isRequired);
-    setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    const options =
-      type === "select" || type === "multi_select"
-        ? optionsText
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : undefined;
-
-    if (editingAttr) {
-      updateAttr.mutate(
-        { id: editingAttr.id, data: { name, options, isRequired } },
-        { onSuccess: () => setDialogOpen(false) },
-      );
-    } else {
-      createAttr.mutate(
-        {
-          name,
-          slug,
-          type: type as "text" | "number" | "date" | "select" | "multi_select",
-          options,
-          isRequired,
-        },
-        { onSuccess: () => setDialogOpen(false) },
-      );
+  const handleToggle = (featureKey: string, featureName: string, nextAvailable: boolean) => {
+    if (!nextAvailable) {
+      setPendingDisable({ featureKey, featureName });
+      return;
     }
+    toggle.mutate({ featureKey, isAvailable: true });
+  };
+
+  const confirmDisable = () => {
+    if (!pendingDisable) return;
+    toggle.mutate({ featureKey: pendingDisable.featureKey, isAvailable: false });
+    setPendingDisable(null);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          メンバーに割り当てるカスタム属性を管理します
-        </p>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新規追加
-        </Button>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        オプション機能の利用可否を切り替えます。利用不可にすると全ユーザーから該当機能が非表示になります。
+      </p>
 
       {isLoading ? (
         <p className="py-12 text-center text-muted-foreground">読み込み中...</p>
-      ) : !attributes?.length ? (
-        <p className="py-12 text-center text-muted-foreground">カスタム属性がありません</p>
+      ) : !visibleOptions?.length ? (
+        <p className="py-12 text-center text-muted-foreground">オプション機能がありません</p>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>属性名</TableHead>
-              <TableHead>スラッグ</TableHead>
-              <TableHead>タイプ</TableHead>
-              <TableHead>必須</TableHead>
-              <TableHead>選択肢</TableHead>
-              <TableHead className="w-24" />
+              <TableHead>機能名</TableHead>
+              <TableHead>説明</TableHead>
+              <TableHead className="w-24">状態</TableHead>
+              <TableHead className="w-28">利用可否</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {attributes.map((attr) => (
-              <TableRow key={attr.id}>
-                <TableCell className="font-medium">{attr.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{attr.slug}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{TYPE_LABELS[attr.type] ?? attr.type}</Badge>
-                </TableCell>
-                <TableCell>{attr.isRequired ? "必須" : "-"}</TableCell>
+            {visibleOptions.map((opt) => (
+              <TableRow key={opt.featureKey}>
+                <TableCell className="font-medium">{opt.featureName}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {(attr.options as string[] | null)?.join(", ") ?? "-"}
+                  {opt.description ?? "-"}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(attr)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>属性を削除しますか？</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            「{attr.name}」を削除すると、全メンバーのこの属性値も削除されます。
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteAttr.mutate(attr.id)}>
-                            削除する
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                  <Badge variant={opt.isAvailable ? "default" : "outline"}>
+                    {opt.isAvailable ? "利用可" : "利用不可"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={opt.isAvailable}
+                    disabled={toggle.isPending}
+                    onCheckedChange={(next) => handleToggle(opt.featureKey, opt.featureName, next)}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -255,75 +135,25 @@ function AttributesTab() {
         </Table>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingAttr ? "属性を編集" : "新規属性"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>属性名</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="例: 入会動機"
-              />
-            </div>
-            {!editingAttr && (
-              <>
-                <div>
-                  <Label>スラッグ（変更不可）</Label>
-                  <Input
-                    value={slug}
-                    onChange={(e) =>
-                      setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
-                    }
-                    placeholder="例: join_reason"
-                  />
-                </div>
-                <div>
-                  <Label>タイプ（変更不可）</Label>
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">テキスト</SelectItem>
-                      <SelectItem value="number">数値</SelectItem>
-                      <SelectItem value="date">日付</SelectItem>
-                      <SelectItem value="select">単一選択</SelectItem>
-                      <SelectItem value="multi_select">複数選択</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-            {(type === "select" || type === "multi_select") && (
-              <div>
-                <Label>選択肢（カンマ区切り）</Label>
-                <Input
-                  value={optionsText}
-                  onChange={(e) => setOptionsText(e.target.value)}
-                  placeholder="例: 初級, 中級, 上級"
-                />
-              </div>
-            )}
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={isRequired} onCheckedChange={(v) => setIsRequired(v === true)} />
-              必須にする
-            </label>
-            <Button
-              onClick={handleSave}
-              disabled={
-                !name || (!editingAttr && !slug) || createAttr.isPending || updateAttr.isPending
-              }
-              className="w-full"
-            >
-              {editingAttr ? "更新" : "作成"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog
+        open={!!pendingDisable}
+        onOpenChange={(open) => !open && setPendingDisable(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>オプション機能を利用不可にしますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{pendingDisable?.featureName}
+              」を利用不可にすると、該当機能が全ユーザーから非表示になります。
+              再度利用可能にするまで、関連する画面・API は使用できません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDisable}>利用不可にする</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

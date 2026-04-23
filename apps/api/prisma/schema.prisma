@@ -942,15 +942,16 @@ enum AttributeType {
 // --- Models ---
 
 model MemberAttribute {
-  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String        @db.VarChar(100)
-  slug       String        @unique @db.VarChar(100)
-  type       AttributeType
-  options    Json?         @db.JsonB
-  isRequired Boolean       @default(false) @map("is_required")
-  sortOrder  Int           @default(0) @map("sort_order")
-  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String        @db.VarChar(100)
+  slug           String        @unique @db.VarChar(100)
+  type           AttributeType
+  options        Json?         @db.JsonB
+  isRequired     Boolean       @default(false) @map("is_required")
+  isSelfEditable Boolean       @default(false) @map("is_self_editable")
+  sortOrder      Int           @default(0) @map("sort_order")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   values MemberAttributeValue[]

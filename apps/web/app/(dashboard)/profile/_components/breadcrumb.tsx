@@ -6,6 +6,12 @@ import { PROFILE_NAV_ITEMS, PROFILE_SETTINGS_ITEMS } from "@/lib/profile-navigat
 
 const ALL_ITEMS = [...PROFILE_NAV_ITEMS, ...PROFILE_SETTINGS_ITEMS];
 
+const EXTRA_LABELS: Record<string, string> = {
+  edit: "プロフィール編集",
+  "public-info": "公開情報編集",
+  attributes: "カスタム属性編集",
+};
+
 export function ProfileBreadcrumb() {
   const pathname = usePathname();
 
@@ -13,6 +19,20 @@ export function ProfileBreadcrumb() {
   const current = ALL_ITEMS.find((item) =>
     item.segment === "" ? segment === "" : segment.startsWith(item.segment),
   );
+
+  const extraLabel = EXTRA_LABELS[segment];
+
+  if (extraLabel) {
+    return (
+      <Breadcrumb
+        items={[
+          { label: "ホーム", href: "/dashboard" },
+          { label: "マイページ", href: "/profile" },
+          { label: extraLabel },
+        ]}
+      />
+    );
+  }
 
   if (current && current.segment !== "") {
     return (

@@ -54,34 +54,19 @@ export interface ToggleFeatureInput {
   isEnabled: boolean;
 }
 
-// --- Permissions ---
+// --- Options (optional feature availability) ---
 
-export interface PermissionSetting {
-  id: string;
+export interface OptionFeature {
   featureKey: string;
-  action: string;
-  allowedRoles: string[];
-  requiredRankId: string | null;
-  featureSetting: {
-    featureName: string;
-    category: "common" | "optional";
-  };
-  requiredRank: {
-    name: string;
-    slug: string;
-  } | null;
+  featureName: string;
+  isAvailable: boolean;
+  isEnabled: boolean;
+  description: string | null;
+  sortOrder: number;
 }
 
-export interface CreatePermissionInput {
-  featureKey: string;
-  action: string;
-  allowedRoles: string[];
-  requiredRankId?: string;
-}
-
-export interface UpdatePermissionInput {
-  allowedRoles?: string[];
-  requiredRankId?: string | null;
+export interface ToggleOptionInput {
+  isAvailable: boolean;
 }
 
 // --- Pagination ---
@@ -548,6 +533,7 @@ export interface MemberAttribute {
   type: "text" | "number" | "date" | "select" | "multi_select";
   options: string[] | null;
   isRequired: boolean;
+  isSelfEditable: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -560,15 +546,18 @@ export interface UserAttributeValue {
   type: string;
   options: string[] | null;
   isRequired: boolean;
+  isSelfEditable: boolean;
   value: string | null;
 }
 
 export interface CreateMemberAttributeInput {
   name: string;
-  slug: string;
+  /** 省略時はサーバ側で attr_{N} として自動採番 */
+  slug?: string;
   type: "text" | "number" | "date" | "select" | "multi_select";
   options?: string[];
   isRequired?: boolean;
+  isSelfEditable?: boolean;
   sortOrder?: number;
 }
 
@@ -576,6 +565,7 @@ export interface UpdateMemberAttributeInput {
   name?: string;
   options?: string[];
   isRequired?: boolean;
+  isSelfEditable?: boolean;
 }
 
 export interface SetAttributeValueItem {

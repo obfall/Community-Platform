@@ -159,6 +159,38 @@ export class AuthService {
     this.emailService.sendPasswordResetEmail(user.email, token);
   }
 
+  /**
+   * 管理者による強制パスワードリセット発行。
+   * 既存の未使用トークンを無効化し、新規トークンを発行してメール送信する。
+   */
+  async issuePasswordResetForUser(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
+      select: { id: true, email: true },
+    });
+    if (!user) return;
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = this.hashToken(token);
+
+    await this.prisma.$transaction([
+      // 既存の未使用トークンを使用済みにして失効
+      this.prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      }),
+    ]);
+
+    this.emailService.sendPasswordResetEmail(user.email, token);
+  }
+
   async resetPassword(dto: ResetPasswordDto) {
     const tokenHash = this.hashToken(dto.token);
 

@@ -38,11 +38,25 @@ export const usersApi = {
   updateStatus: (id: string, status: string) =>
     apiClient.patch<UserListItem>(`/users/${id}/status`, { status }).then((r) => r.data),
 
+  forcePasswordReset: (id: string) =>
+    apiClient.post<{ success: true }>(`/users/${id}/force-password-reset`).then((r) => r.data),
+
+  updateEmail: (id: string, email: string) =>
+    apiClient.patch<UserDetail>(`/users/${id}/email`, { email }).then((r) => r.data),
+
   getUserAttributes: (id: string) =>
     apiClient.get<UserAttributeValue[]>(`/users/${id}/attributes`).then((r) => r.data),
 
   setUserAttributes: (id: string, values: SetAttributeValueItem[]) =>
-    apiClient.put<UserAttributeValue[]>(`/users/${id}/attributes`, { values }).then((r) => r.data),
+    apiClient
+      .patch<UserAttributeValue[]>(`/users/${id}/attributes`, { values })
+      .then((r) => r.data),
+
+  getMyAttributes: () =>
+    apiClient.get<UserAttributeValue[]>("/users/me/attributes").then((r) => r.data),
+
+  setMyAttributes: (values: SetAttributeValueItem[]) =>
+    apiClient.patch<UserAttributeValue[]>("/users/me/attributes", { values }).then((r) => r.data),
 
   exportCsv: () => apiClient.get("/users/export/csv", { responseType: "blob" }).then((r) => r.data),
 

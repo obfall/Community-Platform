@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { memberAttributesApi } from "@/lib/api/member-attributes";
-import type { CreateMemberAttributeInput, UpdateMemberAttributeInput } from "@/lib/api/types";
+import { usersApi } from "@/lib/api/members";
+import type {
+  CreateMemberAttributeInput,
+  UpdateMemberAttributeInput,
+  SetAttributeValueItem,
+} from "@/lib/api/types";
 
 export function useMemberAttributes() {
   return useQuery({
@@ -45,5 +50,25 @@ export function useDeleteMemberAttribute() {
       toast.success("属性を削除しました");
     },
     onError: () => toast.error("属性の削除に失敗しました"),
+  });
+}
+
+export function useMyAttributes() {
+  return useQuery({
+    queryKey: ["users", "me", "attributes"],
+    queryFn: () => usersApi.getMyAttributes(),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSetMyAttributes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (values: SetAttributeValueItem[]) => usersApi.setMyAttributes(values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", "me", "attributes"] });
+      toast.success("カスタム属性を保存しました");
+    },
+    onError: () => toast.error("カスタム属性の保存に失敗しました"),
   });
 }

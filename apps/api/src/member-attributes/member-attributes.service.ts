@@ -32,21 +32,38 @@ export class MemberAttributesService {
       throw new BadRequestException("select/multi_select タイプには options が必要です");
     }
 
-    const existing = await this.prisma.memberAttribute.findUnique({
-      where: { slug: dto.slug },
-    });
-    if (existing) throw new ConflictException("このスラッグは既に使用されています");
+    let slug = dto.slug;
+    if (slug) {
+      const existing = await this.prisma.memberAttribute.findUnique({ where: { slug } });
+      if (existing) throw new ConflictException("このスラッグは既に使用されています");
+    } else {
+      slug = await this.generateNextSlug();
+    }
 
     return this.prisma.memberAttribute.create({
       data: {
         name: dto.name,
-        slug: dto.slug,
+        slug,
         type: dto.type,
         options: dto.options ?? undefined,
         isRequired: dto.isRequired ?? false,
+        isSelfEditable: dto.isSelfEditable ?? false,
         sortOrder: dto.sortOrder ?? 0,
       },
     });
+  }
+
+  /** attr_{N} 形式のスラッグを採番（既存の最大値+1、欠番は再利用しない） */
+  private async generateNextSlug(): Promise<string> {
+    const rows = await this.prisma.memberAttribute.findMany({
+      where: { slug: { startsWith: "attr_" } },
+      select: { slug: true },
+    });
+    const maxNum = rows.reduce((max, { slug }) => {
+      const n = Number.parseInt(slug.slice("attr_".length), 10);
+      return Number.isFinite(n) && n > max ? n : max;
+    }, 0);
+    return `attr_${maxNum + 1}`;
   }
 
   /** 属性定義更新（type/slug 変更不可） */
@@ -60,6 +77,7 @@ export class MemberAttributesService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.options !== undefined && { options: dto.options }),
         ...(dto.isRequired !== undefined && { isRequired: dto.isRequired }),
+        ...(dto.isSelfEditable !== undefined && { isSelfEditable: dto.isSelfEditable }),
       },
     });
   }
@@ -102,6 +120,7 @@ export class MemberAttributesService {
       type: attr.type,
       options: attr.options as string[] | null,
       isRequired: attr.isRequired,
+      isSelfEditable: attr.isSelfEditable,
       value: valueMap.get(attr.id) ?? null,
     }));
   }
@@ -126,6 +145,44 @@ export class MemberAttributesService {
     }
 
     // upsert
+    await this.prisma.$transaction(
+      dto.values.map((item) => {
+        if (item.value === null) {
+          return this.prisma.memberAttributeValue.deleteMany({
+            where: { userId, attributeId: item.attributeId },
+          });
+        }
+        return this.prisma.memberAttributeValue.upsert({
+          where: {
+            userId_attributeId: { userId, attributeId: item.attributeId },
+          },
+          update: { value: item.value },
+          create: { userId, attributeId: item.attributeId, value: item.value },
+        });
+      }),
+    );
+
+    return this.getUserAttributes(userId);
+  }
+
+  /** メンバー自身による属性値更新（isSelfEditable=true のみ許可） */
+  async setSelfAttributes(userId: string, dto: SetAttributeValuesDto) {
+    const attributes = await this.prisma.memberAttribute.findMany();
+    const attrMap = new Map(attributes.map((a) => [a.id, a]));
+
+    for (const item of dto.values) {
+      const attr = attrMap.get(item.attributeId);
+      if (!attr) throw new BadRequestException(`属性ID ${item.attributeId} が見つかりません`);
+
+      if (!attr.isSelfEditable) {
+        throw new BadRequestException(`${attr.name} はメンバーが編集できません`);
+      }
+
+      if (attr.isRequired && (item.value === null || item.value === "")) {
+        throw new BadRequestException(`${attr.name} は必須です`);
+      }
+    }
+
     await this.prisma.$transaction(
       dto.values.map((item) => {
         if (item.value === null) {

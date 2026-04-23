@@ -18,4 +18,9 @@ export class UpdateMemberAttributeDto {
   @IsOptional()
   @IsBoolean()
   isRequired?: boolean;
+
+  @ApiPropertyOptional({ description: "メンバー自身による編集を許可" })
+  @IsOptional()
+  @IsBoolean()
+  isSelfEditable?: boolean;
 }
