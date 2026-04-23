@@ -3,22 +3,18 @@
 import Link from "next/link";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useEvents } from "@/hooks/events/use-events";
-import { useContents } from "@/hooks/content/use-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, FileText, ArrowRight, MapPin, Clock } from "lucide-react";
+import { CalendarDays, ArrowRight, MapPin, Clock } from "lucide-react";
 import { PendingSurveysWidget } from "@/components/surveys/pending-surveys-widget";
+import { AnnouncementsWidget } from "@/components/notifications/announcements-widget";
+import { UpcomingScheduleWidget } from "@/components/calendar/upcoming-schedule-widget";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { data: eventsData, isLoading: eventsLoading } = useEvents({
     limit: 3,
-    status: "published",
-  });
-  const { data: contentsData, isLoading: contentsLoading } = useContents({
-    limit: 3,
-    publishStatus: "published",
+    status: "recruiting",
   });
 
   const upcomingEvents = (eventsData?.data ?? eventsData ?? []) as Array<{
@@ -29,18 +25,6 @@ export default function DashboardPage() {
     locationType: string;
     status: string;
   }>;
-
-  const recentContents = (contentsData?.data ?? contentsData ?? []) as Array<{
-    id: string;
-    name: string;
-    contentType: string;
-    createdAt: string;
-  }>;
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric", weekday: "short" });
-  };
 
   const formatDateTime = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -53,20 +37,13 @@ export default function DashboardPage() {
     });
   };
 
-  const contentTypeLabel = (type: string) => {
-    const map: Record<string, string> = {
-      article: "記事",
-      document: "ドキュメント",
-      page: "ページ",
-    };
-    return map[type] ?? type;
-  };
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">ようこそ{user?.name ? `、${user.name}さん` : ""}</h1>
 
       <PendingSurveysWidget />
+
+      <AnnouncementsWidget />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* 今後のイベント */}
@@ -113,48 +90,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* 新着コンテンツ */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5" />
-              新着コンテンツ
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/content">
-                すべて見る <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {contentsLoading ? (
-              <p className="text-sm text-muted-foreground">読み込み中...</p>
-            ) : recentContents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">コンテンツはありません</p>
-            ) : (
-              <ul className="space-y-3">
-                {recentContents.slice(0, 3).map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/content/${c.id}`}
-                      className="block rounded-md p-2 hover:bg-accent"
-                    >
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{c.name}</p>
-                        <Badge variant="secondary" className="text-xs">
-                          {contentTypeLabel(c.contentType)}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatDate(c.createdAt)}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        {/* 今日・今週の予定 */}
+        <UpcomingScheduleWidget />
       </div>
     </div>
   );

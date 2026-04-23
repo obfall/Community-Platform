@@ -43,6 +43,7 @@ export class NotificationsService {
     const where = {
       userId,
       ...(query.unreadOnly && { isRead: false }),
+      ...(query.type && query.type.length > 0 && { type: { in: query.type } }),
     };
 
     const [notifications, total] = await Promise.all([

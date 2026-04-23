@@ -343,6 +343,19 @@ export class SurveysService {
         deletedAt: null,
         status: "active",
         id: respondedIds.length > 0 ? { notIn: respondedIds } : undefined,
+        OR: [
+          { eventId: null },
+          {
+            event: {
+              participants: {
+                some: {
+                  userId,
+                  status: { in: ["applied", "confirmed", "attended"] },
+                },
+              },
+            },
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: 10,

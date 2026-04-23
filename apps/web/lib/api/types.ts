@@ -319,6 +319,7 @@ export interface NotificationQuery {
   page?: number;
   limit?: number;
   unreadOnly?: boolean;
+  type?: string | string[];
 }
 
 export interface UnreadCount {
