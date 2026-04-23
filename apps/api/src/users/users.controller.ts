@@ -2,12 +2,15 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Put,
   Body,
   Param,
   Query,
   ParseUUIDPipe,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
@@ -20,6 +23,7 @@ import {
   UpdateAffiliationsDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
+  UpdateUserEmailDto,
 } from "./dto";
 import { CurrentUser, Roles } from "@/common/decorators";
 import { RolesGuard } from "@/common/guards/roles.guard";
@@ -136,5 +140,29 @@ export class UsersController {
     @Body() dto: UpdateUserStatusDto,
   ) {
     return this.usersService.updateStatus(id, currentUser, dto);
+  }
+
+  @Post(":id/force-password-reset")
+  @Roles("admin", "owner")
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "パスワード強制リセット（管理者専用）" })
+  forcePasswordReset(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: { id: string; role: string },
+  ) {
+    return this.usersService.forcePasswordReset(id, currentUser);
+  }
+
+  @Patch(":id/email")
+  @Roles("admin", "owner")
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: "ユーザーメールアドレス変更（管理者専用）" })
+  updateEmail(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Body() dto: UpdateUserEmailDto,
+  ) {
+    return this.usersService.updateEmail(id, currentUser, dto);
   }
 }

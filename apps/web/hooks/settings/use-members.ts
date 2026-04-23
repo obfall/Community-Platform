@@ -45,6 +45,34 @@ export function useUpdateUserStatus() {
   });
 }
 
+export function useForcePasswordReset() {
+  return useMutation({
+    mutationFn: (id: string) => usersApi.forcePasswordReset(id),
+    onSuccess: () => toast.success("パスワードリセットメールを送信しました"),
+    onError: () => toast.error("パスワードリセットに失敗しました"),
+  });
+}
+
+export function useUpdateUserEmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, email }: { id: string; email: string }) => usersApi.updateEmail(id, email),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["users", variables.id] });
+      toast.success("メールアドレスを変更しました");
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error && "response" in err
+          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+            "メールアドレスの変更に失敗しました")
+          : "メールアドレスの変更に失敗しました";
+      toast.error(message);
+    },
+  });
+}
+
 export function useUserAttributes(userId: string | undefined) {
   return useQuery({
     queryKey: ["users", userId, "attributes"],

@@ -16,6 +16,7 @@ import {
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
 import { Roles } from "@/common/decorators/roles.decorator";
+import { CurrentUser } from "@/common/decorators";
 import { RolesGuard } from "@/common/guards";
 import { MemberAttributesService } from "./member-attributes.service";
 import { CreateMemberAttributeDto } from "./dto/create-member-attribute.dto";
@@ -126,8 +127,22 @@ export class UserAttributesController {
     return new StreamableFile(Buffer.from(csvContent, "utf-8"));
   }
 
+  @Get("me/attributes")
+  @ApiOperation({ summary: "自分の属性値一覧" })
+  getMyAttributes(@CurrentUser("id") userId: string) {
+    return this.service.getUserAttributes(userId);
+  }
+
+  @Patch("me/attributes")
+  @ApiOperation({ summary: "自分の属性値を更新（メンバー編集可のみ）" })
+  setMyAttributes(@CurrentUser("id") userId: string, @Body() dto: SetAttributeValuesDto) {
+    return this.service.setSelfAttributes(userId, dto);
+  }
+
   @Get(":id/attributes")
-  @ApiOperation({ summary: "ユーザーの属性値一覧" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
+  @ApiOperation({ summary: "ユーザーの属性値一覧（管理者専用）" })
   getUserAttributes(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.getUserAttributes(id);
   }

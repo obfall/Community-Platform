@@ -13,4 +13,9 @@ export class EmailService {
     this.logger.log(`[MOCK] Password reset email to: ${email}`);
     this.logger.log(`[MOCK] Reset token: ${token}`);
   }
+
+  sendEmailChangeNotification(recipientEmail: string, newEmail: string): void {
+    // TODO: Replace with Resend integration
+    this.logger.log(`[MOCK] Email change notification to: ${recipientEmail} (new: ${newEmail})`);
+  }
 }

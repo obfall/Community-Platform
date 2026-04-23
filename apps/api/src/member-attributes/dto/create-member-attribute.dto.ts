@@ -17,11 +17,15 @@ export class CreateMemberAttributeDto {
   @MaxLength(100)
   name!: string;
 
-  @ApiProperty({ description: "スラッグ（英数字・アンダースコア）", maxLength: 100 })
+  @ApiPropertyOptional({
+    description: "スラッグ（指定省略時は attr_{N} で自動採番）",
+    maxLength: 100,
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   @Matches(/^[a-z0-9_]+$/, { message: "slugは英小文字・数字・アンダースコアのみ使用可能です" })
-  slug!: string;
+  slug?: string;
 
   @ApiProperty({ enum: AttributeType, description: "属性タイプ" })
   @IsEnum(AttributeType)
@@ -37,6 +41,11 @@ export class CreateMemberAttributeDto {
   @IsOptional()
   @IsBoolean()
   isRequired?: boolean;
+
+  @ApiPropertyOptional({ description: "メンバー自身による編集を許可" })
+  @IsOptional()
+  @IsBoolean()
+  isSelfEditable?: boolean;
 
   @ApiPropertyOptional({ description: "表示順" })
   @IsOptional()

@@ -1,6 +1,13 @@
-import { Injectable, ForbiddenException, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
+import { AuthService } from "@/auth/auth.service";
+import { EmailService } from "@/broadcasts/email.service";
 import type { UserListQueryDto } from "./dto/user-list-query.dto";
 import type { UpdateProfileDto } from "./dto/update-profile.dto";
 import type { UpdatePublicInfoDto } from "./dto/update-public-info.dto";
@@ -9,10 +16,15 @@ import type { UpdateLanguagesDto } from "./dto/update-languages.dto";
 import type { UpdateAffiliationsDto } from "./dto/update-affiliations.dto";
 import type { UpdateUserRoleDto } from "./dto/update-user-role.dto";
 import type { UpdateUserStatusDto } from "./dto/update-user-status.dto";
+import type { UpdateUserEmailDto } from "./dto/update-user-email.dto";
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async findAll(query: UserListQueryDto) {
     const page = query.page ?? 1;
@@ -276,6 +288,56 @@ export class UsersService {
       data: { status: dto.status },
       select: { id: true, email: true, name: true, role: true, status: true },
     });
+  }
+
+  async forcePasswordReset(targetUserId: string, currentUser: { id: string; role: string }) {
+    await this.validateAdminAction(targetUserId, currentUser);
+    await this.authService.issuePasswordResetForUser(targetUserId);
+    return { success: true };
+  }
+
+  async updateEmail(
+    targetUserId: string,
+    currentUser: { id: string; role: string },
+    dto: UpdateUserEmailDto,
+  ) {
+    const target = await this.validateAdminAction(targetUserId, currentUser);
+
+    const current = await this.prisma.user.findUniqueOrThrow({
+      where: { id: target.id },
+      select: { email: true },
+    });
+
+    if (current.email === dto.email) {
+      return this.findOne(target.id);
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException("このメールアドレスは既に使用されています");
+    }
+
+    const oldEmail = current.email;
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: target.id },
+        data: { email: dto.email, emailVerifiedAt: null },
+      }),
+      // 旧メール経由のセッションを無効化
+      this.prisma.refreshToken.updateMany({
+        where: { userId: target.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    this.emailService.sendEmailChangeNotification(oldEmail, dto.email);
+    this.emailService.sendEmailChangeNotification(dto.email, dto.email);
+
+    return this.findOne(target.id);
   }
 
   private async validateAdminAction(

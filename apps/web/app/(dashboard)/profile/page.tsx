@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MapPin, Star, Pencil, CalendarDays } from "lucide-react";
+import { SelfAttributesView } from "./_components/self-attributes-view";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "運営者",
@@ -286,6 +287,8 @@ export default function MyPage() {
           )}
         </CardContent>
       </Card>
+
+      <SelfAttributesView />
     </div>
   );
 }
