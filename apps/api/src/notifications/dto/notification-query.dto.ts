@@ -15,8 +15,8 @@ export class NotificationQueryDto extends PaginationQueryDto {
   })
   @IsOptional()
   @IsString({ each: true })
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) return value;
+  @Transform(({ value }: { value: unknown }) => {
+    if (Array.isArray(value)) return value.map((v) => String(v));
     if (typeof value === "string")
       return value
         .split(",")
