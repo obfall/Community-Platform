@@ -540,6 +540,32 @@ async function main() {
     });
   }
   console.log(`Seeded ${memberAttributes.length} member attributes`);
+
+  // --- Permission Settings ---
+  // baseline squash で失われる `20260420000000_shop_permission_seeds` マイグレ相当を吸収
+  const permissionSettings = [
+    {
+      featureKey: "ec_shop",
+      action: "create_product",
+      allowedRoles: ["owner", "admin"],
+    },
+    {
+      featureKey: "ec_shop",
+      action: "manage_all_products",
+      allowedRoles: ["owner", "admin"],
+    },
+  ];
+
+  for (const perm of permissionSettings) {
+    await prisma.permissionSetting.upsert({
+      where: {
+        featureKey_action: { featureKey: perm.featureKey, action: perm.action },
+      },
+      update: {},
+      create: perm,
+    });
+  }
+  console.log(`Seeded ${permissionSettings.length} permission settings`);
 }
 
 main()
