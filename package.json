@@ -19,6 +19,9 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "generate-feature-list": "node scripts/generate-feature-list.js",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000",
+    "db:seed:demo": "pnpm --filter @community-platform/api db:seed:demo",
+    "db:reset:demo": "pnpm --filter @community-platform/api db:reset:demo",
     "prepare": "husky"
   },
   "lint-staged": {
