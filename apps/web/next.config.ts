@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
       { source: "/announcements/:id", destination: "/broadcasts", permanent: true },
     ];
   },
+  async rewrites() {
+    const backend = process.env.API_PROXY_TARGET;
+    if (!backend) return [];
+    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
