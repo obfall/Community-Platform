@@ -22,6 +22,9 @@
     "tunnel": "cloudflared tunnel --url http://localhost:3000",
     "db:seed:demo": "pnpm --filter @community-platform/api db:seed:demo",
     "db:reset:demo": "pnpm --filter @community-platform/api db:reset:demo",
+    "e2e": "pnpm --filter @community-platform/web e2e",
+    "e2e:ui": "pnpm --filter @community-platform/web e2e:ui",
+    "e2e:report": "pnpm --filter @community-platform/web e2e:report",
     "prepare": "husky"
   },
   "lint-staged": {

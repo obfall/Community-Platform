@@ -37,6 +37,12 @@ pnpm-debug.log*
 # テスト
 coverage/
 
+# Playwright (E2E テスト)
+apps/web/e2e/test-results/
+apps/web/e2e/playwright-report/
+apps/web/e2e/.playwright/
+apps/web/e2e/.auth/
+
 # Docker
 docker-compose.override.yml
 

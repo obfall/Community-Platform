@@ -7,6 +7,7 @@ import { seedVideos } from "./seeders/05-videos";
 import { seedEngagement } from "./seeders/06-engagement";
 import { seedCommerce } from "./seeders/07-commerce";
 import { seedMisc } from "./seeders/08-misc";
+import { seedE2EUsers } from "./seeders/09-e2e-users";
 import { setSeed } from "./helpers/random";
 
 const DEMO_EMAIL_SUFFIX = "@test.com";
@@ -150,6 +151,8 @@ export async function runDemoSeed(prisma: PrismaClient): Promise<void> {
   await truncateDemoData(prisma);
 
   await seedFoundation(prisma);
+  console.log("  [09-e2e-users] e2e専用ユーザー");
+  await seedE2EUsers(prisma);
   await seedCommunication(prisma);
   await seedEvents(prisma);
   await seedProjects(prisma);
