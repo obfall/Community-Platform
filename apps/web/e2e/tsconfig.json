@@ -6,5 +6,6 @@
     "noEmit": true,
     "types": ["@playwright/test", "node"]
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["test-results", "playwright-report", ".auth"]
 }

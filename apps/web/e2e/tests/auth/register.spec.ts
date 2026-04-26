@@ -1,8 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-async function gotoRegister(page: import("@playwright/test").Page) {
+async function gotoRegister(page: Page) {
   await page.goto("/register");
   await expect(page.getByLabel("名前")).toBeVisible({ timeout: 60_000 });
   await page.waitForLoadState("networkidle");

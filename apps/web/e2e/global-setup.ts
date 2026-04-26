@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- E2E setup logs are intentional progress output */
 import { execSync } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
