@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium, type FullConfig } from "@playwright/test";
+import type { FullConfig } from "@playwright/test";
 import { saveAuthState } from "./fixtures/auth";
 
 const DEFAULT_E2E_DB_URL = "postgresql://postgres:postgres@localhost:5432/community_e2e";
@@ -42,14 +42,9 @@ async function resetDatabase(databaseUrl: string, directUrl: string): Promise<vo
 
 async function generateAuthStates(authDir: string, baseURL: string): Promise<void> {
   console.log("[global-setup] Generating storageState for admin / owner / member...");
-  const browser = await chromium.launch();
-  try {
-    await saveAuthState(browser, "admin", resolve(authDir, "admin.json"), baseURL);
-    await saveAuthState(browser, "owner", resolve(authDir, "owner.json"), baseURL);
-    await saveAuthState(browser, "member", resolve(authDir, "member.json"), baseURL);
-  } finally {
-    await browser.close();
-  }
+  await saveAuthState("admin", resolve(authDir, "admin.json"), baseURL);
+  await saveAuthState("owner", resolve(authDir, "owner.json"), baseURL);
+  await saveAuthState("member", resolve(authDir, "member.json"), baseURL);
   console.log("[global-setup] storageState generated");
 }
 
