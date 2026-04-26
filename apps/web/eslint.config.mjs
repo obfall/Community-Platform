@@ -6,7 +6,15 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: [".next/", "node_modules/", "dist/", ".turbo/"],
+    ignores: [
+      ".next/",
+      "node_modules/",
+      "dist/",
+      ".turbo/",
+      "e2e/test-results/",
+      "e2e/playwright-report/",
+      "e2e/.playwright/",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
