@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
-import { APP_FILTER, APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { SentryModule } from "@sentry/nestjs/setup";
 import { LoggerModule } from "nestjs-pino";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -40,6 +40,7 @@ import { UserLibraryModule } from "./user-library/user-library.module";
 import { UsageHistoryModule } from "./usage-history/usage-history.module";
 import { JwtAuthGuard } from "./common/guards";
 import { AllExceptionsFilter } from "./common/filters";
+import { SentryUserInterceptor } from "./common/interceptors";
 import { validateEnv } from "./config/env.config";
 
 @Module({
@@ -212,6 +213,11 @@ import { validateEnv } from "./config/env.config";
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Sentry に認証ユーザー id を紐付け（PII 回避のため id のみ）
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryUserInterceptor,
     },
     AppService,
   ],
