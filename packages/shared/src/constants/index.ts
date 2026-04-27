@@ -12,3 +12,4 @@ export {
   PublishStatus,
   SortOrder,
 } from "./enums";
+export { ErrorCode } from "./error-codes";

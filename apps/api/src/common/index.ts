@@ -5,3 +5,4 @@ export * from "./pipes";
 export * from "./decorators";
 export * from "./dto";
 export * from "./constants";
+export * from "./exceptions";

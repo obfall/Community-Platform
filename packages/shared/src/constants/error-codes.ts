@@ -1,0 +1,41 @@
+// ============================================================
+// Error Codes
+// ============================================================
+// API レスポンスの `code` フィールドに入る定数。
+// フロント側で `error.code === ErrorCode.XXX` の分岐に使う。
+// 既存の as const + union 型パターンに揃えてある。
+
+export const ErrorCode = {
+  // 共通
+  INTERNAL_ERROR: "INTERNAL_ERROR",
+  VALIDATION_FAILED: "VALIDATION_FAILED",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  NOT_FOUND: "NOT_FOUND",
+  CONFLICT: "CONFLICT",
+  RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
+  PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE",
+  UNSUPPORTED_MEDIA_TYPE: "UNSUPPORTED_MEDIA_TYPE",
+
+  // ユーザー
+  USER_EMAIL_ALREADY_EXISTS: "USER_EMAIL_ALREADY_EXISTS",
+  USER_NOT_FOUND: "USER_NOT_FOUND",
+  USER_SUSPENDED: "USER_SUSPENDED",
+
+  // 認証
+  AUTH_INVALID_CREDENTIALS: "AUTH_INVALID_CREDENTIALS",
+  AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",
+  AUTH_TOKEN_INVALID: "AUTH_TOKEN_INVALID",
+
+  // イベント
+  EVENT_CAPACITY_EXCEEDED: "EVENT_CAPACITY_EXCEEDED",
+  EVENT_REGISTRATION_CLOSED: "EVENT_REGISTRATION_CLOSED",
+
+  // ポイント
+  POINT_INSUFFICIENT_BALANCE: "POINT_INSUFFICIENT_BALANCE",
+
+  // ファイル
+  FILE_TOO_LARGE: "FILE_TOO_LARGE",
+  FILE_INVALID_TYPE: "FILE_INVALID_TYPE",
+} as const;
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

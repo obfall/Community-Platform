@@ -1,14 +1,18 @@
 import "./instrument";
 
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe, Logger } from "@nestjs/common";
+import { HttpStatus, ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { Logger } from "nestjs-pino";
 import helmet from "helmet";
+import { ErrorCode } from "@community-platform/shared";
 import { AppModule } from "./app.module";
+import { BusinessException } from "./common/exceptions";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const logger = new Logger("Bootstrap");
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   // Security
   app.use(helmet());
@@ -32,6 +36,21 @@ async function bootstrap() {
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const errorDetails = errors.flatMap((e) =>
+          Object.entries(e.constraints ?? {}).map(([rule, message]) => ({
+            field: e.property,
+            rule,
+            message,
+          })),
+        );
+        return new BusinessException(
+          ErrorCode.VALIDATION_FAILED,
+          HttpStatus.BAD_REQUEST,
+          "入力内容に誤りがあります",
+          errorDetails,
+        );
       },
     }),
   );
