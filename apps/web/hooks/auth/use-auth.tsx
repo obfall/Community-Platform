@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Sentry from "@sentry/nextjs";
 import { authApi } from "@/lib/api/auth";
 import { setTokens, clearTokens, getAccessToken } from "@/lib/auth";
 import type { AuthUser, LoginInput, RegisterInput } from "@/lib/api/types";
@@ -27,6 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Sentry にユーザー id を紐付け（PII 回避のため id のみ）
+  useEffect(() => {
+    if (user?.id) {
+      Sentry.setUser({ id: user.id });
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [user?.id]);
 
   const login = useCallback(
     async (data: LoginInput) => {

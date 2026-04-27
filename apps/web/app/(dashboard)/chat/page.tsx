@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { io, type Socket } from "socket.io-client";
+import { toast } from "sonner";
+import * as Sentry from "@sentry/nextjs";
 import { useAuth } from "@/hooks/auth/use-auth";
 import {
   useChatRooms,
@@ -84,7 +86,22 @@ export default function ChatPage() {
     });
 
     socket.on("connect", () => {
-      // connected
+      toast.dismiss("ws-error");
+    });
+
+    socket.on("connect_error", (err) => {
+      toast.error("リアルタイム通信に接続できません", {
+        id: "ws-error",
+        description: "再接続を試みています…",
+      });
+      Sentry.captureException(err);
+    });
+
+    socket.on("disconnect", (reason) => {
+      // サーバー起因の切断は手動再接続が必要、クライアント起因は自動再接続される
+      if (reason === "io server disconnect") {
+        socket.connect();
+      }
     });
 
     socket.on("chat:message", (msg: ChatMessage) => {
@@ -106,7 +123,7 @@ export default function ChatPage() {
     });
 
     socket.on("chat:error", (data: { message: string }) => {
-      console.error("Chat error:", data.message);
+      toast.error(data.message || "チャットでエラーが発生しました", { id: "chat-error" });
     });
 
     socketRef.current = socket;

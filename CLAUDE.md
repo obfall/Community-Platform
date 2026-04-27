@@ -46,6 +46,16 @@ apps/api/src/recipes/              ← NestJS モジュール
   - もしくは新規作成が必要な理由（既存では満たせない要件）
   - 確認を得てから実装に着手する
 
+## エラーハンドリング規約（Phase 11.3 で確立）
+
+**新機能を実装する前に必ず `.claude/knowledge/error-handling-stack.md` を参照する**（4 層構成の設計思想・各層の判断理由・新機能実装時の判断フローを記載）。
+
+主な観点（詳細はナレッジへ）:
+
+- バック: 業務エラーは `BusinessException`、ログ出力・Sentry 送信・整形は `AllExceptionsFilter` が一元処理
+- フロント: API エラーのトーストはグローバル `QueryCache.onError` 任せ、個別 `onError + toast.error` を書かない
+- Sentry: `setUser` は id のみ、PII は `beforeSend` で再度スクラブ
+
 ## マイグレーション運用
 
 ### 新規テーブル追加時は RLS を必ず有効化する

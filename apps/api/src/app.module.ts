@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
-import { APP_FILTER, APP_GUARD } from "@nestjs/core";
-import { SentryModule, SentryGlobalFilter } from "@sentry/nestjs/setup";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { SentryModule } from "@sentry/nestjs/setup";
+import { LoggerModule } from "nestjs-pino";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -36,6 +39,8 @@ import { OrientationModule } from "./orientation/orientation.module";
 import { UserLibraryModule } from "./user-library/user-library.module";
 import { UsageHistoryModule } from "./usage-history/usage-history.module";
 import { JwtAuthGuard } from "./common/guards";
+import { AllExceptionsFilter } from "./common/filters";
+import { SentryUserInterceptor } from "./common/interceptors";
 import { validateEnv } from "./config/env.config";
 
 @Module({
@@ -47,6 +52,58 @@ import { validateEnv } from "./config/env.config";
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
+    }),
+
+    // Structured logging (pino)
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === "production" ? "info" : "debug",
+        // x-request-id を受信 or 自動生成し、レスポンスにも付与
+        genReqId: (req: IncomingMessage, res: ServerResponse) => {
+          const incoming = req.headers["x-request-id"];
+          const id = (Array.isArray(incoming) ? incoming[0] : incoming) ?? randomUUID();
+          res.setHeader("x-request-id", id);
+          return id;
+        },
+        // 機密情報はログから除外
+        redact: {
+          paths: [
+            "req.headers.authorization",
+            "req.headers.cookie",
+            "req.headers['set-cookie']",
+            "req.body.password",
+            "req.body.passwordHash",
+            "req.body.refreshToken",
+            "req.body.accessToken",
+            "*.password",
+            "*.passwordHash",
+            "*.token",
+            "*.secret",
+          ],
+          remove: true,
+        },
+        // ログのリクエスト/レスポンス表現を簡潔に
+        serializers: {
+          req: (req) => ({
+            id: req.id,
+            method: req.method,
+            url: req.url,
+          }),
+          res: (res) => ({ statusCode: res.statusCode }),
+        },
+        // 開発時は色付き整形、本番は JSON のまま
+        transport:
+          process.env.NODE_ENV !== "production"
+            ? {
+                target: "pino-pretty",
+                options: {
+                  colorize: true,
+                  translateTime: "SYS:HH:MM:ss",
+                  singleLine: true,
+                },
+              }
+            : undefined,
+      },
     }),
 
     // BullMQ（Redis が設定されている場合のみ有効）
@@ -147,15 +204,20 @@ import { validateEnv } from "./config/env.config";
   ],
   controllers: [AppController],
   providers: [
-    // Sentry global exception filter
+    // Global exception filter（統一レスポンス + 構造化ログ + Sentry 送信）
     {
       provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
+      useClass: AllExceptionsFilter,
     },
     // Global JWT auth guard (use @Public() to skip)
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Sentry に認証ユーザー id を紐付け（PII 回避のため id のみ）
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryUserInterceptor,
     },
     AppService,
   ],

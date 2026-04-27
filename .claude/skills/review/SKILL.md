@@ -54,10 +54,13 @@ allowed-tools: Read, Grep, Glob, Write, Bash
 13. **N+1回避**: Prisma の `include` / `select` が適切に使われ、不要なデータを取得していないか
 14. **トランザクション**: 複数テーブルの更新が `prisma.$transaction()` で包まれているか
 
-### エラーハンドリング
+### エラーハンドリング（Phase 11.3 規約）
 
-15. **標準例外**: NestJS標準例外（`NotFoundException`, `ForbiddenException`, `ConflictException`, `BadRequestException`）を使用しているか
-16. **エラーメッセージ**: ユーザーに内部情報を漏らすエラーメッセージがないか
+15. **BusinessException 使用**: 新規実装で業務エラーを投げる時、`BusinessException(ErrorCode.XXX, HttpStatus.YYY, "...")` を使っているか（NestJS 標準 `ConflictException` 等は新規では避ける、既存温存は OK）
+16. **ErrorCode の置き場所**: 新規 ErrorCode が `packages/shared/src/constants/error-codes.ts` に追加されているか（API/フロント共有のため）
+17. **二重出力禁止**: サービス内で `logger.error(...)` の直後に `throw` していないか（`AllExceptionsFilter` がログ出力・Sentry送信・統一レスポンス整形を一元的に行う）
+18. **Prisma エラー**: `try/catch` で Prisma エラーを掴んで独自処理していないか（`P2002`/`P2025`/`P2003` はフィルタが自動で 409/404/400 に変換するので投げっぱなしで OK）
+19. **エラーメッセージの情報漏洩**: ユーザーに内部情報（DB名・スタックトレース・内部 ID 等）を漏らすメッセージがないか
 
 ---
 
@@ -84,6 +87,14 @@ allowed-tools: Read, Grep, Glob, Write, Bash
 8. **エラー状態**: エラー発生時にユーザーにわかりやすいメッセージを表示しているか
 9. **空状態**: データが0件の場合に適切なメッセージを表示しているか
 10. **レスポンシブ**: モバイル表示に対応したスタイリングがあるか（Tailwind の `sm:`, `md:`, `lg:` 等）
+
+### エラーハンドリング（Phase 11.3 規約）
+
+11. **個別 onError + toast.error の禁止**: `useQuery` / `useMutation` で `onError: (e) => toast.error(...)` を新規で書いていないか（`providers.tsx` の `QueryCache.onError` がグローバルに表示するため重複になる）
+12. **silentError の適用**: フォーム送信などフィールド別エラー表示が必要な hook で `meta: { silentError: true }` を付けているか（グローバル onError を抑止して `extractApiError(error)` で `errors[]` を取り出す前提）
+13. **toast.error 直書きの ID**: どうしても直書きが必要な場合に `toast.error("...", { id: "..." })` で同一 ID を付けて重複抑止しているか
+14. **error.tsx 配備の判断**: 新規ドメイン（`app/(dashboard)/{feature}/`）で「ドメイン固有のリトライ文言が必要」と判断した場合のみ `{feature}/error.tsx` を配備しているか（共通フォールバックは `(dashboard)/error.tsx`、既存固有配備は events / board / videos / shop の 4 つ）
+15. **API エラーの構造化アクセス**: `error.message` 文字列比較ではなく `extractApiError(error)?.code === ErrorCode.XXX` で分岐しているか
 
 ---
 
@@ -130,32 +141,34 @@ allowed-tools: Read, Grep, Glob, Write, Bash
 25. **環境変数のハードコード禁止**: 文字列リテラルで API キー・URL・パスワードを直書きしていないか
 26. **`console.log` のステージング/本番混入**: デバッグ用 `console.log` を消し忘れていないか（特に機密データ出力）
 27. **エラーメッセージから情報漏洩**: 「ユーザーが存在しません」と「パスワードが違います」を区別しない（メール総当たり対策）
+28. **Sentry.setUser の PII**: `Sentry.setUser({ ... })` に `email` / `username` / `name` を渡していないか（`id` のみが規約。`use-auth.tsx` と `SentryUserInterceptor` のみが setUser を呼ぶ唯一の正規ルート）
+29. **Sentry beforeSend の迂回**: `Sentry.captureException(err, { extra: { ... } })` の `extra` に password / token / authorization 系のフィールドを直接入れていないか（`PII_KEY_PATTERN` でスクラブされるが、新規キー名は正規表現に追加が必要）
 
 ### SQL インジェクション
 
-28. **`$queryRaw` / `$executeRaw`**: 使用している場合、必ずタグ付きテンプレート（`Prisma.sql`）でパラメータ化されているか。文字列連結 NG
-29. **動的 ORDER BY / LIMIT**: ユーザー入力をそのまま埋め込んでいないか（ホワイトリスト経由で検証）
+30. **`$queryRaw` / `$executeRaw`**: 使用している場合、必ずタグ付きテンプレート（`Prisma.sql`）でパラメータ化されているか。文字列連結 NG
+31. **動的 ORDER BY / LIMIT**: ユーザー入力をそのまま埋め込んでいないか（ホワイトリスト経由で検証）
 
 ### HTTP セキュリティヘッダー
 
-30. **新規ドメイン追加時の CSP**: 外部 API / CDN / 画像ホスト等を追加した時、`apps/web/next.config.ts` の CSP `connect-src` / `img-src` / `script-src` 等に追加しているか
-31. **iframe 利用時**: 自前で iframe を埋め込む場合、`frame-src` を CSP に追加しているか
-32. **CORS 拡張**: 新規 origin を許可する場合、ハードコードではなく `CORS_ORIGIN` 環境変数経由か
+32. **新規ドメイン追加時の CSP**: 外部 API / CDN / 画像ホスト等を追加した時、`apps/web/next.config.ts` の CSP `connect-src` / `img-src` / `script-src` 等に追加しているか
+33. **iframe 利用時**: 自前で iframe を埋め込む場合、`frame-src` を CSP に追加しているか
+34. **CORS 拡張**: 新規 origin を許可する場合、ハードコードではなく `CORS_ORIGIN` 環境変数経由か
 
 ### CSRF
 
-33. **Cookie 認証への変更**: 現在は JWT を Authorization ヘッダで送る設計（CSRF 不要）。Cookie 認証を導入する PR では CSRF トークン対応を必須化
+35. **Cookie 認証への変更**: 現在は JWT を Authorization ヘッダで送る設計（CSRF 不要）。Cookie 認証を導入する PR では CSRF トークン対応を必須化
 
 ### 依存追加
 
-34. **新規 npm パッケージ**: メンテナンスされているか（最終更新・スター数・既知脆弱性 / `pnpm audit`）
-35. **lockfile**: `pnpm-lock.yaml` の差分が想定外に大きくないか（typosquatting 対策）
+36. **新規 npm パッケージ**: メンテナンスされているか（最終更新・スター数・既知脆弱性 / `pnpm audit`）
+37. **lockfile**: `pnpm-lock.yaml` の差分が想定外に大きくないか（typosquatting 対策）
 
 ### Secrets 管理
 
-36. **`.env` のコミット禁止**: PR 差分に `.env` / `.env.local` 系が含まれていないか
-37. **`.env.example` の同期**: 新規環境変数を追加した時、example ファイルにも反映されているか
-38. **環境変数のスキーマ**: `apps/api/src/config/env.schema.ts` の Zod スキーマに新規変数を追加しているか
+38. **`.env` のコミット禁止**: PR 差分に `.env` / `.env.local` 系が含まれていないか
+39. **`.env.example` の同期**: 新規環境変数を追加した時、example ファイルにも反映されているか
+40. **環境変数のスキーマ**: `apps/api/src/config/env.schema.ts` の Zod スキーマに新規変数を追加しているか
 
 ---
 
@@ -196,7 +209,7 @@ total_findings: 8
 high: 2
 medium: 3
 low: 3
-checked_items: 64
+checked_items: 74
 ---
 
 # レビュー結果: apps/api/src/board/
@@ -255,7 +268,7 @@ checked_items: 64
 
 ## サマリー
 
-- チェック項目: 64 項目（バックエンド 16 + セキュリティ 38 + フロント該当外 / 規約準拠 10）
+- チェック項目: 74 項目（バックエンド 19 + フロントエンド 15 + セキュリティ 40）
 - 問題なし: 56 項目
 - 指摘あり: 8 項目（🔴 高 2 / 🟡 中 3 / 🟢 低 3）
 
