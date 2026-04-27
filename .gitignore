@@ -46,5 +46,6 @@ apps/web/e2e/.auth/
 # Docker
 docker-compose.override.yml
 
-# Claude Code 個人設定
+# Claude Code 個人設定・ランタイム生成物
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
