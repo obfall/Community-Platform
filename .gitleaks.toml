@@ -1,0 +1,22 @@
+# gitleaks の設定
+# デフォルトルールセットを継承し、プロジェクト固有の誤検出を allowlist で除外する。
+# 詳細: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+[extend]
+# gitleaks のデフォルトルール一式を継承
+useDefault = true
+
+[allowlist]
+description = "プロジェクト固有の誤検出を除外"
+
+# デモ用固定パスワードはシード専用で本番には乗らない
+regexes = [
+  '''qaz1234''',
+]
+
+# シード/フィクスチャ系のファイル全体を除外
+paths = [
+  '''apps/api/prisma/demo/.*''',
+  '''apps/api/prisma/seed\.(ts|demo\.ts)''',
+  '''e2e/fixtures/.*''',
+]

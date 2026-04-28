@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
 import { AuthService } from "./auth.service";
 import {
@@ -31,6 +32,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
   @Post("register")
   @UseGuards(RegistrationAllowedGuard)
   @ApiOperation({ summary: "ユーザー登録" })
@@ -40,6 +42,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "ログイン" })
@@ -68,6 +71,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
   @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "パスワードリセット要求" })
@@ -76,6 +80,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
   @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "パスワードリセット実行" })

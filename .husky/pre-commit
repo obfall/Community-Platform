@@ -1,1 +1,14 @@
 npx lint-staged
+
+# gitleaks があればステージ済み変更だけスキャン（CI でも本番チェック実施）
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner || {
+    echo ""
+    echo "🚨 gitleaks がコミット内に機密情報を検出しました。"
+    echo "   誤検出の場合は .gitleaks.toml の allowlist を更新してください。"
+    exit 1
+  }
+else
+  echo "ℹ gitleaks 未インストール（pre-commit スキップ）。CI でチェックされます。"
+  echo "   ローカルで導入する場合: https://github.com/gitleaks/gitleaks#installing"
+fi

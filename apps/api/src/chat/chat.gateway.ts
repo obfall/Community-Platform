@@ -13,6 +13,7 @@ import { ConfigService } from "@nestjs/config";
 import { Server, Socket } from "socket.io";
 import { PrismaService } from "@/prisma/prisma.service";
 import { ChatService } from "./chat.service";
+import { WsRateLimiter } from "./ws-rate-limiter";
 import type { JwtPayload } from "@/auth/types/jwt-payload";
 
 type AuthenticatedSocket = Socket & {
@@ -31,6 +32,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server!: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  private readonly rateLimiter = new WsRateLimiter(30, 60_000);
 
   constructor(
     private readonly jwtService: JwtService,
@@ -70,6 +72,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: AuthenticatedSocket) {
+    this.rateLimiter.cleanup(client.id);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -118,6 +121,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = this.assertAuth(client);
     if (!userId) return;
+
+    if (!this.rateLimiter.check(client.id)) {
+      client.emit("chat:rate-limit", {
+        message: "送信頻度の上限に達しました。しばらく時間をおいてから再送信してください",
+      });
+      return;
+    }
 
     try {
       const message = await this.chatService.createMessage(
