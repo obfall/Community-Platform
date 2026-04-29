@@ -5,6 +5,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { SentryModule } from "@sentry/nestjs/setup";
 import { LoggerModule } from "nestjs-pino";
+import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -53,6 +54,16 @@ import { validateEnv } from "./config/env.config";
       isGlobal: true,
       validate: validateEnv,
     }),
+
+    // レートリミット（IP ベース、メモリストレージ）
+    ThrottlerModule.forRoot([
+      // 全エンドポイント既定: 60 req/min/IP
+      { name: "default", ttl: 60_000, limit: 60 },
+      // 認証系・パスワードリセット系の厳格制限: 5 req/min/IP
+      { name: "strict", ttl: 60_000, limit: 5 },
+      // ファイルアップロード等の中間: 10 req/min/IP
+      { name: "upload", ttl: 60_000, limit: 10 },
+    ]),
 
     // Structured logging (pino)
     LoggerModule.forRoot({
@@ -208,6 +219,11 @@ import { validateEnv } from "./config/env.config";
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    // Global rate limit guard（@SkipThrottle で除外、@Throttle で個別調整可）
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     // Global JWT auth guard (use @Public() to skip)
     {

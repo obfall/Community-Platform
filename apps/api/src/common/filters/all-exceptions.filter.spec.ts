@@ -49,7 +49,7 @@ describe("AllExceptionsFilter", () => {
     request = { url: "/api/users", method: "POST", id: "req-test-1" };
   });
 
-  it("returns BusinessException payload as-is", () => {
+  it("BusinessException は code / errors / message をそのままレスポンスに含める", () => {
     const exception = new BusinessException(
       ErrorCode.USER_EMAIL_ALREADY_EXISTS,
       HttpStatus.CONFLICT,
@@ -73,7 +73,7 @@ describe("AllExceptionsFilter", () => {
     expect(pinoLogger.warn).toHaveBeenCalled();
   });
 
-  it("infers code from a standard HttpException status", () => {
+  it("NestJS 標準 HttpException はステータスコードから code を推論する", () => {
     const exception = new ConflictException("競合");
 
     filter.catch(exception, buildHost());
@@ -86,7 +86,7 @@ describe("AllExceptionsFilter", () => {
     );
   });
 
-  it("maps Prisma P2002 to 409 CONFLICT with field details", () => {
+  it("Prisma P2002（unique 制約違反）を 409 CONFLICT + フィールド詳細にマップする", () => {
     const exception = new Prisma.PrismaClientKnownRequestError("unique violation", {
       code: "P2002",
       clientVersion: "x",
@@ -105,7 +105,7 @@ describe("AllExceptionsFilter", () => {
     );
   });
 
-  it("maps Prisma P2025 to 404 NOT_FOUND", () => {
+  it("Prisma P2025（レコード不在）を 404 NOT_FOUND にマップする", () => {
     const exception = new Prisma.PrismaClientKnownRequestError("not found", {
       code: "P2025",
       clientVersion: "x",
@@ -122,7 +122,7 @@ describe("AllExceptionsFilter", () => {
     );
   });
 
-  it("maps Prisma P2003 to 400 VALIDATION_FAILED", () => {
+  it("Prisma P2003（外部キー制約違反）を 400 VALIDATION_FAILED にマップする", () => {
     const exception = new Prisma.PrismaClientKnownRequestError("fk fail", {
       code: "P2003",
       clientVersion: "x",
@@ -139,7 +139,7 @@ describe("AllExceptionsFilter", () => {
     );
   });
 
-  it("returns 500 INTERNAL_ERROR for unknown exception and reports to Sentry", () => {
+  it("未知の Error は 500 INTERNAL_ERROR を返し Sentry にも送信する", () => {
     filter.catch(new Error("boom"), buildHost());
 
     expect(response.status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -153,7 +153,7 @@ describe("AllExceptionsFilter", () => {
     expect(Sentry.captureException).toHaveBeenCalled();
   });
 
-  it("logs 401 at info level and does NOT send to Sentry", () => {
+  it("401（認証切れ）は info レベルでログ、Sentry には送らない（ノイズ回避）", () => {
     filter.catch(new UnauthorizedException("expired"), buildHost());
 
     expect(pinoLogger.info).toHaveBeenCalled();
@@ -161,13 +161,13 @@ describe("AllExceptionsFilter", () => {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it("does NOT report 4xx (except 403) to Sentry", () => {
+  it("4xx（403 を除く）は Sentry に送らない", () => {
     filter.catch(new ConflictException("dup"), buildHost());
 
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it("reports 403 to Sentry as warning", () => {
+  it("403（権限エラー）は warning レベルで Sentry に送る（攻撃検知の可能性）", () => {
     const exception = new HttpException("forbidden", HttpStatus.FORBIDDEN);
 
     filter.catch(exception, buildHost());

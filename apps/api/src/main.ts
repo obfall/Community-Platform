@@ -14,13 +14,36 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
-  // Security
-  app.use(helmet());
+  // Security headers（API は CSP 不要、Web 側で設定）
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      hsts: {
+        maxAge: 31_536_000, // 1 年
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      frameguard: { action: "deny" },
+      permittedCrossDomainPolicies: { permittedPolicies: "none" },
+      hidePoweredBy: true,
+      noSniff: true,
+      xssFilter: true,
+    }),
+  );
 
-  // CORS
+  // CORS（カンマ区切り複数 origin 対応）
+  const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id", "X-Requested-With"],
+    exposedHeaders: ["X-Request-Id"], // フロントが requestId を読み取れるように
+    maxAge: 86_400, // preflight キャッシュ 24h
   });
 
   // Global prefix

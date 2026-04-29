@@ -1,4 +1,5 @@
 import {
+  HttpStatus,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -9,9 +10,12 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import * as crypto from "crypto";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
 import { EmailService } from "@/broadcasts/email.service";
 import { AnalyticsService } from "@/analytics/analytics.service";
+import { BusinessException } from "@/common/exceptions";
+import { LoginAttemptService } from "./services";
 import type { RegisterDto } from "./dto/register.dto";
 import type { LoginDto } from "./dto/login.dto";
 import type { RefreshTokenDto } from "./dto/refresh-token.dto";
@@ -32,6 +36,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly analytics: AnalyticsService,
+    private readonly loginAttempt: LoginAttemptService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -68,6 +73,18 @@ export class AuthService {
     if (!user || user.deletedAt) {
       await this.recordLoginHistory(user?.id, userAgent, "failure", "invalid_credentials");
       throw new UnauthorizedException("メールアドレスまたはパスワードが正しくありません");
+    }
+
+    // 5 回失敗で 15 分ロック（複数 IP からの分散攻撃対策）
+    if (await this.loginAttempt.isLocked(user.id)) {
+      const remaining = await this.loginAttempt.getRemainingLockSeconds(user.id);
+      const minutes = Math.ceil(remaining / 60);
+      await this.recordLoginHistory(user.id, userAgent, "failure", "account_locked");
+      throw new BusinessException(
+        ErrorCode.AUTH_ACCOUNT_LOCKED,
+        HttpStatus.TOO_MANY_REQUESTS,
+        `ログイン試行が上限を超えました。${minutes} 分後に再試行してください`,
+      );
     }
 
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);

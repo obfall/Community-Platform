@@ -15,6 +15,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { FilesService } from "./files.service";
 import { UploadFileDto, FileQueryDto } from "./dto";
 import { CurrentUser } from "@/common/decorators";
@@ -25,6 +26,7 @@ import { CurrentUser } from "@/common/decorators";
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  @Throttle({ upload: { limit: 10, ttl: 60_000 } })
   @Post("upload")
   @ApiOperation({ summary: "ファイルアップロード" })
   @ApiConsumes("multipart/form-data")
