@@ -52,7 +52,10 @@ apps/api/src/recipes/              ← NestJS モジュール
   - 例: `describe("isLocked: ロック判定", () => { it("失敗回数が閾値（5回）に達したらロック中になる", ...) })`
   - クラス名・関数名は識別子として残し、説明部分を日本語で付ける（例: `describe("LoginAttemptService", ...)` の中に `describe("isLocked: ロック判定", ...)` を入れ子にする）
   - `expect(...).toBe(...)` などのアサーション本体は英語のまま（API のため）
-- ファイル名は `.spec.ts`（NestJS 公式 CLI が生成する形式に統一）
+- ファイル名はレイヤー別に拡張子を分ける:
+  - **バック (`apps/api/`)**: `*.spec.ts`（NestJS / Jest の慣例）
+  - **フロント (`apps/web/`) 単体テスト**: `*.test.ts` / `*.test.tsx`（Vitest 等を想定、現状未導入。今後の単体テストはこの形で追加）
+  - **E2E (`apps/web/e2e/`)**: `*.spec.ts`（Playwright の慣例、既存）
 
 ## エラーハンドリング規約（Phase 11.3 で確立）
 
@@ -63,6 +66,16 @@ apps/api/src/recipes/              ← NestJS モジュール
 - バック: 業務エラーは `BusinessException`、ログ出力・Sentry 送信・整形は `AllExceptionsFilter` が一元処理
 - フロント: API エラーのトーストはグローバル `QueryCache.onError` 任せ、個別 `onError + toast.error` を書かない
 - Sentry: `setUser` は id のみ、PII は `beforeSend` で再度スクラブ
+
+## セキュリティ規約（Phase 11.4 で確立）
+
+**新機能を実装する前に必ず `.claude/knowledge/security-hardening-stack.md` を参照する**（5 層構成の設計思想・各層の判断理由・新機能実装時の判断フローを記載）。
+
+主な観点（詳細はナレッジへ）:
+
+- バック: 重い処理・認証系は `@Throttle({ strict })`、HTML 入力は保存前に `sanitizeRichText()`、ファイルは `validateFileMagic` + `sanitizeFilename`
+- フロント: ユーザー入力 HTML は `<SafeHtml>` で描画（`dangerouslySetInnerHTML` 直書き禁止）、ファイルアップロードは `validateFileBeforeUpload()` で事前チェック
+- 外部ドメイン追加時は `apps/web/next.config.ts` の CSP `buildCsp()` に対応する `*-src` を追加
 
 ## マイグレーション運用
 
