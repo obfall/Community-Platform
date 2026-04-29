@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { sanitizeRichText } from "@/common/utils";
 import type { CreateBroadcastTemplateDto } from "./dto/create-broadcast-template.dto";
 import type { UpdateBroadcastTemplateDto } from "./dto/update-broadcast-template.dto";
 
@@ -20,7 +21,7 @@ export class BroadcastTemplatesService {
         name: dto.name,
         category: dto.category,
         subjectTemplate: dto.subjectTemplate,
-        bodyHtmlTemplate: dto.bodyHtmlTemplate,
+        bodyHtmlTemplate: sanitizeRichText(dto.bodyHtmlTemplate),
         bodyTextTemplate: dto.bodyTextTemplate,
         availableVariables: dto.availableVariables ?? undefined,
       },
@@ -38,7 +39,9 @@ export class BroadcastTemplatesService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.category !== undefined && { category: dto.category }),
         ...(dto.subjectTemplate !== undefined && { subjectTemplate: dto.subjectTemplate }),
-        ...(dto.bodyHtmlTemplate !== undefined && { bodyHtmlTemplate: dto.bodyHtmlTemplate }),
+        ...(dto.bodyHtmlTemplate !== undefined && {
+          bodyHtmlTemplate: sanitizeRichText(dto.bodyHtmlTemplate),
+        }),
         ...(dto.bodyTextTemplate !== undefined && { bodyTextTemplate: dto.bodyTextTemplate }),
         ...(dto.availableVariables !== undefined && {
           availableVariables: dto.availableVariables,

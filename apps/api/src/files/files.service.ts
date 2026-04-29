@@ -1,4 +1,5 @@
 import {
+  HttpStatus,
   Injectable,
   BadRequestException,
   NotFoundException,
@@ -6,8 +7,11 @@ import {
 } from "@nestjs/common";
 import { createHash, randomUUID } from "crypto";
 import sharp from "sharp";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
 import { StorageService } from "./storage/storage.service";
+import { sanitizeFilename, validateFileMagic } from "./utils";
 import type { UploadFileDto } from "./dto/upload-file.dto";
 import type { FileQueryDto } from "./dto/file-query.dto";
 
@@ -45,7 +49,25 @@ export class FilesService {
     // multer はデフォルトで originalname を latin1 として扱うため UTF-8 にデコード
     file.originalname = Buffer.from(file.originalname, "latin1").toString("utf8");
 
+    // パス区切り・制御文字・パストラバーサル等を拒否
+    file.originalname = sanitizeFilename(file.originalname);
+
     this.validateFile(file, dto.fileCategory);
+
+    // Magic Number 検証（拡張子・Content-Type 偽装対策）。SVG 等の text 系は除外
+    const isMagicTarget =
+      file.mimetype !== "image/svg+xml" &&
+      ["avatar", "image", "video", "document"].includes(dto.fileCategory);
+    if (isMagicTarget) {
+      const magic = await validateFileMagic(file.buffer, file.mimetype, dto.fileCategory);
+      if (!magic.valid) {
+        throw new BusinessException(
+          ErrorCode.FILE_INVALID_TYPE,
+          HttpStatus.BAD_REQUEST,
+          magic.reason ?? "ファイル形式が無効です",
+        );
+      }
+    }
 
     const fileId = randomUUID();
     // ストレージキーは ASCII セーフな UUID + 拡張子 のみを使う。

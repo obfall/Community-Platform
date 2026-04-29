@@ -10,6 +10,7 @@ import {
 import type { CreateBroadcastDto } from "./dto/create-broadcast.dto";
 import type { BroadcastQueryDto } from "./dto/broadcast-query.dto";
 import { BroadcastDispatcher } from "./dispatchers/broadcast-dispatcher";
+import { sanitizeRichText } from "@/common/utils";
 
 const CREATOR_SELECT = { id: true, name: true } as const;
 
@@ -71,7 +72,7 @@ export class BroadcastsService {
     const broadcast = await this.prisma.broadcast.create({
       data: {
         subject: dto.subject,
-        bodyHtml: dto.bodyHtml,
+        bodyHtml: sanitizeRichText(dto.bodyHtml),
         bodyText: dto.bodyText,
         scope: dto.scope ?? BroadcastScope.global,
         channels: dto.channels ?? [BroadcastChannel.email],

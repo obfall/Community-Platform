@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Send } from "lucide-react";
+import { SafeHtml } from "@/components/safe-html";
 import type { BroadcastDetail as BroadcastDetailData } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -90,9 +91,9 @@ export function BroadcastDetail({ broadcast, backHref, onSend, isSending }: Prop
         </CardHeader>
         <CardContent>
           {broadcast.bodyHtml ? (
-            <div
+            <SafeHtml
+              html={broadcast.bodyHtml}
               className="prose prose-sm max-w-none rounded border p-4"
-              dangerouslySetInnerHTML={{ __html: broadcast.bodyHtml }}
             />
           ) : (
             <div className="whitespace-pre-wrap rounded border p-4 text-sm">
