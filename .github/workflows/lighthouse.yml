@@ -1,0 +1,54 @@
+name: Lighthouse CI
+
+# main マージ時 + 手動実行のみ（PR ごとは負荷が大きいので走らせない）
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "package.json"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # apps/web を本番ビルド（dev では正確に計測できないため）
+      - name: Build web
+        run: pnpm --filter @community-platform/web build
+        env:
+          # Sentry ソースマップアップロードはスキップ（auth token なしでも build は通る）
+          SENTRY_ORG: ""
+          SENTRY_PROJECT: ""
+
+      # next start をバックグラウンド起動 → wait-on でポート 3000 を待機
+      - name: Start web server
+        run: pnpm --filter @community-platform/web start &
+      - name: Wait for server
+        run: npx --yes wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

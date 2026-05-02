@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import withBundleAnalyzer from "@next/bundle-analyzer";
+
+// ANALYZE=true でビルド時に treemap を生成（普段は素通し）
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 /**
  * CSP（Content Security Policy）ディレクティブの組み立て。
@@ -107,11 +113,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG || "",
-  project: process.env.SENTRY_PROJECT || "",
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  tunnelRoute: "/monitoring",
-});
+export default bundleAnalyzer(
+  withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG || "",
+    project: process.env.SENTRY_PROJECT || "",
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    tunnelRoute: "/monitoring",
+  }),
+);

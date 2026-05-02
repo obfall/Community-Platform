@@ -102,6 +102,13 @@ import { validateEnv } from "./config/env.config";
           }),
           res: (res) => ({ statusCode: res.statusCode }),
         },
+        // 1 秒を超えるリクエストは "slow request: METHOD URL" でマークし grep / アラート可能に
+        customSuccessMessage: (req, res, responseTime) => {
+          if (responseTime > 1000) {
+            return `slow request: ${req.method ?? "?"} ${req.url ?? "?"}`;
+          }
+          return "request completed";
+        },
         // 開発時は色付き整形、本番は JSON のまま
         transport:
           process.env.NODE_ENV !== "production"

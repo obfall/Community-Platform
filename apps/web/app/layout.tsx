@@ -25,6 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     const res = await fetch(`${apiUrl}/settings/app`, {
       next: { revalidate: 60 },
+      // build 時 / API 未起動環境で固まらないよう 3 秒で諦めてデフォルトに fallback する
+      signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) throw new Error(`settings fetch failed: ${res.status}`);
     const settings: Array<{ key: string; value: string }> = await res.json();
