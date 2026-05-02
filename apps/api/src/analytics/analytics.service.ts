@@ -1,11 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 
 export type ParticipationBucket = "0" | "1" | "2-4" | "5-9" | "10+";
 
+const DASHBOARD_CACHE_KEY = "stats:analytics:dashboard";
+const DASHBOARD_CACHE_TTL_SEC = 10 * 60; // 10 分
+
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   /** アクティビティログ記録 */
   async logActivity(
@@ -26,41 +33,47 @@ export class AnalyticsService {
     });
   }
 
-  /** ダッシュボード集計 */
+  /** ダッシュボード集計（10 分 TTL でキャッシュ。invalidate は TTL のみに割り切る） */
   async getDashboard() {
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return this.cache.getOrSet(
+      DASHBOARD_CACHE_KEY,
+      async () => {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [
-      totalMembers,
-      activeMembers,
-      totalEvents,
-      totalVideos,
-      recentSnapshots,
-      recentAttendedCount,
-    ] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null, status: "active" } }),
-      this.prisma.user.count({
-        where: { deletedAt: null, status: "active", lastLoginAt: { gte: thirtyDaysAgo } },
-      }),
-      this.prisma.event.count({ where: { deletedAt: null } }),
-      this.prisma.video.count({ where: { deletedAt: null, publishStatus: "published" } }),
-      this.prisma.analyticsSnapshot.findMany({ orderBy: { snapshotDate: "desc" }, take: 30 }),
-      this.prisma.eventParticipant.count({
-        where: { status: "attended", attendedAt: { gte: thirtyDaysAgo } },
-      }),
-    ]);
+        const [
+          totalMembers,
+          activeMembers,
+          totalEvents,
+          totalVideos,
+          recentSnapshots,
+          recentAttendedCount,
+        ] = await Promise.all([
+          this.prisma.user.count({ where: { deletedAt: null, status: "active" } }),
+          this.prisma.user.count({
+            where: { deletedAt: null, status: "active", lastLoginAt: { gte: thirtyDaysAgo } },
+          }),
+          this.prisma.event.count({ where: { deletedAt: null } }),
+          this.prisma.video.count({ where: { deletedAt: null, publishStatus: "published" } }),
+          this.prisma.analyticsSnapshot.findMany({ orderBy: { snapshotDate: "desc" }, take: 30 }),
+          this.prisma.eventParticipant.count({
+            where: { status: "attended", attendedAt: { gte: thirtyDaysAgo } },
+          }),
+        ]);
 
-    return {
-      summary: {
-        totalMembers,
-        activeMembers,
-        totalEvents,
-        totalVideos,
-        recentAttendedCount,
+        return {
+          summary: {
+            totalMembers,
+            activeMembers,
+            totalEvents,
+            totalVideos,
+            recentAttendedCount,
+          },
+          snapshots: recentSnapshots,
+        };
       },
-      snapshots: recentSnapshots,
-    };
+      DASHBOARD_CACHE_TTL_SEC,
+    );
   }
 
   /** エンゲージメントスコアランキング */

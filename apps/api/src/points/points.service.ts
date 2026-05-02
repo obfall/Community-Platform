@@ -1,13 +1,21 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import { Prisma } from "@prisma/client";
 import type { GrantPointsDto } from "./dto/grant-points.dto";
 import type { PointHistoryQueryDto } from "./dto/point-query.dto";
 import type { CreatePointRuleDto } from "./dto/create-point-rule.dto";
 
+const RULES_CACHE_KEY = "master:point-rules:all";
+const RULES_CACHE_PREFIX = "master:point-rules:";
+const CACHE_TTL_SEC = 60 * 60;
+
 @Injectable()
 export class PointsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   /** ポイントサマリー取得（なければ作成） */
   async getSummary(userId: string) {
@@ -123,11 +131,15 @@ export class PointsService {
   // --- ルール管理 ---
 
   async getRules() {
-    return this.prisma.pointRule.findMany({ orderBy: { createdAt: "desc" } });
+    return this.cache.getOrSet(
+      RULES_CACHE_KEY,
+      () => this.prisma.pointRule.findMany({ orderBy: { createdAt: "desc" } }),
+      CACHE_TTL_SEC,
+    );
   }
 
   async createRule(dto: CreatePointRuleDto) {
-    return this.prisma.pointRule.create({
+    const created = await this.prisma.pointRule.create({
       data: {
         name: dto.name,
         triggerEvent: dto.triggerEvent,
@@ -136,16 +148,21 @@ export class PointsService {
         conditions: (dto.conditions as Prisma.InputJsonValue) ?? Prisma.JsonNull,
       },
     });
+    await this.cache.invalidate(RULES_CACHE_PREFIX);
+    return created;
   }
 
   async updateRule(
     id: string,
     data: { name?: string; pointAmount?: number; expiryDays?: number; isActive?: boolean },
   ) {
-    return this.prisma.pointRule.update({ where: { id }, data });
+    const updated = await this.prisma.pointRule.update({ where: { id }, data });
+    await this.cache.invalidate(RULES_CACHE_PREFIX);
+    return updated;
   }
 
   async deleteRule(id: string) {
     await this.prisma.pointRule.delete({ where: { id } });
+    await this.cache.invalidate(RULES_CACHE_PREFIX);
   }
 }

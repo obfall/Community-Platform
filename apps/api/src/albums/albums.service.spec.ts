@@ -15,7 +15,7 @@ describe("AlbumsService", () => {
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
     };
-    service = new AlbumsService(prismaMock as never);
+    service = new AlbumsService(prismaMock as never, {} as never);
   });
 
   describe("findAll: search の有無で経路が分岐する", () => {

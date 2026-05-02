@@ -15,7 +15,7 @@ describe("ShopService", () => {
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
     };
-    service = new ShopService(prismaMock as never, {} as never);
+    service = new ShopService(prismaMock as never, {} as never, {} as never);
   });
 
   describe("findAllProducts: search の有無で経路が分岐する", () => {

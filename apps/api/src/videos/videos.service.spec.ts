@@ -15,7 +15,7 @@ describe("VideosService", () => {
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
     };
-    service = new VideosService(prismaMock as never, {} as never);
+    service = new VideosService(prismaMock as never, {} as never, {} as never);
   });
 
   describe("findAll: search の有無で経路が分岐する", () => {

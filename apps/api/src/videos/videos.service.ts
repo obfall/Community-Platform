@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import { NotificationsService } from "@/notifications/notifications.service";
 import {
   AUTHOR_SELECT,
@@ -14,6 +15,10 @@ import {
   formatAuthor,
   pgroongaSearchAndFetch,
 } from "@/common/utils";
+
+const VIDEO_CATEGORIES_CACHE_KEY = "master:categories:video:all";
+const VIDEO_CATEGORIES_CACHE_PREFIX = "master:categories:video:";
+const CATEGORIES_CACHE_TTL_SEC = 60 * 60;
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import type { CreateVideoDto } from "./dto/create-video.dto";
@@ -27,6 +32,7 @@ export class VideosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly cache: CacheService,
   ) {}
 
   // ───────────────────── findAll ─────────────────────
@@ -891,17 +897,24 @@ export class VideosService {
   // ───────────────────── Categories ─────────────────────
 
   async getCategories() {
-    return this.prisma.category.findMany({
-      where: { scope: "video", isActive: true },
-      orderBy: { sortOrder: "asc" },
-    });
+    return this.cache.getOrSet(
+      VIDEO_CATEGORIES_CACHE_KEY,
+      () =>
+        this.prisma.category.findMany({
+          where: { scope: "video", isActive: true },
+          orderBy: { sortOrder: "asc" },
+        }),
+      CATEGORIES_CACHE_TTL_SEC,
+    );
   }
 
   async createCategory(name: string) {
     const slug = `video-${Date.now()}`;
-    return this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: { scope: "video", slug, name },
     });
+    await this.cache.invalidate(VIDEO_CATEGORIES_CACHE_PREFIX);
+    return created;
   }
 
   // ───────────────────── Series ─────────────────────

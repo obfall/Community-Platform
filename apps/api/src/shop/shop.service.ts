@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import { NotificationsService } from "@/notifications/notifications.service";
 import {
   buildPaginationMeta,
@@ -12,6 +13,10 @@ import {
   extractPagination,
   pgroongaSearchAndFetch,
 } from "@/common/utils";
+
+const PRODUCT_CATEGORIES_CACHE_KEY = "master:categories:product:all";
+const PRODUCT_CATEGORIES_CACHE_PREFIX = "master:categories:product:";
+const CATEGORIES_CACHE_TTL_SEC = 60 * 60;
 import { Prisma } from "@prisma/client";
 import type { CreateProductDto } from "./dto/create-product.dto";
 import type { ProductQueryDto } from "./dto/product-query.dto";
@@ -37,6 +42,7 @@ export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly cache: CacheService,
   ) {}
 
   // --- 権限 ---
@@ -544,17 +550,24 @@ export class ShopService {
   // --- カテゴリ ---
 
   async getProductCategories() {
-    return this.prisma.category.findMany({
-      where: { scope: "product", isActive: true },
-      orderBy: { sortOrder: "asc" },
-    });
+    return this.cache.getOrSet(
+      PRODUCT_CATEGORIES_CACHE_KEY,
+      () =>
+        this.prisma.category.findMany({
+          where: { scope: "product", isActive: true },
+          orderBy: { sortOrder: "asc" },
+        }),
+      CATEGORIES_CACHE_TTL_SEC,
+    );
   }
 
   async createProductCategory(name: string) {
     const slug = `product-${Date.now()}`;
-    return this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: { scope: "product", slug, name },
     });
+    await this.cache.invalidate(PRODUCT_CATEGORIES_CACHE_PREFIX);
+    return created;
   }
 
   // --- シリーズ ---

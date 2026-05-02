@@ -10,6 +10,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { PrismaModule } from "./prisma/prisma.module";
+import { CacheModule } from "./cache/cache.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
@@ -138,6 +139,9 @@ import { validateEnv } from "./config/env.config";
 
     // Database
     PrismaModule,
+
+    // Global cache (Redis if REDIS_HOST set, otherwise no-op)
+    CacheModule,
 
     // Auth
     AuthModule,

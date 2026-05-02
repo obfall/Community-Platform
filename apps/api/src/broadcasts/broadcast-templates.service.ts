@@ -1,18 +1,32 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import { sanitizeRichText } from "@/common/utils";
 import type { CreateBroadcastTemplateDto } from "./dto/create-broadcast-template.dto";
 import type { UpdateBroadcastTemplateDto } from "./dto/update-broadcast-template.dto";
 
+const CACHE_KEY = "master:broadcast-templates:all";
+const CACHE_PREFIX = "master:broadcast-templates:";
+const CACHE_TTL_SEC = 60 * 60;
+
 @Injectable()
 export class BroadcastTemplatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async findAll() {
-    const templates = await this.prisma.broadcastTemplate.findMany({
-      orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
-    });
-    return templates.map((t) => this.mapTemplate(t));
+    return this.cache.getOrSet(
+      CACHE_KEY,
+      async () => {
+        const templates = await this.prisma.broadcastTemplate.findMany({
+          orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
+        });
+        return templates.map((t) => this.mapTemplate(t));
+      },
+      CACHE_TTL_SEC,
+    );
   }
 
   async create(dto: CreateBroadcastTemplateDto) {
@@ -26,6 +40,7 @@ export class BroadcastTemplatesService {
         availableVariables: dto.availableVariables ?? undefined,
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
     return this.mapTemplate(template);
   }
 
@@ -48,6 +63,7 @@ export class BroadcastTemplatesService {
         }),
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
     return this.mapTemplate(template);
   }
 
@@ -56,6 +72,7 @@ export class BroadcastTemplatesService {
     if (!existing) throw new NotFoundException("テンプレートが見つかりません");
 
     await this.prisma.broadcastTemplate.delete({ where: { id } });
+    await this.cache.invalidate(CACHE_PREFIX);
   }
 
   private mapTemplate(t: {
