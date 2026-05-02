@@ -204,11 +204,9 @@ export function TranslatedField({
 
 ```typescript
 function makeRequiredLocalizedSchema(locales: string[]) {
-  return z
-    .record(z.string())
-    .refine((v) => locales.every((l) => v[l]?.trim().length > 0), {
-      message: "validation.all_locales_required",
-    });
+  return z.record(z.string()).refine((v) => locales.every((l) => v[l]?.trim().length > 0), {
+    message: "validation.all_locales_required",
+  });
 }
 ```
 
