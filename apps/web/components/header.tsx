@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, LogOut, LayoutDashboard, Bell, HelpCircle } from "lucide-react";
@@ -81,8 +82,15 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
           <SheetTitle className="sr-only">ナビゲーション</SheetTitle>
           <div className="flex h-14 items-center border-b px-4">
             {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
+              <Image
+                src={logoUrl}
+                alt={siteName}
+                width={120}
+                height={32}
+                className="h-8 w-auto object-contain"
+                priority
+                unoptimized
+              />
             ) : (
               <span className="font-bold">{siteName}</span>
             )}
@@ -106,8 +114,15 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
       {/* ロゴ */}
       <Link href="/dashboard" className="flex items-center gap-2 font-bold">
         {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={siteName} className="h-8 w-auto" />
+          <Image
+            src={logoUrl}
+            alt={siteName}
+            width={120}
+            height={32}
+            className="h-8 w-auto object-contain"
+            priority
+            unoptimized
+          />
         ) : (
           <span>{siteName}</span>
         )}

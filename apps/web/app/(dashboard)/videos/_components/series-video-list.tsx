@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useVideos } from "@/hooks/videos/use-videos";
 import { Badge } from "@/components/ui/badge";
@@ -49,10 +50,15 @@ export function SeriesVideoList({ seriesId, seriesName, currentVideoId }: Props)
               >
                 {v.watchOrder ?? idx + 1}
               </div>
-              <div className="flex aspect-video w-24 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+              <div className="relative flex aspect-video w-24 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
                 {v.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={v.thumbnailUrl} alt={v.title} className="h-full w-full object-cover" />
+                  <Image
+                    src={v.thumbnailUrl}
+                    alt={v.title}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
                 ) : (
                   <Video className="h-6 w-6 text-muted-foreground" />
                 )}

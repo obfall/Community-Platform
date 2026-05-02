@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useVideo, useVideoProgress, useUpdateTaskStatus } from "@/hooks/videos/use-videos";
@@ -27,7 +28,16 @@ import {
   BarChart3,
   Paperclip,
 } from "lucide-react";
-import { HlsPlayer } from "./_components/hls-player";
+// hls.js は ~156KB (gzip) と重く、動画詳細ページでしか使わないため動的 import で遅延ロード
+const HlsPlayer = dynamic(() => import("./_components/hls-player").then((m) => m.HlsPlayer), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="aspect-video w-full animate-pulse rounded-md bg-muted"
+      aria-label="読み込み中"
+    />
+  ),
+});
 import { VideoPasswordDialog, isVideoUnlocked } from "../_components/video-password-dialog";
 import { SeriesNav } from "../_components/series-nav";
 import { SeriesVideoList } from "../_components/series-video-list";

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Package, CalendarRange } from "lucide-react";
 import type { ProductListItem } from "@/lib/api/types";
@@ -30,8 +31,13 @@ export function ProductCard({ product, href }: Props) {
       <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
         <div className="relative h-40 bg-muted">
           {product.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <Package className="h-12 w-12 text-muted-foreground" />

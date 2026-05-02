@@ -81,7 +81,21 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@community-platform/shared"],
   images: {
-    remotePatterns: [],
+    // 許可するリモートホスト（CSP の img-src と整合させる）
+    remotePatterns: [
+      { protocol: "https", hostname: "*.r2.cloudflarestorage.com" },
+      { protocol: "https", hostname: "*.cloudflarestream.com" },
+      { protocol: "https", hostname: "picsum.photos" },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+    // モダンフォーマット自動配信（PNG/JPEG → AVIF/WebP に変換）
+    formats: ["image/avif", "image/webp"],
+    // デバイスサイズに応じた解像度配信
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
   async headers() {
     return [

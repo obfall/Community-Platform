@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { memo, useState, useRef, useEffect, useCallback } from "react";
 import { io, type Socket } from "socket.io-client";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/nextjs";
@@ -434,45 +434,14 @@ export default function ChatPage() {
             {/* メッセージ一覧 */}
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                {messages.map((msg: ChatMessage) => {
-                  const isOwn = msg.sender.id === user?.id;
-                  return (
-                    <div key={msg.id} className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
-                      {!isOwn && (
-                        <Avatar className="h-8 w-8 shrink-0">
-                          <AvatarFallback>{msg.sender.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div className={`max-w-[70%] ${isOwn ? "text-right" : ""}`}>
-                        {!isOwn && (
-                          <p className="mb-1 text-xs text-muted-foreground">{msg.sender.name}</p>
-                        )}
-                        <div
-                          className={`inline-block rounded-lg px-4 py-2 text-sm ${
-                            isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
-                          }`}
-                        >
-                          {msg.body ?? "📎 ファイル"}
-                        </div>
-                        <div
-                          className={`mt-1 flex items-center gap-1.5 text-xs text-muted-foreground ${isOwn ? "justify-end" : ""}`}
-                        >
-                          {isOwn && msg.readCount > 0 && (
-                            <span className="text-primary">
-                              {selectedRoom.type === "dm" ? "既読" : `既読 ${msg.readCount}`}
-                            </span>
-                          )}
-                          <span>
-                            {new Date(msg.createdAt).toLocaleTimeString("ja-JP", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {messages.map((msg: ChatMessage) => (
+                  <MessageItem
+                    key={msg.id}
+                    message={msg}
+                    isOwn={msg.sender.id === user?.id}
+                    isDmRoom={selectedRoom.type === "dm"}
+                  />
+                ))}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -516,3 +485,49 @@ export default function ChatPage() {
     </div>
   );
 }
+
+// メッセージ受信のたびにリスト全体が re-render しないよう React.memo で個別アイテムを切り出す。
+// props は shallow equal で比較されるため、`message` が同じ参照（TanStack Query が同データなら不変）
+// + isOwn / isDmRoom が変わらなければスキップされる。
+const MessageItem = memo(function MessageItem({
+  message,
+  isOwn,
+  isDmRoom,
+}: {
+  message: ChatMessage;
+  isOwn: boolean;
+  isDmRoom: boolean;
+}) {
+  return (
+    <div className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
+      {!isOwn && (
+        <Avatar className="h-8 w-8 shrink-0">
+          <AvatarFallback>{message.sender.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+      )}
+      <div className={`max-w-[70%] ${isOwn ? "text-right" : ""}`}>
+        {!isOwn && <p className="mb-1 text-xs text-muted-foreground">{message.sender.name}</p>}
+        <div
+          className={`inline-block rounded-lg px-4 py-2 text-sm ${
+            isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
+          }`}
+        >
+          {message.body ?? "📎 ファイル"}
+        </div>
+        <div
+          className={`mt-1 flex items-center gap-1.5 text-xs text-muted-foreground ${isOwn ? "justify-end" : ""}`}
+        >
+          {isOwn && message.readCount > 0 && (
+            <span className="text-primary">{isDmRoom ? "既読" : `既読 ${message.readCount}`}</span>
+          )}
+          <span>
+            {new Date(message.createdAt).toLocaleTimeString("ja-JP", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
