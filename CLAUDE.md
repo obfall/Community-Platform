@@ -77,6 +77,18 @@ apps/api/src/recipes/              ← NestJS モジュール
 - フロント: ユーザー入力 HTML は `<SafeHtml>` で描画（`dangerouslySetInnerHTML` 直書き禁止）、ファイルアップロードは `validateFileBeforeUpload()` で事前チェック
 - 外部ドメイン追加時は `apps/web/next.config.ts` の CSP `buildCsp()` に対応する `*-src` を追加
 
+## パフォーマンス最適化規約（Phase 11.2 で確立）
+
+**パフォーマンス改善フェーズ・新機能実装で重い処理を扱う前に必ず `.claude/knowledge/performance-stack.md` を参照する**（5 層構成の設計思想・各層の判断軸・「やらない判断」の記録方法を記載）。
+
+主な観点（詳細はナレッジへ）:
+
+- 計測駆動: 推測で最適化せず層1（pino slow request / bundle-analyzer / Lighthouse CI）で先にボトルネックを特定
+- 現状調査優先: 計画通り全実装する前に既存コードを grep し「既に達成済の項目」を見抜いてスキップする（PR を肥大化させない）
+- キャッシュ層: 必要 API が `getOrSet / invalidate` のみなら `apps/api/src/cache/cache.service.ts` の薄いラッパで自前実装、`prefix:scope:key` 形式 + 環境別 prefix + fail-open
+- 動的 import: バンドル分析で重い依存（`hls.js` 等）が特定ページ専用と判明した時のみ `next/dynamic` 化
+- 「やらない判断」を必ず記録: コミットメッセージ・PR 本文・ナレッジのいずれかに「なぜ計画と違うのか」を明文化する
+
 ## マイグレーション運用
 
 ### 新規テーブル追加時は RLS を必ず有効化する

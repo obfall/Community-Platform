@@ -658,23 +658,64 @@ export class EventsService {
     if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
 
     const activeWhere = { eventId, status: { not: "canceled" as const } };
-    const [participants, canceledTotal, attendedTotal, noShowTotal] = await Promise.all([
-      this.prisma.eventParticipant.findMany({
+
+    // groupBy / count / 回答 / 質問 を全て並列実行。参加者本体の findMany は廃止し、
+    // SQL 集計（DB 内で COUNT）に置き換えることで参加者数によらず定数時間で完了する。
+    const [
+      statusGroups,
+      canceledTotal,
+      genderGroups,
+      ageGroups,
+      occupationGroups,
+      affiliationGroups,
+      nationalityGroups,
+      answers,
+      questions,
+    ] = await Promise.all([
+      this.prisma.eventParticipant.groupBy({
+        by: ["status"],
         where: activeWhere,
-        include: { answers: { include: { question: true } } },
+        _count: { _all: true },
       }),
-      this.prisma.eventParticipant.count({
-        where: { eventId, status: "canceled" },
+      this.prisma.eventParticipant.count({ where: { eventId, status: "canceled" } }),
+      this.prisma.eventParticipant.groupBy({
+        by: ["applicantGender"],
+        where: activeWhere,
+        _count: { _all: true },
       }),
-      this.prisma.eventParticipant.count({
-        where: { eventId, status: "attended" },
+      this.prisma.eventParticipant.groupBy({
+        by: ["applicantAge"],
+        where: activeWhere,
+        _count: { _all: true },
       }),
-      this.prisma.eventParticipant.count({
-        where: { eventId, status: "no_show" },
+      this.prisma.eventParticipant.groupBy({
+        by: ["applicantOccupation"],
+        where: activeWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.eventParticipant.groupBy({
+        by: ["applicantAffiliation"],
+        where: activeWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.eventParticipant.groupBy({
+        by: ["applicantNationality"],
+        where: activeWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.eventParticipantAnswer.findMany({
+        where: { participant: activeWhere },
+        select: { questionId: true, answer: true },
+      }),
+      this.prisma.eventApplicationQuestion.findMany({
+        where: { eventId },
+        orderBy: { sortOrder: "asc" },
       }),
     ]);
 
-    const total = participants.length;
+    const total = statusGroups.reduce((s, g) => s + g._count._all, 0);
+    const attendedTotal = statusGroups.find((g) => g.status === "attended")?._count._all ?? 0;
+    const noShowTotal = statusGroups.find((g) => g.status === "no_show")?._count._all ?? 0;
     const attendanceRate = total > 0 ? Math.round((attendedTotal / total) * 100) : null;
 
     const tickets = event.tickets.map((t) => ({
@@ -684,78 +725,62 @@ export class EventsService {
       capacity: t.capacity,
     }));
 
-    const genderCounts = new Map<string, number>();
-    const ageBandCounts = new Map<string, number>();
-    const occupationCounts = new Map<string, number>();
-    const affiliationCounts = new Map<string, number>();
-    const nationalityCounts = new Map<string, number>();
-    let genderAnswered = 0;
-    let ageAnswered = 0;
-    let occupationAnswered = 0;
-    let affiliationAnswered = 0;
-    let nationalityAnswered = 0;
+    // groupBy 結果から null を除外して [key, count] のタプル配列に変換
+    const genderEntries: Array<[string, number]> = genderGroups
+      .filter((g) => g.applicantGender !== null)
+      .map((g) => [g.applicantGender as string, g._count._all]);
+    const occupationEntries: Array<[string, number]> = occupationGroups
+      .filter((g) => g.applicantOccupation !== null)
+      .map((g) => [g.applicantOccupation as string, g._count._all]);
+    const affiliationEntries: Array<[string, number]> = affiliationGroups
+      .filter((g) => g.applicantAffiliation !== null)
+      .map((g) => [g.applicantAffiliation as string, g._count._all]);
+    const nationalityEntries: Array<[string, number]> = nationalityGroups
+      .filter((g) => g.applicantNationality !== null)
+      .map((g) => [g.applicantNationality as string, g._count._all]);
 
-    for (const p of participants) {
-      if (p.applicantGender) {
-        genderAnswered++;
-        genderCounts.set(p.applicantGender, (genderCounts.get(p.applicantGender) ?? 0) + 1);
-      }
-      if (p.applicantAge != null) {
-        ageAnswered++;
-        const band =
-          p.applicantAge < 20
-            ? "<20"
-            : p.applicantAge < 30
-              ? "20-29"
-              : p.applicantAge < 40
-                ? "30-39"
-                : p.applicantAge < 50
-                  ? "40-49"
-                  : p.applicantAge < 60
-                    ? "50-59"
-                    : "60+";
-        ageBandCounts.set(band, (ageBandCounts.get(band) ?? 0) + 1);
-      }
-      if (p.applicantOccupation) {
-        occupationAnswered++;
-        occupationCounts.set(
-          p.applicantOccupation,
-          (occupationCounts.get(p.applicantOccupation) ?? 0) + 1,
-        );
-      }
-      if (p.applicantAffiliation) {
-        affiliationAnswered++;
-        affiliationCounts.set(
-          p.applicantAffiliation,
-          (affiliationCounts.get(p.applicantAffiliation) ?? 0) + 1,
-        );
-      }
-      if (p.applicantNationality) {
-        nationalityAnswered++;
-        nationalityCounts.set(
-          p.applicantNationality,
-          (nationalityCounts.get(p.applicantNationality) ?? 0) + 1,
-        );
-      }
+    // applicantAge は数値 groupBy なので JS 側で band に集約
+    const ageBandCounts = new Map<string, number>();
+    let ageAnswered = 0;
+    for (const g of ageGroups) {
+      if (g.applicantAge == null) continue;
+      const c = g._count._all;
+      ageAnswered += c;
+      const band =
+        g.applicantAge < 20
+          ? "<20"
+          : g.applicantAge < 30
+            ? "20-29"
+            : g.applicantAge < 40
+              ? "30-39"
+              : g.applicantAge < 50
+                ? "40-49"
+                : g.applicantAge < 60
+                  ? "50-59"
+                  : "60+";
+      ageBandCounts.set(band, (ageBandCounts.get(band) ?? 0) + c);
     }
 
-    const topN = (map: Map<string, number>, limit = 10) => {
-      const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]);
+    const sumEntries = (e: Array<[string, number]>) => e.reduce((s, [, c]) => s + c, 0);
+
+    const topN = (entries: Iterable<[string, number]>, limit = 10) => {
+      const sorted = [...entries].sort((a, b) => b[1] - a[1]);
       const top = sorted.slice(0, limit).map(([key, count]) => ({ key, count }));
       const otherCount = sorted.slice(limit).reduce((sum, [, c]) => sum + c, 0);
       if (otherCount > 0) top.push({ key: "other", count: otherCount });
       return top;
     };
 
-    const questions = await this.prisma.eventApplicationQuestion.findMany({
-      where: { eventId },
-      orderBy: { sortOrder: "asc" },
-    });
-
-    const allAnswers = participants.flatMap((p) => p.answers);
+    // answers は Json 型のため JS で集計（option counts）。質問ごとに分離
+    const answersByQuestion = new Map<string, unknown[]>();
+    for (const a of answers) {
+      const arr = answersByQuestion.get(a.questionId) ?? [];
+      arr.push(a.answer);
+      answersByQuestion.set(a.questionId, arr);
+    }
 
     const questionStats = questions.map((q) => {
-      const qAnswers = allAnswers.filter((a) => a.questionId === q.id);
+      const qAnswers = answersByQuestion.get(q.id) ?? [];
       const answered = qAnswers.length;
       let optionCounts: Array<{ value: string; label: string; count: number }> | undefined;
 
@@ -767,7 +792,7 @@ export class EventsService {
         const options = (q.options as Array<{ value: string; label: string }>) ?? [];
         const counts = new Map<string, number>();
         for (const a of qAnswers) {
-          const vals = Array.isArray(a.answer) ? (a.answer as string[]) : [a.answer as string];
+          const vals = Array.isArray(a) ? (a as string[]) : [a as string];
           for (const v of vals) {
             counts.set(v, (counts.get(v) ?? 0) + 1);
           }
@@ -796,11 +821,17 @@ export class EventsService {
       attendanceRate,
       tickets,
       basicAttributes: {
-        gender: { values: topN(genderCounts), answered: genderAnswered },
-        ageBands: { values: topN(ageBandCounts), answered: ageAnswered },
-        occupation: { values: topN(occupationCounts), answered: occupationAnswered },
-        affiliation: { values: topN(affiliationCounts), answered: affiliationAnswered },
-        nationality: { values: topN(nationalityCounts), answered: nationalityAnswered },
+        gender: { values: topN(genderEntries), answered: sumEntries(genderEntries) },
+        ageBands: { values: topN(ageBandCounts.entries()), answered: ageAnswered },
+        occupation: { values: topN(occupationEntries), answered: sumEntries(occupationEntries) },
+        affiliation: {
+          values: topN(affiliationEntries),
+          answered: sumEntries(affiliationEntries),
+        },
+        nationality: {
+          values: topN(nationalityEntries),
+          answered: sumEntries(nationalityEntries),
+        },
       },
       questions: questionStats,
     };

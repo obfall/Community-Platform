@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import withBundleAnalyzer from "@next/bundle-analyzer";
+
+// ANALYZE=true でビルド時に treemap を生成（普段は素通し）
+const bundleAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 /**
  * CSP（Content Security Policy）ディレクティブの組み立て。
@@ -75,7 +81,21 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@community-platform/shared"],
   images: {
-    remotePatterns: [],
+    // 許可するリモートホスト（CSP の img-src と整合させる）
+    remotePatterns: [
+      { protocol: "https", hostname: "*.r2.cloudflarestorage.com" },
+      { protocol: "https", hostname: "*.cloudflarestream.com" },
+      { protocol: "https", hostname: "picsum.photos" },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+    // モダンフォーマット自動配信（PNG/JPEG → AVIF/WebP に変換）
+    formats: ["image/avif", "image/webp"],
+    // デバイスサイズに応じた解像度配信
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
   },
   async headers() {
     return [
@@ -107,11 +127,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG || "",
-  project: process.env.SENTRY_PROJECT || "",
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  tunnelRoute: "/monitoring",
-});
+export default bundleAnalyzer(
+  withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG || "",
+    project: process.env.SENTRY_PROJECT || "",
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    tunnelRoute: "/monitoring",
+  }),
+);

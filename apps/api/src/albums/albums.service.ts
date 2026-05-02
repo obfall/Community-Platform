@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import {
   buildPaginationMeta,
   escapePgroongaQuery,
@@ -11,9 +12,16 @@ import { Prisma } from "@prisma/client";
 import type { CreateAlbumDto } from "./dto/create-album.dto";
 import type { AlbumQueryDto } from "./dto/album-query.dto";
 
+const ALBUM_CATEGORIES_CACHE_KEY = "master:categories:album:all";
+const ALBUM_CATEGORIES_CACHE_PREFIX = "master:categories:album:";
+const CATEGORIES_CACHE_TTL_SEC = 60 * 60;
+
 @Injectable()
 export class AlbumsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async findAll(query: AlbumQueryDto) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
@@ -237,16 +245,23 @@ export class AlbumsService {
   // --- カテゴリ ---
 
   async getCategories() {
-    return this.prisma.category.findMany({
-      where: { scope: "album", isActive: true },
-      orderBy: { sortOrder: "asc" },
-    });
+    return this.cache.getOrSet(
+      ALBUM_CATEGORIES_CACHE_KEY,
+      () =>
+        this.prisma.category.findMany({
+          where: { scope: "album", isActive: true },
+          orderBy: { sortOrder: "asc" },
+        }),
+      CATEGORIES_CACHE_TTL_SEC,
+    );
   }
 
   async createCategory(name: string) {
     const slug = `album-${Date.now()}`;
-    return this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: { scope: "album", slug, name },
     });
+    await this.cache.invalidate(ALBUM_CATEGORIES_CACHE_PREFIX);
+    return created;
   }
 }

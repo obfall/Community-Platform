@@ -1,17 +1,30 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import type { CreateOrientationPageDto } from "./dto/create-orientation-page.dto";
 import type { UpdateOrientationPageDto } from "./dto/update-orientation-page.dto";
 
+const CACHE_KEY = "master:orientation-pages:all";
+const CACHE_PREFIX = "master:orientation-pages:";
+const CACHE_TTL_SEC = 60 * 60;
+
 @Injectable()
 export class OrientationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async findAllPages() {
-    return this.prisma.orientationPage.findMany({
-      where: { isPublished: true },
-      orderBy: { sortOrder: "asc" },
-    });
+    return this.cache.getOrSet(
+      CACHE_KEY,
+      () =>
+        this.prisma.orientationPage.findMany({
+          where: { isPublished: true },
+          orderBy: { sortOrder: "asc" },
+        }),
+      CACHE_TTL_SEC,
+    );
   }
 
   async findOnePage(id: string) {
@@ -21,7 +34,7 @@ export class OrientationService {
   }
 
   async createPage(dto: CreateOrientationPageDto) {
-    return this.prisma.orientationPage.create({
+    const created = await this.prisma.orientationPage.create({
       data: {
         title: dto.title,
         body: dto.body,
@@ -29,12 +42,14 @@ export class OrientationService {
         isPublished: dto.isPublished ?? true,
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
+    return created;
   }
 
   async updatePage(id: string, data: UpdateOrientationPageDto) {
     const existing = await this.prisma.orientationPage.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException("ページが見つかりません");
-    return this.prisma.orientationPage.update({
+    const updated = await this.prisma.orientationPage.update({
       where: { id },
       data: {
         ...(data.title !== undefined && { title: data.title }),
@@ -43,12 +58,15 @@ export class OrientationService {
         ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
+    return updated;
   }
 
   async removePage(id: string) {
     const existing = await this.prisma.orientationPage.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException("ページが見つかりません");
     await this.prisma.orientationPage.delete({ where: { id } });
+    await this.cache.invalidate(CACHE_PREFIX);
   }
 
   async complete(userId: string) {

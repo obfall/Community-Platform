@@ -5,21 +5,34 @@ import {
   ConflictException,
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { CacheService } from "@/cache/cache.service";
 import { AttributeType } from "@prisma/client";
 import type { CreateMemberAttributeDto } from "./dto/create-member-attribute.dto";
 import type { UpdateMemberAttributeDto } from "./dto/update-member-attribute.dto";
 import type { SetAttributeValuesDto } from "./dto/set-attribute-values.dto";
 import type { ReorderAttributesDto } from "./dto/reorder-attributes.dto";
 
+const CACHE_KEY = "master:member-attributes:all";
+const CACHE_PREFIX = "master:member-attributes:";
+const CACHE_TTL_SEC = 60 * 60;
+
 @Injectable()
 export class MemberAttributesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   /** 属性定義一覧 */
   async findAll() {
-    return this.prisma.memberAttribute.findMany({
-      orderBy: { sortOrder: "asc" },
-    });
+    return this.cache.getOrSet(
+      CACHE_KEY,
+      () =>
+        this.prisma.memberAttribute.findMany({
+          orderBy: { sortOrder: "asc" },
+        }),
+      CACHE_TTL_SEC,
+    );
   }
 
   /** 属性定義作成 */
@@ -40,7 +53,7 @@ export class MemberAttributesService {
       slug = await this.generateNextSlug();
     }
 
-    return this.prisma.memberAttribute.create({
+    const created = await this.prisma.memberAttribute.create({
       data: {
         name: dto.name,
         slug,
@@ -51,6 +64,8 @@ export class MemberAttributesService {
         sortOrder: dto.sortOrder ?? 0,
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
+    return created;
   }
 
   /** attr_{N} 形式のスラッグを採番（既存の最大値+1、欠番は再利用しない） */
@@ -71,7 +86,7 @@ export class MemberAttributesService {
     const existing = await this.prisma.memberAttribute.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException("属性が見つかりません");
 
-    return this.prisma.memberAttribute.update({
+    const updated = await this.prisma.memberAttribute.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -80,6 +95,8 @@ export class MemberAttributesService {
         ...(dto.isSelfEditable !== undefined && { isSelfEditable: dto.isSelfEditable }),
       },
     });
+    await this.cache.invalidate(CACHE_PREFIX);
+    return updated;
   }
 
   /** 属性定義削除（値もカスケード削除） */
@@ -88,6 +105,7 @@ export class MemberAttributesService {
     if (!existing) throw new NotFoundException("属性が見つかりません");
 
     await this.prisma.memberAttribute.delete({ where: { id } });
+    await this.cache.invalidate(CACHE_PREFIX);
   }
 
   /** 並び替え */
@@ -100,6 +118,7 @@ export class MemberAttributesService {
         }),
       ),
     );
+    await this.cache.invalidate(CACHE_PREFIX);
   }
 
   /** ユーザーの属性値一覧 */
