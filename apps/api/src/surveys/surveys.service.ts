@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import {
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateSurveyDto } from "./dto/create-survey.dto";
 import type { SubmitResponseDto } from "./dto/submit-response.dto";
@@ -14,17 +20,21 @@ export class SurveysService {
   ) {}
 
   async findAll(query: SurveyQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: SurveyQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.SurveyWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
-    if (query.search) where.title = { contains: query.search, mode: "insensitive" };
     if (query.eventId) {
       where.eventId = query.eventId;
     } else {
-      // eventId 未指定時は汎用アンケートのみ（イベント紐づきなし）
       where.eventId = null;
     }
 
@@ -34,41 +44,89 @@ export class SurveysService {
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
-        include: {
-          createdBy: { select: { id: true, name: true } },
-          _count: { select: { questions: true, responses: true } },
-        },
+        include: this.surveyListInclude(),
       }),
       this.prisma.survey.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatSurveyList(data, total, page, limit);
+  }
+
+  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchByPgroonga(query: SurveyQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.status ? Prisma.sql`AND status = ${query.status}::"SurveyStatus"` : Prisma.empty}
+      ${query.eventId ? Prisma.sql`AND event_id = ${query.eventId}::uuid` : Prisma.sql`AND event_id IS NULL`}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "surveys",
+      searchColumns: ["title", "description"],
+      titleColumn: "title",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.survey.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: this.surveyListInclude(),
+        }),
+    });
+
+    return this.formatSurveyList(records, total, page, limit, hitsById);
+  }
+
+  private surveyListInclude() {
     return {
-      data: data.map((s) => ({
-        id: s.id,
-        title: s.title,
-        description: s.description,
-        status: s.status,
-        isAnonymous: s.isAnonymous,
-        targetType: s.targetType,
-        startsAt: s.startsAt,
-        endsAt: s.endsAt,
-        eventId: s.eventId,
-        responseCount: s.responseCount,
-        notifiedAt: s.notifiedAt,
-        remindedAt: s.remindedAt,
-        questionCount: s._count.questions,
-        createdBy: s.createdBy,
-        createdAt: s.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      createdBy: { select: { id: true, name: true } },
+      _count: { select: { questions: true, responses: true } },
+    } satisfies Prisma.SurveyInclude;
+  }
+
+  private formatSurveyList(
+    data: Array<
+      Prisma.SurveyGetPayload<{
+        include: {
+          createdBy: { select: { id: true; name: true } };
+          _count: { select: { questions: true; responses: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
+    return {
+      data: data.map((s) => {
+        const h = hitsById?.get(s.id);
+        return {
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
+          status: s.status,
+          isAnonymous: s.isAnonymous,
+          targetType: s.targetType,
+          startsAt: s.startsAt,
+          endsAt: s.endsAt,
+          eventId: s.eventId,
+          responseCount: s.responseCount,
+          notifiedAt: s.notifiedAt,
+          remindedAt: s.remindedAt,
+          questionCount: s._count.questions,
+          createdBy: s.createdBy,
+          createdAt: s.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 

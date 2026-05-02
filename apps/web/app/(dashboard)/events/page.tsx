@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SelectField } from "@/components/select-field";
+import { HighlightedText } from "@/components/highlighted-text";
 
 const EVENT_STATUS_OPTIONS = [
   { value: "draft", label: "下書き" },
@@ -132,7 +133,9 @@ export default function EventsPage() {
                     </Badge>
                     {event.category && <Badge variant="outline">{event.category.name}</Badge>}
                   </div>
-                  <h3 className="mb-2 line-clamp-2 text-sm font-semibold">{event.title}</h3>
+                  <h3 className="mb-2 line-clamp-2 text-sm font-semibold">
+                    <HighlightedText html={event.titleHighlighted} fallback={event.title} />
+                  </h3>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" />

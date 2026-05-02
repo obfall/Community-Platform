@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsInt, Min, IsEnum, IsString, IsUUID } from "class-validator";
+import { IsOptional, IsInt, Min, IsEnum, IsString, IsUUID, MaxLength } from "class-validator";
 import { Type } from "class-transformer";
 import { SkillFormat } from "@prisma/client";
 
@@ -28,8 +28,9 @@ export class SkillQueryDto {
   @IsEnum(SkillFormat)
   format?: SkillFormat;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "検索キーワード（pgroonga 全文検索）" })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 }

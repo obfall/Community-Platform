@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Image as ImageIcon, Camera } from "lucide-react";
+import { HighlightedText } from "@/components/highlighted-text";
 
 export default function AlbumsPage() {
   const [query, setQuery] = useState<{
@@ -149,7 +150,9 @@ export default function AlbumsPage() {
                       </Badge>
                     )}
                   </div>
-                  <h3 className="line-clamp-1 text-sm font-semibold">{a.title}</h3>
+                  <h3 className="line-clamp-1 text-sm font-semibold">
+                    <HighlightedText html={a.titleHighlighted} fallback={a.title} />
+                  </h3>
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Camera className="h-3 w-3" />

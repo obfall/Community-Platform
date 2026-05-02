@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Video, Play, CheckCircle } from "lucide-react";
+import { HighlightedText } from "@/components/highlighted-text";
 import { useAuth } from "@/hooks/auth/use-auth";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 
@@ -202,7 +203,9 @@ export default function VideosPage() {
                       </Badge>
                     )}
                   </div>
-                  <h3 className="line-clamp-2 text-sm font-semibold">{v.title}</h3>
+                  <h3 className="line-clamp-2 text-sm font-semibold">
+                    <HighlightedText html={v.titleHighlighted} fallback={v.title} />
+                  </h3>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <span>作成者: {v.createdBy.name}</span>
                     <span className="flex items-center gap-0.5">

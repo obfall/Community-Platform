@@ -1,29 +1,36 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import {
+  AUTHOR_SELECT,
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  formatAuthor,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import type { CreateProjectDto } from "./dto/create-project.dto";
 import type { ProjectQueryDto } from "./dto/project-query.dto";
-
-const AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  profile: { select: { avatarUrl: true } },
-} as const;
 
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: ProjectQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: ProjectQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.ProjectWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
     if (query.publishStatus) where.publishStatus = query.publishStatus;
-    if (query.search) where.name = { contains: query.search, mode: "insensitive" };
 
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
@@ -31,44 +38,87 @@ export class ProjectsService {
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
-        include: {
-          createdByUser: { select: AUTHOR_SELECT },
-          category: { select: { id: true, name: true } },
-          _count: { select: { members: true } },
-        },
+        include: this.projectListInclude(),
       }),
       this.prisma.project.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatProjectList(projects, total, page, limit);
+  }
 
+  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchByPgroonga(query: ProjectQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.status ? Prisma.sql`AND status = ${query.status}::"ProjectStatus"` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "projects",
+      searchColumns: ["name", "description"],
+      titleColumn: "name",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.project.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: this.projectListInclude(),
+        }),
+    });
+
+    return this.formatProjectList(records, total, page, limit, hitsById);
+  }
+
+  private projectListInclude() {
     return {
-      data: projects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        coverImageUrl: p.coverImageUrl,
-        status: p.status,
-        publishStatus: p.publishStatus,
-        memberCount: p._count.members,
-        category: p.category,
-        startDate: p.startDate,
-        endDate: p.endDate,
-        createdBy: {
-          id: p.createdByUser.id,
-          name: p.createdByUser.name,
-          avatarUrl: p.createdByUser.profile?.avatarUrl ?? null,
-        },
-        createdAt: p.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      createdByUser: { select: AUTHOR_SELECT },
+      category: { select: { id: true, name: true } },
+      _count: { select: { members: true } },
+    } satisfies Prisma.ProjectInclude;
+  }
+
+  private formatProjectList(
+    projects: Array<
+      Prisma.ProjectGetPayload<{
+        include: {
+          createdByUser: { select: typeof AUTHOR_SELECT };
+          category: { select: { id: true; name: true } };
+          _count: { select: { members: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
+    return {
+      data: projects.map((p) => {
+        const h = hitsById?.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
+          coverImageUrl: p.coverImageUrl,
+          status: p.status,
+          publishStatus: p.publishStatus,
+          memberCount: p._count.members,
+          category: p.category,
+          startDate: p.startDate,
+          endDate: p.endDate,
+          createdBy: formatAuthor(p.createdByUser),
+          createdAt: p.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 
@@ -128,11 +178,7 @@ export class ProjectsService {
         joinedAt: m.joinedAt,
       })),
       tags: project.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
-      createdBy: {
-        id: project.createdByUser.id,
-        name: project.createdByUser.name,
-        avatarUrl: project.createdByUser.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(project.createdByUser),
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };
@@ -240,9 +286,7 @@ export class ProjectsService {
   // ========== Threads ==========
 
   async getThreads(projectId: string, query: { page?: number; limit?: number }) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = extractPagination(query);
 
     const [threads, total] = await Promise.all([
       this.prisma.projectThread.findMany({
@@ -255,8 +299,6 @@ export class ProjectsService {
       this.prisma.projectThread.count({ where: { projectId, deletedAt: null } }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
-
     return {
       data: threads.map((t) => ({
         id: t.id,
@@ -265,21 +307,10 @@ export class ProjectsService {
         replyCount: t.replyCount,
         likeCount: t.likeCount,
         lastReplyAt: t.lastReplyAt,
-        createdBy: {
-          id: t.createdBy.id,
-          name: t.createdBy.name,
-          avatarUrl: t.createdBy.profile?.avatarUrl ?? null,
-        },
+        createdBy: formatAuthor(t.createdBy),
         createdAt: t.createdAt,
       })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 
@@ -290,11 +321,7 @@ export class ProjectsService {
     });
     return {
       ...thread,
-      createdBy: {
-        id: thread.createdBy.id,
-        name: thread.createdBy.name,
-        avatarUrl: thread.createdBy.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(thread.createdBy),
     };
   }
 
@@ -311,11 +338,7 @@ export class ProjectsService {
       threadId: r.threadId,
       body: r.body,
       likeCount: r.likeCount,
-      author: {
-        id: r.author.id,
-        name: r.author.name,
-        avatarUrl: r.author.profile?.avatarUrl ?? null,
-      },
+      author: formatAuthor(r.author),
       createdAt: r.createdAt,
     }));
   }
@@ -337,11 +360,7 @@ export class ProjectsService {
       threadId: reply.threadId,
       body: reply.body,
       likeCount: reply.likeCount,
-      author: {
-        id: reply.author.id,
-        name: reply.author.name,
-        avatarUrl: reply.author.profile?.avatarUrl ?? null,
-      },
+      author: formatAuthor(reply.author),
       createdAt: reply.createdAt,
     };
   }
@@ -414,11 +433,7 @@ export class ProjectsService {
 
     return tasks.map((t) => ({
       ...t,
-      createdBy: {
-        id: t.createdBy.id,
-        name: t.createdBy.name,
-        avatarUrl: t.createdBy.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(t.createdBy),
       assignees: t.assignees.map((a) => ({
         id: a.id,
         userId: a.user.id,
@@ -477,11 +492,7 @@ export class ProjectsService {
 
     return {
       ...task,
-      createdBy: {
-        id: task.createdBy.id,
-        name: task.createdBy.name,
-        avatarUrl: task.createdBy.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(task.createdBy),
       assignees: task.assignees.map((a) => ({
         id: a.id,
         userId: a.user.id,

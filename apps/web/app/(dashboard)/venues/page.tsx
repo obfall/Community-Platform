@@ -7,14 +7,18 @@ import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Plus, Building2, Users, MapPin } from "lucide-react";
 import { SelectField } from "@/components/select-field";
+import { HighlightedText } from "@/components/highlighted-text";
 import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { VENUE_TYPE_LABELS } from "@/lib/constants/venue-types";
 
 export default function VenuesPage() {
   const [publishStatus, setPublishStatus] = useState("all");
-  const { data: venues, isLoading } = useVenues({ publishStatus });
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const { data: venues, isLoading } = useVenues({ publishStatus, search });
   const { user } = useAuth();
   const isAdmin = user?.role === "owner" || user?.role === "admin";
 
@@ -32,7 +36,14 @@ export default function VenuesPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput || undefined)}
+          placeholder="施設を検索..."
+          className="max-w-xs"
+        />
         <SelectField
           value={publishStatus}
           onChange={setPublishStatus}
@@ -78,7 +89,9 @@ export default function VenuesPage() {
                         </Badge>
                       )}
                     </div>
-                    <h3 className="line-clamp-1 font-semibold">{v.name}</h3>
+                    <h3 className="line-clamp-1 font-semibold">
+                      <HighlightedText html={v.titleHighlighted} fallback={v.name} />
+                    </h3>
                     {v.address && (
                       <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
                         <MapPin className="mr-1 inline h-3 w-3" />

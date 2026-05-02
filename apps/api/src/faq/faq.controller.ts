@@ -17,7 +17,7 @@ import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
 import { FaqService } from "./faq.service";
-import { CreateFaqDto, UpdateFaqDto } from "./dto";
+import { CreateFaqDto, UpdateFaqDto, FaqQueryDto } from "./dto";
 
 @Controller("faq")
 @ApiTags("FAQ")
@@ -29,8 +29,8 @@ export class FaqController {
 
   @Get()
   @ApiOperation({ summary: "FAQ一覧" })
-  findAll(@Query("category") category?: string) {
-    return this.service.findAll(category);
+  findAll(@Query() query: FaqQueryDto) {
+    return this.service.findAll(query);
   }
 
   @Get("categories")

@@ -3,6 +3,7 @@ import { Package, CalendarRange } from "lucide-react";
 import type { ProductListItem } from "@/lib/api/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HighlightedText } from "@/components/highlighted-text";
 import { SoldOverlay } from "./sold-overlay";
 
 interface Props {
@@ -56,7 +57,9 @@ export function ProductCard({ product, href }: Props) {
               </Badge>
             )}
           </div>
-          <h3 className="mb-2 line-clamp-2 text-sm font-semibold">{product.name}</h3>
+          <h3 className="mb-2 line-clamp-2 text-sm font-semibold">
+            <HighlightedText html={product.titleHighlighted} fallback={product.name} />
+          </h3>
           <div className="text-lg font-bold">&yen;{product.price.toLocaleString()}</div>
           {salePeriod && (
             <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">

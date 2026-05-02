@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, FileText, BookOpen } from "lucide-react";
 import { SelectField } from "@/components/select-field";
+import { HighlightedText } from "@/components/highlighted-text";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
@@ -118,10 +119,12 @@ export default function ContentPage() {
                       {c.publishStatus === "published" ? "公開" : "下書き"}
                     </Badge>
                   </div>
-                  <h3 className="line-clamp-2 text-sm font-semibold">{c.name}</h3>
-                  {c.description && (
+                  <h3 className="line-clamp-2 text-sm font-semibold">
+                    <HighlightedText html={c.titleHighlighted} fallback={c.name} />
+                  </h3>
+                  {(c.snippetHighlighted || c.description) && (
                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {c.description}
+                      <HighlightedText html={c.snippetHighlighted} fallback={c.description ?? ""} />
                     </p>
                   )}
                   <div className="mt-3 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">

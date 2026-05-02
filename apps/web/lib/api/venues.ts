@@ -2,7 +2,7 @@ import { apiClient } from "./client";
 import type { VenueListItem, VenueDetail, Reservation, VenueReservation } from "./types";
 
 export const venuesApi = {
-  getAll: (params?: { publishStatus?: string }) =>
+  getAll: (params?: { publishStatus?: string; search?: string }) =>
     apiClient.get<VenueListItem[]>("/venues", { params }).then((r) => r.data),
 
   getOne: (id: string) => apiClient.get<VenueDetail>(`/venues/${id}`).then((r) => r.data),

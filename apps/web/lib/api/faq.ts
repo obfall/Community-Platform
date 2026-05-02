@@ -10,10 +10,16 @@ export interface FaqInput {
 }
 
 export const faqApi = {
-  getAll: (category?: string) =>
-    apiClient
-      .get<FaqArticle[]>("/faq", { params: category ? { category } : undefined })
-      .then((r) => r.data),
+  getAll: (params?: { category?: string; search?: string }) => {
+    const filtered = params
+      ? Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined))
+      : undefined;
+    return apiClient
+      .get<FaqArticle[]>("/faq", {
+        params: filtered && Object.keys(filtered).length > 0 ? filtered : undefined,
+      })
+      .then((r) => r.data);
+  },
 
   getCategories: () => apiClient.get<string[]>("/faq/categories").then((r) => r.data),
 

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HighlightedText } from "@/components/highlighted-text";
 import { cn } from "@/lib/utils";
 import type { UserListItem } from "@/lib/api/types";
 
@@ -81,7 +82,9 @@ export function MembersTable({ users, isLoading, onSelectUser }: MembersTablePro
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{user.name}</span>
+                    <span className="font-medium">
+                      <HighlightedText html={user.titleHighlighted} fallback={user.name} />
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>

@@ -6,6 +6,7 @@ import { useFaqArticles, useFaqCategories } from "@/hooks/faq/use-faq";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -14,10 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, HelpCircle } from "lucide-react";
+import { HighlightedText } from "@/components/highlighted-text";
 
 export default function FaqPage() {
   const [category, setCategory] = useState<string | undefined>(undefined);
-  const { data, isLoading } = useFaqArticles(category);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const { data, isLoading } = useFaqArticles({ category, search });
   const { data: categories } = useFaqCategories();
   const items = data ?? [];
 
@@ -33,7 +37,14 @@ export default function FaqPage() {
         </Link>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput || undefined)}
+          placeholder="FAQを検索..."
+          className="max-w-xs"
+        />
         <Select
           value={category ?? "all"}
           onValueChange={(v) => setCategory(v === "all" ? undefined : v)}
@@ -75,8 +86,12 @@ export default function FaqPage() {
                       </Badge>
                     )}
                   </div>
-                  <h3 className="text-base font-semibold">{f.title}</h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{f.body}</p>
+                  <h3 className="text-base font-semibold">
+                    <HighlightedText html={f.titleHighlighted} fallback={f.title} />
+                  </h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                    <HighlightedText html={f.snippetHighlighted} fallback={f.body} />
+                  </p>
                 </CardContent>
               </Card>
             </Link>

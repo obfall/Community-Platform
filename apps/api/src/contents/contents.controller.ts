@@ -17,7 +17,7 @@ import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { FeatureEnabledGuard } from "@/common/guards";
 import { ContentsService } from "./contents.service";
-import { CreateContentDto } from "./dto";
+import { CreateContentDto, ContentQueryDto } from "./dto";
 
 @Controller("contents")
 @ApiTags("Contents")
@@ -29,16 +29,7 @@ export class ContentsController {
 
   @Get()
   @ApiOperation({ summary: "コンテンツ一覧" })
-  findAll(
-    @Query()
-    query: {
-      page?: number;
-      limit?: number;
-      search?: string;
-      contentType?: string;
-      publishStatus?: string;
-    },
-  ) {
+  findAll(@Query() query: ContentQueryDto) {
     return this.service.findAll(query);
   }
 
