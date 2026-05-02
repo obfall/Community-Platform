@@ -1,17 +1,12 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
+import { AUTHOR_SELECT, formatAuthor } from "@/common/utils";
 import type {
   UpsertEventResultDto,
   AttachResultFileDto,
   ReorderResultAttachmentsDto,
 } from "./dto/upsert-event-result.dto";
-
-const AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  profile: { select: { avatarUrl: true } },
-} as const;
 
 const ATTACHMENT_INCLUDE = {
   file: {
@@ -221,11 +216,7 @@ export class EventResultsService {
       executionStatus: result.executionStatus,
       status: result.status,
       publishStatus: result.publishStatus,
-      createdBy: {
-        id: result.createdBy.id,
-        name: result.createdBy.name,
-        avatarUrl: result.createdBy.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(result.createdBy),
       attachments: (result.attachments ?? []).map((a: any) => this.mapAttachment(a)),
       createdAt: result.createdAt,
       updatedAt: result.updatedAt,

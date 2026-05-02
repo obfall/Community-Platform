@@ -6,6 +6,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import {
+  AUTHOR_SELECT,
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  formatAuthor,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import type { CreateVideoDto } from "./dto/create-video.dto";
@@ -13,12 +21,6 @@ import type { UpdateVideoDto } from "./dto/update-video.dto";
 import type { VideoQueryDto } from "./dto/video-query.dto";
 
 const BCRYPT_SALT_ROUNDS = 10;
-
-const AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  profile: { select: { avatarUrl: true } },
-} as const;
 
 @Injectable()
 export class VideosService {
@@ -30,15 +32,20 @@ export class VideosService {
   // ───────────────────── findAll ─────────────────────
 
   async findAll(query: VideoQueryDto, currentUserId?: string) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped, currentUserId);
+    }
+    return this.findAllStandard(query, currentUserId);
+  }
+
+  private async findAllStandard(query: VideoQueryDto, currentUserId?: string) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.VideoWhereInput = { deletedAt: null };
     if (query.publishStatus) where.publishStatus = query.publishStatus;
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
-    if (query.search) where.title = { contains: query.search, mode: "insensitive" };
 
     // admin/owner 以外は公開中の動画のみに制限
     const currentUser = currentUserId
@@ -69,38 +76,91 @@ export class VideosService {
           : { sortOrder: "asc" },
         skip,
         take: limit,
-        include: {
-          category: { select: { id: true, name: true } },
-          series: { select: { id: true, name: true } },
-          createdBy: { select: AUTHOR_SELECT },
-          tasks: {
-            select: {
-              id: true,
-              completions: currentUserId
-                ? {
-                    where: { userId: currentUserId, status: "completed" },
-                    select: { id: true },
-                    take: 1,
-                  }
-                : { select: { id: true }, take: 0 },
-            },
-          },
-          watchProgress: currentUserId
-            ? {
-                where: { userId: currentUserId },
-                select: { isCompleted: true },
-                take: 1,
-              }
-            : { select: { isCompleted: true }, take: 0 },
-        },
+        include: this.videoListInclude(currentUserId),
       }),
       this.prisma.video.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatVideoList(videos, total, page, limit);
+  }
 
+  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchByPgroonga(query: VideoQueryDto, escaped: string, currentUserId?: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
+      ${query.seriesId ? Prisma.sql`AND series_id = ${query.seriesId}::uuid` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "videos",
+      searchColumns: ["title", "description"],
+      titleColumn: "title",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.video.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: this.videoListInclude(currentUserId),
+        }),
+    });
+
+    return this.formatVideoList(records, total, page, limit, hitsById);
+  }
+
+  private videoListInclude(currentUserId?: string) {
+    return {
+      category: { select: { id: true, name: true } },
+      series: { select: { id: true, name: true } },
+      createdBy: { select: AUTHOR_SELECT },
+      tasks: {
+        select: {
+          id: true,
+          completions: currentUserId
+            ? {
+                where: { userId: currentUserId, status: "completed" as const },
+                select: { id: true },
+                take: 1,
+              }
+            : { select: { id: true }, take: 0 },
+        },
+      },
+      watchProgress: currentUserId
+        ? {
+            where: { userId: currentUserId },
+            select: { isCompleted: true },
+            take: 1,
+          }
+        : { select: { isCompleted: true }, take: 0 },
+    } satisfies Prisma.VideoInclude;
+  }
+
+  private formatVideoList(
+    videos: Array<
+      Prisma.VideoGetPayload<{
+        include: {
+          category: { select: { id: true; name: true } };
+          series: { select: { id: true; name: true } };
+          createdBy: { select: typeof AUTHOR_SELECT };
+          tasks: { select: { id: true; completions: { select: { id: true } } } };
+          watchProgress: { select: { isCompleted: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
     return {
       data: videos.map((v) => {
+        const h = hitsById?.get(v.id);
         const taskCount = v.tasks.length;
         const incompleteTaskCount = v.tasks.filter((t) => t.completions.length === 0).length;
         const isWatched = v.watchProgress[0]?.isCompleted ?? false;
@@ -108,6 +168,8 @@ export class VideosService {
           id: v.id,
           title: v.title,
           description: v.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
           thumbnailUrl: v.thumbnailUrl,
           durationSeconds: v.durationSeconds,
           watchOrder: v.watchOrder,
@@ -120,25 +182,14 @@ export class VideosService {
           hasPassword: !!v.passwordHash,
           category: v.category,
           series: v.series,
-          createdBy: {
-            id: v.createdBy.id,
-            name: v.createdBy.name,
-            avatarUrl: v.createdBy.profile?.avatarUrl ?? null,
-          },
+          createdBy: formatAuthor(v.createdBy),
           taskCount,
           incompleteTaskCount,
           isWatched,
           createdAt: v.createdAt,
         };
       }),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 
@@ -231,11 +282,7 @@ export class VideosService {
       ...video,
       hasPassword: !!video.passwordHash,
       passwordHash: undefined,
-      createdBy: {
-        id: video.createdBy.id,
-        name: video.createdBy.name,
-        avatarUrl: video.createdBy.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(video.createdBy),
       instructors: video.instructors.map((i) => ({
         id: i.id,
         userId: i.userId,

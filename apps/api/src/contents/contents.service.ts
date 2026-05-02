@@ -1,29 +1,35 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import {
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateContentDto } from "./dto/create-content.dto";
+import type { ContentQueryDto } from "./dto/content-query.dto";
 import * as crypto from "crypto";
 
 @Injectable()
 export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: {
-    page?: number | string;
-    limit?: number | string;
-    search?: string;
-    contentType?: string;
-    publishStatus?: string;
-  }) {
-    const page = Number(query.page ?? 1);
-    const limit = Number(query.limit ?? 20);
-    const skip = (page - 1) * limit;
+  async findAll(query: ContentQueryDto) {
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: ContentQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.ContentWhereInput = { deletedAt: null };
     if (query.publishStatus && query.publishStatus !== "all") {
       where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     }
-    if (query.search) where.name = { contains: query.search, mode: "insensitive" };
     if (query.contentType) where.contentType = query.contentType;
 
     const [data, total] = await Promise.all([
@@ -32,33 +38,79 @@ export class ContentsService {
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
-        include: { createdBy: { select: { id: true, name: true } } },
+        include: this.contentListInclude(),
       }),
       this.prisma.content.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatContentList(data, total, page, limit);
+  }
+
+  /** pgroonga 全文検索。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchByPgroonga(query: ContentQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.contentType ? Prisma.sql`AND content_type = ${query.contentType}` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "contents",
+      searchColumns: ["name", "description"],
+      titleColumn: "name",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.content.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: this.contentListInclude(),
+        }),
+    });
+
+    return this.formatContentList(records, total, page, limit, hitsById);
+  }
+
+  private contentListInclude() {
     return {
-      data: data.map((c) => ({
-        id: c.id,
-        name: c.name,
-        contentType: c.contentType,
-        description: c.description,
-        price: c.price,
-        coverImageUrl: c.coverImageUrl,
-        inviteToken: c.inviteToken,
-        publishStatus: c.publishStatus,
-        createdBy: c.createdBy,
-        createdAt: c.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      createdBy: { select: { id: true, name: true } },
+    } satisfies Prisma.ContentInclude;
+  }
+
+  private formatContentList(
+    data: Array<
+      Prisma.ContentGetPayload<{
+        include: { createdBy: { select: { id: true; name: true } } };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
+    return {
+      data: data.map((c) => {
+        const h = hitsById?.get(c.id);
+        return {
+          id: c.id,
+          name: c.name,
+          titleHighlighted: h?.titleHighlighted,
+          contentType: c.contentType,
+          description: c.description,
+          snippetHighlighted: h?.snippetHighlighted,
+          price: c.price,
+          coverImageUrl: c.coverImageUrl,
+          inviteToken: c.inviteToken,
+          publishStatus: c.publishStatus,
+          createdBy: c.createdBy,
+          createdAt: c.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 

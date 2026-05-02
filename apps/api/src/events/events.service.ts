@@ -3,6 +3,14 @@ import { InjectQueue } from "@nestjs/bullmq";
 import type { Queue } from "bullmq";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import {
+  AUTHOR_SELECT,
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  formatAuthor,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateEventDto } from "./dto/create-event.dto";
 import type { UpdateEventDto } from "./dto/update-event.dto";
@@ -10,12 +18,6 @@ import type { EventQueryDto } from "./dto/event-query.dto";
 import type { CreateTicketDto } from "./dto/create-ticket.dto";
 import type { ParticipateEventDto } from "./dto/participate-event.dto";
 import type { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
-
-const AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  profile: { select: { avatarUrl: true } },
-} as const;
 
 @Injectable()
 export class EventsService {
@@ -28,17 +30,20 @@ export class EventsService {
   // ========== Events ==========
 
   async findAll(query: EventQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: EventQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.EventWhereInput = { deletedAt: null };
     if (query.status) where.status = query.status;
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.eventType) where.eventType = query.eventType;
-    if (query.search) {
-      where.title = { contains: query.search, mode: "insensitive" };
-    }
     if (query.from || query.to) {
       where.startAt = {};
       if (query.from) where.startAt.gte = new Date(query.from);
@@ -62,42 +67,100 @@ export class EventsService {
       this.prisma.event.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatList(events, total, page, limit);
+  }
 
+  /**
+   * pgroonga による全文検索版。関連度スコア順 + ハイライト付き。
+   * 検索条件は通常一覧 (findAllStandard) と一致させる（下書き含む）。
+   */
+  private async searchByPgroonga(query: EventQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const fromDate = query.from ? new Date(query.from) : null;
+    const toDate = query.to ? new Date(query.to) : null;
+
+    // 検索時の WHERE: 通常一覧と同じ条件 + クエリ別フィルタ
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.status ? Prisma.sql`AND status = ${query.status}::"EventStatus"` : Prisma.empty}
+      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
+      ${query.eventType ? Prisma.sql`AND event_type = ${query.eventType}` : Prisma.empty}
+      ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
+      ${toDate ? Prisma.sql`AND start_at <= ${toDate}` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "events",
+      searchColumns: ["title", "description"],
+      titleColumn: "title",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.event.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: {
+            createdByUser: { select: AUTHOR_SELECT },
+            category: { select: { id: true, name: true } },
+            venue: { select: { id: true, name: true } },
+            tickets: { orderBy: { sortOrder: "asc" } },
+            _count: { select: { participants: true } },
+          },
+        }),
+    });
+
+    return this.formatList(records, total, page, limit, hitsById);
+  }
+
+  private formatList(
+    events: Array<
+      Prisma.EventGetPayload<{
+        include: {
+          createdByUser: { select: typeof AUTHOR_SELECT };
+          category: { select: { id: true; name: true } };
+          venue: { select: { id: true; name: true } };
+          tickets: true;
+          _count: { select: { participants: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
     return {
-      data: events.map((e) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        locationType: e.locationType,
-        venueId: e.venueId,
-        venueName: e.venue?.name ?? e.venueName,
-        startAt: e.startAt,
-        endAt: e.endAt,
-        status: e.status,
-        coverImageUrl: e.coverImageUrl,
-        participantCount: e._count.participants,
-        category: e.category,
-        createdBy: {
-          id: e.createdByUser.id,
-          name: e.createdByUser.name,
-          avatarUrl: e.createdByUser.profile?.avatarUrl ?? null,
-        },
-        ticketCount: e.tickets.length,
-        totalCapacity: e.tickets.some((t) => t.capacity !== null)
-          ? e.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0)
-          : null,
-        minPrice: e.tickets.length > 0 ? Math.min(...e.tickets.map((t) => t.price)) : null,
-        createdAt: e.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      data: events.map((e) => {
+        const h = hitsById?.get(e.id);
+        return {
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
+          locationType: e.locationType,
+          venueId: e.venueId,
+          venueName: e.venue?.name ?? e.venueName,
+          startAt: e.startAt,
+          endAt: e.endAt,
+          status: e.status,
+          coverImageUrl: e.coverImageUrl,
+          participantCount: e._count.participants,
+          category: e.category,
+          createdBy: formatAuthor(e.createdByUser),
+          ticketCount: e.tickets.length,
+          totalCapacity: e.tickets.some((t) => t.capacity !== null)
+            ? e.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0)
+            : null,
+          minPrice: e.tickets.length > 0 ? Math.min(...e.tickets.map((t) => t.price)) : null,
+          createdAt: e.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 
@@ -507,11 +570,7 @@ export class EventsService {
     return {
       data: participants.map((p) => ({
         id: p.id,
-        user: {
-          id: p.user.id,
-          name: p.user.name,
-          avatarUrl: p.user.profile?.avatarUrl ?? null,
-        },
+        user: formatAuthor(p.user),
         ticket: p.ticket,
         quantity: p.quantity,
         status: p.status,
@@ -549,11 +608,7 @@ export class EventsService {
 
     return {
       id: participant.id,
-      user: {
-        id: participant.user.id,
-        name: participant.user.name,
-        avatarUrl: participant.user.profile?.avatarUrl ?? null,
-      },
+      user: formatAuthor(participant.user),
       ticket: participant.ticket,
       quantity: participant.quantity,
       status: participant.status,
@@ -1001,11 +1056,7 @@ export class EventsService {
       participantCount: event._count?.participants ?? event.participantCount,
       category: event.category,
       requiredRank: event.requiredRank,
-      createdBy: {
-        id: event.createdByUser.id,
-        name: event.createdByUser.name,
-        avatarUrl: event.createdByUser.profile?.avatarUrl ?? null,
-      },
+      createdBy: formatAuthor(event.createdByUser),
       tickets: event.tickets,
       speakers: event.speakers?.map((s: any) => ({
         id: s.id,
@@ -1013,9 +1064,7 @@ export class EventsService {
         title: s.title,
         role: s.role,
         sortOrder: s.sortOrder,
-        user: s.user
-          ? { id: s.user.id, name: s.user.name, avatarUrl: s.user.profile?.avatarUrl ?? null }
-          : null,
+        user: s.user ? formatAuthor(s.user) : null,
       })),
       organizations: event.organizations,
       tags: event.tags?.map((t: any) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),

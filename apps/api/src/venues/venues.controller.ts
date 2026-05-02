@@ -18,7 +18,7 @@ import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
 import { VenuesService } from "./venues.service";
-import { CreateVenueDto, CreateSpaceDto, CreateReservationDto } from "./dto";
+import { CreateVenueDto, CreateSpaceDto, CreateReservationDto, VenueQueryDto } from "./dto";
 
 @Controller("venues")
 @ApiTags("Venues")
@@ -30,8 +30,8 @@ export class VenuesController {
 
   @Get()
   @ApiOperation({ summary: "施設一覧" })
-  findAll(@Query("publishStatus") publishStatus?: string) {
-    return this.service.findAllVenues(publishStatus);
+  findAll(@Query() query: VenueQueryDto) {
+    return this.service.findAllVenues(query);
   }
 
   @Get(":id")

@@ -1,8 +1,20 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
+import { escapePgroongaQuery, pgroongaSearchAndFetch, PGROONGA_MAX_LIMIT } from "@/common/utils";
 import type { CreateVenueDto } from "./dto/create-venue.dto";
 import type { CreateSpaceDto } from "./dto/create-space.dto";
 import type { CreateReservationDto } from "./dto/create-reservation.dto";
+import type { VenueQueryDto } from "./dto/venue-query.dto";
+
+const VENUE_LIST_INCLUDE = {
+  _count: { select: { spaces: true } },
+  images: {
+    where: { isPrimary: true },
+    take: 1,
+    include: { file: { select: { publicUrl: true } } },
+  },
+} satisfies Prisma.VenueInclude;
 
 @Injectable()
 export class VenuesService {
@@ -10,24 +22,60 @@ export class VenuesService {
 
   // --- 施設 ---
 
-  async findAllVenues(publishStatus?: string) {
-    const where: { deletedAt: null; publishStatus?: "draft" | "published" | "unpublished" } = {
-      deletedAt: null,
-    };
-    if (publishStatus && publishStatus !== "all") {
-      where.publishStatus = publishStatus as "draft" | "published" | "unpublished";
+  async findAllVenues(query: VenueQueryDto = {}) {
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchVenuesByPgroonga(query, escaped);
+    }
+    const where: Prisma.VenueWhereInput = { deletedAt: null };
+    if (query.publishStatus && query.publishStatus !== "all") {
+      where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     }
     return this.prisma.venue.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: {
-        _count: { select: { spaces: true } },
-        images: {
-          where: { isPrimary: true },
-          take: 1,
-          include: { file: { select: { publicUrl: true } } },
-        },
-      },
+      include: VENUE_LIST_INCLUDE,
+    });
+  }
+
+  /** pgroonga 全文検索。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchVenuesByPgroonga(query: VenueQueryDto, escaped: string) {
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${
+        query.publishStatus && query.publishStatus !== "all"
+          ? Prisma.sql`AND publish_status = ${query.publishStatus}::"PublishStatus"`
+          : Prisma.empty
+      }
+    `;
+
+    // 施設一覧は通常パスがページネーションを返さない（findMany 直返し）ため、
+    // 検索パスもキャップ値で打ち切って配列返却にしている。
+    // 中期改善: 全 12 ドメインの一覧 API をページ送り化（バックログ）。
+    const { records, hitsById } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "venues",
+      searchColumns: ["name", "description", "address", "access_info"],
+      titleColumn: "name",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit: PGROONGA_MAX_LIMIT,
+      offset: 0,
+      fetchByIds: (ids) =>
+        this.prisma.venue.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: VENUE_LIST_INCLUDE,
+        }),
+    });
+
+    return records.map((v) => {
+      const h = hitsById.get(v.id);
+      return {
+        ...v,
+        titleHighlighted: h?.titleHighlighted,
+        snippetHighlighted: h?.snippetHighlighted,
+      };
     });
   }
 

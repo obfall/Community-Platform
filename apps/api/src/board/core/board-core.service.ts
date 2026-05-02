@@ -11,22 +11,7 @@ import type { UpdateTopicPostDto } from "../dto/update-topic-post.dto";
 import type { CreateTopicPostCommentDto } from "../dto/create-topic-post-comment.dto";
 import type { UpdateTopicPostCommentDto } from "../dto/update-topic-post-comment.dto";
 import type { PaginationQueryDto } from "@/common/dto/pagination.dto";
-
-const AUTHOR_SELECT = {
-  id: true,
-  name: true,
-  profile: { select: { avatarUrl: true } },
-} as const;
-
-type AuthorLike = {
-  id: string;
-  name: string;
-  profile?: { avatarUrl: string | null } | null;
-};
-
-function mapAuthor(author: AuthorLike) {
-  return { id: author.id, name: author.name, avatarUrl: author.profile?.avatarUrl ?? null };
-}
+import { AUTHOR_SELECT, type AuthorLike, formatAuthor, VISIBILITY } from "@/common/utils";
 
 /**
  * スコープ設定。各スコープで使用する Prisma delegate 名と、スコープを絞り込むフィールド名を指定する。
@@ -175,9 +160,11 @@ export class BoardCoreService {
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
+    // 公開条件は BoardTopicsService.searchByPgroonga と揃える（VISIBILITY.boardTopic）。
+    // project / event スコープの BoardTopic 派生モデルも deletedAt / publishStatus を共通で持つため、
+    // 同じ条件をそのまま転用できる。
     const where = this.buildScopeWhere(cfg, scopeId, {
-      deletedAt: null,
-      publishStatus: "published",
+      ...VISIBILITY.boardTopic,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
     });
 
@@ -233,7 +220,7 @@ export class BoardCoreService {
         viewCount: t.viewCount,
         postCount: t.postCount,
         likeCount: t.likeCount,
-        author: mapAuthor(t.author),
+        author: formatAuthor(t.author),
         category: t.category,
         isLiked: likedSet.has(t.id),
         createdAt: t.createdAt,
@@ -299,7 +286,7 @@ export class BoardCoreService {
       viewCount: topic.viewCount + 1,
       postCount: topic.postCount,
       likeCount: topic.likeCount,
-      author: mapAuthor(topic.author),
+      author: formatAuthor(topic.author),
       category: topic.category,
       isLiked: !!like,
       createdAt: topic.createdAt,
@@ -349,7 +336,7 @@ export class BoardCoreService {
       viewCount: topic.viewCount,
       postCount: topic.postCount,
       likeCount: topic.likeCount,
-      author: mapAuthor(topic.author),
+      author: formatAuthor(topic.author),
       category: topic.category,
       isLiked: false,
       createdAt: topic.createdAt,
@@ -398,7 +385,7 @@ export class BoardCoreService {
       viewCount: updated.viewCount,
       postCount: updated.postCount,
       likeCount: updated.likeCount,
-      author: mapAuthor(updated.author),
+      author: formatAuthor(updated.author),
       category: updated.category,
       isLiked: false,
       createdAt: updated.createdAt,
@@ -504,7 +491,7 @@ export class BoardCoreService {
         likeCount: p.likeCount,
         commentCount: p.commentCount,
         isLiked: likedSet.has(p.id),
-        author: mapAuthor(p.author),
+        author: formatAuthor(p.author),
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       })),
@@ -560,7 +547,7 @@ export class BoardCoreService {
       likeCount: post.likeCount,
       commentCount: post.commentCount,
       isLiked: false,
-      author: mapAuthor(post.author),
+      author: formatAuthor(post.author),
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     };
@@ -596,7 +583,7 @@ export class BoardCoreService {
       likeCount: updated.likeCount,
       commentCount: updated.commentCount,
       isLiked: false,
-      author: mapAuthor(updated.author),
+      author: formatAuthor(updated.author),
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
     };
@@ -691,13 +678,13 @@ export class BoardCoreService {
         body: c.body,
         likeCount: c.likeCount,
         isLiked: likedSet.has(c.id),
-        author: mapAuthor(c.author),
+        author: formatAuthor(c.author),
         childComments: c.childComments.map((ch) => ({
           id: ch.id,
           body: ch.body,
           likeCount: ch.likeCount,
           isLiked: likedSet.has(ch.id),
-          author: mapAuthor(ch.author),
+          author: formatAuthor(ch.author),
           createdAt: ch.createdAt,
           updatedAt: ch.updatedAt,
         })),
@@ -762,7 +749,7 @@ export class BoardCoreService {
       body: comment.body,
       likeCount: comment.likeCount,
       isLiked: false,
-      author: mapAuthor(comment.author),
+      author: formatAuthor(comment.author),
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
     };
@@ -796,7 +783,7 @@ export class BoardCoreService {
       body: updated.body,
       likeCount: updated.likeCount,
       isLiked: false,
-      author: mapAuthor(updated.author),
+      author: formatAuthor(updated.author),
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
     };

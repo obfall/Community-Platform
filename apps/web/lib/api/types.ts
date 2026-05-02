@@ -95,6 +95,9 @@ export interface UserListItem {
   status: string;
   avatarUrl: string | null;
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface UserProfile {
@@ -243,6 +246,9 @@ export interface BoardTopic {
   isLiked: boolean;
   createdAt: string;
   updatedAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface BoardTopicPost {
@@ -698,6 +704,9 @@ export interface EventListItem {
   totalCapacity: number | null;
   minPrice: number | null;
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface EventTicket {
@@ -1006,6 +1015,9 @@ export interface ProjectListItem {
   endDate: string | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface ProjectMember {
@@ -1121,6 +1133,9 @@ export interface VideoListItem {
   incompleteTaskCount: number;
   isWatched: boolean;
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface VideoDetail extends VideoListItem {
@@ -1421,6 +1436,9 @@ export interface SurveyListItem {
   questionCount: number;
   createdBy: { id: string; name: string };
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface SurveyQuestion {
@@ -1519,6 +1537,9 @@ export interface SkillListItem {
   category: { id: string; name: string } | null;
   provider: { id: string; name: string; avatarUrl: string | null };
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface SkillBooking {
@@ -1581,6 +1602,9 @@ export interface ProductListItem {
   saleStartAt: string | null;
   saleEndAt: string | null;
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface ProductQuery {
@@ -1641,6 +1665,9 @@ export interface AlbumListItem {
   category: { id: string; name: string } | null;
   createdBy: { id: string; name: string };
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 // --- Venues ---
@@ -1654,6 +1681,9 @@ export interface VenueListItem {
   publishStatus: string;
   _count: { spaces: number };
   images?: Array<{ id: string; file: { publicUrl: string | null } }>;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 export interface VenueDetail extends VenueListItem {
@@ -1700,6 +1730,9 @@ export interface FaqArticle {
   isPublished: boolean;
   viewCount: number;
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 // --- Memos ---
@@ -1808,6 +1841,9 @@ export interface ContentListItem {
   publishStatus: string;
   createdBy: { id: string; name: string };
   createdAt: string;
+  /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
+  titleHighlighted?: string;
+  snippetHighlighted?: string;
 }
 
 // --- Event Results ---

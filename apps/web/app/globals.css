@@ -54,3 +54,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * 全文検索ハイライト（pgroonga_highlight_html が出力する <span class="keyword">）。
+ * HighlightedText コンポーネント経由で描画される。
+ */
+.keyword {
+  @apply rounded-sm bg-yellow-200 px-0.5 font-semibold text-foreground;
+}

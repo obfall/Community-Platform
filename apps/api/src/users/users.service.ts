@@ -4,8 +4,14 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
+import {
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  uuidArrayParam,
+} from "@/common/utils";
 import { AuthService } from "@/auth/auth.service";
 import { EmailService } from "@/broadcasts/email.service";
 import type { UserListQueryDto } from "./dto/user-list-query.dto";
@@ -27,9 +33,15 @@ export class UsersService {
   ) {}
 
   async findAll(query: UserListQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: UserListQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.UserWhereInput = {
       deletedAt: null,
@@ -37,30 +49,12 @@ export class UsersService {
         ? { status: query.status }
         : { status: { in: ["active", "suspended"] as const } }),
       ...(query.role && { role: query.role }),
-      ...(query.search && {
-        OR: [
-          { name: { contains: query.search, mode: "insensitive" as const } },
-          {
-            publicInfo: {
-              nickname: { contains: query.search, mode: "insensitive" as const },
-            },
-          },
-        ],
-      }),
     };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          status: true,
-          createdAt: true,
-          profile: { select: { avatarUrl: true } },
-        },
+        select: this.userListSelect(),
         orderBy: this.buildOrderBy(query.sortBy, query.sortOrder),
         skip,
         take: limit,
@@ -68,26 +62,146 @@ export class UsersService {
       this.prisma.user.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatUserList(users, total, page, limit);
+  }
 
+  /**
+   * pgroonga による全文検索版（Q11 確定）。
+   * users.name / user_public_info.{nickname,introduction,specialty,prefecture} /
+   * user_profiles.bio / user_affiliations.{organization_name,title,role_description}
+   * を UNION で横断検索し、user_id ごとに最大スコアでソート。
+   */
+  private async searchByPgroonga(query: UserListQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const status = query.status
+      ? Prisma.sql`u.status = ${query.status}::"UserStatus"`
+      : Prisma.sql`u.status IN ('active'::"UserStatus", 'suspended'::"UserStatus")`;
+    const roleFilter = query.role
+      ? Prisma.sql`AND u.role = ${query.role}::"UserRole"`
+      : Prisma.empty;
+
+    // 4 テーブルのマッチを user_id 軸で集約するためのサブクエリ。
+    // UNION ALL（重複行を残す）にし、検索版は GROUP BY で MAX(score) に集約、
+    // count 版は COUNT(DISTINCT user_id) で重複排除する。両者で同じソースを使うことで
+    // 公開条件・カラム構成のドリフトを防ぐ（保守時の片側修正事故の防止）。
+    const matchedSource = Prisma.sql`
+      SELECT id AS user_id, pgroonga_score(tableoid, ctid) AS score
+        FROM users WHERE name &@~ ${escaped} AND deleted_at IS NULL
+      UNION ALL
+      SELECT user_id, pgroonga_score(tableoid, ctid) AS score
+        FROM user_public_info
+        WHERE ARRAY[
+          coalesce(nickname, ''),
+          coalesce(introduction, ''),
+          coalesce(specialty, ''),
+          coalesce(prefecture, '')
+        ] &@~ ${escaped}
+      UNION ALL
+      SELECT user_id, pgroonga_score(tableoid, ctid) AS score
+        FROM user_profiles WHERE coalesce(bio, '') &@~ ${escaped}
+      UNION ALL
+      SELECT user_id, pgroonga_score(tableoid, ctid) AS score
+        FROM user_affiliations
+        WHERE ARRAY[
+          coalesce(organization_name, ''),
+          coalesce(title, ''),
+          coalesce(role_description, '')
+        ] &@~ ${escaped}
+    `;
+
+    const matched = await this.prisma.$queryRaw<Array<{ id: string; score: number }>>(Prisma.sql`
+      WITH matched AS (${matchedSource})
+      SELECT u.id, MAX(m.score) AS score
+      FROM matched m
+      JOIN users u ON u.id = m.user_id
+      WHERE u.deleted_at IS NULL
+        AND ${status}
+        ${roleFilter}
+      GROUP BY u.id
+      ORDER BY score DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+
+    const totalRows = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      WITH matched AS (${matchedSource})
+      SELECT COUNT(DISTINCT m.user_id)::bigint AS count
+      FROM matched m
+      JOIN users u ON u.id = m.user_id
+      WHERE u.deleted_at IS NULL
+        AND ${status}
+        ${roleFilter}
+    `);
+    const total = Number(totalRows[0]?.count ?? 0);
+
+    if (matched.length === 0) {
+      return this.formatUserList([], total, page, limit);
+    }
+
+    // ハイライトは name のみ（公開ステータス問わず name は表示するため）
+    const highlights = await this.prisma.$queryRaw<
+      Array<{ id: string; title_highlighted: string }>
+    >(Prisma.sql`
+      SELECT id, pgroonga_highlight_html(name, pgroonga_query_extract_keywords(${escaped})) AS title_highlighted
+      FROM users WHERE id = ANY(${uuidArrayParam(matched.map((m) => m.id))}::uuid[])
+    `);
+    const highlightById = new Map(highlights.map((h) => [h.id, h.title_highlighted]));
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: matched.map((m) => m.id) } },
+      select: this.userListSelect(),
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+    const ordered = matched
+      .map((m) => byId.get(m.id))
+      .filter((u): u is NonNullable<typeof u> => Boolean(u));
+
+    return this.formatUserList(ordered, total, page, limit, highlightById);
+  }
+
+  private userListSelect() {
+    return {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      profile: { select: { avatarUrl: true } },
+    } satisfies Prisma.UserSelect;
+  }
+
+  private formatUserList(
+    users: Array<
+      Prisma.UserGetPayload<{
+        select: {
+          id: true;
+          email: true;
+          name: true;
+          role: true;
+          status: true;
+          createdAt: true;
+          profile: { select: { avatarUrl: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    titleHighlightById?: Map<string, string>,
+  ) {
     return {
       data: users.map((user) => ({
         id: user.id,
         email: user.email,
         name: user.name,
+        titleHighlighted: titleHighlightById?.get(user.id),
         role: user.role,
         status: user.status,
         avatarUrl: user.profile?.avatarUrl ?? null,
         createdAt: user.createdAt,
       })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 

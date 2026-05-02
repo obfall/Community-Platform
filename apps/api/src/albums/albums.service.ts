@@ -1,5 +1,12 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import {
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  pgroongaSearchAndFetch,
+  VISIBILITY,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateAlbumDto } from "./dto/create-album.dto";
 import type { AlbumQueryDto } from "./dto/album-query.dto";
@@ -9,12 +16,17 @@ export class AlbumsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: AlbumQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped);
+    }
+    return this.findAllStandard(query);
+  }
+
+  private async findAllStandard(query: AlbumQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.AlbumWhereInput = { deletedAt: null, publishStatus: "published" };
-    if (query.search) where.title = { contains: query.search, mode: "insensitive" };
     if (query.categoryId) where.categoryId = query.categoryId;
 
     const [data, total] = await Promise.all([
@@ -23,35 +35,83 @@ export class AlbumsService {
         orderBy: { sortOrder: "asc" },
         skip,
         take: limit,
-        include: {
-          category: { select: { id: true, name: true } },
-          createdBy: { select: { id: true, name: true } },
-        },
+        include: this.albumListInclude(),
       }),
       this.prisma.album.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatAlbumList(data, total, page, limit);
+  }
+
+  /** pgroonga 全文検索（VISIBILITY.album 強制）。 */
+  private async searchByPgroonga(query: AlbumQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      AND publish_status = 'published'::"PublishStatus"
+      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "albums",
+      searchColumns: ["title", "description"],
+      titleColumn: "title",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.album.findMany({
+          where: { id: { in: ids }, ...VISIBILITY.album },
+          include: this.albumListInclude(),
+        }),
+    });
+
+    return this.formatAlbumList(records, total, page, limit, hitsById);
+  }
+
+  private albumListInclude() {
     return {
-      data: data.map((a) => ({
-        id: a.id,
-        title: a.title,
-        description: a.description,
-        coverPhotoUrl: a.coverPhotoUrl,
-        publishStatus: a.publishStatus,
-        photoCount: a.photoCount,
-        category: a.category,
-        createdBy: a.createdBy,
-        createdAt: a.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
-      },
+      category: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, name: true } },
+    } satisfies Prisma.AlbumInclude;
+  }
+
+  private formatAlbumList(
+    data: Array<
+      Prisma.AlbumGetPayload<{
+        include: {
+          category: { select: { id: true; name: true } };
+          createdBy: { select: { id: true; name: true } };
+        };
+      }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
+    return {
+      data: data.map((a) => {
+        const h = hitsById?.get(a.id);
+        return {
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
+          coverPhotoUrl: a.coverPhotoUrl,
+          publishStatus: a.publishStatus,
+          photoCount: a.photoCount,
+          category: a.category,
+          createdBy: a.createdBy,
+          createdAt: a.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 

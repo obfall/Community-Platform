@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 import { EventStatus } from "@prisma/client";
 import { PaginationQueryDto } from "../../common/dto/pagination.dto";
 
@@ -19,9 +19,10 @@ export class EventQueryDto extends PaginationQueryDto {
   @IsString()
   eventType?: string;
 
-  @ApiPropertyOptional({ description: "検索キーワード" })
+  @ApiPropertyOptional({ description: "検索キーワード（pgroonga 全文検索）" })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @ApiPropertyOptional({ description: "開始日以降" })

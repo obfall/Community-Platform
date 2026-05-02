@@ -44,6 +44,7 @@ import {
   Users,
 } from "lucide-react";
 import type { SurveyQuery } from "@/lib/api/types";
+import { HighlightedText } from "@/components/highlighted-text";
 
 const SURVEY_STATUS_OPTIONS = [
   { value: "draft", label: "下書き" },
@@ -157,7 +158,7 @@ export function SurveyListView({
               <TableRow key={s.id}>
                 <TableCell className="font-medium">
                   <Link href={surveyPath(s.id)} className="hover:underline">
-                    {s.title}
+                    <HighlightedText html={s.titleHighlighted} fallback={s.title} />
                   </Link>
                 </TableCell>
                 <TableCell>

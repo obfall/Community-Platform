@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, FolderKanban, Users } from "lucide-react";
+import { HighlightedText } from "@/components/highlighted-text";
 import type { ProjectListItem, ProjectQuery } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -91,7 +92,9 @@ export default function ProjectsPage() {
                     </Badge>
                     {project.category && <Badge variant="outline">{project.category.name}</Badge>}
                   </div>
-                  <h3 className="mb-1 line-clamp-2 text-sm font-semibold">{project.name}</h3>
+                  <h3 className="mb-1 line-clamp-2 text-sm font-semibold">
+                    <HighlightedText html={project.titleHighlighted} fallback={project.name} />
+                  </h3>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users className="h-3 w-3" />
                     {project.memberCount}人

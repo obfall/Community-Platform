@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { faqApi, type FaqInput } from "@/lib/api/faq";
 
-export function useFaqArticles(category?: string) {
+export function useFaqArticles(params?: { category?: string; search?: string }) {
   return useQuery({
-    queryKey: ["faq", { category }],
-    queryFn: () => faqApi.getAll(category),
+    queryKey: ["faq", params],
+    queryFn: () => faqApi.getAll(params),
   });
 }
 

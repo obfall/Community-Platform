@@ -23,6 +23,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useTopics, useReorderTopics } from "@/hooks/board/use-board";
 import { Badge } from "@/components/ui/badge";
+import { HighlightedText } from "@/components/highlighted-text";
 import { useBoardPaths } from "./board-scope";
 import type { BoardTopic } from "@/lib/api/types";
 
@@ -57,7 +58,9 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {topic.isPinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
-            <span className="truncate text-sm font-medium">{topic.title}</span>
+            <span className="truncate text-sm font-medium">
+              <HighlightedText html={topic.titleHighlighted} fallback={topic.title} />
+            </span>
           </div>
           <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
             <span>{topic.author.name}</span>

@@ -16,6 +16,7 @@ const FORMAT_OPTIONS = [
 ];
 import { Plus, Share2, Clock, Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { HighlightedText } from "@/components/highlighted-text";
 import type { SkillQuery } from "@/lib/api/types";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -90,10 +91,12 @@ export default function SkillsPage() {
                       </Badge>
                     )}
                   </div>
-                  <h3 className="line-clamp-2 text-sm font-semibold">{s.title}</h3>
-                  {s.description && (
+                  <h3 className="line-clamp-2 text-sm font-semibold">
+                    <HighlightedText html={s.titleHighlighted} fallback={s.title} />
+                  </h3>
+                  {(s.snippetHighlighted || s.description) && (
                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {s.description}
+                      <HighlightedText html={s.snippetHighlighted} fallback={s.description ?? ""} />
                     </p>
                   )}
                   <div className="mt-3 flex items-center justify-between">

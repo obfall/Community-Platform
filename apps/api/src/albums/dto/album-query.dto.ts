@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsInt, Min, IsString, IsUUID } from "class-validator";
+import { IsOptional, IsInt, Min, IsString, IsUUID, MaxLength } from "class-validator";
 import { Type } from "class-transformer";
 
 export class AlbumQueryDto {
@@ -17,9 +17,10 @@ export class AlbumQueryDto {
   @Min(1)
   limit?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "検索キーワード（pgroonga 全文検索）" })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @ApiPropertyOptional()

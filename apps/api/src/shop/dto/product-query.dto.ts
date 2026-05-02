@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional, IsInt, Min, IsString, IsUUID, IsBoolean } from "class-validator";
+import { IsOptional, IsInt, Min, IsString, IsUUID, IsBoolean, MaxLength } from "class-validator";
 import { Transform, Type } from "class-transformer";
 
 export class ProductQueryDto {
@@ -27,9 +27,10 @@ export class ProductQueryDto {
   @IsUUID()
   seriesId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "検索キーワード（pgroonga 全文検索）" })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @ApiPropertyOptional()

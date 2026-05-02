@@ -1,12 +1,13 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString } from "class-validator";
+import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import type { UserRole, UserStatus } from "@prisma/client";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
 
 export class UserListQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ description: "名前・ニックネームで検索" })
+  @ApiPropertyOptional({ description: "名前・ニックネームで検索（pgroonga 全文検索）" })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @ApiPropertyOptional({ enum: ["admin", "owner", "member", "visitor"] })

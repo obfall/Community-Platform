@@ -6,6 +6,12 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import {
+  buildPaginationMeta,
+  escapePgroongaQuery,
+  extractPagination,
+  pgroongaSearchAndFetch,
+} from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateProductDto } from "./dto/create-product.dto";
 import type { ProductQueryDto } from "./dto/product-query.dto";
@@ -65,16 +71,21 @@ export class ShopService {
   // --- 商品 ---
 
   async findAllProducts(query: ProductQueryDto, sellerUserId?: string) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchProductsByPgroonga(query, escaped, sellerUserId);
+    }
+    return this.findAllProductsStandard(query, sellerUserId);
+  }
+
+  private async findAllProductsStandard(query: ProductQueryDto, sellerUserId?: string) {
+    const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.ProductWhereInput = { deletedAt: null };
     if (query.publishStatus && query.publishStatus !== "all")
       where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
-    if (query.search) where.name = { contains: query.search, mode: "insensitive" };
     if (sellerUserId) where.sellerUserId = sellerUserId;
     if (query.hideExpired) {
       where.OR = [{ saleEndAt: null }, { saleEndAt: { gte: new Date() } }];
@@ -86,48 +97,98 @@ export class ShopService {
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
-        include: {
-          category: { select: { id: true, name: true } },
-          series: { select: { id: true, name: true } },
-          seller: { select: { id: true, name: true } },
-          images: {
-            where: { isPrimary: true },
-            take: 1,
-            include: { file: { select: { publicUrl: true } } },
-          },
-        },
+        include: this.productListInclude(),
       }),
       this.prisma.product.count({ where }),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
+    return this.formatProductList(data, total, page, limit);
+  }
+
+  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
+  private async searchProductsByPgroonga(
+    query: ProductQueryDto,
+    escaped: string,
+    sellerUserId?: string,
+  ) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const where = Prisma.sql`
+      deleted_at IS NULL
+      ${query.publishStatus && query.publishStatus !== "all" ? Prisma.sql`AND publish_status = ${query.publishStatus}::"PublishStatus"` : Prisma.empty}
+      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
+      ${query.seriesId ? Prisma.sql`AND series_id = ${query.seriesId}::uuid` : Prisma.empty}
+      ${sellerUserId ? Prisma.sql`AND seller_user_id = ${sellerUserId}::uuid` : Prisma.empty}
+      ${query.hideExpired ? Prisma.sql`AND (sale_end_at IS NULL OR sale_end_at >= NOW())` : Prisma.empty}
+    `;
+
+    const { records, hitsById, total } = await pgroongaSearchAndFetch({
+      prisma: this.prisma,
+      table: "products",
+      searchColumns: ["name", "description"],
+      titleColumn: "name",
+      snippetColumn: "description",
+      escaped,
+      where,
+      limit,
+      offset,
+      fetchByIds: (ids) =>
+        this.prisma.product.findMany({
+          where: { id: { in: ids }, deletedAt: null },
+          include: this.productListInclude(),
+        }),
+    });
+
+    return this.formatProductList(records, total, page, limit, hitsById);
+  }
+
+  private productListInclude() {
     return {
-      data: data.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        price: p.price,
-        compareAtPrice: p.compareAtPrice,
-        stock: p.stock,
-        publishStatus: p.publishStatus,
-        status: p.status,
-        salesCount: p.salesCount,
-        imageUrl: p.images[0]?.file.publicUrl ?? null,
-        category: p.category,
-        series: p.series,
-        seller: p.seller,
-        saleStartAt: p.saleStartAt,
-        saleEndAt: p.saleEndAt,
-        createdAt: p.createdAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+      category: { select: { id: true, name: true } },
+      series: { select: { id: true, name: true } },
+      seller: { select: { id: true, name: true } },
+      images: {
+        where: { isPrimary: true },
+        take: 1,
+        include: { file: { select: { publicUrl: true } } },
       },
+    } satisfies Prisma.ProductInclude;
+  }
+
+  private formatProductList(
+    data: Array<
+      Prisma.ProductGetPayload<{ include: ReturnType<ShopService["productListInclude"]> }>
+    >,
+    total: number,
+    page: number,
+    limit: number,
+    hitsById?: Map<string, { titleHighlighted: string; snippetHighlighted: string }>,
+  ) {
+    return {
+      data: data.map((p) => {
+        const h = hitsById?.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          titleHighlighted: h?.titleHighlighted,
+          snippetHighlighted: h?.snippetHighlighted,
+          price: p.price,
+          compareAtPrice: p.compareAtPrice,
+          stock: p.stock,
+          publishStatus: p.publishStatus,
+          status: p.status,
+          salesCount: p.salesCount,
+          imageUrl: p.images[0]?.file.publicUrl ?? null,
+          category: p.category,
+          series: p.series,
+          seller: p.seller,
+          saleStartAt: p.saleStartAt,
+          saleEndAt: p.saleEndAt,
+          createdAt: p.createdAt,
+        };
+      }),
+      meta: buildPaginationMeta(total, page, limit),
     };
   }
 
