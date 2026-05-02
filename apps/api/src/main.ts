@@ -5,6 +5,7 @@ import { HttpStatus, ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import helmet from "helmet";
+import compression from "compression";
 import { ErrorCode } from "@community-platform/shared";
 import { AppModule } from "./app.module";
 import { BusinessException } from "./common/exceptions";
@@ -13,6 +14,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = app.get(Logger);
   app.useLogger(logger);
+
+  // gzip 圧縮（JSON レスポンスは 60-80% 削減見込み）。Cloudflare 経由でも二重圧縮にはならない。
+  app.use(compression());
 
   // Security headers（API は CSP 不要、Web 側で設定）
   app.use(

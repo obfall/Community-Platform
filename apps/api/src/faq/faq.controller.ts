@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   ParseUUIDPipe,
+  Header,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -29,18 +30,21 @@ export class FaqController {
 
   @Get()
   @ApiOperation({ summary: "FAQ一覧" })
+  @Header("Cache-Control", "public, max-age=300")
   findAll(@Query() query: FaqQueryDto) {
     return this.service.findAll(query);
   }
 
   @Get("categories")
   @ApiOperation({ summary: "FAQカテゴリ一覧" })
+  @Header("Cache-Control", "public, max-age=600")
   getCategories() {
     return this.service.getCategories();
   }
 
   @Get(":id")
   @ApiOperation({ summary: "FAQ詳細" })
+  @Header("Cache-Control", "public, max-age=300")
   findOne(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
   }
