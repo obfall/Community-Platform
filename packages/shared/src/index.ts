@@ -25,14 +25,3 @@ export {
   SortOrder,
   ErrorCode,
 } from "./constants";
-
-// i18n
-export {
-  DEFAULT_LOCALE,
-  FALLBACK_LOCALE,
-  INITIAL_SUPPORTED_LOCALES,
-  LOCALE_CODE_PATTERN,
-  isValidLocaleCode,
-  pickLocalized,
-} from "./i18n";
-export type { Locale, LocalizedText, LocaleAware } from "./i18n";

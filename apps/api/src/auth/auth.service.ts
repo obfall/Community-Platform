@@ -265,7 +265,6 @@ export class AuthService {
         name: true,
         role: true,
         status: true,
-        preferredLocale: true,
         createdAt: true,
       },
     });
