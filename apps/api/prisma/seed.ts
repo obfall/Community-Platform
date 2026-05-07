@@ -276,18 +276,6 @@ async function main() {
       description: "デフォルト言語",
     },
     {
-      key: "i18n.fallbackLocale",
-      value: "ja",
-      valueType: "string" as const,
-      description: "マスタ翻訳が要求言語に未登録のときのフォールバック先",
-    },
-    {
-      key: "i18n.enabledLocales",
-      value: '["ja","en"]',
-      valueType: "json" as const,
-      description: "現在有効な言語コードの配列（フロントの言語切替 UI で参照）",
-    },
-    {
       key: "logo_url",
       value: "",
       valueType: "string" as const,

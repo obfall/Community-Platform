@@ -92,7 +92,6 @@ model User {
   isActive        Boolean    @default(true) @map("is_active")
   lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz()
   joinedAt        DateTime?  @map("joined_at") @db.Timestamptz()
-  preferredLocale String?    @map("preferred_locale") @db.VarChar(10)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz()
@@ -192,12 +191,9 @@ model User {
   moderationActions             ModerationAction[]             @relation("ModerationActor")
   orientationCompletion         OrientationCompletion?
   libraryItems                  UserLibraryItem[]
-  // Phase 11.5
-  preferredLocaleRef            Locale?                        @relation(fields: [preferredLocale], references: [code], onUpdate: Cascade, onDelete: SetNull)
 
   @@index([role])
   @@index([status])
-  @@index([preferredLocale])
   @@map("users")
 }
 
@@ -3044,25 +3040,4 @@ model UserLibraryItem {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("user_library_items")
-}
-
-// ============================================================
-// Phase 11.5: 多言語対応 (i18n)
-// ============================================================
-
-model Locale {
-  code       String   @id @db.VarChar(10)
-  nameNative String   @map("name_native") @db.VarChar(100)
-  nameEn     String   @map("name_en") @db.VarChar(100)
-  isDefault  Boolean  @default(false) @map("is_default")
-  isEnabled  Boolean  @default(true) @map("is_enabled")
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
-
-  // Relations
-  users User[]
-
-  @@index([isEnabled, sortOrder])
-  @@map("locales")
 }
