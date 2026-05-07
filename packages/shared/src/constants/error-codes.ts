@@ -38,5 +38,10 @@ export const ErrorCode = {
   // ファイル
   FILE_TOO_LARGE: "FILE_TOO_LARGE",
   FILE_INVALID_TYPE: "FILE_INVALID_TYPE",
+
+  // i18n / Locale
+  LOCALE_DEFAULT_REQUIRED: "LOCALE_DEFAULT_REQUIRED",
+  LOCALE_CODE_INVALID: "LOCALE_CODE_INVALID",
+  LOCALE_ALREADY_EXISTS: "LOCALE_ALREADY_EXISTS",
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

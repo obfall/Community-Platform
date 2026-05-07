@@ -92,6 +92,7 @@ model User {
   isActive        Boolean    @default(true) @map("is_active")
   lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz()
   joinedAt        DateTime?  @map("joined_at") @db.Timestamptz()
+  preferredLocale String?    @map("preferred_locale") @db.VarChar(10)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz()
@@ -191,9 +192,12 @@ model User {
   moderationActions             ModerationAction[]             @relation("ModerationActor")
   orientationCompletion         OrientationCompletion?
   libraryItems                  UserLibraryItem[]
+  // Phase 11.5
+  preferredLocaleRef            Locale?                        @relation(fields: [preferredLocale], references: [code], onUpdate: Cascade, onDelete: SetNull)
 
   @@index([role])
   @@index([status])
+  @@index([preferredLocale])
   @@map("users")
 }
 
@@ -1685,12 +1689,12 @@ model ProjectTask {
   description     String?         @db.Text
   status          VideoTaskStatus @default(not_started)
   requestedDate   DateTime?       @map("requested_date") @db.Date
-  dueDate         DateTime? @map("due_date") @db.Date
-  notifyAssignee  Boolean   @default(false) @map("notify_assignee")
-  sortOrder       Int       @default(0) @map("sort_order")
-  createdByUserId String    @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  dueDate         DateTime?       @map("due_date") @db.Date
+  notifyAssignee  Boolean         @default(false) @map("notify_assignee")
+  sortOrder       Int             @default(0) @map("sort_order")
+  createdByUserId String          @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   project     Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1733,17 +1737,17 @@ model ProjectTaskAttachment {
 }
 
 model ProjectSchedule {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  projectId       String    @map("project_id") @db.Uuid
-  title           String    @db.VarChar(200)
-  description     String?   @db.Text
-  startAt         DateTime  @map("start_at") @db.Timestamptz()
-  endAt           DateTime  @map("end_at") @db.Timestamptz()
-  isAllDay        Boolean   @default(false) @map("is_all_day")
-  location        String?   @db.VarChar(200)
-  createdByUserId String    @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  title           String   @db.VarChar(200)
+  description     String?  @db.Text
+  startAt         DateTime @map("start_at") @db.Timestamptz()
+  endAt           DateTime @map("end_at") @db.Timestamptz()
+  isAllDay        Boolean  @default(false) @map("is_all_day")
+  location        String?  @db.VarChar(200)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2016,7 +2020,7 @@ model VideoTask {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  video       Video                  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  video       Video                 @relation(fields: [videoId], references: [id], onDelete: Cascade)
   completions VideoTaskCompletion[]
   attachments VideoTaskAttachment[]
 
@@ -3040,4 +3044,25 @@ model UserLibraryItem {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("user_library_items")
+}
+
+// ============================================================
+// Phase 11.5: 多言語対応 (i18n)
+// ============================================================
+
+model Locale {
+  code       String   @id @db.VarChar(10)
+  nameNative String   @map("name_native") @db.VarChar(100)
+  nameEn     String   @map("name_en") @db.VarChar(100)
+  isDefault  Boolean  @default(false) @map("is_default")
+  isEnabled  Boolean  @default(true) @map("is_enabled")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  users User[]
+
+  @@index([isEnabled, sortOrder])
+  @@map("locales")
 }

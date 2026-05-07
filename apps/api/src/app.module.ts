@@ -40,6 +40,7 @@ import { ModerationModule } from "./moderation/moderation.module";
 import { OrientationModule } from "./orientation/orientation.module";
 import { UserLibraryModule } from "./user-library/user-library.module";
 import { UsageHistoryModule } from "./usage-history/usage-history.module";
+import { I18nModule } from "./i18n/i18n.module";
 import { JwtAuthGuard } from "./common/guards";
 import { AllExceptionsFilter } from "./common/filters";
 import { SentryUserInterceptor } from "./common/interceptors";
@@ -223,6 +224,9 @@ import { validateEnv } from "./config/env.config";
 
     // Usage History（admin/owner 向け監査ログ）
     UsageHistoryModule,
+
+    // i18n（Locale 管理 / 多言語対応）
+    I18nModule,
   ],
   controllers: [AppController],
   providers: [
