@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import createNextIntlPlugin from "next-intl/plugin";
 
 // ANALYZE=true でビルド時に treemap を生成（普段は素通し）
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
+
+// next-intl 設定読み込み（i18n/request.ts を参照）
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 /**
  * CSP（Content Security Policy）ディレクティブの組み立て。
@@ -128,7 +132,7 @@ const nextConfig: NextConfig = {
 };
 
 export default bundleAnalyzer(
-  withSentryConfig(nextConfig, {
+  withSentryConfig(withNextIntl(nextConfig), {
     org: process.env.SENTRY_ORG || "",
     project: process.env.SENTRY_PROJECT || "",
     silent: !process.env.CI,

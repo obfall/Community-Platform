@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -40,15 +42,22 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // i18n-ready: locale / messages は next-intl 経由で参照する。MVP では request.ts が
+  // ja 固定を返すので常に "ja"。将来 en 等を足したらここを変えずに request.ts だけ拡張する。
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <html
-      lang="ja"
+      lang={locale}
       suppressHydrationWarning
       className={`${notoSansJP.variable} ${notoSerifJP.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
