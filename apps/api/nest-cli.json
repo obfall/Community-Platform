@@ -6,6 +6,13 @@
     "builder": "swc",
     "typeCheck": true,
     "deleteOutDir": true,
-    "tsConfigPath": "tsconfig.build.json"
+    "tsConfigPath": "tsconfig.build.json",
+    "assets": [
+      {
+        "include": "i18n/messages/**/*.json",
+        "outDir": "dist"
+      }
+    ],
+    "watchAssets": true
   }
 }

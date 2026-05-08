@@ -77,6 +77,7 @@ async function bootstrap() {
           HttpStatus.BAD_REQUEST,
           "入力内容に誤りがあります",
           errorDetails,
+          "errors.validation_failed",
         );
       },
     }),

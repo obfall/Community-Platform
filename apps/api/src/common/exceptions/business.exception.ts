@@ -17,11 +17,16 @@ export interface BusinessExceptionFieldError {
  * NestJS 標準の HttpException に `code`（フロント側で分岐する定数）と
  * `errors`（フィールド別詳細）を追加した独自例外クラス。
  *
+ * `messageKey` を渡すと AllExceptionsFilter が nestjs-i18n でリクエスト locale に翻訳する。
+ * 翻訳に失敗した場合は `message` がフォールバックとして使われる（後方互換）。
+ *
  * @example
  *   throw new BusinessException(
  *     ErrorCode.USER_EMAIL_ALREADY_EXISTS,
  *     HttpStatus.CONFLICT,
  *     "このメールアドレスは既に登録されています",
+ *     undefined,
+ *     "errors.conflict.duplicate_email",
  *   );
  */
 export class BusinessException extends HttpException {
@@ -30,6 +35,8 @@ export class BusinessException extends HttpException {
     httpStatus: number,
     message: string,
     public readonly errors?: BusinessExceptionFieldError[],
+    public readonly messageKey?: string,
+    public readonly messageArgs?: Record<string, unknown>,
   ) {
     super({ code, message, errors }, httpStatus);
   }
