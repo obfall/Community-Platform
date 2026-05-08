@@ -1,0 +1,10 @@
+{
+  "is_string": "{field}は文字列で入力してください",
+  "is_email": "{field}は正しいメール形式で入力してください",
+  "is_int": "{field}は整数で入力してください",
+  "min_length": "{field}は{constraint1}文字以上で入力してください",
+  "max_length": "{field}は{constraint1}文字以内で入力してください",
+  "min": "{field}は{constraint1}以上の値を入力してください",
+  "max": "{field}は{constraint1}以下の値を入力してください",
+  "is_not_empty": "{field}を入力してください"
+}

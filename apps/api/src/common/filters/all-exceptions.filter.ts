@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { ErrorCode } from "@community-platform/shared";
 import { PinoLogger } from "nestjs-pino";
 import * as Sentry from "@sentry/nestjs";
+import { I18nContext, I18nService } from "nestjs-i18n";
 import type { Request, Response } from "express";
 import { BusinessException, BusinessExceptionFieldError } from "../exceptions";
 
@@ -26,7 +27,10 @@ const STATUS_TO_CODE: Record<number, ErrorCode> = {
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly i18n: I18nService,
+  ) {
     this.logger.setContext(AllExceptionsFilter.name);
   }
 
@@ -36,6 +40,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const res = ctx.getResponse<Response>();
 
     const normalized = this.normalize(exception);
+    // messageKey 付きの BusinessException はリクエスト locale で翻訳する。
+    // 翻訳失敗時は normalized.message（既存の日本語フォールバック）をそのまま使う。
+    if (exception instanceof BusinessException && exception.messageKey) {
+      // I18nContext.current は AsyncLocalStorage を参照する。テスト等で context が
+      // 無い場合は throw するので try で囲み、その時は ja フォールバック。
+      let lang = "ja";
+      try {
+        lang = I18nContext.current()?.lang ?? "ja";
+      } catch {
+        /* no i18n context — fallback locale */
+      }
+      try {
+        const translated = this.i18n.translate(exception.messageKey, {
+          lang,
+          args: exception.messageArgs,
+        });
+        if (typeof translated === "string") normalized.message = translated;
+      } catch {
+        /* key 未定義など → fallback message のまま */
+      }
+    }
+
     const requestId =
       (req.id as string | undefined) ?? (res.getHeader("x-request-id") as string | undefined);
     const timestamp = new Date().toISOString();

@@ -1,0 +1,12 @@
+{
+  "validation_failed": "入力内容に誤りがあります",
+  "unauthorized": "認証が必要です",
+  "forbidden": "この操作は許可されていません",
+  "not_found": {
+    "default": "対象が見つかりません"
+  },
+  "conflict": {
+    "default": "競合が発生しました"
+  },
+  "internal": "サーバーエラーが発生しました"
+}

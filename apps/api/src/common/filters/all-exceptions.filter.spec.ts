@@ -23,6 +23,7 @@ describe("AllExceptionsFilter", () => {
   let pinoLogger: { setContext: jest.Mock; info: jest.Mock; warn: jest.Mock; error: jest.Mock };
   let response: { status: jest.Mock; json: jest.Mock; getHeader: jest.Mock };
   let request: { url: string; method: string; id?: string };
+  let i18nMock: { translate: jest.Mock };
 
   const buildHost = (): ArgumentsHost =>
     ({
@@ -40,7 +41,10 @@ describe("AllExceptionsFilter", () => {
       warn: jest.fn(),
       error: jest.fn(),
     };
-    filter = new AllExceptionsFilter(pinoLogger as never);
+    // I18nService は messageKey 解決にだけ使われる。messageKey 無しの BusinessException
+    // や HttpException ではそもそも呼ばれないため、最小限のモックで十分。
+    i18nMock = { translate: jest.fn((key: string) => key) };
+    filter = new AllExceptionsFilter(pinoLogger as never, i18nMock as never);
 
     const status = jest.fn().mockReturnThis();
     const json = jest.fn();
@@ -173,5 +177,46 @@ describe("AllExceptionsFilter", () => {
     filter.catch(exception, buildHost());
 
     expect(Sentry.captureException).toHaveBeenCalled();
+  });
+
+  it("messageKey 付き BusinessException は i18n.translate の戻り値を message に入れる", () => {
+    i18nMock.translate.mockReturnValueOnce("Email already registered");
+    const exception = new BusinessException(
+      ErrorCode.USER_EMAIL_ALREADY_EXISTS,
+      HttpStatus.CONFLICT,
+      "このメールアドレスは既に登録されています",
+      undefined,
+      "errors.conflict.duplicate_email",
+      { email: "x@example.com" },
+    );
+
+    filter.catch(exception, buildHost());
+
+    expect(i18nMock.translate).toHaveBeenCalledWith(
+      "errors.conflict.duplicate_email",
+      expect.objectContaining({ args: { email: "x@example.com" } }),
+    );
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "Email already registered" }),
+    );
+  });
+
+  it("messageKey の翻訳が失敗したら fallback の message を使う", () => {
+    i18nMock.translate.mockImplementationOnce(() => {
+      throw new Error("key not found");
+    });
+    const exception = new BusinessException(
+      ErrorCode.NOT_FOUND,
+      HttpStatus.NOT_FOUND,
+      "対象が見つかりません",
+      undefined,
+      "errors.not_found.unknown",
+    );
+
+    filter.catch(exception, buildHost());
+
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "対象が見つかりません" }),
+    );
   });
 });

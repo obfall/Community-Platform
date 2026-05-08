@@ -6,6 +6,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { SentryModule } from "@sentry/nestjs/setup";
 import { LoggerModule } from "nestjs-pino";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
+import { I18nModule, AcceptLanguageResolver, CookieResolver, HeaderResolver } from "nestjs-i18n";
+import { join } from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -136,6 +138,21 @@ import { validateEnv } from "./config/env.config";
           }),
         ]
       : []),
+
+    // i18n（メッセージカタログ。AllExceptionsFilter / ValidationPipe で参照）
+    // MVP は ja のみで動作。resolver は将来用に最小限を残してあり、en 等を足すと自動で切替えできる。
+    I18nModule.forRoot({
+      fallbackLanguage: "ja",
+      loaderOptions: {
+        path: join(__dirname, "/i18n/messages/"),
+        watch: process.env.NODE_ENV !== "production",
+      },
+      resolvers: [
+        { use: HeaderResolver, options: ["x-locale"] },
+        new CookieResolver(["NEXT_LOCALE"]),
+        AcceptLanguageResolver,
+      ],
+    }),
 
     // Database
     PrismaModule,
