@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useProjects } from "@/hooks/projects/use-projects";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
+import { PaginationBar } from "@/components/pagination-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, FolderKanban, Users } from "lucide-react";
@@ -51,15 +52,11 @@ export default function ProjectsPage() {
       </div>
 
       <div className="flex gap-2">
-        <Input
+        <SearchInput
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) =>
-            e.key === "Enter" &&
-            setQuery((prev) => ({ ...prev, search: search || undefined, page: 1 }))
-          }
+          onChange={setSearch}
+          onSubmit={(v) => setQuery((prev) => ({ ...prev, search: v || undefined, page: 1 }))}
           placeholder="プロジェクトを検索..."
-          className="max-w-sm"
         />
       </div>
 
@@ -106,30 +103,11 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setQuery((prev) => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))
-            }
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }))}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
+      {meta && (
+        <PaginationBar
+          meta={meta}
+          onPageChange={(page) => setQuery((prev) => ({ ...prev, page }))}
+        />
       )}
     </div>
   );

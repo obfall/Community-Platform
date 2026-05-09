@@ -6,7 +6,7 @@ import type { ActivityLogItem, ActivityLogQuery } from "@/lib/api/types";
 import { ActivityLogFilters } from "./activity-log-filters";
 import { ActivityLogTable } from "./activity-log-table";
 import { ActivityLogDetailDialog } from "./activity-log-detail-dialog";
-import { PaginationBar } from "./pagination-bar";
+import { PaginationBar } from "@/components/pagination-bar";
 import { ExportButton } from "./export-button";
 
 export function ActivityLogTab() {

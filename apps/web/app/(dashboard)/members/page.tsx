@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMembers } from "@/hooks/members/use-members";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
+import { PaginationBar } from "@/components/pagination-bar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,25 +17,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SelectField } from "@/components/select-field";
-
-const MEMBER_SORT_OPTIONS = [
-  { value: "role-asc", label: "ロール順" },
-  { value: "name-asc", label: "名前 A→Z" },
-  { value: "name-desc", label: "名前 Z→A" },
-  { value: "createdAt-desc", label: "参加日が新しい順" },
-  { value: "createdAt-asc", label: "参加日が古い順" },
-];
 import { Users } from "lucide-react";
 import type { UserListQuery } from "@/lib/api/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "管理者",
-  owner: "運営者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
 export default function MembersPage() {
+  const t = useTranslations("members");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
   const [query, setQuery] = useState<UserListQuery>({
     page: 1,
     limit: 20,
@@ -44,33 +33,31 @@ export default function MembersPage() {
   const [search, setSearch] = useState("");
   const { data, isLoading } = useMembers(query);
 
+  const sortOptions = [
+    { value: "role-asc", label: t("sort.roleAsc") },
+    { value: "name-asc", label: t("sort.nameAsc") },
+    { value: "name-desc", label: t("sort.nameDesc") },
+    { value: "createdAt-desc", label: t("sort.createdAtDesc") },
+    { value: "createdAt-asc", label: t("sort.createdAtAsc") },
+  ];
+
   const members = (data?.data ?? []).filter((m) => m.role !== "admin");
   const meta = data?.meta;
-
-  const handleSearch = () => {
-    setQuery((prev) => ({ ...prev, search: search || undefined, page: 1 }));
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">メンバー</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </div>
 
       {/* 検索・ソート */}
       <div className="flex items-center gap-4">
-        <div className="flex flex-1 gap-2">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="名前で検索..."
-            className="max-w-sm"
-          />
-          <Button variant="outline" onClick={handleSearch}>
-            検索
-          </Button>
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          onSubmit={(v) => setQuery((prev) => ({ ...prev, search: v || undefined, page: 1 }))}
+          placeholder={t("search.placeholder")}
+        />
         <SelectField
           value={`${query.sortBy ?? "role"}-${query.sortOrder ?? "asc"}`}
           onChange={(v) => {
@@ -80,27 +67,27 @@ export default function MembersPage() {
             ];
             setQuery((prev) => ({ ...prev, sortBy, sortOrder, page: 1 }));
           }}
-          options={MEMBER_SORT_OPTIONS}
+          options={sortOptions}
           className="w-44"
         />
       </div>
 
       {/* メンバー一覧 */}
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : members.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Users className="mx-auto mb-4 h-12 w-12" />
-          <p>メンバーが見つかりません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>メンバー</TableHead>
-                <TableHead>ロール</TableHead>
-                <TableHead>参加日</TableHead>
+                <TableHead>{t("table.member")}</TableHead>
+                <TableHead>{t("table.role")}</TableHead>
+                <TableHead>{t("table.joinedAt")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -119,7 +106,7 @@ export default function MembersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="text-xs">
-                      {ROLE_LABELS[member.role] ?? member.role}
+                      {tRole.has(member.role) ? tRole(member.role) : member.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -133,30 +120,11 @@ export default function MembersPage() {
       )}
 
       {/* ページネーション */}
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setQuery((prev) => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))
-            }
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }))}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
+      {meta && (
+        <PaginationBar
+          meta={meta}
+          onPageChange={(page) => setQuery((prev) => ({ ...prev, page }))}
+        />
       )}
     </div>
   );

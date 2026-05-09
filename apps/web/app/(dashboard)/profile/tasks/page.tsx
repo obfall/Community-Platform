@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMyTasks } from "@/hooks/members/use-members";
+import { useMyTasks } from "@/hooks/profile/use-tasks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckSquare, Clock, FolderKanban } from "lucide-react";

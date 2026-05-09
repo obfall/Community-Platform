@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { NotificationList } from "./_components/notification-list";
+import { PaginationBar } from "@/components/pagination-bar";
 import { useNotifications, useMarkAsRead } from "@/hooks/notifications/use-notifications";
 import type { NotificationItem, NotificationQuery } from "@/lib/api/types";
 import type { PaginationMeta } from "@/lib/api/types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -61,36 +60,11 @@ export default function NotificationsPage() {
         onClickNotification={handleClickNotification}
       />
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            全 {meta.total} 件中 {(meta.page - 1) * meta.limit + 1}〜
-            {Math.min(meta.page * meta.limit, meta.total)} 件を表示
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setQuery((prev) => ({ ...prev, page: (prev.page ?? 1) - 1 }))}
-              disabled={!meta.hasPreviousPage}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              前へ
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {meta.page} / {meta.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setQuery((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }))}
-              disabled={!meta.hasNextPage}
-            >
-              次へ
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      {meta && (
+        <PaginationBar
+          meta={meta}
+          onPageChange={(page) => setQuery((prev) => ({ ...prev, page }))}
+        />
       )}
     </div>
   );

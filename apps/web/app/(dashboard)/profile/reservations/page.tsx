@@ -1,6 +1,6 @@
 "use client";
 
-import { useMyReservations } from "@/hooks/members/use-members";
+import { useMyReservations } from "@/hooks/profile/use-reservations";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarCheck, Clock, MapPin } from "lucide-react";

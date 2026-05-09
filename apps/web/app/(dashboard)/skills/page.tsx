@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSkills } from "@/hooks/skills/use-skills";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
+import { PaginationBar } from "@/components/pagination-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SelectField } from "@/components/select-field";
@@ -45,12 +46,10 @@ export default function SkillsPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Input
+        <SearchInput
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) =>
-            e.key === "Enter" && setQuery((p) => ({ ...p, search: search || undefined, page: 1 }))
-          }
+          onChange={setSearch}
+          onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
           placeholder="スキルを検索..."
           className="max-w-xs"
         />
@@ -127,28 +126,8 @@ export default function SkillsPage() {
         </div>
       )}
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((p) => ({ ...p, page: Math.max(1, (p.page ?? 1) - 1) }))}
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((p) => ({ ...p, page: (p.page ?? 1) + 1 }))}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
+      {meta && (
+        <PaginationBar meta={meta} onPageChange={(page) => setQuery((p) => ({ ...p, page }))} />
       )}
     </div>
   );

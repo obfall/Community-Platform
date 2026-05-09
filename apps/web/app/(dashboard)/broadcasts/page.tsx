@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBroadcasts } from "@/hooks/broadcasts/use-broadcasts";
 import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/select-field";
+import { PaginationBar } from "@/components/pagination-bar";
 import { BroadcastHistoryTable } from "@/components/broadcasts/broadcast-history-table";
 import { Plus, Megaphone } from "lucide-react";
 import type { BroadcastStatus } from "@/lib/api/types";
@@ -67,29 +68,7 @@ export default function BroadcastsPage() {
       ) : (
         <>
           <BroadcastHistoryTable broadcasts={broadcasts} detailHrefPrefix="/broadcasts" />
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={!meta.hasPreviousPage}
-              >
-                前へ
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {meta.page} / {meta.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!meta.hasNextPage}
-              >
-                次へ
-              </Button>
-            </div>
-          )}
+          {meta && <PaginationBar meta={meta} onPageChange={setPage} />}
         </>
       )}
     </div>

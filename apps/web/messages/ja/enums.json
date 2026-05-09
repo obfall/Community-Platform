@@ -1,0 +1,44 @@
+{
+  "role": {
+    "admin": "管理者",
+    "owner": "運営者",
+    "moderator": "モデレーター",
+    "member": "メンバー"
+  },
+  "occupation": {
+    "company_employee": "会社員",
+    "student": "学生",
+    "self_employed": "自営業",
+    "homemaker": "主婦",
+    "unemployed": "無職",
+    "other": "その他"
+  },
+  "eventRole": {
+    "lecturer": "講師",
+    "mc": "司会",
+    "interpreter": "通訳",
+    "planner": "企画",
+    "panelist": "パネリスト",
+    "performer": "出演"
+  },
+  "eventStatus": {
+    "draft": "下書き",
+    "recruiting": "募集中",
+    "closed": "締切",
+    "canceled": "中止",
+    "ended": "終了"
+  },
+  "participantStatus": {
+    "applied": "申込済",
+    "confirmed": "確定",
+    "attended": "出席",
+    "canceled": "キャンセル",
+    "no_show": "欠席"
+  },
+  "projectStatus": {
+    "active": "進行中",
+    "completed": "完了",
+    "unpublished": "未公開",
+    "draft": "下書き"
+  }
+}

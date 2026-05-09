@@ -1,0 +1,50 @@
+{
+  "title": "メンバー",
+  "search": {
+    "placeholder": "名前で検索..."
+  },
+  "sort": {
+    "roleAsc": "ロール順",
+    "nameAsc": "名前 A→Z",
+    "nameDesc": "名前 Z→A",
+    "createdAtDesc": "参加日が新しい順",
+    "createdAtAsc": "参加日が古い順"
+  },
+  "table": {
+    "member": "メンバー",
+    "role": "ロール",
+    "joinedAt": "参加日"
+  },
+  "empty": "メンバーが見つかりません",
+  "detail": {
+    "back": "メンバー一覧",
+    "notFound": "メンバーが見つかりません",
+    "joinedSuffix": "に参加",
+    "chat": "チャット",
+    "chatStartFailed": "チャットの開始に失敗しました",
+    "profile": {
+      "title": "プロフィール情報",
+      "nickname": "ニックネーム",
+      "occupation": "職業",
+      "countryOfOrigin": "出身国",
+      "website": "Webサイト",
+      "joinedAt": "参加日",
+      "affiliations": "所属 / 部署 / 肩書",
+      "languages": "使用言語"
+    },
+    "public": {
+      "title": "公開情報",
+      "location": "活動拠点",
+      "specialty": "専門分野",
+      "eventRole": "イベント役割",
+      "introduction": "自己紹介",
+      "interests": "興味分野"
+    },
+    "tabs": {
+      "events": "イベント",
+      "projects": "プロジェクト",
+      "noEvents": "参加イベントはありません",
+      "noProjects": "参加プロジェクトはありません"
+    }
+  }
+}

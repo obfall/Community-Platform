@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemos, useMemoCategories, useCreateMemoCategory } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,18 +62,12 @@ export default function MemoPage() {
 
       {/* 検索・フィルター */}
       <div className="flex items-center gap-4">
-        <div className="flex flex-1 gap-2">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && setSearchQuery(search)}
-            placeholder="メモを検索..."
-            className="max-w-sm"
-          />
-          <Button variant="outline" onClick={() => setSearchQuery(search)}>
-            検索
-          </Button>
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          onSubmit={setSearchQuery}
+          placeholder="メモを検索..."
+        />
         <div className="flex items-center gap-2">
           <Select
             value={categoryId ?? "all"}

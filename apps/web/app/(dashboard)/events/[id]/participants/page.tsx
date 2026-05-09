@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { BarChart3, ClipboardCheck } from "lucide-react";
 import { ParticipantDetailDialog } from "../_components/participant-detail-dialog";
+import { PaginationBar } from "@/components/pagination-bar";
 import type { EventParticipant } from "@/lib/api/types";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -205,29 +206,7 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
         </Table>
       )}
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
-      )}
+      {meta && <PaginationBar meta={meta} onPageChange={setPage} />}
 
       {/* 参加者詳細ダイアログ */}
       <ParticipantDetailDialog

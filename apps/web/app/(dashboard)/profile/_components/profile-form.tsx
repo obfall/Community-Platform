@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/profile/use-profile";
 import { filesApi } from "@/lib/api/files";
-import { usersApi } from "@/lib/api/members";
+import { profileApi } from "@/lib/api/profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -192,7 +192,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
 
       // 所属保存
       const validAffiliations = affiliations.filter((a) => a.organizationName);
-      await usersApi.replaceAffiliations({
+      await profileApi.replaceAffiliations({
         affiliations: validAffiliations.map((a, i) => ({
           organizationName: a.organizationName!,
           roleDescription: a.department || undefined,

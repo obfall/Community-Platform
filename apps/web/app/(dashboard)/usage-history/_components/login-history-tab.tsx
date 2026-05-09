@@ -9,7 +9,7 @@ import type { LoginHistoryItem, LoginHistoryQuery } from "@/lib/api/types";
 import { LoginHistoryFilters } from "./login-history-filters";
 import { LoginHistoryTable } from "./login-history-table";
 import { LoginHistoryDetailDialog } from "./login-history-detail-dialog";
-import { PaginationBar } from "./pagination-bar";
+import { PaginationBar } from "@/components/pagination-bar";
 import { ExportButton } from "./export-button";
 
 export function LoginHistoryTab() {

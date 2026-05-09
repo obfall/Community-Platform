@@ -9,7 +9,7 @@ import {
   useDropoutRisk,
 } from "@/hooks/analytics/use-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { PaginationBar } from "@/components/pagination-bar";
 import {
   Table,
   TableBody,
@@ -182,29 +182,9 @@ function EventRankingSection() {
                 ))}
               </TableBody>
             </Table>
-            {data.meta.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={!data.meta.hasPreviousPage}
-                >
-                  前へ
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {data.meta.page} / {data.meta.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={!data.meta.hasNextPage}
-                >
-                  次へ
-                </Button>
-              </div>
-            )}
+            <div className="mt-4">
+              <PaginationBar meta={data.meta} onPageChange={setPage} />
+            </div>
           </>
         )}
       </CardContent>
@@ -261,29 +241,9 @@ function DropoutRiskSection() {
                 ))}
               </TableBody>
             </Table>
-            {data.meta.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={!data.meta.hasPreviousPage}
-                >
-                  前へ
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {data.meta.page} / {data.meta.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={!data.meta.hasNextPage}
-                >
-                  次へ
-                </Button>
-              </div>
-            )}
+            <div className="mt-4">
+              <PaginationBar meta={data.meta} onPageChange={setPage} />
+            </div>
           </>
         )}
       </CardContent>
