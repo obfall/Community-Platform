@@ -23,10 +23,7 @@ export function PaginationBar({ meta, onPageChange }: PaginationBarProps) {
   const to = Math.min(meta.page * meta.limit, meta.total);
 
   return (
-    <div className="flex items-center justify-between">
-      <p className="text-sm text-muted-foreground">
-        {t("summary", { total: meta.total, from, to })}
-      </p>
+    <div className="flex flex-col items-center gap-2">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
@@ -50,6 +47,9 @@ export function PaginationBar({ meta, onPageChange }: PaginationBarProps) {
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {t("summary", { total: meta.total, from, to })}
+      </p>
     </div>
   );
 }
