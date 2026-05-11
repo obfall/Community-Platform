@@ -36,9 +36,9 @@
     "no_show": "欠席"
   },
   "projectStatus": {
-    "active": "進行中",
-    "completed": "完了",
-    "unpublished": "未公開",
-    "draft": "下書き"
+    "not_started": "開始前",
+    "in_progress": "進行中",
+    "completed": "終了",
+    "cancelled": "中止"
   }
 }

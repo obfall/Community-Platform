@@ -25,15 +25,12 @@ export class UserListItemDto {
 
 class ProfileDto {
   @ApiPropertyOptional() avatarUrl?: string | null;
-  @ApiPropertyOptional() bio?: string | null;
   @ApiPropertyOptional() phone?: string | null;
   @ApiPropertyOptional() birthday?: Date | null;
-  @ApiPropertyOptional() website?: string | null;
   @ApiPropertyOptional() nameKana?: string | null;
   @ApiPropertyOptional() gender?: string | null;
   @ApiPropertyOptional() occupation?: string | null;
   @ApiPropertyOptional() countryOfOrigin?: string | null;
-  @ApiProperty() allowDirectMessages!: boolean;
   @ApiPropertyOptional() headerImageUrl?: string | null;
 }
 

@@ -44,8 +44,6 @@ const OCCUPATION_OPTIONS = [
   { value: "other", label: "その他" },
 ] as const;
 
-const LANGUAGE_OPTIONS = [{ value: "ja", label: "日本語" }] as const;
-
 const affiliationSchema = z.object({
   organizationName: z.string().max(200).optional().or(z.literal("")),
   department: z.string().max(200).optional().or(z.literal("")),
@@ -60,7 +58,6 @@ const profileSchema = z.object({
   occupation: z.string().optional().or(z.literal("")),
   countryOfOrigin: z.string().max(100).optional().or(z.literal("")),
   affiliations: z.array(affiliationSchema),
-  language: z.string().optional().or(z.literal("")),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -144,7 +141,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
       occupation: "company_employee",
       countryOfOrigin: "",
       affiliations: [{ organizationName: "", department: "", jobTitle: "" }],
-      language: "ja",
     },
   });
 
@@ -157,7 +153,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
     if (profileData) {
       const p = profileData.profile;
       const affs = profileData.affiliations ?? [];
-      const lang = profileData.languages?.[0]?.languageCode;
       form.reset({
         nameKana: p?.nameKana ?? "",
         phone: p?.phone ?? "",
@@ -173,7 +168,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 jobTitle: a.title ?? "",
               }))
             : [{ organizationName: "", department: "", jobTitle: "" }],
-        language: lang || "ja",
       });
     }
   }, [profileData, form]);
@@ -181,7 +175,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
     try {
-      const { affiliations, language: _language, ...profileValues } = values;
+      const { affiliations, ...profileValues } = values;
 
       // プロフィール保存
       const data: Record<string, string | undefined> = {};
@@ -508,32 +502,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 </div>
               ))}
             </div>
-
-            {/* 使用言語 */}
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>使用言語</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {LANGUAGE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

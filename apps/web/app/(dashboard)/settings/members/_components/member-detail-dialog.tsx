@@ -120,7 +120,6 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                 {user.profile && (
                   <Section title="プロフィール">
                     <InfoRow label="名前（カナ）" value={user.profile.nameKana} />
-                    <InfoRow label="自己紹介" value={user.profile.bio} />
                     <InfoRow label="電話番号" value={user.profile.phone} />
                     <InfoRow
                       label="誕生日"
@@ -130,7 +129,6 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                           : null
                       }
                     />
-                    <InfoRow label="ウェブサイト" value={user.profile.website} />
                     <InfoRow
                       label="性別"
                       value={
@@ -152,20 +150,6 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                     <InfoRow label="都道府県" value={user.publicInfo.prefecture} />
                     <InfoRow label="市区町村" value={user.publicInfo.city} />
                     <InfoRow label="イベント役割" value={user.publicInfo.eventRole} />
-                  </Section>
-                )}
-
-                {/* 言語 */}
-                {user.languages.length > 0 && (
-                  <Section title="言語">
-                    <div className="flex flex-wrap gap-2">
-                      {user.languages.map((lang) => (
-                        <Badge key={lang.id} variant="outline">
-                          {lang.languageCode}
-                          {lang.proficiency && ` (${lang.proficiency})`}
-                        </Badge>
-                      ))}
-                    </div>
                   </Section>
                 )}
 

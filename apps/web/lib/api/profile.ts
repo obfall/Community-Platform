@@ -5,6 +5,8 @@ import type {
   UpdatePublicInfoInput,
   UserAttributeValue,
   SetAttributeValueItem,
+  UserInterestItem,
+  InterestCategory,
   MyTicketItem,
   MyReservationItem,
   MyTaskItem,
@@ -39,6 +41,12 @@ export const profileApi = {
 
   setMyAttributes: (values: SetAttributeValueItem[]) =>
     apiClient.patch<UserAttributeValue[]>("/users/me/attributes", { values }).then((r) => r.data),
+
+  getInterestCategories: () =>
+    apiClient.get<InterestCategory[]>("/users/interest-categories").then((r) => r.data),
+
+  replaceInterests: (categoryIds: string[]) =>
+    apiClient.put<UserInterestItem[]>("/users/me/interests", { categoryIds }).then((r) => r.data),
 
   getMyTickets: () => apiClient.get<MyTicketItem[]>("/users/me/tickets").then((r) => r.data),
 

@@ -68,7 +68,7 @@ export class UsersService {
   /**
    * pgroonga による全文検索版（Q11 確定）。
    * users.name / user_public_info.{nickname,introduction,specialty,prefecture} /
-   * user_profiles.bio / user_affiliations.{organization_name,title,role_description}
+   * user_affiliations.{organization_name,title,role_description}
    * を UNION で横断検索し、user_id ごとに最大スコアでソート。
    */
   private async searchByPgroonga(query: UserListQueryDto, escaped: string) {
@@ -97,9 +97,6 @@ export class UsersService {
           coalesce(specialty, ''),
           coalesce(prefecture, '')
         ] &@~ ${escaped}
-      UNION ALL
-      SELECT user_id, pgroonga_score(tableoid, ctid) AS score
-        FROM user_profiles WHERE coalesce(bio, '') &@~ ${escaped}
       UNION ALL
       SELECT user_id, pgroonga_score(tableoid, ctid) AS score
         FROM user_affiliations
@@ -218,15 +215,12 @@ export class UsersService {
         profile: {
           select: {
             avatarUrl: true,
-            bio: true,
             phone: true,
             birthday: true,
-            website: true,
             nameKana: true,
             gender: true,
             occupation: true,
             countryOfOrigin: true,
-            allowDirectMessages: true,
             headerImageUrl: true,
           },
         },
@@ -324,6 +318,14 @@ export class UsersService {
     return this.prisma.userInterest.findMany({
       where: { userId },
       include: { category: { select: { name: true } } },
+    });
+  }
+
+  async findInterestCategories() {
+    return this.prisma.category.findMany({
+      where: { scope: "user_interest", isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, slug: true },
     });
   }
 

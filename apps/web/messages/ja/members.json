@@ -24,16 +24,15 @@
     "chatStartFailed": "チャットの開始に失敗しました",
     "profile": {
       "title": "プロフィール情報",
-      "nickname": "ニックネーム",
+      "email": "メールアドレス",
       "occupation": "職業",
       "countryOfOrigin": "出身国",
-      "website": "Webサイト",
       "joinedAt": "参加日",
-      "affiliations": "所属 / 部署 / 肩書",
-      "languages": "使用言語"
+      "affiliations": "所属 / 部署 / 肩書"
     },
     "public": {
       "title": "公開情報",
+      "nickname": "ニックネーム",
       "location": "活動拠点",
       "specialty": "専門分野",
       "eventRole": "イベント役割",

@@ -174,21 +174,6 @@ export default function MyPage() {
               </div>
             </div>
           )}
-
-          {/* 言語 */}
-          {profileData?.languages && profileData.languages.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs text-muted-foreground">使用言語</p>
-              <div className="flex flex-wrap gap-2">
-                {profileData.languages.map((lang) => (
-                  <Badge key={lang.id} variant="secondary">
-                    {lang.languageCode}
-                    {lang.proficiency && ` (${lang.proficiency})`}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

@@ -70,6 +70,14 @@ export class UsersController {
     return this.usersService.findUserLibrary(userId);
   }
 
+  // ※ `:id` ルートより必ず前に置く。後ろに置くと NestJS が "interest-categories" を
+  //    UUID パラメータとして解釈し、ParseUUIDPipe で 400 エラーになる。
+  @Get("interest-categories")
+  @ApiOperation({ summary: "選択可能な興味分野カテゴリ一覧" })
+  findInterestCategories() {
+    return this.usersService.findInterestCategories();
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "メンバー詳細" })
   findOne(@Param("id", ParseUUIDPipe) id: string) {
