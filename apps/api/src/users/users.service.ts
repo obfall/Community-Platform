@@ -49,6 +49,7 @@ export class UsersService {
         ? { status: query.status }
         : { status: { in: ["active", "suspended"] as const } }),
       ...(query.role && { role: query.role }),
+      ...(query.excludeAdmin && { role: { not: "admin" } }),
     };
 
     const [users, total] = await Promise.all([
@@ -79,7 +80,9 @@ export class UsersService {
       : Prisma.sql`u.status IN ('active'::"UserStatus", 'suspended'::"UserStatus")`;
     const roleFilter = query.role
       ? Prisma.sql`AND u.role = ${query.role}::"UserRole"`
-      : Prisma.empty;
+      : query.excludeAdmin
+        ? Prisma.sql`AND u.role <> 'admin'::"UserRole"`
+        : Prisma.empty;
 
     // 4 テーブルのマッチを user_id 軸で集約するためのサブクエリ。
     // UNION ALL（重複行を残す）にし、検索版は GROUP BY で MAX(score) に集約、
@@ -202,7 +205,13 @@ export class UsersService {
     };
   }
 
-  async findOne(id: string) {
+  /**
+   * メンバー詳細を取得する。
+   * - 自分自身 or admin 以外の閲覧では email を返さない（プライバシー保護）。
+   * - 呼び出し側が常に viewerRole / viewerId を渡せばクライアント側で API レスポンスから
+   *   email がリークしない設計になる。
+   */
+  async findOne(id: string, viewer?: { id?: string; role?: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id, deletedAt: null },
       select: {
@@ -269,8 +278,13 @@ export class UsersService {
 
     if (!user) throw new NotFoundException("ユーザーが見つかりません");
 
+    // email は admin 本人 or 当人 以外には返さない。
+    const canSeeEmail = viewer?.role === "admin" || viewer?.id === user.id;
+    const email = canSeeEmail ? user.email : null;
+
     return {
       ...user,
+      email,
       avatarUrl: user.profile?.avatarUrl ?? null,
       interests: user.interests.map((i) => ({
         id: i.id,
@@ -283,6 +297,8 @@ export class UsersService {
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     await this.ensureUserExists(userId);
 
+    // dto は ValidationPipe (whitelist + forbidNonWhitelisted) を通過済みのため
+    // UpdateProfileDto に定義されていないフィールドは含まれない（Mass Assignment 対策済み）。
     const profileData = { ...dto } as Record<string, unknown>;
     if (dto.birthday) {
       profileData.birthday = new Date(dto.birthday);
@@ -298,6 +314,8 @@ export class UsersService {
   async updatePublicInfo(userId: string, dto: UpdatePublicInfoDto) {
     await this.ensureUserExists(userId);
 
+    // dto は ValidationPipe (whitelist + forbidNonWhitelisted) を通過済みのため
+    // 想定外のフィールドが書き込まれることはない（Mass Assignment 対策済み）。
     return this.prisma.userPublicInfo.upsert({
       where: { userId },
       update: dto,

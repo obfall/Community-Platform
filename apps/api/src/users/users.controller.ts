@@ -43,7 +43,8 @@ export class UsersController {
   @Get("me/profile")
   @ApiOperation({ summary: "自分のプロフィール詳細" })
   getMyProfile(@CurrentUser("id") userId: string) {
-    return this.usersService.findOne(userId);
+    // 自分自身を見るので email は常に返される。
+    return this.usersService.findOne(userId, { id: userId });
   }
 
   @Get("me/tickets")
@@ -80,8 +81,12 @@ export class UsersController {
 
   @Get(":id")
   @ApiOperation({ summary: "メンバー詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
+  findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("id") viewerId: string,
+    @CurrentUser("role") viewerRole: string,
+  ) {
+    return this.usersService.findOne(id, { id: viewerId, role: viewerRole });
   }
 
   @Get(":id/events")

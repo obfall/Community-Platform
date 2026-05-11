@@ -167,6 +167,8 @@ export interface UserListQuery {
   status?: string;
   sortBy?: "role" | "name" | "createdAt";
   sortOrder?: "asc" | "desc";
+  /** admin ロールを結果から除外する（一般メンバー向け一覧） */
+  excludeAdmin?: boolean;
 }
 
 export interface UpdateProfileInput {

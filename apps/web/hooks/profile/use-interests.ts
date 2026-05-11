@@ -12,12 +12,13 @@ export function useInterestCategories() {
 
 export function useReplaceInterests() {
   const queryClient = useQueryClient();
+  // Phase 11.3 規約: API エラーのトーストはグローバル QueryCache.onError に任せる。
+  // 個別 onError + toast.error を書くと二重表示になるため書かない。
   return useMutation({
     mutationFn: (categoryIds: string[]) => profileApi.replaceInterests(categoryIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
       toast.success("興味分野を更新しました");
     },
-    onError: () => toast.error("興味分野の更新に失敗しました"),
   });
 }

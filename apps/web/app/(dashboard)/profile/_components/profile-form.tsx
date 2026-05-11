@@ -1,5 +1,10 @@
 "use client";
 
+// i18n 化方針: 本ファイル内のラベル・トースト・選択肢ラベルは現状ハードコード日本語のまま残している。
+// プロジェクト方針として「i18n は機能（ドメイン）単位で順次対応」としており、profile 機能は別フェーズで
+// messages/ja/profile.json + useTranslations("profile") への置換をまとめて行う予定。
+// 本ブランチのスコープは members 機能のみのため意図的に未対応。
+
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

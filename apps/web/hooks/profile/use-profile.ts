@@ -11,32 +11,26 @@ export function useMyProfile() {
   });
 }
 
+// Phase 11.3 規約: API エラーのトーストはグローバル QueryCache.onError に任せる。
+// 個別 onError + toast.error を書くと二重表示になるため書かない。
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: UpdateProfileInput) => profileApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
       toast.success("プロフィールを更新しました");
     },
-    onError: () => {
-      toast.error("プロフィールの更新に失敗しました");
-    },
   });
 }
 
 export function useUpdatePublicInfo() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: UpdatePublicInfoInput) => profileApi.updatePublicInfo(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
       toast.success("公開情報を更新しました");
-    },
-    onError: () => {
-      toast.error("公開情報の更新に失敗しました");
     },
   });
 }

@@ -29,6 +29,10 @@ export default function MembersPage() {
     limit: 20,
     sortBy: "role",
     sortOrder: "asc",
+    // 一般メンバー一覧では admin（システム管理者）は隠す。
+    // クライアント側でフィルタすると limit:20 内に admin が混じった時に
+    // ページネーション件数とのズレが出るため、サーバ側で除外させる。
+    excludeAdmin: true,
   });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useMembers(query);
@@ -41,7 +45,7 @@ export default function MembersPage() {
     { value: "createdAt-asc", label: t("sort.createdAtAsc") },
   ];
 
-  const members = (data?.data ?? []).filter((m) => m.role !== "admin");
+  const members = data?.data ?? [];
   const meta = data?.meta;
 
   return (
