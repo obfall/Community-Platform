@@ -1,5 +1,6 @@
 import { Test } from "@nestjs/testing";
-import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { ValidationPipe } from "@nestjs/common";
+import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { UsersController } from "./users.controller";
 import { UsersService } from "./users.service";
@@ -82,7 +83,6 @@ describe("UsersController（ルート登録順序の回帰テスト）", () => {
   });
 
   it("PATCH /users/me/profile に未定義フィールドを送ると 400 が返る（whitelist + forbidNonWhitelisted で Mass Assignment 防御）", async () => {
-    serviceMock.findOne; // 参照しないが mock 存在の確認
     const res = await request(app.getHttpServer())
       .patch("/users/me/profile")
       .send({ name: "Should not be assignable here", role: "admin" });
