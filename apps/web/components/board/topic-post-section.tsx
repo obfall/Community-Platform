@@ -30,6 +30,13 @@ import {
   useToggleTopicPostLike,
 } from "@/hooks/board/use-board";
 import { TopicPostCommentSection } from "./topic-post-comment-section";
+import {
+  BOARD_CONFIRM_MESSAGES,
+  BOARD_EMPTY_MESSAGES,
+  BOARD_LIMITS,
+  BOARD_TEXTAREA_ROWS,
+  getAvatarInitials,
+} from "./constants";
 import type { BoardTopicPost } from "@/lib/api/types";
 
 function PostCard({
@@ -39,15 +46,15 @@ function PostCard({
   post: BoardTopicPost;
   onToggleLike: (id: string) => void;
 }) {
-  const { user } = useAuth();
+  const { canEditAuthor } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editBody, setEditBody] = useState(post.body);
   const updatePost = useUpdateTopicPost();
   const deletePost = useDeleteTopicPost();
-  const initials = post.author.name.slice(0, 2);
+  const initials = getAvatarInitials(post.author.name);
 
-  const canEdit = post.author.id === user?.id || user?.role === "owner" || user?.role === "admin";
+  const canEdit = canEditAuthor(post.author.id);
 
   const handleEdit = () => {
     setEditBody(post.body);
@@ -70,7 +77,7 @@ function PostCard({
   };
 
   const handleDelete = () => {
-    if (!confirm("この投稿を削除しますか？")) return;
+    if (!confirm(BOARD_CONFIRM_MESSAGES.deletePost)) return;
     deletePost.mutate(post.id);
   };
 
@@ -115,7 +122,7 @@ function PostCard({
               <Textarea
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                rows={3}
+                rows={BOARD_TEXTAREA_ROWS.postBody}
                 autoFocus
               />
               <div className="flex justify-end gap-2">
@@ -172,7 +179,10 @@ interface TopicPostSectionProps {
 export function TopicPostSection({ topicId }: TopicPostSectionProps) {
   const [page, setPage] = useState(1);
   const [body, setBody] = useState("");
-  const { data, isLoading } = useTopicPosts(topicId, { page, limit: 20 });
+  const { data, isLoading } = useTopicPosts(topicId, {
+    page,
+    limit: BOARD_LIMITS.postsPerPage,
+  });
   const createPost = useCreateTopicPost(topicId);
   const toggleLike = useToggleTopicPostLike();
 
@@ -197,7 +207,7 @@ export function TopicPostSection({ topicId }: TopicPostSectionProps) {
           placeholder="投稿を入力..."
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          rows={3}
+          rows={BOARD_TEXTAREA_ROWS.postBody}
         />
         <div className="flex justify-end">
           <Button size="sm" onClick={handleSubmit} disabled={!body.trim() || createPost.isPending}>
@@ -213,7 +223,7 @@ export function TopicPostSection({ topicId }: TopicPostSectionProps) {
           ))}
         </div>
       ) : data?.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">まだ投稿はありません</p>
+        <p className="text-sm text-muted-foreground">{BOARD_EMPTY_MESSAGES.noPosts}</p>
       ) : (
         <div className="space-y-4">
           {data?.data.map((post) => (

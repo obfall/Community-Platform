@@ -29,6 +29,13 @@ import {
   useDeleteTopicPostComment,
   useToggleTopicPostCommentLike,
 } from "@/hooks/board/use-board";
+import {
+  BOARD_CONFIRM_MESSAGES,
+  BOARD_EMPTY_MESSAGES,
+  BOARD_LIMITS,
+  BOARD_TEXTAREA_ROWS,
+  getAvatarInitials,
+} from "./constants";
 import type { BoardTopicPostComment } from "@/lib/api/types";
 
 function CommentCard({
@@ -44,15 +51,14 @@ function CommentCard({
   onReply?: (id: string) => void;
   replyForm?: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const { canEditAuthor } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editBody, setEditBody] = useState(comment.body);
   const updateComment = useUpdateTopicPostComment();
   const deleteComment = useDeleteTopicPostComment();
-  const initials = comment.author.name.slice(0, 2);
+  const initials = getAvatarInitials(comment.author.name);
 
-  const canEdit =
-    comment.author.id === user?.id || user?.role === "owner" || user?.role === "admin";
+  const canEdit = canEditAuthor(comment.author.id);
 
   const handleEdit = () => {
     setEditBody(comment.body);
@@ -75,7 +81,7 @@ function CommentCard({
   };
 
   const handleDelete = () => {
-    if (!confirm("このコメントを削除しますか？")) return;
+    if (!confirm(BOARD_CONFIRM_MESSAGES.deleteComment)) return;
     deleteComment.mutate(comment.id);
   };
 
@@ -120,7 +126,7 @@ function CommentCard({
               <Textarea
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                rows={2}
+                rows={BOARD_TEXTAREA_ROWS.commentBody}
                 autoFocus
               />
               <div className="flex justify-end gap-2">
@@ -179,7 +185,10 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
   const [page, setPage] = useState(1);
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | undefined>();
-  const { data, isLoading } = useTopicPostComments(postId, { page, limit: 20 });
+  const { data, isLoading } = useTopicPostComments(postId, {
+    page,
+    limit: BOARD_LIMITS.commentsPerPage,
+  });
   const createComment = useCreateTopicPostComment(postId);
   const toggleLike = useToggleTopicPostCommentLike();
 
@@ -216,7 +225,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
         placeholder="返信を入力..."
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        rows={2}
+        rows={BOARD_TEXTAREA_ROWS.commentBody}
         autoFocus
       />
       <div className="flex justify-end">
@@ -240,7 +249,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
             placeholder="コメントを入力..."
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            rows={2}
+            rows={BOARD_TEXTAREA_ROWS.commentBody}
           />
           <div className="flex justify-end">
             <Button
@@ -262,7 +271,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
           ))}
         </div>
       ) : data?.data.length === 0 ? (
-        <p className="text-xs text-muted-foreground">まだコメントはありません</p>
+        <p className="text-xs text-muted-foreground">{BOARD_EMPTY_MESSAGES.noComments}</p>
       ) : (
         <div className="space-y-3">
           {data?.data.map((comment) => (

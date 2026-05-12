@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUpdateCategory, useDeleteCategory } from "@/hooks/board/use-board";
 import { TopicList } from "./topic-list";
+import { BOARD_CONFIRM_MESSAGES, BOARD_VALIDATION } from "./constants";
 import type { BoardCategory } from "@/lib/api/types";
 
 interface SortableCategoryItemProps {
@@ -68,7 +69,7 @@ export function SortableCategoryItem({
   };
 
   const handleDelete = () => {
-    if (!confirm("このカテゴリを削除しますか？")) return;
+    if (!confirm(BOARD_CONFIRM_MESSAGES.deleteCategory)) return;
     deleteCategory.mutate(category.id);
   };
 
@@ -165,7 +166,7 @@ export function SortableCategoryItem({
                 id={`edit-name-${category.id}`}
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                maxLength={100}
+                maxLength={BOARD_VALIDATION.categoryNameMaxLength}
               />
             </div>
             <div className="space-y-2">

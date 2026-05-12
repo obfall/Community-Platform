@@ -17,6 +17,7 @@ import { useTopic, useDeleteTopic, useToggleTopicLike } from "@/hooks/board/use-
 import { BoardScopeProvider, useBoardPaths, type BoardScope } from "./board-scope";
 import { TopicPostSection } from "./topic-post-section";
 import { EditTopicDialog } from "./edit-topic-dialog";
+import { BOARD_CONFIRM_MESSAGES } from "./constants";
 
 interface TopicDetailViewProps {
   scope: BoardScope;
@@ -33,18 +34,17 @@ export function TopicDetailView({ scope, topicId }: TopicDetailViewProps) {
 
 function TopicDetailInner({ topicId }: { topicId: string }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { canEditAuthor } = useAuth();
   const paths = useBoardPaths();
   const { data: topic, isLoading } = useTopic(topicId);
   const deleteTopic = useDeleteTopic();
   const toggleLike = useToggleTopicLike();
   const [editOpen, setEditOpen] = useState(false);
 
-  const isAuthorOrAdmin =
-    topic && (topic.author.id === user?.id || user?.role === "owner" || user?.role === "admin");
+  const isAuthorOrAdmin = topic && canEditAuthor(topic.author.id);
 
   const handleDelete = () => {
-    if (!confirm("このトピックを削除しますか？")) return;
+    if (!confirm(BOARD_CONFIRM_MESSAGES.deleteTopic)) return;
     deleteTopic.mutate(topicId, {
       onSuccess: () => router.push(paths.index),
     });

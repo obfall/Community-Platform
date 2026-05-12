@@ -44,9 +44,9 @@ export class BoardTopicsService {
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "board_topics",
-      searchColumns: ["title", "body"],
+      searchColumns: ["title"],
       titleColumn: "title",
-      snippetColumn: "body",
+      snippetColumn: null,
       escaped,
       where,
       limit,

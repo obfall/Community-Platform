@@ -3,10 +3,20 @@
   "unauthorized": "認証が必要です",
   "forbidden": "この操作は許可されていません",
   "not_found": {
-    "default": "対象が見つかりません"
+    "default": "対象が見つかりません",
+    "board_category": "カテゴリが見つかりません",
+    "board_topic": "トピックが見つかりません",
+    "board_post": "投稿が見つかりません",
+    "board_comment": "コメントが見つかりません",
+    "board_parent_comment": "返信先コメントが見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました"
+  },
+  "forbidden_resource": {
+    "board_topic": "このトピックを操作する権限がありません",
+    "board_post": "この投稿を操作する権限がありません",
+    "board_comment": "このコメントを操作する権限がありません"
   },
   "internal": "サーバーエラーが発生しました"
 }

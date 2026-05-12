@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import {
   DndContext,
@@ -34,8 +34,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { SearchInput } from "@/components/search-input";
+import type { BoardTopic } from "@/lib/api/types";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { useCategories, useCreateCategory, useReorderCategories } from "@/hooks/board/use-board";
+import { BOARD_EMPTY_MESSAGES, BOARD_VALIDATION } from "./constants";
+import {
+  useCategories,
+  useCreateCategory,
+  useReorderCategories,
+  useTopicSearchCategoryHits,
+} from "@/hooks/board/use-board";
 import { BoardScopeProvider, type BoardScope } from "./board-scope";
 import { TopicList } from "./topic-list";
 import { SortableCategoryItem } from "./sortable-category-item";
@@ -59,9 +67,7 @@ export function BoardView({ scope, heading }: BoardViewProps) {
 }
 
 function BoardViewInner({ heading }: { heading?: { title: string; description?: string } }) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
-  const canManage = user?.role === "admin" || user?.role === "owner";
+  const { isAdmin } = useAuth();
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
   const reorderCategories = useReorderCategories();
@@ -71,6 +77,29 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
   const [description, setDescription] = useState("");
   const [allowTopicCreation, setAllowTopicCreation] = useState(true);
   const [topicDialogCategoryId, setTopicDialogCategoryId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const { data: searchOverview, isFetching: searchFetching } = useTopicSearchCategoryHits(
+    activeSearch || undefined,
+  );
+
+  const categoryList = useMemo(() => categories ?? [], [categories]);
+
+  // 検索 hit したトピックをカテゴリ別にグルーピング（1 回の fetch を分配して N+1 リクエストを防ぐ）
+  const topicsByCategory = useMemo(() => {
+    const map = new Map<string, BoardTopic[]>();
+    if (!searchOverview) return map;
+    for (const topic of searchOverview.data) {
+      const arr = map.get(topic.category.id) ?? [];
+      arr.push(topic);
+      map.set(topic.category.id, arr);
+    }
+    return map;
+  }, [searchOverview]);
+  const hitCategories = useMemo(
+    () => categoryList.filter((c) => topicsByCategory.has(c.id)),
+    [topicsByCategory, categoryList],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -114,8 +143,6 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
     reorderCategories.mutate({ items });
   };
 
-  const categoryList = categories ?? [];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -147,7 +174,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="例: お知らせ"
-                    maxLength={100}
+                    maxLength={BOARD_VALIDATION.categoryNameMaxLength}
                   />
                 </div>
                 <div className="space-y-2">
@@ -194,10 +221,53 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
         )}
       </div>
 
+      <SearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        onSubmit={(v) => setActiveSearch(v.trim())}
+        placeholder="トピックを検索..."
+        className="max-w-sm"
+      />
+
       {isLoading && <div className="h-40 animate-pulse rounded-lg bg-muted" />}
 
-      {categoryList.length > 0 &&
-        (canManage ? (
+      {activeSearch ? (
+        searchFetching && !searchOverview ? (
+          <div className="h-40 animate-pulse rounded-lg bg-muted" />
+        ) : hitCategories.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {BOARD_EMPTY_MESSAGES.noSearchResults(activeSearch)}
+          </p>
+        ) : (
+          <Accordion
+            key={activeSearch}
+            type="multiple"
+            className="space-y-2"
+            defaultValue={hitCategories.map((c) => c.id)}
+          >
+            {hitCategories.map((cat) => {
+              const topics = topicsByCategory.get(cat.id) ?? [];
+              return (
+                <AccordionItem key={cat.id} value={cat.id} className="rounded-lg border px-4">
+                  <div className="flex items-center">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{cat.name}</span>
+                        <span className="text-sm text-muted-foreground">({topics.length})</span>
+                      </div>
+                    </AccordionTrigger>
+                  </div>
+                  <AccordionContent>
+                    <TopicList categoryId={cat.id} topics={topics} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )
+      ) : (
+        categoryList.length > 0 &&
+        (isAdmin ? (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -212,8 +282,8 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                   <SortableCategoryItem
                     key={cat.id}
                     category={cat}
-                    canReorder={canManage}
-                    canManage={canManage}
+                    canReorder={isAdmin}
+                    canManage={isAdmin}
                     onCreateTopic={setTopicDialogCategoryId}
                   />
                 ))}
@@ -254,12 +324,13 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
               </AccordionItem>
             ))}
           </Accordion>
-        ))}
+        ))
+      )}
 
-      {categoryList.length === 0 && !isLoading && (
+      {!activeSearch && categoryList.length === 0 && !isLoading && (
         <div className="flex h-40 items-center justify-center text-muted-foreground">
-          カテゴリがまだありません
-          {isAdmin && "。上の「カテゴリ追加」ボタンから作成してください。"}
+          {BOARD_EMPTY_MESSAGES.noCategories}
+          {isAdmin && BOARD_EMPTY_MESSAGES.noCategoriesAdminHint}
         </div>
       )}
 

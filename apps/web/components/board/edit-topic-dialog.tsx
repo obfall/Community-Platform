@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCategories, useTopic, useUpdateTopic } from "@/hooks/board/use-board";
+import { BOARD_TEXTAREA_ROWS } from "./constants";
 
 const topicSchema = z.object({
   title: z.string().min(1, "タイトルを入力してください").max(200),
@@ -131,7 +132,11 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
                 <FormItem>
                   <FormLabel>本文</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="内容を入力..." rows={8} {...field} />
+                    <Textarea
+                      placeholder="内容を入力..."
+                      rows={BOARD_TEXTAREA_ROWS.topicBody}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

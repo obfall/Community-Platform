@@ -58,6 +58,9 @@ export function createBoardApi(scope: BoardScope) {
     reorderTopics: (data: ReorderInput) =>
       apiClient.patch(`${base}/topics/reorder`, data).then((r) => r.data),
 
+    toggleTopicPin: (id: string) =>
+      apiClient.patch<{ isPinned: boolean }>(`${base}/topics/${id}/pin`).then((r) => r.data),
+
     toggleTopicLike: (id: string) =>
       apiClient.post<LikeResponse>(`${base}/topics/${id}/like`).then((r) => r.data),
 

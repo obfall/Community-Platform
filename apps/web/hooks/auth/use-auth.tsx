@@ -11,6 +11,10 @@ interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** owner / admin ロールのいずれか */
+  isAdmin: boolean;
+  /** 投稿者本人または管理者か（authorId が null/undefined のときは false） */
+  canEditAuthor: (authorId: string | null | undefined) => boolean;
   login: (data: LoginInput) => Promise<void>;
   register: (data: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
@@ -71,12 +75,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
   }, [queryClient]);
 
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const canEditAuthor = useCallback(
+    (authorId: string | null | undefined) => {
+      if (!user || !authorId) return false;
+      return user.id === authorId || user.role === "owner" || user.role === "admin";
+    },
+    [user],
+  );
+
   return (
     <AuthContext.Provider
       value={{
         user: user ?? null,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin,
+        canEditAuthor,
         login,
         register,
         logout,
