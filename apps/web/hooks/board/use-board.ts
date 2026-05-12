@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { createBoardApi } from "@/lib/api/board";
 import { useBoardScope, boardScopeKey, type BoardScope } from "@/components/board/board-scope";
+import { BOARD_LIMITS, BOARD_STALE_TIME } from "@/components/board/constants";
 import type {
   CreateCategoryInput,
   UpdateCategoryInput,
@@ -30,26 +32,27 @@ export function useCategories() {
   return useQuery({
     queryKey: keyOf(scope, "categories"),
     queryFn: () => api.getCategories(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: BOARD_STALE_TIME.categories,
   });
 }
 
 // --- Mutations ---
 
 export function useCreateCategory() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateCategoryInput) => api.createCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
-      toast.success("カテゴリを作成しました");
+      toast.success(t("toast.categoryCreated"));
     },
-    onError: () => toast.error("カテゴリの作成に失敗しました"),
   });
 }
 
 export function useUpdateCategory() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
@@ -57,22 +60,21 @@ export function useUpdateCategory() {
       api.updateCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
-      toast.success("カテゴリを更新しました");
+      toast.success(t("toast.categoryUpdated"));
     },
-    onError: () => toast.error("カテゴリの更新に失敗しました"),
   });
 }
 
 export function useDeleteCategory() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteCategory(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
-      toast.success("カテゴリを削除しました");
+      toast.success(t("toast.categoryDeleted"));
     },
-    onError: () => toast.error("カテゴリの削除に失敗しました"),
   });
 }
 
@@ -84,18 +86,33 @@ export function useReorderCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
     },
-    onError: () => toast.error("並び替えに失敗しました"),
   });
 }
 
 // --- Topic Queries ---
 
-export function useTopics(query?: TopicListQuery) {
+export function useTopics(query?: TopicListQuery, options?: { enabled?: boolean }) {
   const { api, scope } = useBoardApi();
   return useQuery({
     queryKey: keyOf(scope, "topics", query),
     queryFn: () => api.getTopics(query),
-    staleTime: 30 * 1000,
+    enabled: options?.enabled ?? true,
+    staleTime: BOARD_STALE_TIME.topics,
+  });
+}
+
+/**
+ * 検索キーワード hit を持つトピックを横断検索で取得（カテゴリ別表示用）。
+ * 結果を BoardView 側でカテゴリ別にグルーピングして表示する。
+ * limit は API の MAX_PAGE_SIZE 上限（100）。これを超える検索結果は表示対象外。
+ */
+export function useTopicSearchCategoryHits(search: string | undefined) {
+  const { api, scope } = useBoardApi();
+  return useQuery({
+    queryKey: keyOf(scope, "topics", "category-hits", search),
+    queryFn: () => api.getTopics({ search, limit: BOARD_LIMITS.searchOverview }),
+    enabled: !!search,
+    staleTime: BOARD_STALE_TIME.topics,
   });
 }
 
@@ -135,41 +152,41 @@ export function useTopicPostComments(
 // --- Topic Mutations ---
 
 export function useCreateTopic() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateTopicInput) => api.createTopic(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
-      toast.success("トピックを作成しました");
+      toast.success(t("toast.topicCreated"));
     },
-    onError: () => toast.error("トピックの作成に失敗しました"),
   });
 }
 
 export function useUpdateTopic() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTopicInput }) => api.updateTopic(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
-      toast.success("トピックを更新しました");
+      toast.success(t("toast.topicUpdated"));
     },
-    onError: () => toast.error("トピックの更新に失敗しました"),
   });
 }
 
 export function useDeleteTopic() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteTopic(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
-      toast.success("トピックを削除しました");
+      toast.success(t("toast.topicDeleted"));
     },
-    onError: () => toast.error("トピックの削除に失敗しました"),
   });
 }
 
@@ -181,7 +198,6 @@ export function useReorderTopics() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
     },
-    onError: () => toast.error("並び替えに失敗しました"),
   });
 }
 
@@ -194,24 +210,24 @@ export function useCreateTopicPost(topicId: string) {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPosts", topicId) });
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
     },
-    onError: () => toast.error("投稿に失敗しました"),
   });
 }
 
 export function useUpdateTopicPost() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: string }) => api.updateTopicPost(id, { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPosts") });
-      toast.success("投稿を更新しました");
+      toast.success(t("toast.postUpdated"));
     },
-    onError: () => toast.error("投稿の更新に失敗しました"),
   });
 }
 
 export function useDeleteTopicPost() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
@@ -219,9 +235,8 @@ export function useDeleteTopicPost() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPosts") });
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
-      toast.success("投稿を削除しました");
+      toast.success(t("toast.postDeleted"));
     },
-    onError: () => toast.error("投稿の削除に失敗しました"),
   });
 }
 
@@ -234,11 +249,11 @@ export function useCreateTopicPostComment(postId: string) {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPostComments", postId) });
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPosts") });
     },
-    onError: () => toast.error("コメントの投稿に失敗しました"),
   });
 }
 
 export function useUpdateTopicPostComment() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
@@ -246,13 +261,13 @@ export function useUpdateTopicPostComment() {
       api.updateTopicPostComment(id, { body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPostComments") });
-      toast.success("コメントを更新しました");
+      toast.success(t("toast.commentUpdated"));
     },
-    onError: () => toast.error("コメントの更新に失敗しました"),
   });
 }
 
 export function useDeleteTopicPostComment() {
+  const t = useTranslations("board");
   const { api, scope } = useBoardApi();
   const queryClient = useQueryClient();
   return useMutation({
@@ -260,9 +275,21 @@ export function useDeleteTopicPostComment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPostComments") });
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topicPosts") });
-      toast.success("コメントを削除しました");
+      toast.success(t("toast.commentDeleted"));
     },
-    onError: () => toast.error("コメントの削除に失敗しました"),
+  });
+}
+
+export function useToggleTopicPin() {
+  const t = useTranslations("board");
+  const { api, scope } = useBoardApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.toggleTopicPin(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
+      toast.success(data.isPinned ? t("toast.topicPinned") : t("toast.topicUnpinned"));
+    },
   });
 }
 

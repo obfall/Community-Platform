@@ -279,6 +279,7 @@ export interface TopicListQuery {
   page?: number;
   limit?: number;
   categoryId?: string;
+  search?: string;
 }
 
 export interface CreateTopicInput {

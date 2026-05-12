@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2, Heart, Eye, MessageCircle, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,19 +33,19 @@ export function TopicDetailView({ scope, topicId }: TopicDetailViewProps) {
 }
 
 function TopicDetailInner({ topicId }: { topicId: string }) {
+  const t = useTranslations("board");
   const router = useRouter();
-  const { user } = useAuth();
+  const { canEditAuthor } = useAuth();
   const paths = useBoardPaths();
   const { data: topic, isLoading } = useTopic(topicId);
   const deleteTopic = useDeleteTopic();
   const toggleLike = useToggleTopicLike();
   const [editOpen, setEditOpen] = useState(false);
 
-  const isAuthorOrAdmin =
-    topic && (topic.author.id === user?.id || user?.role === "owner" || user?.role === "admin");
+  const isAuthorOrAdmin = topic && canEditAuthor(topic.author.id);
 
   const handleDelete = () => {
-    if (!confirm("このトピックを削除しますか？")) return;
+    if (!confirm(t("confirm.deleteTopic"))) return;
     deleteTopic.mutate(topicId, {
       onSuccess: () => router.push(paths.index),
     });
@@ -57,7 +58,7 @@ function TopicDetailInner({ topicId }: { topicId: string }) {
   if (!topic) {
     return (
       <div className="flex h-60 items-center justify-center text-muted-foreground">
-        トピックが見つかりません
+        {t("topic.notFound")}
       </div>
     );
   }
@@ -67,7 +68,7 @@ function TopicDetailInner({ topicId }: { topicId: string }) {
       <Button variant="ghost" size="sm" asChild>
         <Link href={paths.index}>
           <ArrowLeft className="mr-1 h-4 w-4" />
-          掲示板に戻る
+          {t("topic.backToBoard")}
         </Link>
       </Button>
 
@@ -82,17 +83,17 @@ function TopicDetailInner({ topicId }: { topicId: string }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">メニューを開く</span>
+                  <span className="sr-only">{t("menu.open")}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setEditOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  編集
+                  {t("menu.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  削除
+                  {t("menu.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

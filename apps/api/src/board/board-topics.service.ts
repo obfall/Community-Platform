@@ -6,7 +6,6 @@ import {
   buildPaginationMeta,
   escapePgroongaQuery,
   extractPagination,
-  formatAuthor,
   pgroongaSearchAndFetch,
   VISIBILITY,
 } from "@/common/utils";
@@ -35,6 +34,9 @@ export class BoardTopicsService {
   private async searchByPgroonga(userId: string, query: TopicQueryDto, escaped: string) {
     const { page, limit, offset } = extractPagination(query);
 
+    // Prisma.sql テンプレートリテラルは ${...} 部分を **prepared statement** の
+    // パラメータとしてバインドするため、`${query.categoryId}::uuid` は SQL injection 安全。
+    // categoryId は DTO 側で @IsUUID() 済みだが多重防御として ::uuid キャストも残す。
     const where = Prisma.sql`
       deleted_at IS NULL
       AND publish_status = 'published'::"PublishStatus"
@@ -44,9 +46,9 @@ export class BoardTopicsService {
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "board_topics",
-      searchColumns: ["title", "body"],
+      searchColumns: ["title"],
       titleColumn: "title",
-      snippetColumn: "body",
+      snippetColumn: null,
       escaped,
       where,
       limit,
@@ -71,23 +73,12 @@ export class BoardTopicsService {
     return {
       data: records.map((t) => {
         const h = hitsById.get(t.id);
+        // 整形ロジックは BoardCoreService.formatTopic と統一し、検索固有の
+        // titleHighlighted / snippetHighlighted のみ上書きする（重複防止）。
         return {
-          id: t.id,
-          title: t.title,
-          body: t.body,
+          ...this.core.formatTopic(t, likedSet.has(t.id)),
           titleHighlighted: h?.titleHighlighted,
           snippetHighlighted: h?.snippetHighlighted,
-          publishStatus: t.publishStatus,
-          isPinned: t.isPinned,
-          sortOrder: t.sortOrder,
-          viewCount: t.viewCount,
-          postCount: t.postCount,
-          likeCount: t.likeCount,
-          author: formatAuthor(t.author),
-          category: t.category,
-          isLiked: likedSet.has(t.id),
-          createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
         };
       }),
       meta: buildPaginationMeta(total, page, limit),

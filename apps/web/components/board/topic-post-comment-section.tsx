@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
@@ -29,6 +30,7 @@ import {
   useDeleteTopicPostComment,
   useToggleTopicPostCommentLike,
 } from "@/hooks/board/use-board";
+import { BOARD_LIMITS, BOARD_TEXTAREA_ROWS, getAvatarInitials } from "./constants";
 import type { BoardTopicPostComment } from "@/lib/api/types";
 
 function CommentCard({
@@ -44,15 +46,15 @@ function CommentCard({
   onReply?: (id: string) => void;
   replyForm?: React.ReactNode;
 }) {
-  const { user } = useAuth();
+  const t = useTranslations("board");
+  const { canEditAuthor } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editBody, setEditBody] = useState(comment.body);
   const updateComment = useUpdateTopicPostComment();
   const deleteComment = useDeleteTopicPostComment();
-  const initials = comment.author.name.slice(0, 2);
+  const initials = getAvatarInitials(comment.author.name);
 
-  const canEdit =
-    comment.author.id === user?.id || user?.role === "owner" || user?.role === "admin";
+  const canEdit = canEditAuthor(comment.author.id);
 
   const handleEdit = () => {
     setEditBody(comment.body);
@@ -75,7 +77,7 @@ function CommentCard({
   };
 
   const handleDelete = () => {
-    if (!confirm("このコメントを削除しますか？")) return;
+    if (!confirm(t("confirm.deleteComment"))) return;
     deleteComment.mutate(comment.id);
   };
 
@@ -98,17 +100,17 @@ function CommentCard({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
                     <MoreVertical className="h-3 w-3" />
-                    <span className="sr-only">メニューを開く</span>
+                    <span className="sr-only">{t("menu.open")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleEdit}>
                     <Pencil className="mr-2 h-4 w-4" />
-                    編集
+                    {t("menu.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                     <Trash2 className="mr-2 h-4 w-4" />
-                    削除
+                    {t("menu.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -120,19 +122,19 @@ function CommentCard({
               <Textarea
                 value={editBody}
                 onChange={(e) => setEditBody(e.target.value)}
-                rows={2}
+                rows={BOARD_TEXTAREA_ROWS.commentBody}
                 autoFocus
               />
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={handleCancel}>
-                  キャンセル
+                  {t("comment.cancelEdit")}
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSave}
                   disabled={!editBody.trim() || updateComment.isPending}
                 >
-                  {updateComment.isPending ? "保存中..." : "保存"}
+                  {updateComment.isPending ? t("comment.savingEdit") : t("comment.saveEdit")}
                 </Button>
               </div>
             </div>
@@ -153,7 +155,7 @@ function CommentCard({
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                   >
                     <Reply className="h-3 w-3" />
-                    返信
+                    {t("comment.reply")}
                   </button>
                 )}
               </div>
@@ -176,10 +178,14 @@ interface TopicPostCommentSectionProps {
 }
 
 export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps) {
+  const t = useTranslations("board");
   const [page, setPage] = useState(1);
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<string | undefined>();
-  const { data, isLoading } = useTopicPostComments(postId, { page, limit: 20 });
+  const { data, isLoading } = useTopicPostComments(postId, {
+    page,
+    limit: BOARD_LIMITS.commentsPerPage,
+  });
   const createComment = useCreateTopicPostComment(postId);
   const toggleLike = useToggleTopicPostCommentLike();
 
@@ -201,7 +207,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
   const inlineReplyForm = (
     <div className="ml-8 mt-2 space-y-2 border-l-2 border-primary/30 pl-4">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span>返信を入力</span>
+        <span>{t("comment.replyHint")}</span>
         <button
           onClick={() => {
             setReplyTo(undefined);
@@ -209,14 +215,14 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
           }}
           className="text-xs text-primary hover:underline"
         >
-          キャンセル
+          {t("comment.cancel")}
         </button>
       </div>
       <Textarea
-        placeholder="返信を入力..."
+        placeholder={t("comment.replyPlaceholder")}
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        rows={2}
+        rows={BOARD_TEXTAREA_ROWS.commentBody}
         autoFocus
       />
       <div className="flex justify-end">
@@ -226,7 +232,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
           onClick={handleSubmit}
           disabled={!body.trim() || createComment.isPending}
         >
-          {createComment.isPending ? "投稿中..." : "返信"}
+          {createComment.isPending ? t("comment.submitting") : t("comment.replySubmit")}
         </Button>
       </div>
     </div>
@@ -237,10 +243,10 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
       {!replyTo && (
         <div className="space-y-2">
           <Textarea
-            placeholder="コメントを入力..."
+            placeholder={t("comment.placeholder")}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            rows={2}
+            rows={BOARD_TEXTAREA_ROWS.commentBody}
           />
           <div className="flex justify-end">
             <Button
@@ -249,7 +255,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
               onClick={handleSubmit}
               disabled={!body.trim() || createComment.isPending}
             >
-              {createComment.isPending ? "投稿中..." : "コメント"}
+              {createComment.isPending ? t("comment.submitting") : t("comment.submit")}
             </Button>
           </div>
         </div>
@@ -262,7 +268,7 @@ export function TopicPostCommentSection({ postId }: TopicPostCommentSectionProps
           ))}
         </div>
       ) : data?.data.length === 0 ? (
-        <p className="text-xs text-muted-foreground">まだコメントはありません</p>
+        <p className="text-xs text-muted-foreground">{t("empty.noComments")}</p>
       ) : (
         <div className="space-y-3">
           {data?.data.map((comment) => (

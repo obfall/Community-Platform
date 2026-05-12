@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import type { CreateCategoryDto } from "../dto/create-category.dto";
 import type { UpdateCategoryDto } from "../dto/update-category.dto";
 import type { CreateTopicDto } from "../dto/create-topic.dto";
@@ -27,17 +30,95 @@ export interface BoardScopeConfig {
   scopeField: "projectId" | "eventId" | null;
 }
 
+type TopicRaw = {
+  id: string;
+  title: string;
+  body: string;
+  publishStatus: string;
+  isPinned: boolean;
+  sortOrder: number;
+  viewCount: number;
+  postCount: number;
+  likeCount: number;
+  author: AuthorLike;
+  category: { id: string; name: string };
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type PostRaw = {
+  id: string;
+  body: string;
+  likeCount: number;
+  commentCount: number;
+  author: AuthorLike;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type CommentRaw = {
+  id: string;
+  body: string;
+  likeCount: number;
+  author: AuthorLike;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const TOPIC_INCLUDE = {
+  author: { select: AUTHOR_SELECT },
+  category: { select: { id: true, name: true } },
+} as const;
+
+const POST_INCLUDE = {
+  author: { select: AUTHOR_SELECT },
+} as const;
+
+const COMMENT_INCLUDE = {
+  author: { select: AUTHOR_SELECT },
+} as const;
+
 /**
  * 掲示板のコア CRUD ロジック。Global / Project / Event 全スコープで共通。
  * Prisma delegate を動的に引くことで型安全性を一部犠牲にしているが、公開 API は型付けされる。
  */
+/**
+ * delegate(name) で受け入れる Prisma delegate 名のホワイトリスト。
+ * BoardScopeConfig は静的な const から渡される設計だが、将来 DTO 由来の値が
+ * 紛れ込んだ場合に Prototype Pollution / 任意プロパティアクセスにならないよう
+ * 多重防御として実装内でも allowlist 検証する。
+ */
+const ALLOWED_DELEGATES = new Set<string>([
+  // Global
+  "boardCategory",
+  "boardTopic",
+  "boardTopicPost",
+  "boardTopicPostComment",
+  "boardLike",
+  // Project scope
+  "projectBoardCategory",
+  "projectBoardTopic",
+  "projectBoardTopicPost",
+  "projectBoardTopicPostComment",
+  "projectBoardLike",
+  // Event scope
+  "eventBoardCategory",
+  "eventBoardTopic",
+  "eventBoardTopicPost",
+  "eventBoardTopicPostComment",
+  "eventBoardLike",
+]);
+
 @Injectable()
 export class BoardCoreService {
   constructor(private readonly prisma: PrismaService) {}
 
   // biome-ignore lint/suspicious/noExplicitAny: Prisma delegate は動的にアクセス
   private delegate(name: string): any {
-    // biome-ignore lint/suspicious/noExplicitAny: 動的アクセス
+    if (!ALLOWED_DELEGATES.has(name)) {
+      throw new Error(`Unknown Prisma delegate: ${name}`);
+    }
+    // biome-ignore lint/suspicious/noExplicitAny: 動的アクセス（allowlist 検証済み）
     return (this.prisma as any)[name];
   }
 
@@ -86,6 +167,8 @@ export class BoardCoreService {
     dto: CreateCategoryDto,
     scopeId?: string,
   ): Promise<unknown> {
+    // Mass Assignment 対策: DTO 由来のフィールドを **明示列挙** する。
+    // ループ / スプレッド（...dto）は絶対に書かない（roleなど書き換え禁止フィールド混入防止）。
     const data: Record<string, unknown> = {
       name: dto.name,
       description: dto.description,
@@ -106,7 +189,7 @@ export class BoardCoreService {
     const category = await this.delegate(cfg.categoryDelegate).findUnique({
       where: { id, deletedAt: null },
     });
-    if (!category) throw new NotFoundException("カテゴリが見つかりません");
+    if (!category) throw notFound("board_category");
 
     return (await this.delegate(cfg.categoryDelegate).update({
       where: { id },
@@ -138,7 +221,7 @@ export class BoardCoreService {
     const category = await this.delegate(cfg.categoryDelegate).findUnique({
       where: { id, deletedAt: null },
     });
-    if (!category) throw new NotFoundException("カテゴリが見つかりません");
+    if (!category) throw notFound("board_category");
 
     await this.delegate(cfg.categoryDelegate).update({
       where: { id },
@@ -176,56 +259,22 @@ export class BoardCoreService {
         orderBy: [{ isPinned: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
         skip,
         take: limit,
-        include: {
-          author: { select: AUTHOR_SELECT },
-          category: { select: { id: true, name: true } },
-        },
+        include: TOPIC_INCLUDE,
       }),
       topicDelegate.count({ where }),
     ]);
 
-    const topicList = topics as Array<{
-      id: string;
-      title: string;
-      body: string;
-      publishStatus: string;
-      isPinned: boolean;
-      sortOrder: number;
-      viewCount: number;
-      postCount: number;
-      likeCount: number;
-      author: AuthorLike;
-      category: { id: string; name: string };
-      createdAt: Date;
-      updatedAt: Date;
-    }>;
-
-    const topicIds = topicList.map((t) => t.id);
-    const userLikes = await this.delegate(cfg.likeDelegate).findMany({
-      where: { userId, targetType: "topic", targetId: { in: topicIds } },
-      select: { targetId: true },
-    });
-    const likedSet = new Set((userLikes as Array<{ targetId: string }>).map((l) => l.targetId));
-
+    const topicList = topics as TopicRaw[];
+    const likedSet = await this.fetchLikedSet(
+      cfg,
+      userId,
+      "topic",
+      topicList.map((t) => t.id),
+    );
     const totalPages = Math.ceil((total as number) / limit);
 
     return {
-      data: topicList.map((t) => ({
-        id: t.id,
-        title: t.title,
-        body: t.body,
-        publishStatus: t.publishStatus,
-        isPinned: t.isPinned,
-        sortOrder: t.sortOrder,
-        viewCount: t.viewCount,
-        postCount: t.postCount,
-        likeCount: t.likeCount,
-        author: formatAuthor(t.author),
-        category: t.category,
-        isLiked: likedSet.has(t.id),
-        createdAt: t.createdAt,
-        updatedAt: t.updatedAt,
-      })),
+      data: topicList.map((t) => this.formatTopic(t, likedSet.has(t.id))),
       meta: {
         total: total as number,
         page,
@@ -241,30 +290,12 @@ export class BoardCoreService {
     const topicDelegate = this.delegate(cfg.topicDelegate);
     const topic = (await topicDelegate.findUnique({
       where: { id: topicId, deletedAt: null },
-      include: {
-        author: { select: AUTHOR_SELECT },
-        category: { select: { id: true, name: true } },
-      },
-    })) as {
-      id: string;
-      title: string;
-      body: string;
-      publishStatus: string;
-      isPinned: boolean;
-      sortOrder: number;
-      viewCount: number;
-      postCount: number;
-      likeCount: number;
-      authorUserId: string;
-      author: AuthorLike;
-      category: { id: string; name: string };
-      createdAt: Date;
-      updatedAt: Date;
-    } | null;
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
+      include: TOPIC_INCLUDE,
+    })) as (TopicRaw & { authorUserId: string }) | null;
+    if (!topic) throw notFound("board_topic");
 
     if (topic.publishStatus === "draft" && topic.authorUserId !== userId) {
-      throw new NotFoundException("トピックが見つかりません");
+      throw notFound("board_topic");
     }
 
     await topicDelegate.update({
@@ -276,25 +307,12 @@ export class BoardCoreService {
       where: { userId_targetType_targetId: { userId, targetType: "topic", targetId: topicId } },
     });
 
-    return {
-      id: topic.id,
-      title: topic.title,
-      body: topic.body,
-      publishStatus: topic.publishStatus,
-      isPinned: topic.isPinned,
-      sortOrder: topic.sortOrder,
-      viewCount: topic.viewCount + 1,
-      postCount: topic.postCount,
-      likeCount: topic.likeCount,
-      author: formatAuthor(topic.author),
-      category: topic.category,
-      isLiked: !!like,
-      createdAt: topic.createdAt,
-      updatedAt: topic.updatedAt,
-    };
+    return this.formatTopic(topic, !!like, topic.viewCount + 1);
   }
 
   async createTopic(cfg: BoardScopeConfig, userId: string, dto: CreateTopicDto, scopeId?: string) {
+    // Mass Assignment 対策: DTO 由来のフィールドを **明示列挙** する。
+    // ループ / スプレッド（...dto）は絶対に書かない。
     const data: Record<string, unknown> = {
       title: dto.title,
       body: dto.body,
@@ -306,46 +324,14 @@ export class BoardCoreService {
 
     const topic = (await this.delegate(cfg.topicDelegate).create({
       data,
-      include: {
-        author: { select: AUTHOR_SELECT },
-        category: { select: { id: true, name: true } },
-      },
-    })) as {
-      id: string;
-      title: string;
-      body: string;
-      publishStatus: string;
-      isPinned: boolean;
-      sortOrder: number;
-      viewCount: number;
-      postCount: number;
-      likeCount: number;
-      author: AuthorLike;
-      category: { id: string; name: string };
-      createdAt: Date;
-      updatedAt: Date;
-    };
+      include: TOPIC_INCLUDE,
+    })) as TopicRaw;
 
-    return {
-      id: topic.id,
-      title: topic.title,
-      body: topic.body,
-      publishStatus: topic.publishStatus,
-      isPinned: topic.isPinned,
-      sortOrder: topic.sortOrder,
-      viewCount: topic.viewCount,
-      postCount: topic.postCount,
-      likeCount: topic.likeCount,
-      author: formatAuthor(topic.author),
-      category: topic.category,
-      isLiked: false,
-      createdAt: topic.createdAt,
-      updatedAt: topic.updatedAt,
-    };
+    return this.formatTopic(topic, false);
   }
 
   async updateTopic(cfg: BoardScopeConfig, userId: string, topicId: string, dto: UpdateTopicDto) {
-    await this.findTopicAndCheckAccess(cfg, topicId, userId);
+    await this.findTopicForMutation(cfg, topicId, userId);
 
     const updated = (await this.delegate(cfg.topicDelegate).update({
       where: { id: topicId },
@@ -355,42 +341,10 @@ export class BoardCoreService {
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
         ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus }),
       },
-      include: {
-        author: { select: AUTHOR_SELECT },
-        category: { select: { id: true, name: true } },
-      },
-    })) as {
-      id: string;
-      title: string;
-      body: string;
-      publishStatus: string;
-      isPinned: boolean;
-      sortOrder: number;
-      viewCount: number;
-      postCount: number;
-      likeCount: number;
-      author: AuthorLike;
-      category: { id: string; name: string };
-      createdAt: Date;
-      updatedAt: Date;
-    };
+      include: TOPIC_INCLUDE,
+    })) as TopicRaw;
 
-    return {
-      id: updated.id,
-      title: updated.title,
-      body: updated.body,
-      publishStatus: updated.publishStatus,
-      isPinned: updated.isPinned,
-      sortOrder: updated.sortOrder,
-      viewCount: updated.viewCount,
-      postCount: updated.postCount,
-      likeCount: updated.likeCount,
-      author: formatAuthor(updated.author),
-      category: updated.category,
-      isLiked: false,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    };
+    return this.formatTopic(updated, false);
   }
 
   async reorderTopics(cfg: BoardScopeConfig, items: { id: string; sortOrder: number }[]) {
@@ -407,7 +361,7 @@ export class BoardCoreService {
   }
 
   async softDeleteTopic(cfg: BoardScopeConfig, userId: string, topicId: string) {
-    await this.findTopicAndCheckAccess(cfg, topicId, userId);
+    await this.findTopicForMutation(cfg, topicId, userId);
 
     await this.delegate(cfg.topicDelegate).update({
       where: { id: topicId },
@@ -419,7 +373,7 @@ export class BoardCoreService {
     const topic = (await this.delegate(cfg.topicDelegate).findUnique({
       where: { id: topicId, deletedAt: null },
     })) as { id: string; isPinned: boolean } | null;
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
+    if (!topic) throw notFound("board_topic");
 
     const updated = (await this.delegate(cfg.topicDelegate).update({
       where: { id: topicId },
@@ -446,7 +400,7 @@ export class BoardCoreService {
     const topic = await this.delegate(cfg.topicDelegate).findUnique({
       where: { id: topicId, deletedAt: null },
     });
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
+    if (!topic) throw notFound("board_topic");
 
     const where = { topicId, deletedAt: null };
     const postDelegate = this.delegate(cfg.topicPostDelegate);
@@ -457,44 +411,22 @@ export class BoardCoreService {
         orderBy: { createdAt: "asc" },
         skip,
         take: limit,
-        include: {
-          author: { select: AUTHOR_SELECT },
-        },
+        include: POST_INCLUDE,
       }),
       postDelegate.count({ where }),
     ]);
 
-    const postList = posts as Array<{
-      id: string;
-      body: string;
-      likeCount: number;
-      commentCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-    }>;
-
-    const postIds = postList.map((p) => p.id);
-
-    const userLikes = await this.delegate(cfg.likeDelegate).findMany({
-      where: { userId, targetType: "topic_post", targetId: { in: postIds } },
-      select: { targetId: true },
-    });
-    const likedSet = new Set((userLikes as Array<{ targetId: string }>).map((l) => l.targetId));
-
+    const postList = posts as PostRaw[];
+    const likedSet = await this.fetchLikedSet(
+      cfg,
+      userId,
+      "topic_post",
+      postList.map((p) => p.id),
+    );
     const totalPages = Math.ceil((total as number) / limit);
 
     return {
-      data: postList.map((p) => ({
-        id: p.id,
-        body: p.body,
-        likeCount: p.likeCount,
-        commentCount: p.commentCount,
-        isLiked: likedSet.has(p.id),
-        author: formatAuthor(p.author),
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-      })),
+      data: postList.map((p) => this.formatPost(p, likedSet.has(p.id))),
       meta: {
         total: total as number,
         page,
@@ -515,42 +447,20 @@ export class BoardCoreService {
     const topic = await this.delegate(cfg.topicDelegate).findUnique({
       where: { id: topicId, deletedAt: null, publishStatus: "published" },
     });
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
+    if (!topic) throw notFound("board_topic");
 
-    const post = (await this.delegate(cfg.topicPostDelegate).create({
-      data: {
-        topicId,
-        authorUserId: userId,
-        body: dto.body,
-      },
-      include: {
-        author: { select: AUTHOR_SELECT },
-      },
-    })) as {
-      id: string;
-      body: string;
-      likeCount: number;
-      commentCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-    };
+    const [post] = await this.prisma.$transaction([
+      this.delegate(cfg.topicPostDelegate).create({
+        data: { topicId, authorUserId: userId, body: dto.body },
+        include: POST_INCLUDE,
+      }) as Prisma.PrismaPromise<PostRaw>,
+      this.delegate(cfg.topicDelegate).update({
+        where: { id: topicId },
+        data: { postCount: { increment: 1 } },
+      }) as Prisma.PrismaPromise<unknown>,
+    ]);
 
-    await this.delegate(cfg.topicDelegate).update({
-      where: { id: topicId },
-      data: { postCount: { increment: 1 } },
-    });
-
-    return {
-      id: post.id,
-      body: post.body,
-      likeCount: post.likeCount,
-      commentCount: post.commentCount,
-      isLiked: false,
-      author: formatAuthor(post.author),
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
-    };
+    return this.formatPost(post, false);
   }
 
   async updateTopicPost(
@@ -559,48 +469,30 @@ export class BoardCoreService {
     postId: string,
     dto: UpdateTopicPostDto,
   ) {
-    await this.findPostAndCheckAccess(cfg, postId, userId);
+    await this.findPostForMutation(cfg, postId, userId);
 
     const updated = (await this.delegate(cfg.topicPostDelegate).update({
       where: { id: postId },
       data: { body: dto.body },
-      include: {
-        author: { select: AUTHOR_SELECT },
-      },
-    })) as {
-      id: string;
-      body: string;
-      likeCount: number;
-      commentCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-    };
+      include: POST_INCLUDE,
+    })) as PostRaw;
 
-    return {
-      id: updated.id,
-      body: updated.body,
-      likeCount: updated.likeCount,
-      commentCount: updated.commentCount,
-      isLiked: false,
-      author: formatAuthor(updated.author),
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    };
+    return this.formatPost(updated, false);
   }
 
   async softDeleteTopicPost(cfg: BoardScopeConfig, userId: string, postId: string) {
-    const post = await this.findPostAndCheckAccess(cfg, postId, userId);
+    const post = await this.findPostForMutation(cfg, postId, userId);
 
-    await this.delegate(cfg.topicPostDelegate).update({
-      where: { id: postId },
-      data: { deletedAt: new Date() },
-    });
-
-    await this.delegate(cfg.topicDelegate).update({
-      where: { id: post.topicId },
-      data: { postCount: { decrement: 1 } },
-    });
+    await this.prisma.$transaction([
+      this.delegate(cfg.topicPostDelegate).update({
+        where: { id: postId },
+        data: { deletedAt: new Date() },
+      }) as Prisma.PrismaPromise<unknown>,
+      this.delegate(cfg.topicDelegate).update({
+        where: { id: post.topicId },
+        data: { postCount: { decrement: 1 } },
+      }) as Prisma.PrismaPromise<unknown>,
+    ]);
   }
 
   // ========================================================================
@@ -620,7 +512,7 @@ export class BoardCoreService {
     const post = await this.delegate(cfg.topicPostDelegate).findUnique({
       where: { id: postId, deletedAt: null },
     });
-    if (!post) throw new NotFoundException("投稿が見つかりません");
+    if (!post) throw notFound("board_post");
 
     const where = { postId, deletedAt: null, parentCommentId: null as string | null };
     const commentDelegate = this.delegate(cfg.topicPostCommentDelegate);
@@ -632,64 +524,26 @@ export class BoardCoreService {
         skip,
         take: limit,
         include: {
-          author: { select: AUTHOR_SELECT },
+          ...COMMENT_INCLUDE,
           childComments: {
             where: { deletedAt: null },
             orderBy: { createdAt: "asc" },
-            include: {
-              author: { select: AUTHOR_SELECT },
-            },
+            include: COMMENT_INCLUDE,
           },
         },
       }),
       commentDelegate.count({ where }),
     ]);
 
-    const commentList = comments as Array<{
-      id: string;
-      body: string;
-      likeCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-      childComments: Array<{
-        id: string;
-        body: string;
-        likeCount: number;
-        author: AuthorLike;
-        createdAt: Date;
-        updatedAt: Date;
-      }>;
-    }>;
-
+    const commentList = comments as Array<CommentRaw & { childComments: CommentRaw[] }>;
     const allCommentIds = commentList.flatMap((c) => [c.id, ...c.childComments.map((ch) => ch.id)]);
-
-    const userLikes = await this.delegate(cfg.likeDelegate).findMany({
-      where: { userId, targetType: "topic_post_comment", targetId: { in: allCommentIds } },
-      select: { targetId: true },
-    });
-    const likedSet = new Set((userLikes as Array<{ targetId: string }>).map((l) => l.targetId));
-
+    const likedSet = await this.fetchLikedSet(cfg, userId, "topic_post_comment", allCommentIds);
     const totalPages = Math.ceil((total as number) / limit);
 
     return {
       data: commentList.map((c) => ({
-        id: c.id,
-        body: c.body,
-        likeCount: c.likeCount,
-        isLiked: likedSet.has(c.id),
-        author: formatAuthor(c.author),
-        childComments: c.childComments.map((ch) => ({
-          id: ch.id,
-          body: ch.body,
-          likeCount: ch.likeCount,
-          isLiked: likedSet.has(ch.id),
-          author: formatAuthor(ch.author),
-          createdAt: ch.createdAt,
-          updatedAt: ch.updatedAt,
-        })),
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
+        ...this.formatComment(c, likedSet.has(c.id)),
+        childComments: c.childComments.map((ch) => this.formatComment(ch, likedSet.has(ch.id))),
       })),
       meta: {
         total: total as number,
@@ -711,48 +565,32 @@ export class BoardCoreService {
     const post = await this.delegate(cfg.topicPostDelegate).findUnique({
       where: { id: postId, deletedAt: null },
     });
-    if (!post) throw new NotFoundException("投稿が見つかりません");
+    if (!post) throw notFound("board_post");
 
     if (dto.parentCommentId) {
       const parent = await this.delegate(cfg.topicPostCommentDelegate).findUnique({
         where: { id: dto.parentCommentId, postId, deletedAt: null },
       });
-      if (!parent) throw new NotFoundException("返信先コメントが見つかりません");
+      if (!parent) throw notFound("board_parent_comment");
     }
 
-    const comment = (await this.delegate(cfg.topicPostCommentDelegate).create({
-      data: {
-        postId,
-        authorUserId: userId,
-        body: dto.body,
-        parentCommentId: dto.parentCommentId,
-      },
-      include: {
-        author: { select: AUTHOR_SELECT },
-      },
-    })) as {
-      id: string;
-      body: string;
-      likeCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-    };
+    const [comment] = await this.prisma.$transaction([
+      this.delegate(cfg.topicPostCommentDelegate).create({
+        data: {
+          postId,
+          authorUserId: userId,
+          body: dto.body,
+          parentCommentId: dto.parentCommentId,
+        },
+        include: COMMENT_INCLUDE,
+      }) as Prisma.PrismaPromise<CommentRaw>,
+      this.delegate(cfg.topicPostDelegate).update({
+        where: { id: postId },
+        data: { commentCount: { increment: 1 } },
+      }) as Prisma.PrismaPromise<unknown>,
+    ]);
 
-    await this.delegate(cfg.topicPostDelegate).update({
-      where: { id: postId },
-      data: { commentCount: { increment: 1 } },
-    });
-
-    return {
-      id: comment.id,
-      body: comment.body,
-      likeCount: comment.likeCount,
-      isLiked: false,
-      author: formatAuthor(comment.author),
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    };
+    return this.formatComment(comment, false);
   }
 
   async updateTopicPostComment(
@@ -761,46 +599,30 @@ export class BoardCoreService {
     commentId: string,
     dto: UpdateTopicPostCommentDto,
   ) {
-    await this.findCommentAndCheckAccess(cfg, commentId, userId);
+    await this.findCommentForMutation(cfg, commentId, userId);
 
     const updated = (await this.delegate(cfg.topicPostCommentDelegate).update({
       where: { id: commentId },
       data: { body: dto.body },
-      include: {
-        author: { select: AUTHOR_SELECT },
-      },
-    })) as {
-      id: string;
-      body: string;
-      likeCount: number;
-      author: AuthorLike;
-      createdAt: Date;
-      updatedAt: Date;
-    };
+      include: COMMENT_INCLUDE,
+    })) as CommentRaw;
 
-    return {
-      id: updated.id,
-      body: updated.body,
-      likeCount: updated.likeCount,
-      isLiked: false,
-      author: formatAuthor(updated.author),
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    };
+    return this.formatComment(updated, false);
   }
 
   async softDeleteTopicPostComment(cfg: BoardScopeConfig, userId: string, commentId: string) {
-    const comment = await this.findCommentAndCheckAccess(cfg, commentId, userId);
+    const comment = await this.findCommentForMutation(cfg, commentId, userId);
 
-    await this.delegate(cfg.topicPostCommentDelegate).update({
-      where: { id: commentId },
-      data: { deletedAt: new Date() },
-    });
-
-    await this.delegate(cfg.topicPostDelegate).update({
-      where: { id: comment.postId },
-      data: { commentCount: { decrement: 1 } },
-    });
+    await this.prisma.$transaction([
+      this.delegate(cfg.topicPostCommentDelegate).update({
+        where: { id: commentId },
+        data: { deletedAt: new Date() },
+      }) as Prisma.PrismaPromise<unknown>,
+      this.delegate(cfg.topicPostDelegate).update({
+        where: { id: comment.postId },
+        data: { commentCount: { decrement: 1 } },
+      }) as Prisma.PrismaPromise<unknown>,
+    ]);
   }
 
   // ========================================================================
@@ -811,7 +633,7 @@ export class BoardCoreService {
     const topic = await this.delegate(cfg.topicDelegate).findUnique({
       where: { id: topicId, deletedAt: null },
     });
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
+    if (!topic) throw notFound("board_topic");
 
     return this.toggleLike(cfg, userId, "topic", topicId, cfg.topicDelegate);
   }
@@ -820,7 +642,7 @@ export class BoardCoreService {
     const post = await this.delegate(cfg.topicPostDelegate).findUnique({
       where: { id: postId, deletedAt: null },
     });
-    if (!post) throw new NotFoundException("投稿が見つかりません");
+    if (!post) throw notFound("board_post");
 
     return this.toggleLike(cfg, userId, "topic_post", postId, cfg.topicPostDelegate);
   }
@@ -829,7 +651,7 @@ export class BoardCoreService {
     const comment = await this.delegate(cfg.topicPostCommentDelegate).findUnique({
       where: { id: commentId, deletedAt: null },
     });
-    if (!comment) throw new NotFoundException("コメントが見つかりません");
+    if (!comment) throw notFound("board_comment");
 
     return this.toggleLike(
       cfg,
@@ -848,40 +670,97 @@ export class BoardCoreService {
     targetDelegate: string,
   ) {
     const likeDelegate = this.delegate(cfg.likeDelegate);
-    const existing = await likeDelegate.findUnique({
+    const existing = (await likeDelegate.findUnique({
       where: { userId_targetType_targetId: { userId, targetType, targetId } },
-    });
+    })) as { id: string } | null;
 
     if (existing) {
-      await likeDelegate.delete({ where: { id: existing.id } });
-      await this.delegate(targetDelegate).update({
-        where: { id: targetId },
-        data: { likeCount: { decrement: 1 } },
-      });
-
-      const updated = (await this.delegate(targetDelegate).findUnique({
-        where: { id: targetId },
-        select: { likeCount: true },
-      })) as { likeCount: number } | null;
-      return { liked: false, likeCount: updated?.likeCount ?? 0 };
+      const [, updated] = await this.prisma.$transaction([
+        likeDelegate.delete({ where: { id: existing.id } }) as Prisma.PrismaPromise<unknown>,
+        this.delegate(targetDelegate).update({
+          where: { id: targetId },
+          data: { likeCount: { decrement: 1 } },
+          select: { likeCount: true },
+        }) as Prisma.PrismaPromise<{ likeCount: number }>,
+      ]);
+      return { liked: false, likeCount: updated.likeCount };
     }
 
-    await likeDelegate.create({ data: { userId, targetType, targetId } });
-    await this.delegate(targetDelegate).update({
-      where: { id: targetId },
-      data: { likeCount: { increment: 1 } },
-    });
-
-    const updated = (await this.delegate(targetDelegate).findUnique({
-      where: { id: targetId },
-      select: { likeCount: true },
-    })) as { likeCount: number } | null;
-    return { liked: true, likeCount: updated?.likeCount ?? 0 };
+    const [, updated] = await this.prisma.$transaction([
+      likeDelegate.create({
+        data: { userId, targetType, targetId },
+      }) as Prisma.PrismaPromise<unknown>,
+      this.delegate(targetDelegate).update({
+        where: { id: targetId },
+        data: { likeCount: { increment: 1 } },
+        select: { likeCount: true },
+      }) as Prisma.PrismaPromise<{ likeCount: number }>,
+    ]);
+    return { liked: true, likeCount: updated.likeCount };
   }
 
   // ========================================================================
-  // Helpers
+  // Formatters / Helpers
   // ========================================================================
+
+  /** Topic レスポンス整形（pgroonga 検索経路など外部からも呼ばれるため public） */
+  formatTopic(t: TopicRaw, isLiked: boolean, viewCountOverride?: number) {
+    return {
+      id: t.id,
+      title: t.title,
+      body: t.body,
+      publishStatus: t.publishStatus,
+      isPinned: t.isPinned,
+      sortOrder: t.sortOrder,
+      viewCount: viewCountOverride ?? t.viewCount,
+      postCount: t.postCount,
+      likeCount: t.likeCount,
+      author: formatAuthor(t.author),
+      category: t.category,
+      isLiked,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    };
+  }
+
+  private formatPost(p: PostRaw, isLiked: boolean) {
+    return {
+      id: p.id,
+      body: p.body,
+      likeCount: p.likeCount,
+      commentCount: p.commentCount,
+      isLiked,
+      author: formatAuthor(p.author),
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    };
+  }
+
+  private formatComment(c: CommentRaw, isLiked: boolean) {
+    return {
+      id: c.id,
+      body: c.body,
+      likeCount: c.likeCount,
+      isLiked,
+      author: formatAuthor(c.author),
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    };
+  }
+
+  private async fetchLikedSet(
+    cfg: BoardScopeConfig,
+    userId: string,
+    targetType: "topic" | "topic_post" | "topic_post_comment",
+    targetIds: string[],
+  ): Promise<Set<string>> {
+    if (targetIds.length === 0) return new Set();
+    const likes = (await this.delegate(cfg.likeDelegate).findMany({
+      where: { userId, targetType, targetId: { in: targetIds } },
+      select: { targetId: true },
+    })) as Array<{ targetId: string }>;
+    return new Set(likes.map((l) => l.targetId));
+  }
 
   private buildScopeWhere(
     cfg: BoardScopeConfig,
@@ -892,64 +771,77 @@ export class BoardCoreService {
     return { ...base, [cfg.scopeField]: scopeId };
   }
 
-  private async findTopicAndCheckAccess(cfg: BoardScopeConfig, topicId: string, userId: string) {
+  private async assertOwnerOrAdmin(
+    authorUserId: string,
+    userId: string,
+    resourceKey: "board_topic" | "board_post" | "board_comment",
+  ): Promise<void> {
+    if (authorUserId === userId) return;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (user?.role !== "owner" && user?.role !== "admin") {
+      throw new BusinessException(
+        ErrorCode.FORBIDDEN,
+        HttpStatus.FORBIDDEN,
+        errorMessages.forbidden,
+        undefined,
+        `errors.forbidden_resource.${resourceKey}`,
+      );
+    }
+  }
+
+  private async findTopicForMutation(cfg: BoardScopeConfig, topicId: string, userId: string) {
     const topic = (await this.delegate(cfg.topicDelegate).findUnique({
       where: { id: topicId, deletedAt: null },
     })) as { id: string; authorUserId: string } | null;
-    if (!topic) throw new NotFoundException("トピックが見つかりません");
-
-    if (topic.authorUserId !== userId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
-      if (user?.role !== "owner" && user?.role !== "admin") {
-        throw new ForbiddenException("このトピックを操作する権限がありません");
-      }
-    }
-
+    if (!topic) throw notFound("board_topic");
+    await this.assertOwnerOrAdmin(topic.authorUserId, userId, "board_topic");
     return topic;
   }
 
-  private async findPostAndCheckAccess(cfg: BoardScopeConfig, postId: string, userId: string) {
+  private async findPostForMutation(cfg: BoardScopeConfig, postId: string, userId: string) {
     const post = (await this.delegate(cfg.topicPostDelegate).findUnique({
       where: { id: postId, deletedAt: null },
     })) as { id: string; authorUserId: string; topicId: string } | null;
-    if (!post) throw new NotFoundException("投稿が見つかりません");
-
-    if (post.authorUserId !== userId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
-      if (user?.role !== "owner" && user?.role !== "admin") {
-        throw new ForbiddenException("この投稿を操作する権限がありません");
-      }
-    }
-
+    if (!post) throw notFound("board_post");
+    await this.assertOwnerOrAdmin(post.authorUserId, userId, "board_post");
     return post;
   }
 
-  private async findCommentAndCheckAccess(
-    cfg: BoardScopeConfig,
-    commentId: string,
-    userId: string,
-  ) {
+  private async findCommentForMutation(cfg: BoardScopeConfig, commentId: string, userId: string) {
     const comment = (await this.delegate(cfg.topicPostCommentDelegate).findUnique({
       where: { id: commentId, deletedAt: null },
     })) as { id: string; authorUserId: string; postId: string } | null;
-    if (!comment) throw new NotFoundException("コメントが見つかりません");
-
-    if (comment.authorUserId !== userId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
-      if (user?.role !== "owner" && user?.role !== "admin") {
-        throw new ForbiddenException("このコメントを操作する権限がありません");
-      }
-    }
-
+    if (!comment) throw notFound("board_comment");
+    await this.assertOwnerOrAdmin(comment.authorUserId, userId, "board_comment");
     return comment;
   }
+}
+
+// ============================================================================
+// NotFoundException 用ヘルパ
+// ============================================================================
+//
+// 日本語メッセージは i18n の errors.json で一元管理する。
+// 実運用（リクエスト経由）では AllExceptionsFilter が messageKey をもとに
+// リソース別の翻訳メッセージに差し替える。
+// テスト等 I18nContext が無い環境では errors.not_found.default の generic fallback がそのまま返る。
+
+type NotFoundKey =
+  | "board_category"
+  | "board_topic"
+  | "board_post"
+  | "board_comment"
+  | "board_parent_comment";
+
+function notFound(key: NotFoundKey): BusinessException {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.default,
+    undefined,
+    `errors.not_found.${key}`,
+  );
 }

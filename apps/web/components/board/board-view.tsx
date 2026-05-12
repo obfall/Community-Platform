@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import {
   DndContext,
@@ -34,8 +35,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { SearchInput } from "@/components/search-input";
+import type { BoardTopic } from "@/lib/api/types";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { useCategories, useCreateCategory, useReorderCategories } from "@/hooks/board/use-board";
+import { BOARD_DND_DRAG_DISTANCE, BOARD_VALIDATION } from "./constants";
+import {
+  useCategories,
+  useCreateCategory,
+  useReorderCategories,
+  useTopicSearchCategoryHits,
+} from "@/hooks/board/use-board";
 import { BoardScopeProvider, type BoardScope } from "./board-scope";
 import { TopicList } from "./topic-list";
 import { SortableCategoryItem } from "./sortable-category-item";
@@ -59,9 +68,8 @@ export function BoardView({ scope, heading }: BoardViewProps) {
 }
 
 function BoardViewInner({ heading }: { heading?: { title: string; description?: string } }) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
-  const canManage = user?.role === "admin" || user?.role === "owner";
+  const t = useTranslations("board");
+  const { isAdmin } = useAuth();
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
   const reorderCategories = useReorderCategories();
@@ -71,9 +79,32 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
   const [description, setDescription] = useState("");
   const [allowTopicCreation, setAllowTopicCreation] = useState(true);
   const [topicDialogCategoryId, setTopicDialogCategoryId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const { data: searchOverview, isFetching: searchFetching } = useTopicSearchCategoryHits(
+    activeSearch || undefined,
+  );
+
+  const categoryList = useMemo(() => categories ?? [], [categories]);
+
+  // 検索 hit したトピックをカテゴリ別にグルーピング（1 回の fetch を分配して N+1 リクエストを防ぐ）
+  const topicsByCategory = useMemo(() => {
+    const map = new Map<string, BoardTopic[]>();
+    if (!searchOverview) return map;
+    for (const topic of searchOverview.data) {
+      const arr = map.get(topic.category.id) ?? [];
+      arr.push(topic);
+      map.set(topic.category.id, arr);
+    }
+    return map;
+  }, [searchOverview]);
+  const hitCategories = useMemo(
+    () => categoryList.filter((c) => topicsByCategory.has(c.id)),
+    [topicsByCategory, categoryList],
+  );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: BOARD_DND_DRAG_DISTANCE } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -114,8 +145,6 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
     reorderCategories.mutate({ items });
   };
 
-  const categoryList = categories ?? [];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,35 +161,35 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="mr-1 h-4 w-4" />
-                カテゴリ追加
+                {t("category.addButton")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>カテゴリを作成</DialogTitle>
+                <DialogTitle>{t("category.createTitle")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category-name">カテゴリ名</Label>
+                  <Label htmlFor="category-name">{t("category.nameLabel")}</Label>
                   <Input
                     id="category-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="例: お知らせ"
-                    maxLength={100}
+                    placeholder={t("category.namePlaceholder")}
+                    maxLength={BOARD_VALIDATION.categoryNameMaxLength}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category-description">説明（任意）</Label>
+                  <Label htmlFor="category-description">{t("category.descriptionLabel")}</Label>
                   <Input
                     id="category-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="カテゴリの説明"
+                    placeholder={t("category.descriptionPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>トピック作成</Label>
+                  <Label>{t("category.allowTopicCreationLabel")}</Label>
                   <RadioGroup
                     value={allowTopicCreation ? "allow" : "deny"}
                     onValueChange={(v) => setAllowTopicCreation(v === "allow")}
@@ -169,13 +198,13 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="allow" id="create-allow" />
                       <Label htmlFor="create-allow" className="font-normal">
-                        可
+                        {t("category.allow")}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="deny" id="create-deny" />
                       <Label htmlFor="create-deny" className="font-normal">
-                        不可
+                        {t("category.deny")}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -185,7 +214,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                     onClick={handleCreateCategory}
                     disabled={!name.trim() || createCategory.isPending}
                   >
-                    {createCategory.isPending ? "作成中..." : "作成"}
+                    {createCategory.isPending ? t("category.creating") : t("category.create")}
                   </Button>
                 </div>
               </div>
@@ -194,10 +223,53 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
         )}
       </div>
 
+      <SearchInput
+        value={searchInput}
+        onChange={setSearchInput}
+        onSubmit={(v) => setActiveSearch(v.trim())}
+        placeholder={t("search.placeholder")}
+        className="max-w-sm"
+      />
+
       {isLoading && <div className="h-40 animate-pulse rounded-lg bg-muted" />}
 
-      {categoryList.length > 0 &&
-        (canManage ? (
+      {activeSearch ? (
+        searchFetching && !searchOverview ? (
+          <div className="h-40 animate-pulse rounded-lg bg-muted" />
+        ) : hitCategories.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {t("search.noResults", { query: activeSearch })}
+          </p>
+        ) : (
+          <Accordion
+            key={activeSearch}
+            type="multiple"
+            className="space-y-2"
+            defaultValue={hitCategories.map((c) => c.id)}
+          >
+            {hitCategories.map((cat) => {
+              const topics = topicsByCategory.get(cat.id) ?? [];
+              return (
+                <AccordionItem key={cat.id} value={cat.id} className="rounded-lg border px-4">
+                  <div className="flex items-center">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{cat.name}</span>
+                        <span className="text-sm text-muted-foreground">({topics.length})</span>
+                      </div>
+                    </AccordionTrigger>
+                  </div>
+                  <AccordionContent>
+                    <TopicList categoryId={cat.id} topics={topics} />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )
+      ) : (
+        categoryList.length > 0 &&
+        (isAdmin ? (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -212,8 +284,8 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                   <SortableCategoryItem
                     key={cat.id}
                     category={cat}
-                    canReorder={canManage}
-                    canManage={canManage}
+                    canReorder={isAdmin}
+                    canManage={isAdmin}
                     onCreateTopic={setTopicDialogCategoryId}
                   />
                 ))}
@@ -243,7 +315,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                         }}
                       >
                         <Plus className="mr-1 h-4 w-4" />
-                        新規トピック
+                        {t("topic.newButton")}
                       </Button>
                     </div>
                   )}
@@ -254,12 +326,13 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
               </AccordionItem>
             ))}
           </Accordion>
-        ))}
+        ))
+      )}
 
-      {categoryList.length === 0 && !isLoading && (
+      {!activeSearch && categoryList.length === 0 && !isLoading && (
         <div className="flex h-40 items-center justify-center text-muted-foreground">
-          カテゴリがまだありません
-          {isAdmin && "。上の「カテゴリ追加」ボタンから作成してください。"}
+          {t("empty.noCategories")}
+          {isAdmin && t("empty.noCategoriesAdminHint")}
         </div>
       )}
 

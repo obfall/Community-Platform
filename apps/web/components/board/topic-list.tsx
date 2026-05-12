@@ -1,9 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { ja } from "date-fns/locale";
-import { GripVertical, MessageCircle, Eye, Pin } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  GripVertical,
+  MessageCircle,
+  Eye,
+  Pin,
+  PinOff,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -21,14 +30,38 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useTopics, useReorderTopics } from "@/hooks/board/use-board";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { HighlightedText } from "@/components/highlighted-text";
+import { useAuth } from "@/hooks/auth/use-auth";
+import {
+  useTopics,
+  useReorderTopics,
+  useDeleteTopic,
+  useToggleTopicPin,
+} from "@/hooks/board/use-board";
 import { useBoardPaths } from "./board-scope";
+import { EditTopicDialog } from "./edit-topic-dialog";
+import { BOARD_DND_DRAG_DISTANCE, BOARD_LIMITS } from "./constants";
 import type { BoardTopic } from "@/lib/api/types";
 
-function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boolean }) {
+export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boolean }) {
+  const t = useTranslations("board");
   const paths = useBoardPaths();
+  const { isAdmin: userIsAdmin, canEditAuthor } = useAuth();
+  const togglePin = useToggleTopicPin();
+  const deleteTopic = useDeleteTopic();
+  const [editOpen, setEditOpen] = useState(false);
+
+  const canEdit = canEditAuthor(topic.author.id);
+  const canShowMenu = userIsAdmin || canEdit;
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: topic.id,
   });
@@ -37,6 +70,11 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleDelete = () => {
+    if (!confirm(t("confirm.deleteTopic"))) return;
+    deleteTopic.mutate(topic.id);
   };
 
   return (
@@ -62,15 +100,6 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
               <HighlightedText html={topic.titleHighlighted} fallback={topic.title} />
             </span>
           </div>
-          <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{topic.author.name}</span>
-            <span>
-              {formatDistanceToNow(new Date(topic.createdAt), {
-                addSuffix: true,
-                locale: ja,
-              })}
-            </span>
-          </div>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
           <Badge variant="secondary" className="gap-1">
@@ -83,6 +112,46 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
           </Badge>
         </div>
       </Link>
+      {canShowMenu && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">{t("menu.open")}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {userIsAdmin && (
+              <DropdownMenuItem onClick={() => togglePin.mutate(topic.id)}>
+                {topic.isPinned ? (
+                  <>
+                    <PinOff className="mr-2 h-4 w-4" />
+                    {t("menu.unpin")}
+                  </>
+                ) : (
+                  <>
+                    <Pin className="mr-2 h-4 w-4" />
+                    {t("menu.pin")}
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <>
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  {t("menu.edit")}
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={handleDelete}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t("menu.delete")}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <EditTopicDialog open={editOpen} onOpenChange={setEditOpen} topicId={topic.id} />
     </div>
   );
 }
@@ -90,20 +159,28 @@ function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boo
 interface TopicListProps {
   categoryId: string;
   isAdmin?: boolean;
+  /** 親から渡されたトピック群（指定があれば自前 fetch をスキップする。検索結果分配用）。 */
+  topics?: BoardTopic[];
 }
 
-export function TopicList({ categoryId, isAdmin = false }: TopicListProps) {
-  const { data, isLoading } = useTopics({ categoryId, limit: 20 });
+export function TopicList({ categoryId, isAdmin = false, topics: presetTopics }: TopicListProps) {
+  const t = useTranslations("board");
+  const fetchEnabled = presetTopics === undefined;
+  const { data, isLoading } = useTopics(
+    fetchEnabled ? { categoryId, limit: BOARD_LIMITS.topicsPerPage } : undefined,
+    { enabled: fetchEnabled },
+  );
   const reorderTopics = useReorderTopics();
+  const isPresetMode = !fetchEnabled;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: BOARD_DND_DRAG_DISTANCE } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
-  const topics = data?.data ?? [];
+  const topics = presetTopics ?? data?.data ?? [];
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -121,7 +198,7 @@ export function TopicList({ categoryId, isAdmin = false }: TopicListProps) {
     reorderTopics.mutate({ items });
   };
 
-  if (isLoading) {
+  if (!isPresetMode && isLoading) {
     return (
       <div className="space-y-2">
         {[1, 2, 3].map((i) => (
@@ -132,12 +209,10 @@ export function TopicList({ categoryId, isAdmin = false }: TopicListProps) {
   }
 
   if (topics.length === 0) {
-    return (
-      <p className="py-4 text-center text-sm text-muted-foreground">トピックはまだありません</p>
-    );
+    return <p className="py-4 text-center text-sm text-muted-foreground">{t("empty.noTopics")}</p>;
   }
 
-  if (!isAdmin) {
+  if (!isAdmin || isPresetMode) {
     return (
       <div className="divide-y">
         {topics.map((topic) => (
