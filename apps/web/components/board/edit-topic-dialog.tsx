@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,14 +33,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCategories, useTopic, useUpdateTopic } from "@/hooks/board/use-board";
 import { BOARD_TEXTAREA_ROWS } from "./constants";
 
-const topicSchema = z.object({
-  title: z.string().min(1, "タイトルを入力してください").max(200),
-  body: z.string().min(1, "本文を入力してください"),
-  categoryId: z.string().min(1, "カテゴリを選択してください"),
-  publishStatus: z.enum(["draft", "published"]),
-});
-
-type TopicFormValues = z.infer<typeof topicSchema>;
+type TopicFormValues = {
+  title: string;
+  body: string;
+  categoryId: string;
+  publishStatus: "draft" | "published";
+};
 
 interface EditTopicDialogProps {
   open: boolean;
@@ -48,9 +47,21 @@ interface EditTopicDialogProps {
 }
 
 export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialogProps) {
+  const t = useTranslations("board");
   const { data: categories } = useCategories();
   const { data: topic } = useTopic(open ? topicId : undefined);
   const updateTopic = useUpdateTopic();
+
+  const topicSchema = useMemo(
+    () =>
+      z.object({
+        title: z.string().min(1, t("validation.titleRequired")).max(200),
+        body: z.string().min(1, t("validation.bodyRequired")),
+        categoryId: z.string().min(1, t("validation.categoryRequired")),
+        publishStatus: z.enum(["draft", "published"]),
+      }),
+    [t],
+  );
 
   const form = useForm<TopicFormValues>({
     resolver: zodResolver(topicSchema),
@@ -81,7 +92,7 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>トピックを編集</DialogTitle>
+          <DialogTitle>{t("topic.editTitle")}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -91,11 +102,11 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
               name="categoryId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>カテゴリ</FormLabel>
+                  <FormLabel>{t("topic.categoryLabel")}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="カテゴリを選択" />
+                        <SelectValue placeholder={t("topic.categoryPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -116,9 +127,9 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>タイトル</FormLabel>
+                  <FormLabel>{t("topic.titleLabel")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="トピックのタイトル" {...field} />
+                    <Input placeholder={t("topic.titlePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -130,10 +141,10 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
               name="body"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>本文</FormLabel>
+                  <FormLabel>{t("topic.bodyLabel")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="内容を入力..."
+                      placeholder={t("topic.bodyPlaceholder")}
                       rows={BOARD_TEXTAREA_ROWS.topicBody}
                       {...field}
                     />
@@ -148,7 +159,7 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
               name="publishStatus"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>公開ステータス</FormLabel>
+                  <FormLabel>{t("topic.publishStatusLabel")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -156,8 +167,8 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="published">公開</SelectItem>
-                      <SelectItem value="draft">下書き</SelectItem>
+                      <SelectItem value="published">{t("topic.publishStatusPublished")}</SelectItem>
+                      <SelectItem value="draft">{t("topic.publishStatusDraft")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -167,10 +178,10 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                キャンセル
+                {t("topic.cancel")}
               </Button>
               <Button type="submit" disabled={updateTopic.isPending}>
-                {updateTopic.isPending ? "保存中..." : "保存"}
+                {updateTopic.isPending ? t("topic.saving") : t("topic.save")}
               </Button>
             </DialogFooter>
           </form>

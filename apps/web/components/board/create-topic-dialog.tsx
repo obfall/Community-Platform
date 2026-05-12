@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,14 +33,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCategories, useCreateTopic } from "@/hooks/board/use-board";
 import { BOARD_TEXTAREA_ROWS } from "./constants";
 
-const topicSchema = z.object({
-  title: z.string().min(1, "タイトルを入力してください").max(200),
-  body: z.string().min(1, "本文を入力してください"),
-  categoryId: z.string().min(1, "カテゴリを選択してください"),
-  publishStatus: z.enum(["draft", "published"]),
-});
-
-type TopicFormValues = z.infer<typeof topicSchema>;
+type TopicFormValues = {
+  title: string;
+  body: string;
+  categoryId: string;
+  publishStatus: "draft" | "published";
+};
 
 interface CreateTopicDialogProps {
   open: boolean;
@@ -52,8 +51,20 @@ export function CreateTopicDialog({
   onOpenChange,
   defaultCategoryId,
 }: CreateTopicDialogProps) {
+  const t = useTranslations("board");
   const { data: categories } = useCategories();
   const createTopic = useCreateTopic();
+
+  const topicSchema = useMemo(
+    () =>
+      z.object({
+        title: z.string().min(1, t("validation.titleRequired")).max(200),
+        body: z.string().min(1, t("validation.bodyRequired")),
+        categoryId: z.string().min(1, t("validation.categoryRequired")),
+        publishStatus: z.enum(["draft", "published"]),
+      }),
+    [t],
+  );
 
   const form = useForm<TopicFormValues>({
     resolver: zodResolver(topicSchema),
@@ -88,7 +99,7 @@ export function CreateTopicDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>新規トピック</DialogTitle>
+          <DialogTitle>{t("topic.createTitle")}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -98,11 +109,11 @@ export function CreateTopicDialog({
               name="categoryId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>カテゴリ</FormLabel>
+                  <FormLabel>{t("topic.categoryLabel")}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="カテゴリを選択" />
+                        <SelectValue placeholder={t("topic.categoryPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -123,9 +134,9 @@ export function CreateTopicDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>タイトル</FormLabel>
+                  <FormLabel>{t("topic.titleLabel")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="トピックのタイトル" {...field} />
+                    <Input placeholder={t("topic.titlePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,10 +148,10 @@ export function CreateTopicDialog({
               name="body"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>本文</FormLabel>
+                  <FormLabel>{t("topic.bodyLabel")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="内容を入力..."
+                      placeholder={t("topic.bodyPlaceholder")}
                       rows={BOARD_TEXTAREA_ROWS.topicBody}
                       {...field}
                     />
@@ -155,7 +166,7 @@ export function CreateTopicDialog({
               name="publishStatus"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>公開ステータス</FormLabel>
+                  <FormLabel>{t("topic.publishStatusLabel")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -163,8 +174,8 @@ export function CreateTopicDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="published">公開</SelectItem>
-                      <SelectItem value="draft">下書き</SelectItem>
+                      <SelectItem value="published">{t("topic.publishStatusPublished")}</SelectItem>
+                      <SelectItem value="draft">{t("topic.publishStatusDraft")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -174,10 +185,10 @@ export function CreateTopicDialog({
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                キャンセル
+                {t("topic.cancel")}
               </Button>
               <Button type="submit" disabled={createTopic.isPending}>
-                {createTopic.isPending ? "作成中..." : "トピックを作成"}
+                {createTopic.isPending ? t("topic.creating") : t("topic.createSubmit")}
               </Button>
             </DialogFooter>
           </form>

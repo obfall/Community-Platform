@@ -1,0 +1,108 @@
+{
+  "heading": {
+    "title": "掲示板",
+    "description": "コミュニティの掲示板"
+  },
+  "search": {
+    "placeholder": "トピックを検索...",
+    "noResults": "「{query}」に該当するトピックは見つかりませんでした"
+  },
+  "category": {
+    "addButton": "カテゴリ追加",
+    "createTitle": "カテゴリを作成",
+    "editTitle": "カテゴリを編集",
+    "nameLabel": "カテゴリ名",
+    "namePlaceholder": "例: お知らせ",
+    "descriptionLabel": "説明（任意）",
+    "descriptionPlaceholder": "カテゴリの説明",
+    "allowTopicCreationLabel": "トピック作成",
+    "allow": "可",
+    "deny": "不可",
+    "creating": "作成中...",
+    "create": "作成",
+    "saving": "保存中...",
+    "save": "保存"
+  },
+  "topic": {
+    "newButton": "新規トピック",
+    "createTitle": "新規トピック",
+    "editTitle": "トピックを編集",
+    "categoryLabel": "カテゴリ",
+    "categoryPlaceholder": "カテゴリを選択",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "トピックのタイトル",
+    "bodyLabel": "本文",
+    "bodyPlaceholder": "内容を入力...",
+    "publishStatusLabel": "公開ステータス",
+    "publishStatusPublished": "公開",
+    "publishStatusDraft": "下書き",
+    "creating": "作成中...",
+    "createSubmit": "トピックを作成",
+    "saving": "保存中...",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "backToBoard": "掲示板に戻る",
+    "notFound": "トピックが見つかりません"
+  },
+  "post": {
+    "sectionTitle": "投稿",
+    "placeholder": "投稿を入力...",
+    "submitting": "投稿中...",
+    "submit": "投稿",
+    "savingEdit": "保存中...",
+    "saveEdit": "保存",
+    "cancelEdit": "キャンセル"
+  },
+  "comment": {
+    "placeholder": "コメントを入力...",
+    "replyPlaceholder": "返信を入力...",
+    "submitting": "投稿中...",
+    "submit": "コメント",
+    "replySubmit": "返信",
+    "replyHint": "返信を入力",
+    "savingEdit": "保存中...",
+    "saveEdit": "保存",
+    "cancelEdit": "キャンセル",
+    "reply": "返信",
+    "cancel": "キャンセル"
+  },
+  "menu": {
+    "open": "メニューを開く",
+    "edit": "編集",
+    "delete": "削除",
+    "pin": "ピン留め",
+    "unpin": "ピン留めを解除"
+  },
+  "toast": {
+    "categoryCreated": "カテゴリを作成しました",
+    "categoryUpdated": "カテゴリを更新しました",
+    "categoryDeleted": "カテゴリを削除しました",
+    "topicCreated": "トピックを作成しました",
+    "topicUpdated": "トピックを更新しました",
+    "topicDeleted": "トピックを削除しました",
+    "postUpdated": "投稿を更新しました",
+    "postDeleted": "投稿を削除しました",
+    "commentUpdated": "コメントを更新しました",
+    "commentDeleted": "コメントを削除しました",
+    "topicPinned": "ピン留めしました",
+    "topicUnpinned": "ピン留めを解除しました"
+  },
+  "confirm": {
+    "deleteCategory": "このカテゴリを削除しますか？",
+    "deleteTopic": "このトピックを削除しますか？",
+    "deletePost": "この投稿を削除しますか？",
+    "deleteComment": "このコメントを削除しますか？"
+  },
+  "empty": {
+    "noCategories": "カテゴリがまだありません",
+    "noCategoriesAdminHint": "。上の「カテゴリ追加」ボタンから作成してください。",
+    "noTopics": "トピックはまだありません",
+    "noPosts": "まだ投稿はありません",
+    "noComments": "まだコメントはありません"
+  },
+  "validation": {
+    "titleRequired": "タイトルを入力してください",
+    "bodyRequired": "本文を入力してください",
+    "categoryRequired": "カテゴリを選択してください"
+  }
+}

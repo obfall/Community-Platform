@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
@@ -30,13 +31,7 @@ import {
   useToggleTopicPostLike,
 } from "@/hooks/board/use-board";
 import { TopicPostCommentSection } from "./topic-post-comment-section";
-import {
-  BOARD_CONFIRM_MESSAGES,
-  BOARD_EMPTY_MESSAGES,
-  BOARD_LIMITS,
-  BOARD_TEXTAREA_ROWS,
-  getAvatarInitials,
-} from "./constants";
+import { BOARD_LIMITS, BOARD_TEXTAREA_ROWS, getAvatarInitials } from "./constants";
 import type { BoardTopicPost } from "@/lib/api/types";
 
 function PostCard({
@@ -46,6 +41,7 @@ function PostCard({
   post: BoardTopicPost;
   onToggleLike: (id: string) => void;
 }) {
+  const t = useTranslations("board");
   const { canEditAuthor } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -77,7 +73,7 @@ function PostCard({
   };
 
   const handleDelete = () => {
-    if (!confirm(BOARD_CONFIRM_MESSAGES.deletePost)) return;
+    if (!confirm(t("confirm.deletePost"))) return;
     deletePost.mutate(post.id);
   };
 
@@ -100,17 +96,17 @@ function PostCard({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
                     <MoreVertical className="h-3 w-3" />
-                    <span className="sr-only">メニューを開く</span>
+                    <span className="sr-only">{t("menu.open")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleEdit}>
                     <Pencil className="mr-2 h-4 w-4" />
-                    編集
+                    {t("menu.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                     <Trash2 className="mr-2 h-4 w-4" />
-                    削除
+                    {t("menu.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -127,14 +123,14 @@ function PostCard({
               />
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="outline" onClick={handleCancel}>
-                  キャンセル
+                  {t("post.cancelEdit")}
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleSave}
                   disabled={!editBody.trim() || updatePost.isPending}
                 >
-                  {updatePost.isPending ? "保存中..." : "保存"}
+                  {updatePost.isPending ? t("post.savingEdit") : t("post.saveEdit")}
                 </Button>
               </div>
             </div>
@@ -158,7 +154,7 @@ function PostCard({
             className="flex items-center gap-1 hover:text-foreground"
           >
             <MessageCircle className="h-4 w-4" />
-            {post.commentCount > 0 ? post.commentCount : "返信"}
+            {post.commentCount > 0 ? post.commentCount : t("comment.reply")}
           </button>
         </div>
       )}
@@ -177,6 +173,7 @@ interface TopicPostSectionProps {
 }
 
 export function TopicPostSection({ topicId }: TopicPostSectionProps) {
+  const t = useTranslations("board");
   const [page, setPage] = useState(1);
   const [body, setBody] = useState("");
   const { data, isLoading } = useTopicPosts(topicId, {
@@ -200,18 +197,18 @@ export function TopicPostSection({ topicId }: TopicPostSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold">投稿</h3>
+      <h3 className="font-semibold">{t("post.sectionTitle")}</h3>
 
       <div className="space-y-2">
         <Textarea
-          placeholder="投稿を入力..."
+          placeholder={t("post.placeholder")}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={BOARD_TEXTAREA_ROWS.postBody}
         />
         <div className="flex justify-end">
           <Button size="sm" onClick={handleSubmit} disabled={!body.trim() || createPost.isPending}>
-            {createPost.isPending ? "投稿中..." : "投稿"}
+            {createPost.isPending ? t("post.submitting") : t("post.submit")}
           </Button>
         </div>
       </div>
@@ -223,7 +220,7 @@ export function TopicPostSection({ topicId }: TopicPostSectionProps) {
           ))}
         </div>
       ) : data?.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{BOARD_EMPTY_MESSAGES.noPosts}</p>
+        <p className="text-sm text-muted-foreground">{t("empty.noPosts")}</p>
       ) : (
         <div className="space-y-4">
           {data?.data.map((post) => (

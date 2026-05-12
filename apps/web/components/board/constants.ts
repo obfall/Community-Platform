@@ -1,12 +1,8 @@
 /**
- * 掲示板機能の設定値・文言定数。
+ * 掲示板機能の設定値定数。
  *
- * 目的:
- * - マジックナンバー（limit / maxLength / rows / staleTime）の意味を明示
- * - 文言（トースト / 確認ダイアログ / 空状態）を一箇所に集約し、文言調整・i18n 化への準備
- *
- * 将来 next-intl 等で i18n 化する際は、このファイルの文字列群をメッセージカタログに移し、
- * 呼び出し側を useTranslations 等に差し替える形で段階的に置換できる。
+ * 文言（トースト・確認ダイアログ・空状態など）は next-intl の messages/{locale}/board.json で管理する。
+ * このファイルには数値・関数だけを残し、UI 文字列は持たない。
  */
 
 /** 各種ページネーション件数 */
@@ -46,37 +42,3 @@ export const BOARD_STALE_TIME = {
 export function getAvatarInitials(name: string): string {
   return name.slice(0, 2);
 }
-
-/** トースト（成功） */
-export const BOARD_TOAST_MESSAGES = {
-  categoryCreated: "カテゴリを作成しました",
-  categoryUpdated: "カテゴリを更新しました",
-  categoryDeleted: "カテゴリを削除しました",
-  topicCreated: "トピックを作成しました",
-  topicUpdated: "トピックを更新しました",
-  topicDeleted: "トピックを削除しました",
-  postUpdated: "投稿を更新しました",
-  postDeleted: "投稿を削除しました",
-  commentUpdated: "コメントを更新しました",
-  commentDeleted: "コメントを削除しました",
-  topicPinned: "ピン留めしました",
-  topicUnpinned: "ピン留めを解除しました",
-} as const;
-
-/** 削除確認ダイアログの文言 */
-export const BOARD_CONFIRM_MESSAGES = {
-  deleteCategory: "このカテゴリを削除しますか？",
-  deleteTopic: "このトピックを削除しますか？",
-  deletePost: "この投稿を削除しますか？",
-  deleteComment: "このコメントを削除しますか？",
-} as const;
-
-/** 空状態・該当なしメッセージ */
-export const BOARD_EMPTY_MESSAGES = {
-  noCategories: "カテゴリがまだありません",
-  noCategoriesAdminHint: "。上の「カテゴリ追加」ボタンから作成してください。",
-  noTopics: "トピックはまだありません",
-  noPosts: "まだ投稿はありません",
-  noComments: "まだコメントはありません",
-  noSearchResults: (q: string) => `「${q}」に該当するトピックは見つかりませんでした`,
-} as const;

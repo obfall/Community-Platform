@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   GripVertical,
   MessageCircle,
@@ -47,10 +48,11 @@ import {
 } from "@/hooks/board/use-board";
 import { useBoardPaths } from "./board-scope";
 import { EditTopicDialog } from "./edit-topic-dialog";
-import { BOARD_CONFIRM_MESSAGES, BOARD_EMPTY_MESSAGES, BOARD_LIMITS } from "./constants";
+import { BOARD_LIMITS } from "./constants";
 import type { BoardTopic } from "@/lib/api/types";
 
 export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boolean }) {
+  const t = useTranslations("board");
   const paths = useBoardPaths();
   const { isAdmin: userIsAdmin, canEditAuthor } = useAuth();
   const togglePin = useToggleTopicPin();
@@ -71,7 +73,7 @@ export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdm
   };
 
   const handleDelete = () => {
-    if (!confirm(BOARD_CONFIRM_MESSAGES.deleteTopic)) return;
+    if (!confirm(t("confirm.deleteTopic"))) return;
     deleteTopic.mutate(topic.id);
   };
 
@@ -115,7 +117,7 @@ export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdm
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
               <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">メニューを開く</span>
+              <span className="sr-only">{t("menu.open")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -124,12 +126,12 @@ export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdm
                 {topic.isPinned ? (
                   <>
                     <PinOff className="mr-2 h-4 w-4" />
-                    ピン留めを解除
+                    {t("menu.unpin")}
                   </>
                 ) : (
                   <>
                     <Pin className="mr-2 h-4 w-4" />
-                    ピン留め
+                    {t("menu.pin")}
                   </>
                 )}
               </DropdownMenuItem>
@@ -138,11 +140,11 @@ export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdm
               <>
                 <DropdownMenuItem onClick={() => setEditOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  編集
+                  {t("menu.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                   <Trash2 className="mr-2 h-4 w-4" />
-                  削除
+                  {t("menu.delete")}
                 </DropdownMenuItem>
               </>
             )}
@@ -162,6 +164,7 @@ interface TopicListProps {
 }
 
 export function TopicList({ categoryId, isAdmin = false, topics: presetTopics }: TopicListProps) {
+  const t = useTranslations("board");
   const fetchEnabled = presetTopics === undefined;
   const { data, isLoading } = useTopics(
     fetchEnabled ? { categoryId, limit: BOARD_LIMITS.topicsPerPage } : undefined,
@@ -206,11 +209,7 @@ export function TopicList({ categoryId, isAdmin = false, topics: presetTopics }:
   }
 
   if (topics.length === 0) {
-    return (
-      <p className="py-4 text-center text-sm text-muted-foreground">
-        {BOARD_EMPTY_MESSAGES.noTopics}
-      </p>
-    );
+    return <p className="py-4 text-center text-sm text-muted-foreground">{t("empty.noTopics")}</p>;
   }
 
   if (!isAdmin || isPresetMode) {

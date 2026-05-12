@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Pencil, Trash2, MoreVertical } from "lucide-react";
@@ -18,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUpdateCategory, useDeleteCategory } from "@/hooks/board/use-board";
 import { TopicList } from "./topic-list";
-import { BOARD_CONFIRM_MESSAGES, BOARD_VALIDATION } from "./constants";
+import { BOARD_VALIDATION } from "./constants";
 import type { BoardCategory } from "@/lib/api/types";
 
 interface SortableCategoryItemProps {
@@ -34,6 +35,7 @@ export function SortableCategoryItem({
   canManage,
   onCreateTopic,
 }: SortableCategoryItemProps) {
+  const t = useTranslations("board");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id,
   });
@@ -69,7 +71,7 @@ export function SortableCategoryItem({
   };
 
   const handleDelete = () => {
-    if (!confirm(BOARD_CONFIRM_MESSAGES.deleteCategory)) return;
+    if (!confirm(t("confirm.deleteCategory"))) return;
     deleteCategory.mutate(category.id);
   };
 
@@ -103,7 +105,7 @@ export function SortableCategoryItem({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">メニューを開く</span>
+                    <span className="sr-only">{t("menu.open")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -115,7 +117,7 @@ export function SortableCategoryItem({
                       }}
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      新規トピック
+                      {t("topic.newButton")}
                     </DropdownMenuItem>
                   )}
                   {canManage && (
@@ -130,7 +132,7 @@ export function SortableCategoryItem({
                         }}
                       >
                         <Pencil className="mr-2 h-4 w-4" />
-                        編集
+                        {t("menu.edit")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="destructive"
@@ -140,7 +142,7 @@ export function SortableCategoryItem({
                         }}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        削除
+                        {t("menu.delete")}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -157,11 +159,11 @@ export function SortableCategoryItem({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>カテゴリを編集</DialogTitle>
+            <DialogTitle>{t("category.editTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor={`edit-name-${category.id}`}>カテゴリ名</Label>
+              <Label htmlFor={`edit-name-${category.id}`}>{t("category.nameLabel")}</Label>
               <Input
                 id={`edit-name-${category.id}`}
                 value={editName}
@@ -170,16 +172,16 @@ export function SortableCategoryItem({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor={`edit-desc-${category.id}`}>説明（任意）</Label>
+              <Label htmlFor={`edit-desc-${category.id}`}>{t("category.descriptionLabel")}</Label>
               <Input
                 id={`edit-desc-${category.id}`}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="カテゴリの説明"
+                placeholder={t("category.descriptionPlaceholder")}
               />
             </div>
             <div className="space-y-2">
-              <Label>トピック作成</Label>
+              <Label>{t("category.allowTopicCreationLabel")}</Label>
               <RadioGroup
                 value={editAllowTopicCreation ? "allow" : "deny"}
                 onValueChange={(v) => setEditAllowTopicCreation(v === "allow")}
@@ -188,20 +190,20 @@ export function SortableCategoryItem({
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="allow" id={`edit-allow-${category.id}`} />
                   <Label htmlFor={`edit-allow-${category.id}`} className="font-normal">
-                    可
+                    {t("category.allow")}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="deny" id={`edit-deny-${category.id}`} />
                   <Label htmlFor={`edit-deny-${category.id}`} className="font-normal">
-                    不可
+                    {t("category.deny")}
                   </Label>
                 </div>
               </RadioGroup>
             </div>
             <div className="flex justify-end">
               <Button onClick={handleEdit} disabled={!editName.trim() || updateCategory.isPending}>
-                {updateCategory.isPending ? "保存中..." : "保存"}
+                {updateCategory.isPending ? t("category.saving") : t("category.save")}
               </Button>
             </div>
           </div>

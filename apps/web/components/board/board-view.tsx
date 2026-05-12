@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import {
   DndContext,
@@ -37,7 +38,7 @@ import {
 import { SearchInput } from "@/components/search-input";
 import type { BoardTopic } from "@/lib/api/types";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { BOARD_EMPTY_MESSAGES, BOARD_VALIDATION } from "./constants";
+import { BOARD_VALIDATION } from "./constants";
 import {
   useCategories,
   useCreateCategory,
@@ -67,6 +68,7 @@ export function BoardView({ scope, heading }: BoardViewProps) {
 }
 
 function BoardViewInner({ heading }: { heading?: { title: string; description?: string } }) {
+  const t = useTranslations("board");
   const { isAdmin } = useAuth();
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
@@ -159,35 +161,35 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Plus className="mr-1 h-4 w-4" />
-                カテゴリ追加
+                {t("category.addButton")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>カテゴリを作成</DialogTitle>
+                <DialogTitle>{t("category.createTitle")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category-name">カテゴリ名</Label>
+                  <Label htmlFor="category-name">{t("category.nameLabel")}</Label>
                   <Input
                     id="category-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="例: お知らせ"
+                    placeholder={t("category.namePlaceholder")}
                     maxLength={BOARD_VALIDATION.categoryNameMaxLength}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category-description">説明（任意）</Label>
+                  <Label htmlFor="category-description">{t("category.descriptionLabel")}</Label>
                   <Input
                     id="category-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="カテゴリの説明"
+                    placeholder={t("category.descriptionPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>トピック作成</Label>
+                  <Label>{t("category.allowTopicCreationLabel")}</Label>
                   <RadioGroup
                     value={allowTopicCreation ? "allow" : "deny"}
                     onValueChange={(v) => setAllowTopicCreation(v === "allow")}
@@ -196,13 +198,13 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="allow" id="create-allow" />
                       <Label htmlFor="create-allow" className="font-normal">
-                        可
+                        {t("category.allow")}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="deny" id="create-deny" />
                       <Label htmlFor="create-deny" className="font-normal">
-                        不可
+                        {t("category.deny")}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -212,7 +214,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                     onClick={handleCreateCategory}
                     disabled={!name.trim() || createCategory.isPending}
                   >
-                    {createCategory.isPending ? "作成中..." : "作成"}
+                    {createCategory.isPending ? t("category.creating") : t("category.create")}
                   </Button>
                 </div>
               </div>
@@ -225,7 +227,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
         value={searchInput}
         onChange={setSearchInput}
         onSubmit={(v) => setActiveSearch(v.trim())}
-        placeholder="トピックを検索..."
+        placeholder={t("search.placeholder")}
         className="max-w-sm"
       />
 
@@ -236,7 +238,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
           <div className="h-40 animate-pulse rounded-lg bg-muted" />
         ) : hitCategories.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
-            {BOARD_EMPTY_MESSAGES.noSearchResults(activeSearch)}
+            {t("search.noResults", { query: activeSearch })}
           </p>
         ) : (
           <Accordion
@@ -313,7 +315,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
                         }}
                       >
                         <Plus className="mr-1 h-4 w-4" />
-                        新規トピック
+                        {t("topic.newButton")}
                       </Button>
                     </div>
                   )}
@@ -329,8 +331,8 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
 
       {!activeSearch && categoryList.length === 0 && !isLoading && (
         <div className="flex h-40 items-center justify-center text-muted-foreground">
-          {BOARD_EMPTY_MESSAGES.noCategories}
-          {isAdmin && BOARD_EMPTY_MESSAGES.noCategoriesAdminHint}
+          {t("empty.noCategories")}
+          {isAdmin && t("empty.noCategoriesAdminHint")}
         </div>
       )}
 
