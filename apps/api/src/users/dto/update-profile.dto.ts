@@ -1,13 +1,8 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsDateString, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import type { Gender } from "@prisma/client";
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  bio?: string;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -18,12 +13,6 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsDateString()
   birthday?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  website?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -47,11 +36,6 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(100)
   countryOfOrigin?: string;
-
-  @ApiPropertyOptional({ default: true })
-  @IsOptional()
-  @IsBoolean()
-  allowDirectMessages?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

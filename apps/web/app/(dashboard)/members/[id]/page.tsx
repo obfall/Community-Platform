@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   useMember,
   useMemberEvents,
@@ -17,53 +18,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MessageCircle, MapPin, CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: "管理者",
-  owner: "運営者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
-const OCCUPATION_LABELS: Record<string, string> = {
-  company_employee: "会社員",
-  student: "学生",
-  self_employed: "自営業",
-  homemaker: "主婦",
-  unemployed: "無職",
-  other: "その他",
-};
-
-const EVENT_ROLE_LABELS: Record<string, string> = {
-  lecturer: "講師",
-  mc: "司会",
-  interpreter: "通訳",
-  planner: "企画",
-  panelist: "パネリスト",
-  performer: "出演",
-};
-
-const EVENT_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  recruiting: "募集中",
-  closed: "締切",
-  canceled: "中止",
-  ended: "終了",
-};
-
 const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   recruiting: "default",
   closed: "outline",
   canceled: "destructive",
   ended: "outline",
   draft: "secondary",
-};
-
-const PARTICIPANT_STATUS_LABELS: Record<string, string> = {
-  applied: "申込済",
-  confirmed: "確定",
-  attended: "出席",
-  canceled: "キャンセル",
-  no_show: "欠席",
 };
 
 const PARTICIPANT_STATUS_VARIANTS: Record<
@@ -77,14 +37,16 @@ const PARTICIPANT_STATUS_VARIANTS: Record<
   no_show: "outline",
 };
 
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  active: "進行中",
-  completed: "完了",
-  unpublished: "未公開",
-  draft: "下書き",
-};
-
 export default function MemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("members.detail");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
+  const tOccupation = useTranslations("enums.occupation");
+  const tEventRole = useTranslations("enums.eventRole");
+  const tEventStatus = useTranslations("enums.eventStatus");
+  const tParticipantStatus = useTranslations("enums.participantStatus");
+  const tProjectStatus = useTranslations("enums.projectStatus");
+
   const { id } = use(params);
   const { user } = useAuth();
   const { data: member, isLoading } = useMember(id);
@@ -93,11 +55,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const startDm = useStartDm();
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>;
   }
 
   if (!member) {
-    return <div className="py-12 text-center text-muted-foreground">メンバーが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
   }
 
   const isPublic = member.publicInfo?.publicStatus === "public";
@@ -120,7 +82,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
       <Link href="/members">
         <Button variant="ghost" size="sm">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          メンバー一覧
+          {t("back")}
         </Button>
       </Link>
 
@@ -147,11 +109,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
             <div className="mt-3 text-center">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <h1 className="text-2xl font-bold">{member.name}</h1>
-                <Badge variant="secondary">{ROLE_LABELS[member.role] ?? member.role}</Badge>
+                <Badge variant="secondary">
+                  {tRole.has(member.role) ? tRole(member.role) : member.role}
+                </Badge>
               </div>
-              {publicInfo?.nickname && (
-                <p className="text-sm text-muted-foreground">@{publicInfo.nickname}</p>
-              )}
               <p className="mt-2 flex items-center justify-center gap-1 text-sm text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" />
                 {new Date(member.createdAt).toLocaleDateString("ja-JP", {
@@ -159,7 +120,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                   month: "long",
                   day: "numeric",
                 })}
-                に参加
+                {t("joinedSuffix")}
               </p>
             </div>
             {!isOwnProfile && (
@@ -169,58 +130,44 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                 disabled={startDm.isPending}
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
-                チャット
+                {t("chat")}
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* プロフィール情報 */}
+      {/* プロフィール情報（全員閲覧可能、ただし email 行のみ admin 限定） */}
       <Card>
         <CardHeader>
-          <CardTitle>プロフィール情報</CardTitle>
+          <CardTitle>{t("profile.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-4 sm:grid-cols-2">
-            {publicInfo?.nickname && (
+            {user?.role === "admin" && (
               <div>
-                <p className="text-xs text-muted-foreground">ニックネーム</p>
-                <p>
-                  {publicInfo.nickname}
-                  {publicInfo.nicknameKana && (
-                    <span className="ml-1 text-muted-foreground">({publicInfo.nicknameKana})</span>
-                  )}
-                </p>
+                <p className="text-xs text-muted-foreground">{t("profile.email")}</p>
+                <p className="break-all">{member.email}</p>
               </div>
             )}
             {member.profile?.occupation && (
               <div>
-                <p className="text-xs text-muted-foreground">職業</p>
-                <p>{OCCUPATION_LABELS[member.profile.occupation] ?? member.profile.occupation}</p>
+                <p className="text-xs text-muted-foreground">{t("profile.occupation")}</p>
+                <p>
+                  {tOccupation.has(member.profile.occupation)
+                    ? tOccupation(member.profile.occupation)
+                    : member.profile.occupation}
+                </p>
               </div>
             )}
             {member.profile?.countryOfOrigin && (
               <div>
-                <p className="text-xs text-muted-foreground">出身国</p>
+                <p className="text-xs text-muted-foreground">{t("profile.countryOfOrigin")}</p>
                 <p>{member.profile.countryOfOrigin}</p>
               </div>
             )}
-            {member.profile?.website && (
-              <div>
-                <p className="text-xs text-muted-foreground">Webサイト</p>
-                <a
-                  href={member.profile.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {member.profile.website}
-                </a>
-              </div>
-            )}
             <div>
-              <p className="text-xs text-muted-foreground">参加日</p>
+              <p className="text-xs text-muted-foreground">{t("profile.joinedAt")}</p>
               <p>
                 {new Date(member.createdAt).toLocaleDateString("ja-JP", {
                   year: "numeric",
@@ -233,7 +180,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
 
           {member.affiliations.length > 0 && (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">所属 / 部署 / 肩書</p>
+              <p className="mb-2 text-xs text-muted-foreground">{t("profile.affiliations")}</p>
               <div className="space-y-2">
                 {member.affiliations.map((aff) => (
                   <p key={aff.id}>
@@ -245,98 +192,100 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
           )}
-
-          {member.languages.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs text-muted-foreground">使用言語</p>
-              <div className="flex flex-wrap gap-2">
-                {member.languages.map((lang) => (
-                  <Badge key={lang.id} variant="secondary">
-                    {lang.languageCode}
-                    {lang.proficiency && ` (${lang.proficiency})`}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* 公開情報 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>公開情報</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm">
-          {location && (
-            <div>
-              <p className="mb-1 text-xs text-muted-foreground">活動拠点</p>
-              <p className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                {location}
-              </p>
-            </div>
-          )}
+      {/* 公開情報（publicStatus=public のときのみ表示） */}
+      {publicInfo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("public.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            {publicInfo.nickname && (
+              <div>
+                <p className="text-xs text-muted-foreground">{t("public.nickname")}</p>
+                <p>
+                  {publicInfo.nickname}
+                  {publicInfo.nicknameKana && (
+                    <span className="ml-1 text-muted-foreground">({publicInfo.nicknameKana})</span>
+                  )}
+                </p>
+              </div>
+            )}
 
-          {publicInfo?.specialty && (
-            <div>
-              <p className="mb-2 text-xs text-muted-foreground">専門分野</p>
-              <div className="flex flex-wrap gap-1.5">
-                {publicInfo.specialty.split(",").map((s) => {
-                  const label = s.includes("/") ? s.split("/")[1] : s;
-                  return (
-                    <Badge key={s} variant="outline" className="text-xs">
-                      {label}
+            {location && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">{t("public.location")}</p>
+                <p className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  {location}
+                </p>
+              </div>
+            )}
+
+            {publicInfo.specialty && (
+              <div>
+                <p className="mb-2 text-xs text-muted-foreground">{t("public.specialty")}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {publicInfo.specialty.split(",").map((s) => {
+                    const label = s.includes("/") ? s.split("/")[1] : s;
+                    return (
+                      <Badge key={s} variant="outline" className="text-xs">
+                        {label}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {publicInfo.eventRole && (
+              <div>
+                <p className="mb-2 text-xs text-muted-foreground">{t("public.eventRole")}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {publicInfo.eventRole.split(",").map((r) => (
+                    <Badge key={r} variant="outline" className="text-xs">
+                      {tEventRole.has(r) ? tEventRole(r) : r}
                     </Badge>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {publicInfo?.eventRole && (
-            <div>
-              <p className="mb-2 text-xs text-muted-foreground">イベント役割</p>
-              <div className="flex flex-wrap gap-1.5">
-                {publicInfo.eventRole.split(",").map((r) => (
-                  <Badge key={r} variant="outline" className="text-xs">
-                    {EVENT_ROLE_LABELS[r] ?? r}
-                  </Badge>
-                ))}
+            {introduction && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">{t("public.introduction")}</p>
+                <p className="whitespace-pre-wrap">{introduction}</p>
               </div>
-            </div>
-          )}
+            )}
 
-          {introduction && (
-            <div>
-              <p className="mb-1 text-xs text-muted-foreground">自己紹介</p>
-              <p className="whitespace-pre-wrap">{introduction}</p>
-            </div>
-          )}
-
-          {member.interests.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs text-muted-foreground">興味分野</p>
-              <div className="flex flex-wrap gap-2">
-                {member.interests.map((interest) => (
-                  <Badge key={interest.id} variant="outline">
-                    {interest.categoryName}
-                  </Badge>
-                ))}
+            {member.interests.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs text-muted-foreground">{t("public.interests")}</p>
+                <div className="flex flex-wrap gap-2">
+                  {member.interests.map((interest) => (
+                    <Badge key={interest.id} variant="outline">
+                      {interest.categoryName}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* イベント・プロジェクト */}
       <Tabs defaultValue="events">
         <TabsList>
           <TabsTrigger value="events">
-            イベント{events && events.length > 0 && ` (${events.length})`}
+            {t("tabs.events")}
+            {events && events.length > 0 && ` (${events.length})`}
           </TabsTrigger>
           <TabsTrigger value="projects">
-            プロジェクト{projects && projects.length > 0 && ` (${projects.length})`}
+            {t("tabs.projects")}
+            {projects && projects.length > 0 && ` (${projects.length})`}
           </TabsTrigger>
         </TabsList>
 
@@ -345,7 +294,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           {!events || events.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <CalendarDays className="mx-auto mb-4 h-12 w-12" />
-              <p>参加イベントはありません</p>
+              <p>{t("tabs.noEvents")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -377,14 +326,17 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                           }
                           className="text-xs"
                         >
-                          {PARTICIPANT_STATUS_LABELS[event.participantStatus] ??
-                            event.participantStatus}
+                          {tParticipantStatus.has(event.participantStatus)
+                            ? tParticipantStatus(event.participantStatus)
+                            : event.participantStatus}
                         </Badge>
                         <Badge
                           variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
                           className="text-xs"
                         >
-                          {EVENT_STATUS_LABELS[event.status] ?? event.status}
+                          {tEventStatus.has(event.status)
+                            ? tEventStatus(event.status)
+                            : event.status}
                         </Badge>
                       </div>
                     </CardContent>
@@ -400,7 +352,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
           {!projects || projects.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <FolderKanban className="mx-auto mb-4 h-12 w-12" />
-              <p>参加プロジェクトはありません</p>
+              <p>{t("tabs.noProjects")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -428,7 +380,9 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                           </Badge>
                         )}
                         <Badge variant="secondary" className="text-xs">
-                          {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+                          {tProjectStatus.has(project.status)
+                            ? tProjectStatus(project.status)
+                            : project.status}
                         </Badge>
                       </div>
                     </CardContent>

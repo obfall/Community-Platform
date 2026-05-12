@@ -10,7 +10,7 @@
     "assets": [
       {
         "include": "i18n/messages/**/*.json",
-        "outDir": "dist"
+        "outDir": "dist/src"
       }
     ],
     "watchAssets": true

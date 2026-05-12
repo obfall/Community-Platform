@@ -1,5 +1,10 @@
 "use client";
 
+// i18n 化方針: 本ファイル内のラベル・トースト・選択肢ラベルは現状ハードコード日本語のまま残している。
+// プロジェクト方針として「i18n は機能（ドメイン）単位で順次対応」としており、profile 機能は別フェーズで
+// messages/ja/profile.json + useTranslations("profile") への置換をまとめて行う予定。
+// 本ブランチのスコープは members 機能のみのため意図的に未対応。
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useMyProfile, useUpdatePublicInfo } from "@/hooks/profile/use-profile";
+import { useInterestCategories, useReplaceInterests } from "@/hooks/profile/use-interests";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -107,6 +113,7 @@ const publicInfoSchema = z.object({
   foreignCity: z.string().max(100).optional().or(z.literal("")),
   introduction: z.string().optional().or(z.literal("")),
   eventRoles: z.array(z.string()),
+  interestCategoryIds: z.array(z.string()),
   isPublic: z.boolean(),
 });
 
@@ -115,7 +122,9 @@ type PublicInfoFormValues = z.infer<typeof publicInfoSchema>;
 export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   const router = useRouter();
   const { data: profileData, isLoading } = useMyProfile();
+  const { data: interestCategories } = useInterestCategories();
   const updateMutation = useUpdatePublicInfo();
+  const replaceInterestsMutation = useReplaceInterests();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<PublicInfoFormValues>({
@@ -130,24 +139,26 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
       foreignCity: "",
       introduction: "",
       eventRoles: [],
+      interestCategoryIds: [],
       isPublic: false,
     },
   });
 
   useEffect(() => {
-    if (profileData?.publicInfo) {
+    if (profileData) {
       const p = profileData.publicInfo;
       form.reset({
-        nickname: p.nickname ?? "",
-        nicknameKana: p.nicknameKana ?? "",
-        specialties: p.specialty ? p.specialty.split(",") : [],
-        prefecture: p.prefecture ?? "",
-        city: p.city ?? "",
-        foreignCountry: p.foreignCountry ?? "",
-        foreignCity: p.foreignCity ?? "",
-        introduction: p.introduction ?? "",
-        eventRoles: p.eventRole ? p.eventRole.split(",") : [],
-        isPublic: p.publicStatus === "public",
+        nickname: p?.nickname ?? "",
+        nicknameKana: p?.nicknameKana ?? "",
+        specialties: p?.specialty ? p.specialty.split(",") : [],
+        prefecture: p?.prefecture ?? "",
+        city: p?.city ?? "",
+        foreignCountry: p?.foreignCountry ?? "",
+        foreignCity: p?.foreignCity ?? "",
+        introduction: p?.introduction ?? "",
+        eventRoles: p?.eventRole ? p.eventRole.split(",") : [],
+        interestCategoryIds: profileData.interests.map((i) => i.categoryId),
+        isPublic: p?.publicStatus === "public",
       });
     }
   }, [profileData, form]);
@@ -155,7 +166,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   async function onSubmit(values: PublicInfoFormValues) {
     setIsSubmitting(true);
     try {
-      const { isPublic, eventRoles, specialties, ...rest } = values;
+      const { isPublic, eventRoles, specialties, interestCategoryIds, ...rest } = values;
       const data: Record<string, string | undefined> = {};
       for (const [key, val] of Object.entries(rest)) {
         data[key] = val || undefined;
@@ -166,6 +177,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
         ...data,
         publicStatus: isPublic ? "public" : "private",
       });
+      await replaceInterestsMutation.mutateAsync(interestCategoryIds);
       if (returnTo) router.push(returnTo);
     } finally {
       setIsSubmitting(false);
@@ -408,6 +420,36 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                         />
                         <label htmlFor={`event-role-${opt.value}`} className="text-sm font-normal">
                           {opt.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="interestCategoryIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>興味分野</FormLabel>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border p-4">
+                    {(interestCategories ?? []).map((cat) => (
+                      <div key={cat.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`interest-${cat.id}`}
+                          checked={field.value.includes(cat.id)}
+                          onCheckedChange={(checked) => {
+                            const next = checked
+                              ? [...field.value, cat.id]
+                              : field.value.filter((v) => v !== cat.id);
+                            field.onChange(next);
+                          }}
+                        />
+                        <label htmlFor={`interest-${cat.id}`} className="text-sm font-normal">
+                          {cat.name}
                         </label>
                       </div>
                     ))}

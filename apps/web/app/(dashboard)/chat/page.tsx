@@ -335,7 +335,6 @@ export default function ChatPage() {
                               </AvatarFallback>
                             </Avatar>
                             <span>{u.name}</span>
-                            <span className="ml-auto text-xs text-muted-foreground">{u.email}</span>
                           </button>
                         ))}
                       </div>

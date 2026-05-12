@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEvents } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
+import { PaginationBar } from "@/components/pagination-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SelectField } from "@/components/select-field";
@@ -57,10 +58,6 @@ export default function EventsPage() {
   const events = data?.data ?? [];
   const meta = data?.meta;
 
-  const handleSearch = () => {
-    setQuery((prev) => ({ ...prev, search: search || undefined, page: 1 }));
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -79,18 +76,12 @@ export default function EventsPage() {
 
       {/* フィルタ */}
       <div className="flex items-center gap-4">
-        <div className="flex flex-1 gap-2">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="イベントを検索..."
-            className="max-w-sm"
-          />
-          <Button variant="outline" onClick={handleSearch}>
-            検索
-          </Button>
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          onSubmit={(v) => setQuery((prev) => ({ ...prev, search: v || undefined, page: 1 }))}
+          placeholder="イベントを検索..."
+        />
         <SelectField
           value={query.status ?? "all"}
           onChange={(v) =>
@@ -170,30 +161,11 @@ export default function EventsPage() {
       )}
 
       {/* ページネーション */}
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setQuery((prev) => ({ ...prev, page: Math.max(1, (prev.page ?? 1) - 1) }))
-            }
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((prev) => ({ ...prev, page: (prev.page ?? 1) + 1 }))}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
+      {meta && (
+        <PaginationBar
+          meta={meta}
+          onPageChange={(page) => setQuery((prev) => ({ ...prev, page }))}
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { Transform } from "class-transformer";
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import type { UserRole, UserStatus } from "@prisma/client";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
 
@@ -32,4 +33,12 @@ export class UserListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(["asc", "desc"] as const)
   sortOrder?: "asc" | "desc";
+
+  // 一般メンバー向け一覧では admin（システム管理者）を結果から除外する。
+  // クエリ文字列は文字列で届くので Transform で boolean に正規化する。
+  @ApiPropertyOptional({ description: "admin ロールを結果から除外する" })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === true || value === "true")
+  excludeAdmin?: boolean;
 }

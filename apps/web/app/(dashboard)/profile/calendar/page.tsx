@@ -8,7 +8,9 @@ import {
   useUpdateSchedule,
   useDeleteSchedule,
 } from "@/hooks/calendar/use-calendar";
-import { useMyReservations, useMyTasks, useMyTickets } from "@/hooks/members/use-members";
+import { useMyReservations } from "@/hooks/profile/use-reservations";
+import { useMyTasks } from "@/hooks/profile/use-tasks";
+import { useMyTickets } from "@/hooks/profile/use-tickets";
 import { Calendar, type CalendarItem } from "@/components/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

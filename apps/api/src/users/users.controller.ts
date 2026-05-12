@@ -43,7 +43,8 @@ export class UsersController {
   @Get("me/profile")
   @ApiOperation({ summary: "自分のプロフィール詳細" })
   getMyProfile(@CurrentUser("id") userId: string) {
-    return this.usersService.findOne(userId);
+    // 自分自身を見るので email は常に返される。
+    return this.usersService.findOne(userId, { id: userId });
   }
 
   @Get("me/tickets")
@@ -70,10 +71,22 @@ export class UsersController {
     return this.usersService.findUserLibrary(userId);
   }
 
+  // ※ `:id` ルートより必ず前に置く。後ろに置くと NestJS が "interest-categories" を
+  //    UUID パラメータとして解釈し、ParseUUIDPipe で 400 エラーになる。
+  @Get("interest-categories")
+  @ApiOperation({ summary: "選択可能な興味分野カテゴリ一覧" })
+  findInterestCategories() {
+    return this.usersService.findInterestCategories();
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "メンバー詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
+  findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("id") viewerId: string,
+    @CurrentUser("role") viewerRole: string,
+  ) {
+    return this.usersService.findOne(id, { id: viewerId, role: viewerRole });
   }
 
   @Get(":id/events")

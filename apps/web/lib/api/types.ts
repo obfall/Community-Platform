@@ -102,15 +102,12 @@ export interface UserListItem {
 
 export interface UserProfile {
   avatarUrl: string | null;
-  bio: string | null;
   phone: string | null;
   birthday: string | null;
-  website: string | null;
   nameKana: string | null;
   gender: string | null;
   occupation: string | null;
   countryOfOrigin: string | null;
-  allowDirectMessages: boolean;
   headerImageUrl: string | null;
 }
 
@@ -131,6 +128,12 @@ export interface UserInterestItem {
   id: string;
   categoryId: string;
   categoryName?: string;
+}
+
+export interface InterestCategory {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 export interface UserLanguageItem {
@@ -164,18 +167,17 @@ export interface UserListQuery {
   status?: string;
   sortBy?: "role" | "name" | "createdAt";
   sortOrder?: "asc" | "desc";
+  /** admin ロールを結果から除外する（一般メンバー向け一覧） */
+  excludeAdmin?: boolean;
 }
 
 export interface UpdateProfileInput {
-  bio?: string;
   phone?: string;
   birthday?: string;
-  website?: string;
   nameKana?: string;
   gender?: string;
   occupation?: string;
   countryOfOrigin?: string;
-  allowDirectMessages?: boolean;
   avatarUrl?: string;
   headerImageUrl?: string;
 }
@@ -1026,7 +1028,6 @@ export interface ProjectMember {
   name: string;
   avatarUrl: string | null;
   occupation: string | null;
-  bio: string | null;
   role: string;
   joinedAt: string;
 }

@@ -160,19 +160,12 @@ async function seedProfilesAndAvatars(
       avatarUrl = file.publicUrl;
     }
 
-    const wantBio =
-      fixture.profileGranularity === "full" ||
-      fixture.profileGranularity === "mid" ||
-      fixture.profileGranularity === "standard";
-
     await prisma.userProfile.create({
       data: {
         userId,
         avatarUrl,
-        bio: wantBio ? (fixture.bio ?? null) : null,
         gender: fixture.gender ?? null,
         occupation: fixture.profileGranularity === "full" ? (fixture.occupation ?? null) : null,
-        allowDirectMessages: fixture.status === "active" && fixture.role !== "visitor",
       },
     });
 

@@ -137,7 +137,7 @@ export class ProjectsService {
                 ...AUTHOR_SELECT,
                 role: true,
                 profile: {
-                  select: { avatarUrl: true, occupation: true, bio: true },
+                  select: { avatarUrl: true, occupation: true },
                 },
               },
             },
@@ -173,7 +173,6 @@ export class ProjectsService {
         name: m.user.name,
         avatarUrl: m.user.profile?.avatarUrl ?? null,
         occupation: m.user.profile?.occupation ?? null,
-        bio: m.user.profile?.bio ?? null,
         role: m.user.role,
         joinedAt: m.joinedAt,
       })),

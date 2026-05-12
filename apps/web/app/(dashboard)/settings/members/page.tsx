@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MembersTable } from "./_components/members-table";
 import { MembersFilter } from "./_components/members-filter";
-import { MembersPagination } from "./_components/members-pagination";
+import { PaginationBar } from "@/components/pagination-bar";
 import { MemberDetailDialog } from "./_components/member-detail-dialog";
 import { useUsers, useExportMembersCsv } from "@/hooks/settings/use-members";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default function MembersSettingsPage() {
       />
 
       {data?.meta && (
-        <MembersPagination
+        <PaginationBar
           meta={data.meta}
           onPageChange={(page) => setQuery((prev) => ({ ...prev, page }))}
         />

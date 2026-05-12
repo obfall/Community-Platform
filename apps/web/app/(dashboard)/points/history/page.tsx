@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePointHistory } from "@/hooks/points/use-points";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PaginationBar } from "@/components/pagination-bar";
 import {
   Select,
   SelectContent,
@@ -110,28 +111,8 @@ export default function PointHistoryPage() {
         </Table>
       )}
 
-      {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((p) => ({ ...p, page: Math.max(1, (p.page ?? 1) - 1) }))}
-            disabled={!meta.hasPreviousPage}
-          >
-            前へ
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {meta.page} / {meta.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuery((p) => ({ ...p, page: (p.page ?? 1) + 1 }))}
-            disabled={!meta.hasNextPage}
-          >
-            次へ
-          </Button>
-        </div>
+      {meta && (
+        <PaginationBar meta={meta} onPageChange={(page) => setQuery((p) => ({ ...p, page }))} />
       )}
     </div>
   );

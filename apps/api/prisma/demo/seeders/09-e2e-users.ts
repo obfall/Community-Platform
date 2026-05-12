@@ -48,7 +48,6 @@ export async function seedE2EUsers(prisma: PrismaClient): Promise<void> {
     await prisma.userProfile.create({
       data: {
         userId: user.id,
-        allowDirectMessages: true,
       },
     });
   }

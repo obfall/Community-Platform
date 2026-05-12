@@ -6,7 +6,7 @@ import { useFaqArticles, useFaqCategories } from "@/hooks/faq/use-faq";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
 import {
   Select,
   SelectContent,
@@ -38,10 +38,10 @@ export default function FaqPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input
+        <SearchInput
           value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput || undefined)}
+          onChange={setSearchInput}
+          onSubmit={(v) => setSearch(v || undefined)}
           placeholder="FAQを検索..."
           className="max-w-xs"
         />

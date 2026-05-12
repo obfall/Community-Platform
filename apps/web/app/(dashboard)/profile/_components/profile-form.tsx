@@ -1,5 +1,10 @@
 "use client";
 
+// i18n 化方針: 本ファイル内のラベル・トースト・選択肢ラベルは現状ハードコード日本語のまま残している。
+// プロジェクト方針として「i18n は機能（ドメイン）単位で順次対応」としており、profile 機能は別フェーズで
+// messages/ja/profile.json + useTranslations("profile") への置換をまとめて行う予定。
+// 本ブランチのスコープは members 機能のみのため意図的に未対応。
+
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +16,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/profile/use-profile";
 import { filesApi } from "@/lib/api/files";
-import { usersApi } from "@/lib/api/members";
+import { profileApi } from "@/lib/api/profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -44,8 +49,6 @@ const OCCUPATION_OPTIONS = [
   { value: "other", label: "その他" },
 ] as const;
 
-const LANGUAGE_OPTIONS = [{ value: "ja", label: "日本語" }] as const;
-
 const affiliationSchema = z.object({
   organizationName: z.string().max(200).optional().or(z.literal("")),
   department: z.string().max(200).optional().or(z.literal("")),
@@ -60,7 +63,6 @@ const profileSchema = z.object({
   occupation: z.string().optional().or(z.literal("")),
   countryOfOrigin: z.string().max(100).optional().or(z.literal("")),
   affiliations: z.array(affiliationSchema),
-  language: z.string().optional().or(z.literal("")),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -144,7 +146,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
       occupation: "company_employee",
       countryOfOrigin: "",
       affiliations: [{ organizationName: "", department: "", jobTitle: "" }],
-      language: "ja",
     },
   });
 
@@ -157,7 +158,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
     if (profileData) {
       const p = profileData.profile;
       const affs = profileData.affiliations ?? [];
-      const lang = profileData.languages?.[0]?.languageCode;
       form.reset({
         nameKana: p?.nameKana ?? "",
         phone: p?.phone ?? "",
@@ -173,7 +173,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 jobTitle: a.title ?? "",
               }))
             : [{ organizationName: "", department: "", jobTitle: "" }],
-        language: lang || "ja",
       });
     }
   }, [profileData, form]);
@@ -181,7 +180,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
   async function onSubmit(values: ProfileFormValues) {
     setIsSubmitting(true);
     try {
-      const { affiliations, language: _language, ...profileValues } = values;
+      const { affiliations, ...profileValues } = values;
 
       // プロフィール保存
       const data: Record<string, string | undefined> = {};
@@ -192,7 +191,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
 
       // 所属保存
       const validAffiliations = affiliations.filter((a) => a.organizationName);
-      await usersApi.replaceAffiliations({
+      await profileApi.replaceAffiliations({
         affiliations: validAffiliations.map((a, i) => ({
           organizationName: a.organizationName!,
           roleDescription: a.department || undefined,
@@ -508,32 +507,6 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 </div>
               ))}
             </div>
-
-            {/* 使用言語 */}
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>使用言語</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {LANGUAGE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
