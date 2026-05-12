@@ -42,3 +42,6 @@ export const BOARD_STALE_TIME = {
 export function getAvatarInitials(name: string): string {
   return name.slice(0, 2);
 }
+
+/** DnD（@dnd-kit）の PointerSensor activation distance（px）。これ未満の移動はクリックとして扱う */
+export const BOARD_DND_DRAG_DISTANCE = 8;

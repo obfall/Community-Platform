@@ -48,7 +48,7 @@ import {
 } from "@/hooks/board/use-board";
 import { useBoardPaths } from "./board-scope";
 import { EditTopicDialog } from "./edit-topic-dialog";
-import { BOARD_LIMITS } from "./constants";
+import { BOARD_DND_DRAG_DISTANCE, BOARD_LIMITS } from "./constants";
 import type { BoardTopic } from "@/lib/api/types";
 
 export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdmin: boolean }) {
@@ -174,7 +174,7 @@ export function TopicList({ categoryId, isAdmin = false, topics: presetTopics }:
   const isPresetMode = !fetchEnabled;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: BOARD_DND_DRAG_DISTANCE } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),

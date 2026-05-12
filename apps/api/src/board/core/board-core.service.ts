@@ -82,13 +82,43 @@ const COMMENT_INCLUDE = {
  * 掲示板のコア CRUD ロジック。Global / Project / Event 全スコープで共通。
  * Prisma delegate を動的に引くことで型安全性を一部犠牲にしているが、公開 API は型付けされる。
  */
+/**
+ * delegate(name) で受け入れる Prisma delegate 名のホワイトリスト。
+ * BoardScopeConfig は静的な const から渡される設計だが、将来 DTO 由来の値が
+ * 紛れ込んだ場合に Prototype Pollution / 任意プロパティアクセスにならないよう
+ * 多重防御として実装内でも allowlist 検証する。
+ */
+const ALLOWED_DELEGATES = new Set<string>([
+  // Global
+  "boardCategory",
+  "boardTopic",
+  "boardTopicPost",
+  "boardTopicPostComment",
+  "boardLike",
+  // Project scope
+  "projectBoardCategory",
+  "projectBoardTopic",
+  "projectBoardTopicPost",
+  "projectBoardTopicPostComment",
+  "projectBoardLike",
+  // Event scope
+  "eventBoardCategory",
+  "eventBoardTopic",
+  "eventBoardTopicPost",
+  "eventBoardTopicPostComment",
+  "eventBoardLike",
+]);
+
 @Injectable()
 export class BoardCoreService {
   constructor(private readonly prisma: PrismaService) {}
 
   // biome-ignore lint/suspicious/noExplicitAny: Prisma delegate は動的にアクセス
   private delegate(name: string): any {
-    // biome-ignore lint/suspicious/noExplicitAny: 動的アクセス
+    if (!ALLOWED_DELEGATES.has(name)) {
+      throw new Error(`Unknown Prisma delegate: ${name}`);
+    }
+    // biome-ignore lint/suspicious/noExplicitAny: 動的アクセス（allowlist 検証済み）
     return (this.prisma as any)[name];
   }
 
@@ -137,6 +167,8 @@ export class BoardCoreService {
     dto: CreateCategoryDto,
     scopeId?: string,
   ): Promise<unknown> {
+    // Mass Assignment 対策: DTO 由来のフィールドを **明示列挙** する。
+    // ループ / スプレッド（...dto）は絶対に書かない（roleなど書き換え禁止フィールド混入防止）。
     const data: Record<string, unknown> = {
       name: dto.name,
       description: dto.description,
@@ -279,6 +311,8 @@ export class BoardCoreService {
   }
 
   async createTopic(cfg: BoardScopeConfig, userId: string, dto: CreateTopicDto, scopeId?: string) {
+    // Mass Assignment 対策: DTO 由来のフィールドを **明示列挙** する。
+    // ループ / スプレッド（...dto）は絶対に書かない。
     const data: Record<string, unknown> = {
       title: dto.title,
       body: dto.body,
@@ -669,7 +703,8 @@ export class BoardCoreService {
   // Formatters / Helpers
   // ========================================================================
 
-  private formatTopic(t: TopicRaw, isLiked: boolean, viewCountOverride?: number) {
+  /** Topic レスポンス整形（pgroonga 検索経路など外部からも呼ばれるため public） */
+  formatTopic(t: TopicRaw, isLiked: boolean, viewCountOverride?: number) {
     return {
       id: t.id,
       title: t.title,

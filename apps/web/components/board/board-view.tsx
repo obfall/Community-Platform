@@ -38,7 +38,7 @@ import {
 import { SearchInput } from "@/components/search-input";
 import type { BoardTopic } from "@/lib/api/types";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { BOARD_VALIDATION } from "./constants";
+import { BOARD_DND_DRAG_DISTANCE, BOARD_VALIDATION } from "./constants";
 import {
   useCategories,
   useCreateCategory,
@@ -104,7 +104,7 @@ function BoardViewInner({ heading }: { heading?: { title: string; description?: 
   );
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: BOARD_DND_DRAG_DISTANCE } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
