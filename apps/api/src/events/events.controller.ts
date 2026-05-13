@@ -26,6 +26,12 @@ import { ParticipateEventDto } from "./dto/participate-event.dto";
 import { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
 
+// ホームウィジェット用のデフォルト値・上限。マジックナンバーを 1 箇所に集約。
+const DEFAULT_UPCOMING_LIMIT = 3;
+const MAX_UPCOMING_LIMIT = 20;
+const DEFAULT_MY_UPCOMING_DAYS = 7;
+const MAX_MY_UPCOMING_DAYS = 31;
+
 @Controller("events")
 @ApiTags("Events")
 @ApiBearerAuth()
@@ -46,6 +52,28 @@ export class EventsController {
   @ApiOperation({ summary: "カレンダー用イベント一覧" })
   getCalendar(@Query("from") from: string, @Query("to") to: string) {
     return this.eventsService.getCalendarEvents(from, to);
+  }
+
+  @Get("upcoming")
+  @ApiOperation({ summary: "今後のイベント（ホーム表示用）" })
+  getUpcoming(@Query("limit") limit?: string) {
+    const parsed = limit ? Number.parseInt(limit, 10) : DEFAULT_UPCOMING_LIMIT;
+    const safeLimit =
+      Number.isFinite(parsed) && parsed > 0
+        ? Math.min(parsed, MAX_UPCOMING_LIMIT)
+        : DEFAULT_UPCOMING_LIMIT;
+    return this.eventsService.findUpcoming(safeLimit);
+  }
+
+  @Get("my-upcoming")
+  @ApiOperation({ summary: "自分が参加予定のイベント（ホーム表示用）" })
+  getMyUpcoming(@CurrentUser("id") userId: string, @Query("days") days?: string) {
+    const parsed = days ? Number.parseInt(days, 10) : DEFAULT_MY_UPCOMING_DAYS;
+    const safeDays =
+      Number.isFinite(parsed) && parsed > 0
+        ? Math.min(parsed, MAX_MY_UPCOMING_DAYS)
+        : DEFAULT_MY_UPCOMING_DAYS;
+    return this.eventsService.findMyUpcoming(userId, safeDays);
   }
 
   @Get(":id")

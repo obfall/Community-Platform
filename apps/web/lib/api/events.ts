@@ -20,6 +20,8 @@ import type {
   CreateApplicationQuestionInput,
   UpdateApplicationQuestionInput,
   ParticipantStats,
+  UpcomingEvent,
+  MyUpcomingEvent,
 } from "./types";
 
 export const eventsApi = {
@@ -41,6 +43,18 @@ export const eventsApi = {
   getCalendarEvents: (from: string, to: string) =>
     apiClient
       .get<CalendarEvent[]>("/events/calendar", { params: { from, to } })
+      .then((r) => r.data),
+
+  // Upcoming (home widget)
+  getUpcomingEvents: (limit?: number) =>
+    apiClient
+      .get<UpcomingEvent[]>("/events/upcoming", { params: limit ? { limit } : undefined })
+      .then((r) => r.data),
+
+  // My upcoming participating events (home widget)
+  getMyUpcomingEvents: (days?: number) =>
+    apiClient
+      .get<MyUpcomingEvent[]>("/events/my-upcoming", { params: days ? { days } : undefined })
       .then((r) => r.data),
 
   // Tickets

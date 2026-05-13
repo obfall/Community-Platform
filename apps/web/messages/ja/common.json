@@ -2,6 +2,9 @@
   "loading": "読み込み中...",
   "save": "保存",
   "cancel": "キャンセル",
+  "seeAll": "すべて見る",
+  "collapse": "折りたたむ",
+  "showMoreCount": "他 {count} 件を表示",
   "pagination": {
     "previous": "前へ",
     "next": "次へ",
