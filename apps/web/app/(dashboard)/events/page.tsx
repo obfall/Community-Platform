@@ -112,23 +112,30 @@ export default function EventsPage() {
           {events.map((event: EventListItem) => (
             <Link key={event.id} href={`/events/${event.id}`}>
               <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
-                {event.coverImageUrl && (
-                  <div className="h-40 bg-muted">
+                {event.coverImageUrl ? (
+                  <div className="relative h-40 bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={event.coverImageUrl}
                       alt={event.title}
                       className="h-full w-full object-cover"
                     />
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
+                    <Badge
+                      variant={STATUS_VARIANTS[event.status] ?? "secondary"}
+                      className="absolute top-2 left-2 shadow"
+                    >
                       {STATUS_LABELS[event.status] ?? event.status}
                     </Badge>
-                    {event.category && <Badge variant="outline">{event.category.name}</Badge>}
                   </div>
+                ) : null}
+                <CardContent className="p-4">
+                  {!event.coverImageUrl && (
+                    <div className="mb-2">
+                      <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
+                        {STATUS_LABELS[event.status] ?? event.status}
+                      </Badge>
+                    </div>
+                  )}
                   <h3 className="mb-2 line-clamp-2 text-sm font-semibold">
                     <HighlightedText html={event.titleHighlighted} fallback={event.title} />
                   </h3>

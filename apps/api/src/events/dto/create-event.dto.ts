@@ -83,11 +83,6 @@ export class CreateEventDto {
   @IsString()
   eventType?: string;
 
-  @ApiPropertyOptional({ description: "カテゴリID" })
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
-
   @ApiPropertyOptional({ description: "アクセス情報" })
   @IsOptional()
   @IsString()

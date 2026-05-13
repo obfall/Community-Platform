@@ -363,8 +363,6 @@ model Category {
   children      Category[]     @relation("CategoryHierarchy")
   requiredRank  MemberRank?    @relation(fields: [requiredRankId], references: [id])
   userInterests UserInterest[]
-  // Phase 5
-  events        Event[]
   // Phase 6
   projects      Project[]
   // Phase 7
@@ -1068,7 +1066,6 @@ model Event {
   acceptedPaymentMethods   Json?             @map("accepted_payment_methods") @db.JsonB
   planningRole             String            @default("主催") @map("planning_role") @db.VarChar(30)
   eventType                String?           @map("event_type") @db.VarChar(30)
-  categoryId               String?           @map("category_id") @db.Uuid
   accessInfo               String?           @map("access_info") @db.Text
   participationMethod      String?           @map("participation_method") @db.Text
   contactInfo              String?           @map("contact_info") @db.Text
@@ -1089,7 +1086,6 @@ model Event {
 
   // Relations
   createdByUser         User                        @relation("EventCreator", fields: [createdByUserId], references: [id])
-  category              Category?                   @relation(fields: [categoryId], references: [id])
   requiredRank          MemberRank?                 @relation(fields: [requiredRankId], references: [id])
   venue                 Venue?                      @relation(fields: [venueId], references: [id])
   tickets               EventTicket[]
@@ -1112,7 +1108,6 @@ model Event {
   @@index([status, startAt])
   @@index([startAt])
   @@index([createdByUserId])
-  @@index([categoryId])
   @@index([venueId])
   @@map("events")
 }

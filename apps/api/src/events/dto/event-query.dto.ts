@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import { EventStatus } from "@prisma/client";
 import { PaginationQueryDto } from "../../common/dto/pagination.dto";
 
@@ -8,11 +8,6 @@ export class EventQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(EventStatus)
   status?: EventStatus;
-
-  @ApiPropertyOptional({ description: "カテゴリID" })
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
 
   @ApiPropertyOptional({ description: "イベント種別" })
   @IsOptional()

@@ -89,11 +89,6 @@ export class UpdateEventDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
-  categoryId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
   @IsString()
   accessInfo?: string;
 

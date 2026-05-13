@@ -128,7 +128,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
               {STATUS_LABELS[event.status] ?? event.status}
             </Badge>
-            {event.category && <Badge variant="outline">{event.category.name}</Badge>}
             {event.tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
                 {tag.name}

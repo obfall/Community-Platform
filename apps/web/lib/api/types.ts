@@ -701,7 +701,6 @@ export interface EventListItem {
   status: string;
   coverImageUrl: string | null;
   participantCount: number;
-  category: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   ticketCount: number;
   totalCapacity: number | null;

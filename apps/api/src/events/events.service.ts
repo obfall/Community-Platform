@@ -54,7 +54,6 @@ export class EventsService {
       // 非管理者は recruiting のみ。クエリの status 指定は無視する。
       where.status = EventStatus.recruiting;
     }
-    if (query.categoryId) where.categoryId = query.categoryId;
     if (query.eventType) where.eventType = query.eventType;
     if (query.from || query.to) {
       where.startAt = {};
@@ -70,7 +69,6 @@ export class EventsService {
         take: limit,
         include: {
           createdByUser: { select: AUTHOR_SELECT },
-          category: { select: { id: true, name: true } },
           venue: { select: { id: true, name: true } },
           tickets: { orderBy: { sortOrder: "asc" } },
           tags: { include: { tag: true } },
@@ -104,7 +102,6 @@ export class EventsService {
             : Prisma.empty
           : Prisma.sql`AND status = 'recruiting'::"EventStatus"`
       }
-      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
       ${query.eventType ? Prisma.sql`AND event_type = ${query.eventType}` : Prisma.empty}
       ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
       ${toDate ? Prisma.sql`AND start_at <= ${toDate}` : Prisma.empty}
@@ -127,7 +124,6 @@ export class EventsService {
           where: { id: { in: ids }, deletedAt: null },
           include: {
             createdByUser: { select: AUTHOR_SELECT },
-            category: { select: { id: true, name: true } },
             venue: { select: { id: true, name: true } },
             tickets: { orderBy: { sortOrder: "asc" } },
             tags: { include: { tag: true } },
@@ -144,7 +140,6 @@ export class EventsService {
       Prisma.EventGetPayload<{
         include: {
           createdByUser: { select: typeof AUTHOR_SELECT };
-          category: { select: { id: true; name: true } };
           venue: { select: { id: true; name: true } };
           tickets: true;
           tags: { include: { tag: true } };
@@ -174,7 +169,6 @@ export class EventsService {
           status: e.status,
           coverImageUrl: e.coverImageUrl,
           participantCount: e._count.participants,
-          category: e.category,
           createdBy: formatAuthor(e.createdByUser),
           ticketCount: e.tickets.length,
           totalCapacity: e.tickets.some((t) => t.capacity !== null)
@@ -194,7 +188,6 @@ export class EventsService {
       where: { id },
       include: {
         createdByUser: { select: AUTHOR_SELECT },
-        category: { select: { id: true, name: true } },
         venue: { select: { id: true, name: true, address: true } },
         requiredRank: { select: { id: true, name: true } },
         tickets: { orderBy: { sortOrder: "asc" } },
@@ -232,7 +225,6 @@ export class EventsService {
           allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
           planningRole: dto.planningRole,
           eventType: dto.eventType,
-          categoryId: dto.categoryId,
           accessInfo: dto.accessInfo,
           participationMethod: dto.participationMethod,
           contactInfo: dto.contactInfo,
@@ -296,7 +288,6 @@ export class EventsService {
           }),
           ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
           ...(dto.eventType !== undefined && { eventType: dto.eventType }),
-          ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
           ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
           ...(dto.participationMethod !== undefined && {
             participationMethod: dto.participationMethod,
@@ -942,7 +933,6 @@ export class EventsService {
           acceptedPaymentMethods: source.acceptedPaymentMethods ?? undefined,
           planningRole: source.planningRole,
           eventType: source.eventType,
-          categoryId: source.categoryId,
           accessInfo: source.accessInfo,
           participationMethod: source.participationMethod,
           contactInfo: source.contactInfo,
@@ -1299,7 +1289,6 @@ export class EventsService {
       coverImageUrl: event.coverImageUrl,
       isCalendarVisible: event.isCalendarVisible,
       participantCount: event._count?.participants ?? event.participantCount,
-      category: event.category,
       requiredRank: event.requiredRank,
       createdBy: formatAuthor(event.createdByUser),
       tickets: event.tickets,
