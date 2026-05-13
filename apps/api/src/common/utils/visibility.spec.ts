@@ -41,10 +41,10 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
   });
 
   describe("status 系（deletedAt + status 制約）", () => {
-    it("event は deletedAt=null かつ status=draft 以外", () => {
+    it("event は deletedAt=null かつ status=recruiting（非管理者向け公開条件）", () => {
       expect(VISIBILITY.event).toEqual({
         deletedAt: null,
-        NOT: { status: "draft" },
+        status: "recruiting",
       });
     });
 

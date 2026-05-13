@@ -74,7 +74,7 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* フィルタ */}
+      {/* フィルタ。ステータスフィルタは admin / owner のみ（非管理者は recruiting で API 側強制） */}
       <div className="flex items-center gap-4">
         <SearchInput
           value={search}
@@ -82,16 +82,18 @@ export default function EventsPage() {
           onSubmit={(v) => setQuery((prev) => ({ ...prev, search: v || undefined, page: 1 }))}
           placeholder="イベントを検索..."
         />
-        <SelectField
-          value={query.status ?? "all"}
-          onChange={(v) =>
-            setQuery((prev) => ({ ...prev, status: v === "all" ? undefined : v, page: 1 }))
-          }
-          options={EVENT_STATUS_OPTIONS}
-          includeAll
-          placeholder="ステータス"
-          className="w-32"
-        />
+        {isAdmin && (
+          <SelectField
+            value={query.status ?? "all"}
+            onChange={(v) =>
+              setQuery((prev) => ({ ...prev, status: v === "all" ? undefined : v, page: 1 }))
+            }
+            options={EVENT_STATUS_OPTIONS}
+            includeAll
+            placeholder="ステータス"
+            className="w-32"
+          />
+        )}
       </div>
 
       {/* イベント一覧 */}

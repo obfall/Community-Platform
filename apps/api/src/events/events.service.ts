@@ -12,6 +12,7 @@ import {
   pgroongaSearchAndFetch,
 } from "@/common/utils";
 import { Prisma, EventStatus, ParticipantStatus } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import type { CreateEventDto } from "./dto/create-event.dto";
 import type { UpdateEventDto } from "./dto/update-event.dto";
 import type { EventQueryDto } from "./dto/event-query.dto";
@@ -19,8 +20,11 @@ import type { CreateTicketDto } from "./dto/create-ticket.dto";
 import type { ParticipateEventDto } from "./dto/participate-event.dto";
 import type { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
 
-/** ホーム「今後のイベント」に出すイベント状態。draft / canceled / ended は除外。 */
-const UPCOMING_LISTABLE_STATUSES: EventStatus[] = [EventStatus.recruiting, EventStatus.closed];
+/** ホーム「今後のイベント」に出すイベント状態。recruiting 以外は非管理者から隠す方針に統一。 */
+const UPCOMING_LISTABLE_STATUSES: EventStatus[] = [EventStatus.recruiting];
+
+/** admin / owner は全ステータス参照可。それ以外は recruiting のみ。 */
+const canViewAllEventStatuses = (role: UserRole): boolean => role === "admin" || role === "owner";
 
 @Injectable()
 export class EventsService {
@@ -32,19 +36,24 @@ export class EventsService {
 
   // ========== Events ==========
 
-  async findAll(query: EventQueryDto) {
+  async findAll(query: EventQueryDto, role: UserRole) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
-      return this.searchByPgroonga(query, escaped);
+      return this.searchByPgroonga(query, escaped, role);
     }
-    return this.findAllStandard(query);
+    return this.findAllStandard(query, role);
   }
 
-  private async findAllStandard(query: EventQueryDto) {
+  private async findAllStandard(query: EventQueryDto, role: UserRole) {
     const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.EventWhereInput = { deletedAt: null };
-    if (query.status) where.status = query.status;
+    if (canViewAllEventStatuses(role)) {
+      if (query.status) where.status = query.status;
+    } else {
+      // 非管理者は recruiting のみ。クエリの status 指定は無視する。
+      where.status = EventStatus.recruiting;
+    }
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.eventType) where.eventType = query.eventType;
     if (query.from || query.to) {
@@ -75,18 +84,25 @@ export class EventsService {
 
   /**
    * pgroonga による全文検索版。関連度スコア順 + ハイライト付き。
-   * 検索条件は通常一覧 (findAllStandard) と一致させる（下書き含む）。
+   * 検索条件は通常一覧 (findAllStandard) と一致させる（非管理者は recruiting のみ）。
    */
-  private async searchByPgroonga(query: EventQueryDto, escaped: string) {
+  private async searchByPgroonga(query: EventQueryDto, escaped: string, role: UserRole) {
     const { page, limit, offset } = extractPagination(query);
 
     const fromDate = query.from ? new Date(query.from) : null;
     const toDate = query.to ? new Date(query.to) : null;
+    const canViewAll = canViewAllEventStatuses(role);
 
     // 検索時の WHERE: 通常一覧と同じ条件 + クエリ別フィルタ
     const where = Prisma.sql`
       deleted_at IS NULL
-      ${query.status ? Prisma.sql`AND status = ${query.status}::"EventStatus"` : Prisma.empty}
+      ${
+        canViewAll
+          ? query.status
+            ? Prisma.sql`AND status = ${query.status}::"EventStatus"`
+            : Prisma.empty
+          : Prisma.sql`AND status = 'recruiting'::"EventStatus"`
+      }
       ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
       ${query.eventType ? Prisma.sql`AND event_type = ${query.eventType}` : Prisma.empty}
       ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
@@ -167,7 +183,7 @@ export class EventsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, role: UserRole) {
     const event = await this.prisma.event.findUnique({
       where: { id },
       include: {
@@ -184,6 +200,9 @@ export class EventsService {
     });
 
     if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
+    if (event.status !== EventStatus.recruiting && !canViewAllEventStatuses(role)) {
+      throw new NotFoundException("イベントが見つかりません");
+    }
     return this.mapEventDetail(event);
   }
 
@@ -217,7 +236,8 @@ export class EventsService {
         createdByUserId: userId,
       },
     });
-    return this.findOne(event.id);
+    // create / update / duplicate は admin/owner 限定のため、role 制限を受けない "admin" で取得する。
+    return this.findOne(event.id, "admin");
   }
 
   async update(id: string, dto: UpdateEventDto) {
@@ -273,7 +293,7 @@ export class EventsService {
       await this.scheduleReminder(id);
     }
 
-    return this.findOne(id);
+    return this.findOne(id, "admin");
   }
 
   async remove(id: string) {
@@ -985,17 +1005,18 @@ export class EventsService {
       return event;
     });
 
-    return this.findOne(newEvent.id);
+    return this.findOne(newEvent.id, "admin");
   }
 
   // ========== Calendar ==========
 
-  async getCalendarEvents(from: string, to: string) {
+  async getCalendarEvents(from: string, to: string, role: UserRole) {
     return this.prisma.event.findMany({
       where: {
         deletedAt: null,
         isCalendarVisible: true,
         startAt: { gte: new Date(from), lte: new Date(to) },
+        ...(canViewAllEventStatuses(role) ? {} : { status: EventStatus.recruiting }),
       },
       select: {
         id: true,
