@@ -712,6 +712,27 @@ export interface EventListItem {
   snippetHighlighted?: string;
 }
 
+export interface UpcomingEvent {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  locationType: string;
+  status: string;
+  coverImageUrl: string | null;
+  venueName: string | null;
+}
+
+export interface MyUpcomingEvent {
+  eventId: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  locationType: string;
+  venueName: string | null;
+  participantStatus: string;
+}
+
 export interface EventTicket {
   id: string;
   ticketName: string;

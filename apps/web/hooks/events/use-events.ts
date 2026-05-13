@@ -40,6 +40,22 @@ export function useCalendarEvents(from: string, to: string) {
   });
 }
 
+export function useUpcomingEvents(limit?: number) {
+  return useQuery({
+    queryKey: ["events", "upcoming", limit],
+    queryFn: () => eventsApi.getUpcomingEvents(limit),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useMyUpcomingEvents(days?: number) {
+  return useQuery({
+    queryKey: ["events", "my-upcoming", days],
+    queryFn: () => eventsApi.getMyUpcomingEvents(days),
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useEventParticipants(
   eventId: string | undefined,
   query?: { page?: number; limit?: number },

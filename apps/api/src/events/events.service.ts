@@ -11,13 +11,16 @@ import {
   formatAuthor,
   pgroongaSearchAndFetch,
 } from "@/common/utils";
-import { Prisma } from "@prisma/client";
+import { Prisma, EventStatus, ParticipantStatus } from "@prisma/client";
 import type { CreateEventDto } from "./dto/create-event.dto";
 import type { UpdateEventDto } from "./dto/update-event.dto";
 import type { EventQueryDto } from "./dto/event-query.dto";
 import type { CreateTicketDto } from "./dto/create-ticket.dto";
 import type { ParticipateEventDto } from "./dto/participate-event.dto";
 import type { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
+
+/** ホーム「今後のイベント」に出すイベント状態。draft / canceled / ended は除外。 */
+const UPCOMING_LISTABLE_STATUSES: EventStatus[] = [EventStatus.recruiting, EventStatus.closed];
 
 @Injectable()
 export class EventsService {
@@ -1005,6 +1008,85 @@ export class EventsService {
       },
       orderBy: { startAt: "asc" },
     });
+  }
+
+  async findUpcoming(limit: number) {
+    const events = await this.prisma.event.findMany({
+      where: {
+        deletedAt: null,
+        isCalendarVisible: true,
+        startAt: { gte: new Date() },
+        status: { in: UPCOMING_LISTABLE_STATUSES },
+      },
+      select: {
+        id: true,
+        title: true,
+        startAt: true,
+        endAt: true,
+        locationType: true,
+        status: true,
+        coverImageUrl: true,
+        venueName: true,
+        venue: { select: { name: true } },
+      },
+      orderBy: { startAt: "asc" },
+      take: limit,
+    });
+
+    return events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      startAt: e.startAt,
+      endAt: e.endAt,
+      locationType: e.locationType,
+      status: e.status,
+      coverImageUrl: e.coverImageUrl,
+      venueName: e.venue?.name ?? e.venueName,
+    }));
+  }
+
+  async findMyUpcoming(userId: string, days: number) {
+    const now = new Date();
+    const end = new Date(now);
+    end.setDate(end.getDate() + days);
+
+    const participants = await this.prisma.eventParticipant.findMany({
+      where: {
+        userId,
+        status: { not: ParticipantStatus.canceled },
+        event: {
+          deletedAt: null,
+          status: { not: EventStatus.canceled },
+          endAt: { gte: now },
+          startAt: { lte: end },
+        },
+      },
+      select: {
+        status: true,
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            endAt: true,
+            locationType: true,
+            venueName: true,
+            venue: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { event: { startAt: "asc" } },
+    });
+
+    return participants.map((p) => ({
+      eventId: p.event.id,
+      title: p.event.title,
+      startAt: p.event.startAt,
+      endAt: p.event.endAt,
+      locationType: p.event.locationType,
+      venueName: p.event.venue?.name ?? p.event.venueName,
+      participantStatus: p.status,
+    }));
   }
 
   // ========== Reminder ==========

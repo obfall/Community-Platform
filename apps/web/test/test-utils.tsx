@@ -6,12 +6,14 @@ import commonMessages from "@/messages/ja/common.json";
 import enumsMessages from "@/messages/ja/enums.json";
 import membersMessages from "@/messages/ja/members.json";
 import boardMessages from "@/messages/ja/board.json";
+import dashboardMessages from "@/messages/ja/dashboard.json";
 
 const messages = {
   common: commonMessages,
   enums: enumsMessages,
   members: membersMessages,
   board: boardMessages,
+  dashboard: dashboardMessages,
 };
 
 /**
