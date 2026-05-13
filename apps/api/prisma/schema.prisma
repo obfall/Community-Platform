@@ -1000,6 +1000,14 @@ enum EventOrganizationRole {
   support
 }
 
+enum EventSpeakerRole {
+  speaker
+  co_speaker
+  guest
+  moderator
+  panelist
+}
+
 enum ParticipantStatus {
   applied
   confirmed
@@ -1239,15 +1247,15 @@ model EventParticipantAnswer {
 }
 
 model EventSpeaker {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  eventId   String   @map("event_id") @db.Uuid
-  userId    String?  @map("user_id") @db.Uuid
-  name      String   @db.VarChar(100)
-  title     String?  @db.VarChar(100)
-  role      String   @db.VarChar(30)
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId   String           @map("event_id") @db.Uuid
+  userId    String?          @map("user_id") @db.Uuid
+  name      String           @db.VarChar(100)
+  title     String?          @db.VarChar(100)
+  role      EventSpeakerRole
+  sortOrder Int              @default(0) @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

@@ -14,6 +14,7 @@ import {
 import { Type } from "class-transformer";
 import { EventLocationType } from "@prisma/client";
 import { EventOrganizationItemDto } from "./event-organization.dto";
+import { EventSpeakerItemDto } from "./event-speaker.dto";
 
 export class CreateEventDto {
   @ApiProperty({ description: "タイトル", maxLength: 200 })
@@ -139,4 +140,15 @@ export class CreateEventDto {
   @IsString({ each: true })
   @MaxLength(50, { each: true })
   tags?: string[];
+
+  @ApiPropertyOptional({
+    description: "登壇者（配列順が表示順、最大 5 名）",
+    type: [EventSpeakerItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => EventSpeakerItemDto)
+  speakers?: EventSpeakerItemDto[];
 }

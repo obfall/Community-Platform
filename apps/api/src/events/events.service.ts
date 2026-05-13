@@ -251,6 +251,19 @@ export class EventsService {
         await this.syncEventTags(tx, created.id, dto.tags);
       }
 
+      if (dto.speakers && dto.speakers.length > 0) {
+        await tx.eventSpeaker.createMany({
+          data: dto.speakers.map((s, idx) => ({
+            eventId: created.id,
+            name: s.name,
+            title: s.title,
+            role: s.role,
+            userId: s.userId,
+            sortOrder: idx,
+          })),
+        });
+      }
+
       return created;
     });
 
@@ -322,6 +335,23 @@ export class EventsService {
       // tags: undefined なら変更なし、配列なら全件置換（空配列は全削除 + tags_text='' に同期）
       if (dto.tags !== undefined) {
         await this.syncEventTags(tx, id, dto.tags);
+      }
+
+      // speakers: undefined なら変更なし、配列なら全件置換（空配列は全削除）
+      if (dto.speakers !== undefined) {
+        await tx.eventSpeaker.deleteMany({ where: { eventId: id } });
+        if (dto.speakers.length > 0) {
+          await tx.eventSpeaker.createMany({
+            data: dto.speakers.map((s, idx) => ({
+              eventId: id,
+              name: s.name,
+              title: s.title,
+              role: s.role,
+              userId: s.userId,
+              sortOrder: idx,
+            })),
+          });
+        }
       }
     });
 

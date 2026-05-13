@@ -41,6 +41,8 @@ import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
 import { ApplicationFormSection } from "./_components/application-form-section";
 import { EVENT_ORGANIZATION_ROLE_LABELS } from "@/lib/events/organization-role";
+import { EVENT_SPEAKER_ROLE_LABELS } from "@/lib/events/speaker-role";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
@@ -284,28 +286,38 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </Card>
 
           {/* 登壇者 */}
-          {event.speakers && event.speakers.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>登壇者</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader>
+              <CardTitle>登壇者</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {event.speakers && event.speakers.length > 0 ? (
                 <div className="space-y-3">
                   {event.speakers.map((speaker) => (
                     <div key={speaker.id} className="flex items-center gap-3">
+                      {speaker.user && (
+                        <Avatar className="h-9 w-9">
+                          {speaker.user.avatarUrl && (
+                            <AvatarImage src={speaker.user.avatarUrl} alt={speaker.name} />
+                          )}
+                          <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      )}
                       <div>
                         <p className="text-sm font-medium">{speaker.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {speaker.title && `${speaker.title} / `}
-                          {speaker.role}
+                          {EVENT_SPEAKER_ROLE_LABELS[speaker.role] ?? speaker.role}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground">なし</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* 関係団体 */}
           <Card>

@@ -36,7 +36,9 @@ import {
   type ApplicationFormEditorHandle,
 } from "../_components/application-form-editor";
 import { TagInput } from "@/components/tag-input";
+import { MemberPicker } from "@/components/member-picker";
 import { EVENT_ORGANIZATION_ROLE_OPTIONS } from "@/lib/events/organization-role";
+import { EVENT_SPEAKER_ROLE_OPTIONS } from "@/lib/events/speaker-role";
 
 const schema = z.object({
   title: z.string().min(1, "タイトルは必須です").max(200),
@@ -68,6 +70,17 @@ const schema = z.object({
     .max(20)
     .optional(),
   tags: z.array(z.string().min(1).max(50)).max(3).optional(),
+  speakers: z
+    .array(
+      z.object({
+        name: z.string().min(1, "名前は必須です").max(100),
+        title: z.string().max(100).optional(),
+        role: z.enum(["speaker", "co_speaker", "guest", "moderator", "panelist"]),
+        userId: z.string().uuid().optional(),
+      }),
+    )
+    .max(5)
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -127,10 +140,17 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
         role: o.role,
       })),
       tags: event.tags.map((t) => t.name),
+      speakers: event.speakers.map((s) => ({
+        name: s.name,
+        title: s.title ?? undefined,
+        role: s.role,
+        userId: s.user?.id ?? undefined,
+      })),
     },
   });
 
   const orgFields = useFieldArray({ control: form.control, name: "organizations" });
+  const speakerFields = useFieldArray({ control: form.control, name: "speakers" });
 
   const locationType = form.watch("locationType");
 
@@ -156,6 +176,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
           // 配列を渡せば全件置換、空配列なら全削除（undefined にしない）
           organizations: data.organizations ?? [],
           tags: data.tags ?? [],
+          speakers: data.speakers ?? [],
         },
       },
       {
@@ -565,6 +586,127 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     >
                       <Plus className="mr-1 h-3 w-3" />
                       関係団体を追加
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>登壇者</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {speakerFields.fields.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      講師・ゲスト・モデレーターなどを登録できます
+                    </p>
+                  ) : (
+                    speakerFields.fields.map((field, index) => (
+                      <div key={field.id} className="space-y-2 rounded-md border p-3">
+                        <FormField
+                          control={form.control}
+                          name={`speakers.${index}.userId`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">メンバー（任意）</FormLabel>
+                              <FormControl>
+                                <MemberPicker
+                                  value={
+                                    f.value
+                                      ? {
+                                          id: f.value,
+                                          name: form.getValues(`speakers.${index}.name`) || "",
+                                          avatarUrl: null,
+                                        }
+                                      : null
+                                  }
+                                  onChange={(m) => {
+                                    f.onChange(m?.id ?? undefined);
+                                    if (m) {
+                                      form.setValue(`speakers.${index}.name`, m.name);
+                                      if (m.defaultTitle) {
+                                        form.setValue(`speakers.${index}.title`, m.defaultTitle);
+                                      }
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`speakers.${index}.name`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">名前</FormLabel>
+                              <FormControl>
+                                <Input {...f} placeholder="例: 山田 太郎" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`speakers.${index}.title`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">肩書（任意）</FormLabel>
+                              <FormControl>
+                                <Input {...f} placeholder="例: 株式会社○○ CEO" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`speakers.${index}.role`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">役割</FormLabel>
+                              <Select onValueChange={f.onChange} value={f.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="役割を選択" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {EVENT_SPEAKER_ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => speakerFields.remove(index)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          削除
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  {speakerFields.fields.length < 5 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => speakerFields.append({ name: "", title: "", role: "speaker" })}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      登壇者を追加
                     </Button>
                   )}
                 </CardContent>

@@ -602,4 +602,136 @@ describe("EventsService", () => {
       });
     });
   });
+
+  describe("speakers: 一括登録と全件置換", () => {
+    type SpeakerTxMock = {
+      event: { create: jest.Mock; update: jest.Mock };
+      eventOrganization: { createMany: jest.Mock; deleteMany: jest.Mock };
+      eventSpeaker: { createMany: jest.Mock; deleteMany: jest.Mock };
+    };
+
+    let txMock: SpeakerTxMock;
+
+    const baseEventDetail = {
+      id: "e1",
+      deletedAt: null,
+      status: "draft",
+      createdByUser: { id: "u1", name: "creator", profile: null },
+      tickets: [],
+      speakers: [],
+      organizations: [],
+      tags: [],
+      _count: { participants: 0 },
+    };
+
+    beforeEach(() => {
+      txMock = {
+        event: {
+          create: jest.fn().mockResolvedValue({ id: "new-event" }),
+          update: jest.fn().mockResolvedValue({ id: "e1" }),
+        },
+        eventOrganization: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        eventSpeaker: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+      };
+      prismaMock.$transaction.mockImplementation((cb: (tx: SpeakerTxMock) => Promise<unknown>) =>
+        cb(txMock),
+      );
+    });
+
+    describe("create での speakers 一括登録", () => {
+      beforeEach(() => {
+        prismaMock.event.findUnique.mockResolvedValue(baseEventDetail);
+      });
+
+      it("speakers 未指定なら eventSpeaker.createMany は呼ばれない", async () => {
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+        } as never);
+        expect(txMock.eventSpeaker.createMany).not.toHaveBeenCalled();
+      });
+
+      it("speakers を渡すと sortOrder + userId 含めて一括登録される（外部講師 + 会員）", async () => {
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+          speakers: [
+            { name: "山田 先生", title: "教授", role: "speaker" },
+            { name: "鈴木 さん", role: "co_speaker", userId: "user-2" },
+          ],
+        } as never);
+        expect(txMock.eventSpeaker.createMany).toHaveBeenCalledWith({
+          data: [
+            {
+              eventId: "new-event",
+              name: "山田 先生",
+              title: "教授",
+              role: "speaker",
+              userId: undefined,
+              sortOrder: 0,
+            },
+            {
+              eventId: "new-event",
+              name: "鈴木 さん",
+              title: undefined,
+              role: "co_speaker",
+              userId: "user-2",
+              sortOrder: 1,
+            },
+          ],
+        });
+      });
+    });
+
+    describe("update での speakers 全件置換", () => {
+      beforeEach(() => {
+        prismaMock.event.findUnique
+          .mockResolvedValueOnce({ id: "e1", deletedAt: null })
+          .mockResolvedValueOnce(baseEventDetail);
+      });
+
+      it("speakers: undefined なら deleteMany も createMany も呼ばれない", async () => {
+        await service.update("e1", { title: "new title" });
+        expect(txMock.eventSpeaker.deleteMany).not.toHaveBeenCalled();
+        expect(txMock.eventSpeaker.createMany).not.toHaveBeenCalled();
+      });
+
+      it("speakers: [] なら全件削除のみ", async () => {
+        await service.update("e1", { speakers: [] });
+        expect(txMock.eventSpeaker.deleteMany).toHaveBeenCalledWith({
+          where: { eventId: "e1" },
+        });
+        expect(txMock.eventSpeaker.createMany).not.toHaveBeenCalled();
+      });
+
+      it("speakers: [...] なら全件削除 + 新規挿入（sortOrder は index）", async () => {
+        await service.update("e1", {
+          speakers: [{ name: "A", role: "speaker" as never }],
+        });
+        expect(txMock.eventSpeaker.deleteMany).toHaveBeenCalled();
+        expect(txMock.eventSpeaker.createMany).toHaveBeenCalledWith({
+          data: [
+            {
+              eventId: "e1",
+              name: "A",
+              title: undefined,
+              role: "speaker",
+              userId: undefined,
+              sortOrder: 0,
+            },
+          ],
+        });
+      });
+    });
+  });
 });

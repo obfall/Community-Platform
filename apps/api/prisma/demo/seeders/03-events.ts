@@ -253,10 +253,10 @@ const EVENTS: EventDef[] = [
 ];
 
 const SPEAKER_NAMES = [
-  { name: "外部講師 山田 先生", title: "株式会社サンプル", role: "講師" },
-  { name: "外部講師 鈴木 博士", title: "大学研究員", role: "講師" },
-  { name: "外部講師 佐々木 氏", title: "フリーランス", role: "ゲスト" },
-  { name: "外部講師 田島 氏", title: "IT コンサルタント", role: "司会" },
+  { name: "外部講師 山田 先生", title: "株式会社サンプル", role: "speaker" },
+  { name: "外部講師 鈴木 博士", title: "大学研究員", role: "speaker" },
+  { name: "外部講師 佐々木 氏", title: "フリーランス", role: "guest" },
+  { name: "外部講師 田島 氏", title: "IT コンサルタント", role: "moderator" },
 ];
 
 const ORGANIZATIONS = [
@@ -406,7 +406,7 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
             eventId: event.id,
             userId: user.id,
             name: "（会員登壇）",
-            role: "共同講師",
+            role: "co_speaker",
             sortOrder: 2,
           },
         });

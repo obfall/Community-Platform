@@ -745,13 +745,22 @@ export interface EventTicket {
   soldCount: number;
 }
 
+export type EventSpeakerRole = "speaker" | "co_speaker" | "guest" | "moderator" | "panelist";
+
 export interface EventSpeaker {
   id: string;
   name: string;
   title: string | null;
-  role: string;
+  role: EventSpeakerRole;
   sortOrder: number;
   user: { id: string; name: string; avatarUrl: string | null } | null;
+}
+
+export interface EventSpeakerInput {
+  name: string;
+  title?: string;
+  role: EventSpeakerRole;
+  userId?: string;
 }
 
 export type EventOrganizationRole =
@@ -879,6 +888,7 @@ export interface CreateEventInput {
   requiredRankId?: string;
   organizations?: EventOrganizationInput[];
   tags?: string[];
+  speakers?: EventSpeakerInput[];
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {
