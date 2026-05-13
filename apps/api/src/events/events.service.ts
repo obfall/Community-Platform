@@ -207,35 +207,51 @@ export class EventsService {
   }
 
   async create(userId: string, dto: CreateEventDto) {
-    const event = await this.prisma.event.create({
-      data: {
-        title: dto.title,
-        description: dto.description,
-        locationType: dto.locationType,
-        venueId: dto.venueId,
-        venueName: dto.venueName,
-        venueAddress: dto.venueAddress,
-        onlineUrl: dto.onlineUrl,
-        startAt: new Date(dto.startAt),
-        endAt: new Date(dto.endAt),
-        registrationDeadlineAt: dto.registrationDeadlineAt
-          ? new Date(dto.registrationDeadlineAt)
-          : undefined,
-        ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : undefined,
-        allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
-        planningRole: dto.planningRole,
-        eventType: dto.eventType,
-        categoryId: dto.categoryId,
-        accessInfo: dto.accessInfo,
-        participationMethod: dto.participationMethod,
-        contactInfo: dto.contactInfo,
-        cancellationPolicy: dto.cancellationPolicy,
-        isAttendeeVisible: dto.isAttendeeVisible,
-        coverImageUrl: dto.coverImageUrl,
-        requiredRankId: dto.requiredRankId,
-        createdByUserId: userId,
-      },
+    const event = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.event.create({
+        data: {
+          title: dto.title,
+          description: dto.description,
+          locationType: dto.locationType,
+          venueId: dto.venueId,
+          venueName: dto.venueName,
+          venueAddress: dto.venueAddress,
+          onlineUrl: dto.onlineUrl,
+          startAt: new Date(dto.startAt),
+          endAt: new Date(dto.endAt),
+          registrationDeadlineAt: dto.registrationDeadlineAt
+            ? new Date(dto.registrationDeadlineAt)
+            : undefined,
+          ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : undefined,
+          allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
+          planningRole: dto.planningRole,
+          eventType: dto.eventType,
+          categoryId: dto.categoryId,
+          accessInfo: dto.accessInfo,
+          participationMethod: dto.participationMethod,
+          contactInfo: dto.contactInfo,
+          cancellationPolicy: dto.cancellationPolicy,
+          isAttendeeVisible: dto.isAttendeeVisible,
+          coverImageUrl: dto.coverImageUrl,
+          requiredRankId: dto.requiredRankId,
+          createdByUserId: userId,
+        },
+      });
+
+      if (dto.organizations && dto.organizations.length > 0) {
+        await tx.eventOrganization.createMany({
+          data: dto.organizations.map((o, idx) => ({
+            eventId: created.id,
+            organizationName: o.organizationName,
+            role: o.role,
+            sortOrder: idx,
+          })),
+        });
+      }
+
+      return created;
     });
+
     // create / update / duplicate は admin/owner 限定のため、role 制限を受けない "admin" で取得する。
     return this.findOne(event.id, "admin");
   }
@@ -244,46 +260,63 @@ export class EventsService {
     const existing = await this.prisma.event.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) throw new NotFoundException("イベントが見つかりません");
 
-    await this.prisma.event.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.locationType !== undefined && { locationType: dto.locationType }),
-        ...(dto.venueId !== undefined && { venueId: dto.venueId }),
-        ...(dto.venueName !== undefined && { venueName: dto.venueName }),
-        ...(dto.venueAddress !== undefined && { venueAddress: dto.venueAddress }),
-        ...(dto.onlineUrl !== undefined && { onlineUrl: dto.onlineUrl }),
-        ...(dto.startAt !== undefined && { startAt: new Date(dto.startAt) }),
-        ...(dto.endAt !== undefined && { endAt: new Date(dto.endAt) }),
-        ...(dto.registrationDeadlineAt !== undefined && {
-          registrationDeadlineAt: dto.registrationDeadlineAt
-            ? new Date(dto.registrationDeadlineAt)
-            : null,
-        }),
-        ...(dto.ticketSaleStartAt !== undefined && {
-          ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : null,
-        }),
-        ...(dto.allowMultiTicketPurchase !== undefined && {
-          allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
-        }),
-        ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
-        ...(dto.eventType !== undefined && { eventType: dto.eventType }),
-        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-        ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
-        ...(dto.participationMethod !== undefined && {
-          participationMethod: dto.participationMethod,
-        }),
-        ...(dto.contactInfo !== undefined && { contactInfo: dto.contactInfo }),
-        ...(dto.cancellationPolicy !== undefined && {
-          cancellationPolicy: dto.cancellationPolicy,
-        }),
-        ...(dto.isAttendeeVisible !== undefined && { isAttendeeVisible: dto.isAttendeeVisible }),
-        ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
-        ...(dto.requiredRankId !== undefined && { requiredRankId: dto.requiredRankId }),
-        ...(dto.isCalendarVisible !== undefined && { isCalendarVisible: dto.isCalendarVisible }),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.event.update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.locationType !== undefined && { locationType: dto.locationType }),
+          ...(dto.venueId !== undefined && { venueId: dto.venueId }),
+          ...(dto.venueName !== undefined && { venueName: dto.venueName }),
+          ...(dto.venueAddress !== undefined && { venueAddress: dto.venueAddress }),
+          ...(dto.onlineUrl !== undefined && { onlineUrl: dto.onlineUrl }),
+          ...(dto.startAt !== undefined && { startAt: new Date(dto.startAt) }),
+          ...(dto.endAt !== undefined && { endAt: new Date(dto.endAt) }),
+          ...(dto.registrationDeadlineAt !== undefined && {
+            registrationDeadlineAt: dto.registrationDeadlineAt
+              ? new Date(dto.registrationDeadlineAt)
+              : null,
+          }),
+          ...(dto.ticketSaleStartAt !== undefined && {
+            ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : null,
+          }),
+          ...(dto.allowMultiTicketPurchase !== undefined && {
+            allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
+          }),
+          ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
+          ...(dto.eventType !== undefined && { eventType: dto.eventType }),
+          ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+          ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
+          ...(dto.participationMethod !== undefined && {
+            participationMethod: dto.participationMethod,
+          }),
+          ...(dto.contactInfo !== undefined && { contactInfo: dto.contactInfo }),
+          ...(dto.cancellationPolicy !== undefined && {
+            cancellationPolicy: dto.cancellationPolicy,
+          }),
+          ...(dto.isAttendeeVisible !== undefined && { isAttendeeVisible: dto.isAttendeeVisible }),
+          ...(dto.status !== undefined && { status: dto.status }),
+          ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
+          ...(dto.requiredRankId !== undefined && { requiredRankId: dto.requiredRankId }),
+          ...(dto.isCalendarVisible !== undefined && { isCalendarVisible: dto.isCalendarVisible }),
+        },
+      });
+
+      // organizations: undefined なら変更なし、配列なら全件置換（空配列は全削除）
+      if (dto.organizations !== undefined) {
+        await tx.eventOrganization.deleteMany({ where: { eventId: id } });
+        if (dto.organizations.length > 0) {
+          await tx.eventOrganization.createMany({
+            data: dto.organizations.map((o, idx) => ({
+              eventId: id,
+              organizationName: o.organizationName,
+              role: o.role,
+              sortOrder: idx,
+            })),
+          });
+        }
+      }
     });
 
     // リマインダー再スケジュール

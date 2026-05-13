@@ -260,11 +260,11 @@ const SPEAKER_NAMES = [
 ];
 
 const ORGANIZATIONS = [
-  { name: "株式会社パートナーA", role: "協賛" },
-  { name: "一般社団法人サポート団体", role: "共催" },
-  { name: "地域コミュニティB", role: "協力" },
-  { name: "株式会社スポンサーC", role: "スポンサー" },
-];
+  { name: "株式会社パートナーA", role: "sponsor" },
+  { name: "一般社団法人サポート団体", role: "co_organizer" },
+  { name: "地域コミュニティB", role: "cooperation" },
+  { name: "株式会社スポンサーC", role: "sponsor" },
+] as const;
 
 async function getDemoUsers(prisma: PrismaClient): Promise<UserSummary[]> {
   return await prisma.user.findMany({

@@ -3,7 +3,7 @@
 
 import { use, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEvent, useUpdateEvent } from "@/hooks/events/use-events";
@@ -11,6 +11,7 @@ import type { EventDetail } from "@/lib/api/types";
 import { ImageUpload } from "@/components/image-upload";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -27,12 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Plus, Trash2 } from "lucide-react";
 import { StickyFooterBar } from "@/components/sticky-footer-bar";
 import { VenuePicker } from "@/components/venue-picker";
 import {
   ApplicationFormEditor,
   type ApplicationFormEditorHandle,
 } from "../_components/application-form-editor";
+import { EVENT_ORGANIZATION_ROLE_OPTIONS } from "@/lib/events/organization-role";
 
 const schema = z.object({
   title: z.string().min(1, "タイトルは必須です").max(200),
@@ -54,6 +57,15 @@ const schema = z.object({
   coverImageUrl: z.string().nullable().optional(),
   status: z.enum(["draft", "recruiting", "closed", "canceled", "ended"]),
   isCalendarVisible: z.boolean().optional(),
+  organizations: z
+    .array(
+      z.object({
+        organizationName: z.string().min(1, "団体名は必須です").max(200),
+        role: z.enum(["organizer", "co_organizer", "cooperation", "sponsor", "support"]),
+      }),
+    )
+    .max(20)
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -108,8 +120,14 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
       coverImageUrl: event.coverImageUrl ?? null,
       status: event.status as FormValues["status"],
       isCalendarVisible: event.isCalendarVisible,
+      organizations: event.organizations.map((o) => ({
+        organizationName: o.organizationName,
+        role: o.role,
+      })),
     },
   });
+
+  const orgFields = useFieldArray({ control: form.control, name: "organizations" });
 
   const locationType = form.watch("locationType");
 
@@ -132,6 +150,8 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
           contactInfo: data.contactInfo || undefined,
           cancellationPolicy: data.cancellationPolicy || undefined,
           coverImageUrl: data.coverImageUrl || undefined,
+          // 配列を渡せば全件置換、空配列なら全削除（undefined にしない）
+          organizations: data.organizations ?? [],
         },
       },
       {
@@ -437,6 +457,85 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                       </FormItem>
                     )}
                   />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>関係団体</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {orgFields.fields.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      共催・協力団体などを登録できます
+                    </p>
+                  ) : (
+                    orgFields.fields.map((field, index) => (
+                      <div key={field.id} className="space-y-2 rounded-md border p-3">
+                        <FormField
+                          control={form.control}
+                          name={`organizations.${index}.organizationName`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">団体名</FormLabel>
+                              <FormControl>
+                                <Input {...f} placeholder="例: 株式会社○○" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`organizations.${index}.role`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">役割</FormLabel>
+                              <Select onValueChange={f.onChange} value={f.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="役割を選択" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {EVENT_ORGANIZATION_ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => orgFields.remove(index)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          削除
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  {orgFields.fields.length < 20 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        orgFields.append({ organizationName: "", role: "co_organizer" })
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      関係団体を追加
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>

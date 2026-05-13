@@ -9,6 +9,7 @@ describe("EventsService", () => {
     event: { findMany: jest.Mock; count: jest.Mock; findUnique: jest.Mock };
     eventParticipant: { findMany: jest.Mock };
     $queryRaw: jest.Mock;
+    $transaction: jest.Mock;
   };
   let service: EventsService;
 
@@ -23,6 +24,7 @@ describe("EventsService", () => {
         findMany: jest.fn().mockResolvedValue([]),
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
+      $transaction: jest.fn(),
     };
     service = new EventsService(prismaMock as never, {} as never);
   });
@@ -260,6 +262,149 @@ describe("EventsService", () => {
       await service.getCalendarEvents("2026-01-01", "2026-12-31", "member");
       const args = prismaMock.event.findMany.mock.calls[0][0];
       expect(args.where.status).toBe("recruiting");
+    });
+  });
+
+  describe("create: organizations 一括登録", () => {
+    let txMock: {
+      event: { create: jest.Mock };
+      eventOrganization: { createMany: jest.Mock; deleteMany: jest.Mock };
+    };
+
+    const baseEventDetail = {
+      id: "new-event",
+      deletedAt: null,
+      status: "draft",
+      createdByUser: { id: "u1", name: "creator", profile: null },
+      tickets: [],
+      speakers: [],
+      organizations: [],
+      tags: [],
+      _count: { participants: 0 },
+    };
+
+    const baseCreateDto = {
+      title: "T",
+      startAt: "2026-06-01T10:00:00Z",
+      endAt: "2026-06-01T12:00:00Z",
+      locationType: "venue",
+    };
+
+    beforeEach(() => {
+      txMock = {
+        event: { create: jest.fn().mockResolvedValue({ id: "new-event" }) },
+        eventOrganization: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+      };
+      prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => Promise<unknown>) =>
+        cb(txMock),
+      );
+      prismaMock.event.findUnique.mockResolvedValue(baseEventDetail);
+    });
+
+    it("organizations 未指定なら createMany は呼ばれない", async () => {
+      await service.create("user-1", baseCreateDto as never);
+      expect(txMock.event.create).toHaveBeenCalled();
+      expect(txMock.eventOrganization.createMany).not.toHaveBeenCalled();
+    });
+
+    it("organizations: [] でも createMany は呼ばれない（length > 0 でガード）", async () => {
+      await service.create("user-1", { ...baseCreateDto, organizations: [] } as never);
+      expect(txMock.eventOrganization.createMany).not.toHaveBeenCalled();
+    });
+
+    it("organizations を渡すと sortOrder 付きで一括登録される", async () => {
+      await service.create("user-1", {
+        ...baseCreateDto,
+        organizations: [
+          { organizationName: "東京大学", role: "co_organizer" },
+          { organizationName: "○○財団", role: "sponsor" },
+        ],
+      } as never);
+      expect(txMock.eventOrganization.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            eventId: "new-event",
+            organizationName: "東京大学",
+            role: "co_organizer",
+            sortOrder: 0,
+          },
+          {
+            eventId: "new-event",
+            organizationName: "○○財団",
+            role: "sponsor",
+            sortOrder: 1,
+          },
+        ],
+      });
+    });
+  });
+
+  describe("update: organizations 全件置換セマンティクス", () => {
+    let txMock: {
+      event: { update: jest.Mock };
+      eventOrganization: { createMany: jest.Mock; deleteMany: jest.Mock };
+    };
+
+    const baseEventDetail = {
+      id: "e1",
+      deletedAt: null,
+      status: "draft",
+      createdByUser: { id: "u1", name: "creator", profile: null },
+      tickets: [],
+      speakers: [],
+      organizations: [],
+      tags: [],
+      _count: { participants: 0 },
+    };
+
+    beforeEach(() => {
+      txMock = {
+        event: { update: jest.fn().mockResolvedValue({ id: "e1" }) },
+        eventOrganization: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+      };
+      prismaMock.$transaction.mockImplementation((cb: (tx: typeof txMock) => Promise<unknown>) =>
+        cb(txMock),
+      );
+      // 1 回目: update() 冒頭の存在チェック、2 回目: 末尾の findOne
+      prismaMock.event.findUnique
+        .mockResolvedValueOnce({ id: "e1", deletedAt: null })
+        .mockResolvedValueOnce(baseEventDetail);
+    });
+
+    it("organizations: undefined なら deleteMany も createMany も呼ばれない", async () => {
+      await service.update("e1", { title: "new title" });
+      expect(txMock.eventOrganization.deleteMany).not.toHaveBeenCalled();
+      expect(txMock.eventOrganization.createMany).not.toHaveBeenCalled();
+    });
+
+    it("organizations: [] なら全件削除のみ（createMany は呼ばれない）", async () => {
+      await service.update("e1", { organizations: [] });
+      expect(txMock.eventOrganization.deleteMany).toHaveBeenCalledWith({
+        where: { eventId: "e1" },
+      });
+      expect(txMock.eventOrganization.createMany).not.toHaveBeenCalled();
+    });
+
+    it("organizations: [...] なら全件削除 + 新規挿入（sortOrder は index）", async () => {
+      await service.update("e1", {
+        organizations: [
+          { organizationName: "A", role: "organizer" as never },
+          { organizationName: "B", role: "sponsor" as never },
+        ],
+      });
+      expect(txMock.eventOrganization.deleteMany).toHaveBeenCalled();
+      expect(txMock.eventOrganization.createMany).toHaveBeenCalledWith({
+        data: [
+          { eventId: "e1", organizationName: "A", role: "organizer", sortOrder: 0 },
+          { eventId: "e1", organizationName: "B", role: "sponsor", sortOrder: 1 },
+        ],
+      });
     });
   });
 });

@@ -754,11 +754,23 @@ export interface EventSpeaker {
   user: { id: string; name: string; avatarUrl: string | null } | null;
 }
 
+export type EventOrganizationRole =
+  | "organizer"
+  | "co_organizer"
+  | "cooperation"
+  | "sponsor"
+  | "support";
+
 export interface EventOrganization {
   id: string;
   organizationName: string;
-  role: string;
+  role: EventOrganizationRole;
   sortOrder: number;
+}
+
+export interface EventOrganizationInput {
+  organizationName: string;
+  role: EventOrganizationRole;
 }
 
 export interface EventDetail extends EventListItem {
@@ -866,6 +878,7 @@ export interface CreateEventInput {
   isAttendeeVisible?: boolean;
   coverImageUrl?: string;
   requiredRankId?: string;
+  organizations?: EventOrganizationInput[];
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {

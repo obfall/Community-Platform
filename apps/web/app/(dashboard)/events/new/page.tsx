@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateEvent } from "@/hooks/events/use-events";
@@ -26,9 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { VenuePicker } from "@/components/venue-picker";
+import { EVENT_ORGANIZATION_ROLE_OPTIONS } from "@/lib/events/organization-role";
 
 const schema = z.object({
   title: z.string().min(1, "タイトルは必須です").max(200),
@@ -48,6 +49,15 @@ const schema = z.object({
   contactInfo: z.string().optional(),
   cancellationPolicy: z.string().optional(),
   coverImageUrl: z.string().nullable().optional(),
+  organizations: z
+    .array(
+      z.object({
+        organizationName: z.string().min(1, "団体名は必須です").max(200),
+        role: z.enum(["organizer", "co_organizer", "cooperation", "sponsor", "support"]),
+      }),
+    )
+    .max(20)
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -76,8 +86,11 @@ export default function NewEventPage() {
       contactInfo: "",
       cancellationPolicy: "",
       coverImageUrl: null,
+      organizations: [],
     },
   });
+
+  const orgFields = useFieldArray({ control: form.control, name: "organizations" });
 
   const locationType = form.watch("locationType");
 
@@ -93,6 +106,8 @@ export default function NewEventPage() {
         contactInfo: data.contactInfo || undefined,
         cancellationPolicy: data.cancellationPolicy || undefined,
         coverImageUrl: data.coverImageUrl || undefined,
+        organizations:
+          data.organizations && data.organizations.length > 0 ? data.organizations : undefined,
       },
       {
         onSuccess: (event) => router.push(`/events/${event.id}`),
@@ -325,6 +340,85 @@ export default function NewEventPage() {
                       </FormItem>
                     )}
                   />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>関係団体</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {orgFields.fields.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      共催・協力団体などを登録できます
+                    </p>
+                  ) : (
+                    orgFields.fields.map((field, index) => (
+                      <div key={field.id} className="space-y-2 rounded-md border p-3">
+                        <FormField
+                          control={form.control}
+                          name={`organizations.${index}.organizationName`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">団体名</FormLabel>
+                              <FormControl>
+                                <Input {...f} placeholder="例: 株式会社○○" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`organizations.${index}.role`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">役割</FormLabel>
+                              <Select onValueChange={f.onChange} value={f.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="役割を選択" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {EVENT_ORGANIZATION_ROLE_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => orgFields.remove(index)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          削除
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                  {orgFields.fields.length < 20 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        orgFields.append({ organizationName: "", role: "co_organizer" })
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      関係団体を追加
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 

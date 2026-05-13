@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -7,8 +9,11 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { EventLocationType } from "@prisma/client";
+import { EventOrganizationItemDto } from "./event-organization.dto";
 
 export class CreateEventDto {
   @ApiProperty({ description: "タイトル", maxLength: 200 })
@@ -117,4 +122,15 @@ export class CreateEventDto {
   @IsOptional()
   @IsUUID()
   requiredRankId?: string;
+
+  @ApiPropertyOptional({
+    description: "関係団体（配列順が表示順）",
+    type: [EventOrganizationItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => EventOrganizationItemDto)
+  organizations?: EventOrganizationItemDto[];
 }

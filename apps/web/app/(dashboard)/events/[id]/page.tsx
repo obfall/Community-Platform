@@ -40,6 +40,7 @@ import {
 import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
 import { ApplicationFormSection } from "./_components/application-form-section";
+import { EVENT_ORGANIZATION_ROLE_LABELS } from "@/lib/events/organization-role";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
@@ -308,23 +309,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
 
           {/* 関係団体 */}
-          {event.organizations && event.organizations.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>関係団体</CardTitle>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader>
+              <CardTitle>関係団体</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {event.organizations && event.organizations.length > 0 ? (
                 <div className="space-y-2">
                   {event.organizations.map((org) => (
                     <div key={org.id} className="flex items-center justify-between text-sm">
                       <span>{org.organizationName}</span>
-                      <Badge variant="outline">{org.role}</Badge>
+                      <Badge variant="outline">
+                        {EVENT_ORGANIZATION_ROLE_LABELS[org.role] ?? org.role}
+                      </Badge>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground">なし</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* 詳細情報 */}
           <Card>

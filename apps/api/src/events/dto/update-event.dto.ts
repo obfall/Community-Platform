@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -7,8 +9,11 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { EventLocationType, EventStatus } from "@prisma/client";
+import { EventOrganizationItemDto } from "./event-organization.dto";
 
 export class UpdateEventDto {
   @ApiPropertyOptional({ description: "タイトル", maxLength: 200 })
@@ -131,4 +136,15 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   isCalendarVisible?: boolean;
+
+  @ApiPropertyOptional({
+    description: "関係団体（配列を渡すと全件置換、省略すると変更なし）",
+    type: [EventOrganizationItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => EventOrganizationItemDto)
+  organizations?: EventOrganizationItemDto[];
 }

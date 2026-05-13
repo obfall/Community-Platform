@@ -1,5 +1,6 @@
 export { CreateEventDto } from "./create-event.dto";
 export { UpdateEventDto } from "./update-event.dto";
+export { EventOrganizationItemDto } from "./event-organization.dto";
 export { EventQueryDto } from "./event-query.dto";
 export { CreateTicketDto } from "./create-ticket.dto";
 export { ParticipateEventDto } from "./participate-event.dto";
