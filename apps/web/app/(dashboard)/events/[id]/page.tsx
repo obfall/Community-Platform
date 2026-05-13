@@ -42,7 +42,7 @@ import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
 import { ApplicationFormSection } from "./_components/application-form-section";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { EVENT_STATUS_VARIANTS, EVENT_STATUS_BANNER_CLASSES } from "@/lib/events/event-status";
+import { EVENT_STATUS_VARIANTS } from "@/lib/events/event-status";
 import { EventStatus, EventLocationType } from "@community-platform/shared";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +50,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const t = useTranslations("events.detail");
   const tCard = useTranslations("events.form.card");
-  const tBanner = useTranslations("events.banner");
   const tStatus = useTranslations("enums.eventStatus");
   const tSpeakerRole = useTranslations("enums.eventSpeakerRole");
   const tOrgRole = useTranslations("enums.eventOrganizationRole");
@@ -72,7 +71,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
-  const bannerClasses = EVENT_STATUS_BANNER_CLASSES[event.status];
 
   const handleDuplicate = () => {
     duplicateEvent.mutate(id, {
@@ -99,9 +97,6 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ))}
           </div>
           <h1 className="text-2xl font-bold">{event.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("createdBy", { name: event.createdBy.name })}
-          </p>
         </div>
         {isAdmin && (
           <DropdownMenu>
@@ -132,22 +127,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {/* ステータスバナー */}
-      {bannerClasses && (
-        <div
-          className={`rounded-lg border p-3 text-center text-sm font-medium ${bannerClasses.bg} ${bannerClasses.text}`}
-        >
-          {tBanner(event.status)}
-        </div>
-      )}
-
       {/* カバー画像 */}
-      {event.coverImageUrl && (
-        <div className="h-80 overflow-hidden rounded-lg bg-muted md:h-96">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={event.coverImageUrl} alt={event.title} className="h-full w-full object-cover" />
-        </div>
-      )}
+      <div className="h-80 overflow-hidden rounded-lg bg-muted md:h-96">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={event.coverImageUrl ?? "/images/event-placeholder.svg"}
+          alt={event.title}
+          className="h-full w-full object-cover"
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 左: メイン情報 */}

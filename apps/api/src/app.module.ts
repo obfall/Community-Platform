@@ -58,15 +58,22 @@ import { validateEnv } from "./config/env.config";
       validate: validateEnv,
     }),
 
-    // レートリミット（IP ベース、メモリストレージ）
-    ThrottlerModule.forRoot([
-      // 全エンドポイント既定: 60 req/min/IP
-      { name: "default", ttl: 60_000, limit: 60 },
-      // 認証系・パスワードリセット系の厳格制限: 5 req/min/IP
-      { name: "strict", ttl: 60_000, limit: 5 },
-      // ファイルアップロード等の中間: 10 req/min/IP
-      { name: "upload", ttl: 60_000, limit: 10 },
-    ]),
+    // レートリミット（IP ベース、メモリストレージ）。
+    // dev 環境では HMR + React Query の refetch で 60 req/min が簡単に飽和するため、
+    // dev のみ default / upload を大幅に緩和する。strict は dev でも 5 のままで保護を維持。
+    ThrottlerModule.forRoot(
+      process.env.NODE_ENV === "production"
+        ? [
+            { name: "default", ttl: 60_000, limit: 60 },
+            { name: "strict", ttl: 60_000, limit: 5 },
+            { name: "upload", ttl: 60_000, limit: 10 },
+          ]
+        : [
+            { name: "default", ttl: 60_000, limit: 600 },
+            { name: "strict", ttl: 60_000, limit: 5 },
+            { name: "upload", ttl: 60_000, limit: 100 },
+          ],
+    ),
 
     // Structured logging (pino)
     LoggerModule.forRoot({

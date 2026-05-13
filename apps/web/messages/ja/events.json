@@ -13,7 +13,6 @@
   "detail": {
     "loading": "読み込み中...",
     "notFound": "イベントが見つかりません",
-    "createdBy": "作成者: {name}",
     "edit": "編集",
     "duplicate": "複製",
     "delete": "削除",
@@ -122,13 +121,6 @@
   },
   "edit": {
     "pageTitle": "イベント編集"
-  },
-  "banner": {
-    "recruiting": "現在募集中です",
-    "closed": "募集は締め切りました",
-    "canceled": "このイベントは中止になりました",
-    "ended": "このイベントは終了しました",
-    "draft": "下書き — まだ公開されていません"
   },
   "apply": {
     "notFound": "イベントが見つかりません",

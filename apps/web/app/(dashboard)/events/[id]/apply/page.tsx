@@ -272,10 +272,10 @@ function EventApplyForm({
       case "radio":
         return (
           <RadioGroup value={(value as string) ?? ""} onValueChange={(v) => setAnswer(q.id, v)}>
-            {options.map((o) => (
-              <div key={o.value} className="flex items-center gap-2">
-                <RadioGroupItem value={o.value} id={`q_${q.id}_${o.value}`} />
-                <Label htmlFor={`q_${q.id}_${o.value}`}>{o.label}</Label>
+            {options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <RadioGroupItem value={o.value} id={`q_${q.id}_${i}`} />
+                <Label htmlFor={`q_${q.id}_${i}`}>{o.label}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -283,14 +283,14 @@ function EventApplyForm({
       case "checkbox":
         return (
           <div className="space-y-2">
-            {options.map((o) => (
-              <div key={o.value} className="flex items-center gap-2">
+            {options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
                 <Checkbox
-                  id={`q_${q.id}_${o.value}`}
+                  id={`q_${q.id}_${i}`}
                   checked={((value as string[]) ?? []).includes(o.value)}
                   onCheckedChange={() => toggleCheckboxAnswer(q.id, o.value)}
                 />
-                <Label htmlFor={`q_${q.id}_${o.value}`}>{o.label}</Label>
+                <Label htmlFor={`q_${q.id}_${i}`}>{o.label}</Label>
               </div>
             ))}
           </div>
@@ -302,8 +302,8 @@ function EventApplyForm({
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
             <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
+              {options.map((o, i) => (
+                <SelectItem key={i} value={o.value}>
                   {o.label}
                 </SelectItem>
               ))}

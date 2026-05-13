@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useImperativeHandle, type Ref } from "react";
+import { toast } from "sonner";
 import {
   useApplicationForm,
   useUpsertApplicationFormConfig,
@@ -219,7 +220,25 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
 
   const handleSaveQuestion = () => {
     const hasOptions = qType === "radio" || qType === "checkbox" || qType === "select";
-    const options = hasOptions ? qOptions.filter((o) => o.value && o.label) : undefined;
+    let options: ApplicationQuestionOption[] | undefined;
+    if (hasOptions) {
+      // 値・ラベルの trim と必須チェック
+      const trimmed = qOptions.map((o) => ({
+        value: o.value.trim(),
+        label: o.label.trim(),
+      }));
+      if (trimmed.some((o) => !o.value || !o.label)) {
+        toast.error("選択肢の「値」「ラベル」は両方とも入力してください");
+        return;
+      }
+      // value 重複チェック（apply 画面で同 value 同士が同時選択される不具合を防ぐ）
+      const values = trimmed.map((o) => o.value);
+      if (new Set(values).size !== values.length) {
+        toast.error("選択肢の「値」が重複しています。一意の値を指定してください");
+        return;
+      }
+      options = trimmed;
+    }
 
     if (editingQuestionId) {
       updateQuestion.mutate(

@@ -21,18 +21,6 @@ export const EVENT_STATUS_VARIANTS: Record<
   ended: "outline",
 };
 
-/**
- * 詳細ページ上部のステータスバナーの色味（メッセージ本文は messages/ja/events.json
- * の banner.* から取る）。
- */
-export const EVENT_STATUS_BANNER_CLASSES: Record<string, { bg: string; text: string }> = {
-  recruiting: { bg: "bg-green-50 border-green-200", text: "text-green-800" },
-  closed: { bg: "bg-yellow-50 border-yellow-200", text: "text-yellow-800" },
-  canceled: { bg: "bg-red-50 border-red-200", text: "text-red-800" },
-  ended: { bg: "bg-gray-50 border-gray-200", text: "text-gray-600" },
-  draft: { bg: "bg-blue-50 border-blue-200", text: "text-blue-800" },
-};
-
 /** 編集ページなどでステータスを切り替える用の値リスト（5 種全部、表示順固定） */
 export const EVENT_STATUS_OPTION_VALUES: readonly EventStatusType[] = [
   EventStatus.DRAFT,

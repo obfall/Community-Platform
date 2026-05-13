@@ -110,9 +110,8 @@ export class EventsService {
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "events",
-      // タグ名でもヒットさせるため tags_text を含める。description は対象外
-      // （description は snippet ハイライトのみで利用）
-      searchColumns: ["title", "tags_text"],
+      // タグ名・会場名でもヒットさせる。description は対象外（snippet ハイライト用のみ）。
+      searchColumns: ["title", "tags_text", "venue_name"],
       titleColumn: "title",
       snippetColumn: "description",
       escaped,

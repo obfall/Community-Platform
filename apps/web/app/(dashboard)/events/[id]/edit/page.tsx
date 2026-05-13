@@ -210,7 +210,8 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
           participationMethod: data.participationMethod || undefined,
           contactInfo: data.contactInfo || undefined,
           cancellationPolicy: data.cancellationPolicy || undefined,
-          coverImageUrl: data.coverImageUrl || undefined,
+          // 画像削除（null）を API に伝える必要があるので || undefined しない
+          coverImageUrl: data.coverImageUrl,
           // 配列を渡せば全件置換、空配列なら全削除（undefined にしない）
           organizations: data.organizations ?? [],
           tags: data.tags ?? [],

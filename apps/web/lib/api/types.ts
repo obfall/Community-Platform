@@ -881,7 +881,8 @@ export interface CreateEventInput {
   contactInfo?: string;
   cancellationPolicy?: string;
   isAttendeeVisible?: boolean;
-  coverImageUrl?: string;
+  /** null を渡すと既存画像をクリアする（update 用）。create 時は null/undefined 同義 */
+  coverImageUrl?: string | null;
   requiredRankId?: string;
   organizations?: EventOrganizationInput[];
   tags?: string[];
