@@ -1,24 +1,14 @@
-import type { EventOrganizationRole } from "@/lib/api/types";
+import { EventOrganizationRole } from "@community-platform/shared";
+import type { EventOrganizationRole as EventOrganizationRoleType } from "@community-platform/shared";
 
 /**
- * 関係団体の役割の選択肢。Select の options と Badge ラベルの両方で参照する。
- * バック側 schema.prisma の EventOrganizationRole enum と整合させる。
+ * 関係団体の役割の値リスト（表示順固定）。
+ * ラベルは messages/ja/enums.json の eventOrganizationRole から取得する。
  */
-export const EVENT_ORGANIZATION_ROLE_OPTIONS: Array<{
-  value: EventOrganizationRole;
-  label: string;
-}> = [
-  { value: "organizer", label: "主催" },
-  { value: "co_organizer", label: "共催" },
-  { value: "cooperation", label: "協力" },
-  { value: "sponsor", label: "協賛" },
-  { value: "support", label: "後援" },
+export const EVENT_ORGANIZATION_ROLE_VALUES_ORDERED: readonly EventOrganizationRoleType[] = [
+  EventOrganizationRole.ORGANIZER,
+  EventOrganizationRole.CO_ORGANIZER,
+  EventOrganizationRole.COOPERATION,
+  EventOrganizationRole.SPONSOR,
+  EventOrganizationRole.SUPPORT,
 ];
-
-export const EVENT_ORGANIZATION_ROLE_LABELS: Record<EventOrganizationRole, string> = {
-  organizer: "主催",
-  co_organizer: "共催",
-  cooperation: "協力",
-  sponsor: "協賛",
-  support: "後援",
-};

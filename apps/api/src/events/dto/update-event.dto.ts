@@ -13,14 +13,21 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { EventLocationType, EventStatus } from "@prisma/client";
+import {
+  MAX_EVENT_ORGANIZATIONS,
+  MAX_EVENT_SPEAKERS,
+  MAX_EVENT_TAG_LENGTH,
+  MAX_EVENT_TAGS,
+  MAX_EVENT_TITLE_LENGTH,
+} from "@community-platform/shared";
 import { EventOrganizationItemDto } from "./event-organization.dto";
 import { EventSpeakerItemDto } from "./event-speaker.dto";
 
 export class UpdateEventDto {
-  @ApiPropertyOptional({ description: "タイトル", maxLength: 200 })
+  @ApiPropertyOptional({ description: "タイトル", maxLength: MAX_EVENT_TITLE_LENGTH })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(MAX_EVENT_TITLE_LENGTH)
   title?: string;
 
   @ApiPropertyOptional({ description: "概要" })
@@ -139,29 +146,29 @@ export class UpdateEventDto {
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(MAX_EVENT_ORGANIZATIONS)
   @ValidateNested({ each: true })
   @Type(() => EventOrganizationItemDto)
   organizations?: EventOrganizationItemDto[];
 
   @ApiPropertyOptional({
-    description: "タグ名（最大 3 つ）。配列を渡すと全件置換、省略すると変更なし",
+    description: `タグ名（最大 ${MAX_EVENT_TAGS} つ）。配列を渡すと全件置換、省略すると変更なし`,
     type: [String],
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(3)
+  @ArrayMaxSize(MAX_EVENT_TAGS)
   @IsString({ each: true })
-  @MaxLength(50, { each: true })
+  @MaxLength(MAX_EVENT_TAG_LENGTH, { each: true })
   tags?: string[];
 
   @ApiPropertyOptional({
-    description: "登壇者（配列を渡すと全件置換、省略すると変更なし、最大 5 名）",
+    description: `登壇者（配列を渡すと全件置換、省略すると変更なし、最大 ${MAX_EVENT_SPEAKERS} 名）`,
     type: [EventSpeakerItemDto],
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(MAX_EVENT_SPEAKERS)
   @ValidateNested({ each: true })
   @Type(() => EventSpeakerItemDto)
   speakers?: EventSpeakerItemDto[];

@@ -1,11 +1,12 @@
 /* eslint-disable react-hooks/incompatible-library */
 "use client";
 
-import { use, useRef } from "react";
+import { use, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import { useEvent, useUpdateEvent } from "@/hooks/events/use-events";
 import type { EventDetail } from "@/lib/api/types";
 import { ImageUpload } from "@/components/image-upload";
@@ -37,53 +38,76 @@ import {
 } from "../_components/application-form-editor";
 import { TagInput } from "@/components/tag-input";
 import { MemberPicker } from "@/components/member-picker";
-import { EVENT_ORGANIZATION_ROLE_OPTIONS } from "@/lib/events/organization-role";
-import { EVENT_SPEAKER_ROLE_OPTIONS } from "@/lib/events/speaker-role";
+import { EVENT_ORGANIZATION_ROLE_VALUES_ORDERED } from "@/lib/events/organization-role";
+import { EVENT_SPEAKER_ROLE_VALUES_ORDERED } from "@/lib/events/speaker-role";
+import {
+  MAX_EVENT_ORGANIZATIONS,
+  MAX_EVENT_SPEAKERS,
+  MAX_EVENT_TAG_LENGTH,
+  MAX_EVENT_TAGS,
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_ORGANIZATION_NAME_LENGTH,
+  MAX_SPEAKER_NAME_LENGTH,
+  MAX_SPEAKER_TITLE_LENGTH,
+  EVENT_ORGANIZATION_ROLE_VALUES,
+  EVENT_SPEAKER_ROLE_VALUES,
+  EVENT_STATUS_VALUES,
+  EVENT_LOCATION_TYPE_VALUES,
+  EventOrganizationRole,
+  EventSpeakerRole,
+  EventLocationType,
+} from "@community-platform/shared";
+import { EVENT_STATUS_OPTION_VALUES } from "@/lib/events/event-status";
 
-const schema = z.object({
-  title: z.string().min(1, "タイトルは必須です").max(200),
-  description: z.string().optional(),
-  locationType: z.enum(["venue", "online", "hybrid"]),
-  venueId: z.string().optional(),
-  venueName: z.string().optional(),
-  venueAddress: z.string().optional(),
-  onlineUrl: z.string().optional(),
-  startAt: z.string().min(1, "開始日時は必須です"),
-  endAt: z.string().min(1, "終了日時は必須です"),
-  registrationDeadlineAt: z.string().optional(),
-  eventType: z.string().optional(),
-  planningRole: z.string().optional(),
-  accessInfo: z.string().optional(),
-  participationMethod: z.string().optional(),
-  contactInfo: z.string().optional(),
-  cancellationPolicy: z.string().optional(),
-  coverImageUrl: z.string().nullable().optional(),
-  status: z.enum(["draft", "recruiting", "closed", "canceled", "ended"]),
-  isCalendarVisible: z.boolean().optional(),
-  organizations: z
-    .array(
-      z.object({
-        organizationName: z.string().min(1, "団体名は必須です").max(200),
-        role: z.enum(["organizer", "co_organizer", "cooperation", "sponsor", "support"]),
-      }),
-    )
-    .max(20)
-    .optional(),
-  tags: z.array(z.string().min(1).max(50)).max(3).optional(),
-  speakers: z
-    .array(
-      z.object({
-        name: z.string().min(1, "名前は必須です").max(100),
-        title: z.string().max(100).optional(),
-        role: z.enum(["speaker", "co_speaker", "guest", "moderator", "panelist"]),
-        userId: z.string().uuid().optional(),
-      }),
-    )
-    .max(5)
-    .optional(),
-});
+function buildSchema(t: (key: string) => string) {
+  return z.object({
+    title: z.string().min(1, t("titleRequired")).max(MAX_EVENT_TITLE_LENGTH),
+    description: z.string().optional(),
+    locationType: z.enum(EVENT_LOCATION_TYPE_VALUES),
+    venueId: z.string().optional(),
+    venueName: z.string().optional(),
+    venueAddress: z.string().optional(),
+    onlineUrl: z.string().optional(),
+    startAt: z.string().min(1, t("startAtRequired")),
+    endAt: z.string().min(1, t("endAtRequired")),
+    registrationDeadlineAt: z.string().optional(),
+    eventType: z.string().optional(),
+    planningRole: z.string().optional(),
+    accessInfo: z.string().optional(),
+    participationMethod: z.string().optional(),
+    contactInfo: z.string().optional(),
+    cancellationPolicy: z.string().optional(),
+    coverImageUrl: z.string().nullable().optional(),
+    status: z.enum(EVENT_STATUS_VALUES),
+    isCalendarVisible: z.boolean().optional(),
+    organizations: z
+      .array(
+        z.object({
+          organizationName: z
+            .string()
+            .min(1, t("organizationNameRequired"))
+            .max(MAX_ORGANIZATION_NAME_LENGTH),
+          role: z.enum(EVENT_ORGANIZATION_ROLE_VALUES),
+        }),
+      )
+      .max(MAX_EVENT_ORGANIZATIONS)
+      .optional(),
+    tags: z.array(z.string().min(1).max(MAX_EVENT_TAG_LENGTH)).max(MAX_EVENT_TAGS).optional(),
+    speakers: z
+      .array(
+        z.object({
+          name: z.string().min(1, t("speakerNameRequired")).max(MAX_SPEAKER_NAME_LENGTH),
+          title: z.string().max(MAX_SPEAKER_TITLE_LENGTH).optional(),
+          role: z.enum(EVENT_SPEAKER_ROLE_VALUES),
+          userId: z.string().uuid().optional(),
+        }),
+      )
+      .max(MAX_EVENT_SPEAKERS)
+      .optional(),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 function toLocalDatetime(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -95,14 +119,15 @@ function toLocalDatetime(iso: string | null | undefined): string {
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const tDetail = useTranslations("events.detail");
   const { data: event, isLoading } = useEvent(id);
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tDetail("loading")}</div>;
   }
 
   if (!event) {
-    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tDetail("notFound")}</div>;
   }
 
   return <EditEventForm id={id} event={event} />;
@@ -112,13 +137,26 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
   const router = useRouter();
   const updateEvent = useUpdateEvent();
   const formEditorRef = useRef<ApplicationFormEditorHandle>(null);
+  const t = useTranslations("events.edit");
+  const tLabel = useTranslations("events.form.label");
+  const tPh = useTranslations("events.form.placeholder");
+  const tHint = useTranslations("events.form.hint");
+  const tCard = useTranslations("events.form.card");
+  const tBtn = useTranslations("events.form.button");
+  const tValidation = useTranslations("events.form.validation");
+  const tLocation = useTranslations("enums.eventLocationType");
+  const tStatus = useTranslations("enums.eventStatus");
+  const tOrgRole = useTranslations("enums.eventOrganizationRole");
+  const tSpeakerRole = useTranslations("enums.eventSpeakerRole");
+
+  const schema = useMemo(() => buildSchema((k) => tValidation(k)), [tValidation]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       title: event.title,
       description: event.description ?? "",
-      locationType: event.locationType as "venue" | "online" | "hybrid",
+      locationType: event.locationType as EventLocationType,
       venueId: event.venueId ?? undefined,
       venueName: event.venueName ?? "",
       venueAddress: event.venueAddress ?? "",
@@ -139,7 +177,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
         organizationName: o.organizationName,
         role: o.role,
       })),
-      tags: event.tags.map((t) => t.name),
+      tags: event.tags.map((tag) => tag.name),
       speakers: event.speakers.map((s) => ({
         name: s.name,
         title: s.title ?? undefined,
@@ -187,7 +225,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">イベント編集</h1>
+      <h1 className="text-2xl font-bold">{t("pageTitle")}</h1>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -195,7 +233,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
             <div className="space-y-6 lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>基本情報</CardTitle>
+                  <CardTitle>{tCard("basicInfo")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -203,7 +241,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>タイトル</FormLabel>
+                        <FormLabel>{tLabel("title")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -216,7 +254,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>概要</FormLabel>
+                        <FormLabel>{tLabel("description")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={6} />
                         </FormControl>
@@ -228,7 +266,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="coverImageUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>カバー画像</FormLabel>
+                        <FormLabel>{tLabel("coverImage")}</FormLabel>
                         <FormControl>
                           <ImageUpload value={field.value} onChange={field.onChange} />
                         </FormControl>
@@ -240,7 +278,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>開催情報</CardTitle>
+                  <CardTitle>{tCard("eventInfo")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -248,7 +286,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="locationType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>開催形態</FormLabel>
+                        <FormLabel>{tLabel("locationType")}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -256,22 +294,25 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="venue">会場</SelectItem>
-                            <SelectItem value="online">オンライン</SelectItem>
-                            <SelectItem value="hybrid">ハイブリッド</SelectItem>
+                            {EVENT_LOCATION_TYPE_VALUES.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {tLocation(v)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FormItem>
                     )}
                   />
-                  {(locationType === "venue" || locationType === "hybrid") && (
+                  {(locationType === EventLocationType.VENUE ||
+                    locationType === EventLocationType.HYBRID) && (
                     <>
                       <FormField
                         control={form.control}
                         name="venueId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>施設</FormLabel>
+                            <FormLabel>{tLabel("venue")}</FormLabel>
                             <FormControl>
                               <VenuePicker
                                 value={field.value}
@@ -290,7 +331,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                         name="venueName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>会場名</FormLabel>
+                            <FormLabel>{tLabel("venueName")}</FormLabel>
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
@@ -302,7 +343,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                         name="venueAddress"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>住所</FormLabel>
+                            <FormLabel>{tLabel("venueAddress")}</FormLabel>
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
@@ -311,13 +352,14 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                       />
                     </>
                   )}
-                  {(locationType === "online" || locationType === "hybrid") && (
+                  {(locationType === EventLocationType.ONLINE ||
+                    locationType === EventLocationType.HYBRID) && (
                     <FormField
                       control={form.control}
                       name="onlineUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>オンラインURL</FormLabel>
+                          <FormLabel>{tLabel("onlineUrl")}</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -331,7 +373,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                       name="startAt"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>開始日時</FormLabel>
+                          <FormLabel>{tLabel("startAt")}</FormLabel>
                           <FormControl>
                             <Input type="datetime-local" {...field} />
                           </FormControl>
@@ -344,7 +386,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                       name="endAt"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>終了日時</FormLabel>
+                          <FormLabel>{tLabel("endAt")}</FormLabel>
                           <FormControl>
                             <Input type="datetime-local" {...field} />
                           </FormControl>
@@ -358,7 +400,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="registrationDeadlineAt"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>申込締切（オプション）</FormLabel>
+                        <FormLabel>{tLabel("registrationDeadlineAt")}</FormLabel>
                         <FormControl>
                           <Input type="datetime-local" {...field} />
                         </FormControl>
@@ -370,7 +412,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>追加情報</CardTitle>
+                  <CardTitle>{tCard("additionalInfo")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -378,7 +420,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="accessInfo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>アクセス情報</FormLabel>
+                        <FormLabel>{tLabel("accessInfo")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={3} />
                         </FormControl>
@@ -390,7 +432,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="participationMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>参加方法</FormLabel>
+                        <FormLabel>{tLabel("participationMethod")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={3} />
                         </FormControl>
@@ -402,7 +444,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="contactInfo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>問合せ先</FormLabel>
+                        <FormLabel>{tLabel("contactInfo")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -414,7 +456,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="cancellationPolicy"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>キャンセルポリシー</FormLabel>
+                        <FormLabel>{tLabel("cancellationPolicy")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={3} />
                         </FormControl>
@@ -432,7 +474,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>設定</CardTitle>
+                  <CardTitle>{tCard("settings")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <FormField
@@ -440,7 +482,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ステータス</FormLabel>
+                        <FormLabel>{tLabel("status")}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -448,11 +490,11 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="draft">下書き</SelectItem>
-                            <SelectItem value="recruiting">募集中</SelectItem>
-                            <SelectItem value="closed">締切</SelectItem>
-                            <SelectItem value="canceled">中止</SelectItem>
-                            <SelectItem value="ended">終了</SelectItem>
+                            {EVENT_STATUS_OPTION_VALUES.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {tStatus(v)}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -463,9 +505,9 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="eventType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>イベント種別</FormLabel>
+                        <FormLabel>{tLabel("eventType")}</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="例: セミナー" />
+                          <Input {...field} placeholder={tPh("eventType")} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -475,7 +517,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                     name="planningRole"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>企画役割</FormLabel>
+                        <FormLabel>{tLabel("planningRole")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -487,7 +529,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>タグ</CardTitle>
+                  <CardTitle>{tCard("tags")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <FormField
@@ -499,11 +541,11 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           <TagInput
                             value={field.value ?? []}
                             onChange={field.onChange}
-                            maxTags={3}
+                            maxTags={MAX_EVENT_TAGS}
                           />
                         </FormControl>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          最大 3 つ。検索に使われます
+                          {tHint("tags", { max: MAX_EVENT_TAGS })}
                         </p>
                         <FormMessage />
                       </FormItem>
@@ -514,13 +556,11 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>関係団体</CardTitle>
+                  <CardTitle>{tCard("organizations")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {orgFields.fields.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      共催・協力団体などを登録できます
-                    </p>
+                    <p className="text-xs text-muted-foreground">{tHint("organizations")}</p>
                   ) : (
                     orgFields.fields.map((field, index) => (
                       <div key={field.id} className="space-y-2 rounded-md border p-3">
@@ -529,9 +569,11 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`organizations.${index}.organizationName`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">団体名</FormLabel>
+                              <FormLabel className="text-xs">
+                                {tLabel("organizationName")}
+                              </FormLabel>
                               <FormControl>
-                                <Input {...f} placeholder="例: 株式会社○○" />
+                                <Input {...f} placeholder={tPh("organizationName")} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -542,17 +584,17 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`organizations.${index}.role`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">役割</FormLabel>
+                              <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
                               <Select onValueChange={f.onChange} value={f.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="役割を選択" />
+                                    <SelectValue placeholder={tPh("selectRole")} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {EVENT_ORGANIZATION_ROLE_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      {opt.label}
+                                  {EVENT_ORGANIZATION_ROLE_VALUES_ORDERED.map((v) => (
+                                    <SelectItem key={v} value={v}>
+                                      {tOrgRole(v)}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -569,23 +611,26 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           className="text-destructive"
                         >
                           <Trash2 className="mr-1 h-3 w-3" />
-                          削除
+                          {tBtn("remove")}
                         </Button>
                       </div>
                     ))
                   )}
-                  {orgFields.fields.length < 20 && (
+                  {orgFields.fields.length < MAX_EVENT_ORGANIZATIONS && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="w-full"
                       onClick={() =>
-                        orgFields.append({ organizationName: "", role: "co_organizer" })
+                        orgFields.append({
+                          organizationName: "",
+                          role: EventOrganizationRole.CO_ORGANIZER,
+                        })
                       }
                     >
                       <Plus className="mr-1 h-3 w-3" />
-                      関係団体を追加
+                      {tBtn("addOrganization")}
                     </Button>
                   )}
                 </CardContent>
@@ -593,13 +638,11 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>登壇者</CardTitle>
+                  <CardTitle>{tCard("speakers")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {speakerFields.fields.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      講師・ゲスト・モデレーターなどを登録できます
-                    </p>
+                    <p className="text-xs text-muted-foreground">{tHint("speakers")}</p>
                   ) : (
                     speakerFields.fields.map((field, index) => (
                       <div key={field.id} className="space-y-2 rounded-md border p-3">
@@ -608,7 +651,7 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`speakers.${index}.userId`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">メンバー（任意）</FormLabel>
+                              <FormLabel className="text-xs">{tLabel("memberLink")}</FormLabel>
                               <FormControl>
                                 <MemberPicker
                                   value={
@@ -639,9 +682,9 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`speakers.${index}.name`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">名前</FormLabel>
+                              <FormLabel className="text-xs">{tLabel("speakerName")}</FormLabel>
                               <FormControl>
-                                <Input {...f} placeholder="例: 山田 太郎" />
+                                <Input {...f} placeholder={tPh("speakerName")} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -652,9 +695,9 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`speakers.${index}.title`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">肩書（任意）</FormLabel>
+                              <FormLabel className="text-xs">{tLabel("speakerTitle")}</FormLabel>
                               <FormControl>
-                                <Input {...f} placeholder="例: 株式会社○○ CEO" />
+                                <Input {...f} placeholder={tPh("speakerTitle")} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -665,17 +708,17 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           name={`speakers.${index}.role`}
                           render={({ field: f }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">役割</FormLabel>
+                              <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
                               <Select onValueChange={f.onChange} value={f.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="役割を選択" />
+                                    <SelectValue placeholder={tPh("selectRole")} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {EVENT_SPEAKER_ROLE_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      {opt.label}
+                                  {EVENT_SPEAKER_ROLE_VALUES_ORDERED.map((v) => (
+                                    <SelectItem key={v} value={v}>
+                                      {tSpeakerRole(v)}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -692,21 +735,27 @@ function EditEventForm({ id, event }: { id: string; event: EventDetail }) {
                           className="text-destructive"
                         >
                           <Trash2 className="mr-1 h-3 w-3" />
-                          削除
+                          {tBtn("remove")}
                         </Button>
                       </div>
                     ))
                   )}
-                  {speakerFields.fields.length < 5 && (
+                  {speakerFields.fields.length < MAX_EVENT_SPEAKERS && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="w-full"
-                      onClick={() => speakerFields.append({ name: "", title: "", role: "speaker" })}
+                      onClick={() =>
+                        speakerFields.append({
+                          name: "",
+                          title: "",
+                          role: EventSpeakerRole.SPEAKER,
+                        })
+                      }
                     >
                       <Plus className="mr-1 h-3 w-3" />
-                      登壇者を追加
+                      {tBtn("addSpeaker")}
                     </Button>
                   )}
                 </CardContent>

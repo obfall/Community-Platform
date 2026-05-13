@@ -745,7 +745,8 @@ export interface EventTicket {
   soldCount: number;
 }
 
-export type EventSpeakerRole = "speaker" | "co_speaker" | "guest" | "moderator" | "panelist";
+export type { EventSpeakerRole } from "@community-platform/shared";
+import type { EventSpeakerRole } from "@community-platform/shared";
 
 export interface EventSpeaker {
   id: string;
@@ -763,12 +764,8 @@ export interface EventSpeakerInput {
   userId?: string;
 }
 
-export type EventOrganizationRole =
-  | "organizer"
-  | "co_organizer"
-  | "cooperation"
-  | "sponsor"
-  | "support";
+export type { EventOrganizationRole } from "@community-platform/shared";
+import type { EventOrganizationRole } from "@community-platform/shared";
 
 export interface EventOrganization {
   id: string;

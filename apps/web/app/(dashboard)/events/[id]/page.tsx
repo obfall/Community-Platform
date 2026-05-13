@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEvent, useDuplicateEvent, useDeleteEvent } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -40,60 +41,21 @@ import {
 import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
 import { ApplicationFormSection } from "./_components/application-form-section";
-import { EVENT_ORGANIZATION_ROLE_LABELS } from "@/lib/events/organization-role";
-import { EVENT_SPEAKER_ROLE_LABELS } from "@/lib/events/speaker-role";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  recruiting: "募集中",
-  closed: "締切",
-  canceled: "中止",
-  ended: "終了",
-};
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline" | "success"
-> = {
-  draft: "secondary",
-  recruiting: "success",
-  closed: "outline",
-  canceled: "destructive",
-  ended: "outline",
-};
-
-const STATUS_BANNER: Record<string, { bg: string; text: string; message: string }> = {
-  recruiting: {
-    bg: "bg-green-50 border-green-200",
-    text: "text-green-800",
-    message: "現在募集中です",
-  },
-  closed: {
-    bg: "bg-yellow-50 border-yellow-200",
-    text: "text-yellow-800",
-    message: "募集は締め切りました",
-  },
-  canceled: {
-    bg: "bg-red-50 border-red-200",
-    text: "text-red-800",
-    message: "このイベントは中止になりました",
-  },
-  ended: {
-    bg: "bg-gray-50 border-gray-200",
-    text: "text-gray-600",
-    message: "このイベントは終了しました",
-  },
-  draft: {
-    bg: "bg-blue-50 border-blue-200",
-    text: "text-blue-800",
-    message: "下書き — まだ公開されていません",
-  },
-};
+import { EVENT_STATUS_VARIANTS, EVENT_STATUS_BANNER_CLASSES } from "@/lib/events/event-status";
+import { EventStatus, EventLocationType } from "@community-platform/shared";
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const t = useTranslations("events.detail");
+  const tCard = useTranslations("events.form.card");
+  const tBanner = useTranslations("events.banner");
+  const tStatus = useTranslations("enums.eventStatus");
+  const tSpeakerRole = useTranslations("enums.eventSpeakerRole");
+  const tOrgRole = useTranslations("enums.eventOrganizationRole");
+  const tLocation = useTranslations("enums.eventLocationType");
+  const tCommon = useTranslations("common");
   const { user } = useAuth();
   const { data: event, isLoading } = useEvent(id);
   const duplicateEvent = useDuplicateEvent();
@@ -102,15 +64,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
   }
 
   if (!event) {
-    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
   }
 
   const isAdmin = user?.role === "owner" || user?.role === "admin";
-  const banner = STATUS_BANNER[event.status];
+  const bannerClasses = EVENT_STATUS_BANNER_CLASSES[event.status];
 
   const handleDuplicate = () => {
     duplicateEvent.mutate(id, {
@@ -127,8 +89,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-start gap-4">
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
-            <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
-              {STATUS_LABELS[event.status] ?? event.status}
+            <Badge variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}>
+              {tStatus(event.status)}
             </Badge>
             {event.tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
@@ -137,7 +99,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             ))}
           </div>
           <h1 className="text-2xl font-bold">{event.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">作成者: {event.createdBy.name}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("createdBy", { name: event.createdBy.name })}
+          </p>
         </div>
         {isAdmin && (
           <DropdownMenu>
@@ -149,11 +113,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => router.push(`/events/${id}/edit`)}>
                 <Pencil className="mr-2 h-4 w-4" />
-                編集
+                {t("edit")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
                 <Copy className="mr-2 h-4 w-4" />
-                複製
+                {t("duplicate")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -161,7 +125,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                削除
+                {t("delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -169,11 +133,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* ステータスバナー */}
-      {banner && (
+      {bannerClasses && (
         <div
-          className={`rounded-lg border p-3 text-center text-sm font-medium ${banner.bg} ${banner.text}`}
+          className={`rounded-lg border p-3 text-center text-sm font-medium ${bannerClasses.bg} ${bannerClasses.text}`}
         >
-          {banner.message}
+          {tBanner(event.status)}
         </div>
       )}
 
@@ -191,7 +155,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* 基本情報 */}
           <Card>
             <CardHeader>
-              <CardTitle>基本情報</CardTitle>
+              <CardTitle>{tCard("basicInfo")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* 日時 */}
@@ -226,12 +190,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="flex items-center gap-3 text-sm">
                   <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <p>
-                    申込締切:{" "}
-                    {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                    {t("deadlineLabel", {
+                      date: new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
                     })}
                   </p>
                 </div>
@@ -239,13 +204,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
               {/* 会場 */}
               <div className="flex items-start gap-3 text-sm">
-                {event.locationType === "online" ? (
+                {event.locationType === EventLocationType.ONLINE ? (
                   <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 ) : (
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
                 <div>
-                  <p className="font-medium">{event.venueName ?? event.locationType}</p>
+                  <p className="font-medium">{event.venueName ?? tLocation(event.locationType)}</p>
                   {event.venueAddress && (
                     <p className="text-muted-foreground">{event.venueAddress}</p>
                   )}
@@ -256,16 +221,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               {/* 参加者数 */}
               <div className="flex items-center gap-3 text-sm">
                 <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="font-medium">{event.participantCount}人参加</p>
+                <p className="font-medium">
+                  {t("participantsLabel", { count: event.participantCount })}
+                </p>
               </div>
 
               {/* 企画役割 */}
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-muted-foreground">企画:</span>
+                <span className="text-muted-foreground">{t("planningPrefix")}</span>
                 <span>{event.planningRole}</span>
                 {event.eventType && (
                   <>
-                    <span className="text-muted-foreground">種別:</span>
+                    <span className="text-muted-foreground">{t("typePrefix")}</span>
                     <span>{event.eventType}</span>
                   </>
                 )}
@@ -276,7 +243,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               {/* 概要 */}
               {event.description && (
                 <div>
-                  <p className="mb-2 text-sm font-medium text-muted-foreground">概要</p>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">
+                    {t("descriptionLabel")}
+                  </p>
                   <div className="prose prose-sm max-w-none whitespace-pre-wrap">
                     {event.description}
                   </div>
@@ -288,7 +257,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* 登壇者 */}
           <Card>
             <CardHeader>
-              <CardTitle>登壇者</CardTitle>
+              <CardTitle>{t("speakersCard")}</CardTitle>
             </CardHeader>
             <CardContent>
               {event.speakers && event.speakers.length > 0 ? (
@@ -307,14 +276,14 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         <p className="text-sm font-medium">{speaker.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {speaker.title && `${speaker.title} / `}
-                          {EVENT_SPEAKER_ROLE_LABELS[speaker.role] ?? speaker.role}
+                          {tSpeakerRole(speaker.role)}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">なし</p>
+                <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
               )}
             </CardContent>
           </Card>
@@ -322,7 +291,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* 関係団体 */}
           <Card>
             <CardHeader>
-              <CardTitle>関係団体</CardTitle>
+              <CardTitle>{t("organizationsCard")}</CardTitle>
             </CardHeader>
             <CardContent>
               {event.organizations && event.organizations.length > 0 ? (
@@ -330,14 +299,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   {event.organizations.map((org) => (
                     <div key={org.id} className="flex items-center justify-between text-sm">
                       <span>{org.organizationName}</span>
-                      <Badge variant="outline">
-                        {EVENT_ORGANIZATION_ROLE_LABELS[org.role] ?? org.role}
-                      </Badge>
+                      <Badge variant="outline">{tOrgRole(org.role)}</Badge>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">なし</p>
+                <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
               )}
             </CardContent>
           </Card>
@@ -345,17 +312,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           {/* 詳細情報 */}
           <Card>
             <CardHeader>
-              <CardTitle>詳細情報</CardTitle>
+              <CardTitle>{t("detailInfoCard")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              {event.language && <InfoRow label="使用言語" value={event.language} />}
-              {event.accessInfo && <InfoRow label="アクセス" value={event.accessInfo} />}
-              {event.participationMethod && (
-                <InfoRow label="参加方法" value={event.participationMethod} />
+              {event.language && <InfoRow label={t("infoRow.language")} value={event.language} />}
+              {event.accessInfo && (
+                <InfoRow label={t("infoRow.accessInfo")} value={event.accessInfo} />
               )}
-              {event.contactInfo && <InfoRow label="問合せ先" value={event.contactInfo} />}
+              {event.participationMethod && (
+                <InfoRow
+                  label={t("infoRow.participationMethod")}
+                  value={event.participationMethod}
+                />
+              )}
+              {event.contactInfo && (
+                <InfoRow label={t("infoRow.contactInfo")} value={event.contactInfo} />
+              )}
               {event.cancellationPolicy && (
-                <InfoRow label="キャンセルポリシー" value={event.cancellationPolicy} />
+                <InfoRow label={t("infoRow.cancellationPolicy")} value={event.cancellationPolicy} />
               )}
             </CardContent>
           </Card>
@@ -367,26 +341,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         {/* 右: サイドバー */}
         <div className="space-y-4">
           {/* 参加申込 CTA */}
-          {event.status === "recruiting" && (
+          {event.status === EventStatus.RECRUITING && (
             <Card>
               <CardContent className="space-y-3 p-4">
                 {event.registrationDeadlineAt && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4 shrink-0" />
                     <span>
-                      申込締切:{" "}
-                      {new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
+                      {t("deadlineLabel", {
+                        date: new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
                       })}
                     </span>
                   </div>
                 )}
                 <Link href={`/events/${id}/apply`}>
                   <Button className="w-full" size="lg">
-                    参加申込
+                    {t("applyButton")}
                   </Button>
                 </Link>
               </CardContent>
@@ -402,25 +377,31 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <AlertDialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>イベントを複製</AlertDialogTitle>
+            <AlertDialogTitle>{t("duplicateDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm text-muted-foreground">
-                <p>このイベントを元に新しいイベント（下書き）を作成します。</p>
+                <p>{t("duplicateDialog.intro")}</p>
                 <div>
-                  <p className="font-medium text-foreground">引き継がれる項目</p>
-                  <p>基本情報・チケット・申込フォーム設定・カスタム質問・登壇者・関係団体・タグ</p>
+                  <p className="font-medium text-foreground">
+                    {t("duplicateDialog.inheritsLabel")}
+                  </p>
+                  <p>{t("duplicateDialog.inheritsText")}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">引き継がれない項目</p>
-                  <p>参加者・回答データ・実施結果・割引コード・ファイル・チケット販売数</p>
+                  <p className="font-medium text-foreground">
+                    {t("duplicateDialog.notInheritsLabel")}
+                  </p>
+                  <p>{t("duplicateDialog.notInheritsText")}</p>
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDuplicate} disabled={duplicateEvent.isPending}>
-              {duplicateEvent.isPending ? "複製中..." : "複製する"}
+              {duplicateEvent.isPending
+                ? t("duplicateDialog.duplicating")
+                : t("duplicateDialog.duplicateAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -430,19 +411,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>イベントを削除しますか？</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              「{event.title}」を削除します。この操作は論理削除です。
+              {t("deleteDialog.description", { title: event.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 deleteEvent.mutate(id, { onSuccess: () => router.push("/events") });
               }}
             >
-              削除する
+              {t("deleteDialog.action")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

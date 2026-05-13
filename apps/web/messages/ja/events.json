@@ -1,0 +1,148 @@
+{
+  "list": {
+    "title": "イベント",
+    "create": "新規作成",
+    "searchPlaceholder": "イベントを検索...",
+    "filterPlaceholder": "ステータス",
+    "empty": "イベントがありません",
+    "loading": "読み込み中...",
+    "participantsLabel": "{count}/{total}人",
+    "participantsLabelOpen": "{count}人参加",
+    "priceLabel": "¥{price}〜"
+  },
+  "detail": {
+    "loading": "読み込み中...",
+    "notFound": "イベントが見つかりません",
+    "createdBy": "作成者: {name}",
+    "edit": "編集",
+    "duplicate": "複製",
+    "delete": "削除",
+    "deadlineLabel": "申込締切: {date}",
+    "participantsLabel": "{count}人参加",
+    "planningPrefix": "企画:",
+    "typePrefix": "種別:",
+    "descriptionLabel": "概要",
+    "applyButton": "参加申込",
+    "speakersCard": "登壇者",
+    "organizationsCard": "関係団体",
+    "noneFallback": "なし",
+    "detailInfoCard": "詳細情報",
+    "infoRow": {
+      "language": "使用言語",
+      "accessInfo": "アクセス",
+      "participationMethod": "参加方法",
+      "contactInfo": "問合せ先",
+      "cancellationPolicy": "キャンセルポリシー"
+    },
+    "duplicateDialog": {
+      "title": "イベントを複製",
+      "intro": "このイベントを元に新しいイベント（下書き）を作成します。",
+      "inheritsLabel": "引き継がれる項目",
+      "inheritsText": "基本情報・チケット・申込フォーム設定・カスタム質問・登壇者・関係団体・タグ",
+      "notInheritsLabel": "引き継がれない項目",
+      "notInheritsText": "参加者・回答データ・実施結果・割引コード・ファイル・チケット販売数",
+      "duplicating": "複製中...",
+      "duplicateAction": "複製する"
+    },
+    "deleteDialog": {
+      "title": "イベントを削除しますか？",
+      "description": "「{title}」を削除します。この操作は論理削除です。",
+      "action": "削除する"
+    }
+  },
+  "form": {
+    "card": {
+      "basicInfo": "基本情報",
+      "eventInfo": "開催情報",
+      "additionalInfo": "追加情報",
+      "settings": "設定",
+      "tags": "タグ",
+      "organizations": "関係団体",
+      "speakers": "登壇者"
+    },
+    "label": {
+      "title": "タイトル",
+      "description": "概要",
+      "coverImage": "カバー画像",
+      "locationType": "開催形態",
+      "venue": "施設",
+      "venueName": "会場名",
+      "venueAddress": "住所",
+      "onlineUrl": "オンラインURL",
+      "startAt": "開始日時",
+      "endAt": "終了日時",
+      "registrationDeadlineAt": "申込締切（オプション）",
+      "status": "ステータス",
+      "eventType": "イベント種別",
+      "planningRole": "企画役割",
+      "organizationName": "団体名",
+      "role": "役割",
+      "speakerName": "名前",
+      "speakerTitle": "肩書（任意）",
+      "memberLink": "メンバー（任意）",
+      "accessInfo": "アクセス情報",
+      "participationMethod": "参加方法",
+      "contactInfo": "問合せ先",
+      "cancellationPolicy": "キャンセルポリシー"
+    },
+    "placeholder": {
+      "title": "イベントタイトル",
+      "description": "イベントの説明",
+      "onlineUrl": "https://...",
+      "venueName": "会場名",
+      "venueAddress": "住所",
+      "eventType": "例: セミナー",
+      "organizationName": "例: 株式会社○○",
+      "speakerName": "例: 山田 太郎",
+      "speakerTitle": "例: 株式会社○○ CEO",
+      "selectRole": "役割を選択"
+    },
+    "hint": {
+      "tags": "最大 {max} つ。検索に使われます",
+      "organizations": "共催・協力団体などを登録できます",
+      "speakers": "講師・ゲスト・モデレーターなどを登録できます"
+    },
+    "button": {
+      "submitNew": "イベントを作成",
+      "submitEdit": "保存",
+      "addOrganization": "関係団体を追加",
+      "addSpeaker": "登壇者を追加",
+      "remove": "削除"
+    },
+    "validation": {
+      "titleRequired": "タイトルは必須です",
+      "startAtRequired": "開始日時は必須です",
+      "endAtRequired": "終了日時は必須です",
+      "organizationNameRequired": "団体名は必須です",
+      "speakerNameRequired": "名前は必須です"
+    }
+  },
+  "new": {
+    "pageTitle": "イベント作成"
+  },
+  "edit": {
+    "pageTitle": "イベント編集"
+  },
+  "banner": {
+    "recruiting": "現在募集中です",
+    "closed": "募集は締め切りました",
+    "canceled": "このイベントは中止になりました",
+    "ended": "このイベントは終了しました",
+    "draft": "下書き — まだ公開されていません"
+  },
+  "apply": {
+    "notFound": "イベントが見つかりません",
+    "notRecruiting": "このイベントは現在募集していません"
+  },
+  "memberPicker": {
+    "selectButton": "メンバーを選択（任意）",
+    "dialogTitle": "メンバーを選択",
+    "searchPlaceholder": "名前で検索...",
+    "removeAria": "メンバー選択を解除",
+    "noResults": "メンバーが見つかりません"
+  },
+  "tagInput": {
+    "placeholder": "タグを入力（Enter で追加）",
+    "removeAria": "{tag} を削除"
+  }
+}

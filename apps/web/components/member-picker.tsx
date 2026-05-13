@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useMembers } from "@/hooks/members/use-members";
 import { usersApi } from "@/lib/api/members";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ interface MemberPickerProps {
  * - 未選択時は「メンバーを選択（任意）」ボタン
  */
 export function MemberPicker({ value, onChange, disabled }: MemberPickerProps) {
+  const t = useTranslations("events.memberPicker");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [pickingId, setPickingId] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function MemberPicker({ value, onChange, disabled }: MemberPickerProps) {
             size="icon"
             className="h-6 w-6"
             onClick={() => onChange(null)}
-            aria-label="メンバー選択を解除"
+            aria-label={t("removeAria")}
           >
             <X className="h-3 w-3" />
           </Button>
@@ -102,25 +104,23 @@ export function MemberPicker({ value, onChange, disabled }: MemberPickerProps) {
         className="w-full justify-start text-muted-foreground"
       >
         <UserPlus className="mr-2 h-3 w-3" />
-        メンバーを選択（任意）
+        {t("selectButton")}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>メンバーを選択</DialogTitle>
+            <DialogTitle>{t("dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <SearchInput
               value={search}
               onChange={setSearch}
               onSubmit={setSearch}
-              placeholder="名前で検索..."
+              placeholder={t("searchPlaceholder")}
             />
             <div className="max-h-80 space-y-1 overflow-y-auto">
               {members.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  メンバーが見つかりません
-                </p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t("noResults")}</p>
               ) : (
                 members.map((m) => (
                   <button

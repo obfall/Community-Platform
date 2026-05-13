@@ -13,13 +13,20 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { EventLocationType } from "@prisma/client";
+import {
+  MAX_EVENT_ORGANIZATIONS,
+  MAX_EVENT_SPEAKERS,
+  MAX_EVENT_TAG_LENGTH,
+  MAX_EVENT_TAGS,
+  MAX_EVENT_TITLE_LENGTH,
+} from "@community-platform/shared";
 import { EventOrganizationItemDto } from "./event-organization.dto";
 import { EventSpeakerItemDto } from "./event-speaker.dto";
 
 export class CreateEventDto {
-  @ApiProperty({ description: "タイトル", maxLength: 200 })
+  @ApiProperty({ description: "タイトル", maxLength: MAX_EVENT_TITLE_LENGTH })
   @IsString()
-  @MaxLength(200)
+  @MaxLength(MAX_EVENT_TITLE_LENGTH)
   title!: string;
 
   @ApiPropertyOptional({ description: "概要" })
@@ -125,29 +132,29 @@ export class CreateEventDto {
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(MAX_EVENT_ORGANIZATIONS)
   @ValidateNested({ each: true })
   @Type(() => EventOrganizationItemDto)
   organizations?: EventOrganizationItemDto[];
 
   @ApiPropertyOptional({
-    description: "タグ名（最大 3 つ）。既存タグは再利用、無ければ新規作成",
+    description: `タグ名（最大 ${MAX_EVENT_TAGS} つ）。既存タグは再利用、無ければ新規作成`,
     type: [String],
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(3)
+  @ArrayMaxSize(MAX_EVENT_TAGS)
   @IsString({ each: true })
-  @MaxLength(50, { each: true })
+  @MaxLength(MAX_EVENT_TAG_LENGTH, { each: true })
   tags?: string[];
 
   @ApiPropertyOptional({
-    description: "登壇者（配列順が表示順、最大 5 名）",
+    description: `登壇者（配列順が表示順、最大 ${MAX_EVENT_SPEAKERS} 名）`,
     type: [EventSpeakerItemDto],
   })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(MAX_EVENT_SPEAKERS)
   @ValidateNested({ each: true })
   @Type(() => EventSpeakerItemDto)
   speakers?: EventSpeakerItemDto[];

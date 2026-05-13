@@ -1,24 +1,14 @@
-import type { EventSpeakerRole } from "@/lib/api/types";
+import { EventSpeakerRole } from "@community-platform/shared";
+import type { EventSpeakerRole as EventSpeakerRoleType } from "@community-platform/shared";
 
 /**
- * 登壇者の役割の選択肢。Select の options と詳細ページのラベル表示で参照する。
- * バック側 schema.prisma の EventSpeakerRole enum と整合させる。
+ * 登壇者の役割の値リスト（表示順固定）。
+ * ラベルは messages/ja/enums.json の eventSpeakerRole から取得する。
  */
-export const EVENT_SPEAKER_ROLE_OPTIONS: Array<{
-  value: EventSpeakerRole;
-  label: string;
-}> = [
-  { value: "speaker", label: "講師" },
-  { value: "co_speaker", label: "共同講師" },
-  { value: "guest", label: "ゲスト" },
-  { value: "moderator", label: "モデレーター" },
-  { value: "panelist", label: "パネリスト" },
+export const EVENT_SPEAKER_ROLE_VALUES_ORDERED: readonly EventSpeakerRoleType[] = [
+  EventSpeakerRole.SPEAKER,
+  EventSpeakerRole.CO_SPEAKER,
+  EventSpeakerRole.GUEST,
+  EventSpeakerRole.MODERATOR,
+  EventSpeakerRole.PANELIST,
 ];
-
-export const EVENT_SPEAKER_ROLE_LABELS: Record<EventSpeakerRole, string> = {
-  speaker: "講師",
-  co_speaker: "共同講師",
-  guest: "ゲスト",
-  moderator: "モデレーター",
-  panelist: "パネリスト",
-};

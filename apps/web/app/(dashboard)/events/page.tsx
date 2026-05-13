@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEvents } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -11,34 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SelectField } from "@/components/select-field";
 import { HighlightedText } from "@/components/highlighted-text";
-
-const EVENT_STATUS_OPTIONS = [
-  { value: "draft", label: "下書き" },
-  { value: "recruiting", label: "募集中" },
-  { value: "closed", label: "締切" },
-  { value: "ended", label: "終了" },
-];
 import { Plus, MapPin, Monitor, Users, CalendarDays } from "lucide-react";
 import type { EventListItem, EventQuery } from "@/lib/api/types";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  recruiting: "募集中",
-  closed: "締切",
-  canceled: "中止",
-  ended: "終了",
-};
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline" | "success"
-> = {
-  draft: "secondary",
-  recruiting: "success",
-  closed: "outline",
-  canceled: "destructive",
-  ended: "outline",
-};
+import { EVENT_STATUS_VARIANTS, EVENT_STATUS_FILTER_VALUES } from "@/lib/events/event-status";
 
 const LOCATION_ICONS: Record<string, React.ReactNode> = {
   venue: <MapPin className="h-3 w-3" />,
@@ -52,6 +28,9 @@ const LOCATION_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function EventsPage() {
+  const t = useTranslations("events.list");
+  const tStatus = useTranslations("enums.eventStatus");
+  const tLocation = useTranslations("enums.eventLocationType");
   const { user } = useAuth();
   const [query, setQuery] = useState<EventQuery>({ page: 1, limit: 12 });
   const [search, setSearch] = useState("");
@@ -61,16 +40,21 @@ export default function EventsPage() {
   const events = data?.data ?? [];
   const meta = data?.meta;
 
+  const filterOptions = EVENT_STATUS_FILTER_VALUES.map((value) => ({
+    value,
+    label: tStatus(value),
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">イベント</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <div className="flex gap-2">
           {isAdmin && (
             <Link href="/events/new">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                新規作成
+                {t("create")}
               </Button>
             </Link>
           )}
@@ -83,7 +67,7 @@ export default function EventsPage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((prev) => ({ ...prev, search: v || undefined, page: 1 }))}
-          placeholder="イベントを検索..."
+          placeholder={t("searchPlaceholder")}
         />
         {isAdmin && (
           <SelectField
@@ -91,9 +75,9 @@ export default function EventsPage() {
             onChange={(v) =>
               setQuery((prev) => ({ ...prev, status: v === "all" ? undefined : v, page: 1 }))
             }
-            options={EVENT_STATUS_OPTIONS}
+            options={filterOptions}
             includeAll
-            placeholder="ステータス"
+            placeholder={t("filterPlaceholder")}
             className="w-32"
           />
         )}
@@ -101,11 +85,11 @@ export default function EventsPage() {
 
       {/* イベント一覧 */}
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : events.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <CalendarDays className="mx-auto mb-4 h-12 w-12" />
-          <p>イベントがありません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -121,18 +105,18 @@ export default function EventsPage() {
                       className="h-full w-full object-cover"
                     />
                     <Badge
-                      variant={STATUS_VARIANTS[event.status] ?? "secondary"}
+                      variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
                       className="absolute top-2 left-2 shadow"
                     >
-                      {STATUS_LABELS[event.status] ?? event.status}
+                      {tStatus(event.status)}
                     </Badge>
                   </div>
                 ) : null}
                 <CardContent className="p-4">
                   {!event.coverImageUrl && (
                     <div className="mb-2">
-                      <Badge variant={STATUS_VARIANTS[event.status] ?? "secondary"}>
-                        {STATUS_LABELS[event.status] ?? event.status}
+                      <Badge variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}>
+                        {tStatus(event.status)}
                       </Badge>
                     </div>
                   )}
@@ -161,15 +145,19 @@ export default function EventsPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       {LOCATION_ICONS[event.locationType]}
-                      {event.venueName ?? event.locationType}
+                      {event.venueName ?? tLocation(event.locationType)}
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
-                      {event.participantCount}
-                      {event.totalCapacity !== null ? `/${event.totalCapacity}人` : "人参加"}
+                      {event.totalCapacity !== null
+                        ? t("participantsLabel", {
+                            count: event.participantCount,
+                            total: event.totalCapacity,
+                          })
+                        : t("participantsLabelOpen", { count: event.participantCount })}
                       {event.minPrice !== null && (
                         <span className="ml-auto font-medium text-foreground">
-                          ¥{event.minPrice.toLocaleString()}〜
+                          {t("priceLabel", { price: event.minPrice.toLocaleString() })}
                         </span>
                       )}
                     </div>

@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Ticket } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { EventStatus } from "@community-platform/shared";
 import type {
   FormFieldVisibility,
   ApplicationQuestion,
@@ -115,6 +117,7 @@ function EventApplyForm({
 }) {
   const router = useRouter();
   const participate = useParticipate();
+  const tApply = useTranslations("events.apply");
 
   const [step, setStep] = useState<"input" | "confirm">("input");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -140,15 +143,11 @@ function EventApplyForm({
   }));
 
   if (!event) {
-    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tApply("notFound")}</div>;
   }
 
-  if (event.status !== "recruiting") {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        このイベントは現在募集していません
-      </div>
-    );
+  if (event.status !== EventStatus.RECRUITING) {
+    return <div className="py-12 text-center text-muted-foreground">{tApply("notRecruiting")}</div>;
   }
 
   const config = formPublic?.config;

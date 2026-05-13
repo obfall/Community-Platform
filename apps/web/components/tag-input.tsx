@@ -2,6 +2,8 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { MAX_EVENT_TAGS, MAX_EVENT_TAG_LENGTH } from "@community-platform/shared";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,11 +27,13 @@ interface TagInputProps {
 export function TagInput({
   value,
   onChange,
-  maxTags = 3,
-  maxLength = 50,
-  placeholder = "タグを入力（Enter で追加）",
+  maxTags = MAX_EVENT_TAGS,
+  maxLength = MAX_EVENT_TAG_LENGTH,
+  placeholder,
   disabled,
 }: TagInputProps) {
+  const t = useTranslations("events.tagInput");
+  const resolvedPlaceholder = placeholder ?? t("placeholder");
   const [draft, setDraft] = useState("");
 
   const commit = () => {
@@ -73,7 +77,7 @@ export function TagInput({
               type="button"
               onClick={() => remove(idx)}
               className="rounded-sm hover:bg-muted-foreground/20"
-              aria-label={`${tag} を削除`}
+              aria-label={t("removeAria", { tag })}
             >
               <X className="h-3 w-3" />
             </button>
@@ -86,7 +90,7 @@ export function TagInput({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={commit}
-          placeholder={value.length === 0 ? placeholder : ""}
+          placeholder={value.length === 0 ? resolvedPlaceholder : ""}
           maxLength={maxLength}
           className="h-7 min-w-32 flex-1 border-0 px-1 shadow-none focus-visible:ring-0"
         />
