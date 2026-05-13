@@ -109,7 +109,7 @@ describe("NotificationsService", () => {
       ]);
 
       const result = await service.findAll("user-1", {});
-      expect(result.data[0].actor).toEqual({
+      expect(result.data[0]!.actor).toEqual({
         id: "u1",
         name: "Taro",
         avatarUrl: "https://x/a.png",
@@ -133,7 +133,7 @@ describe("NotificationsService", () => {
       ]);
 
       const result = await service.findAll("user-1", {});
-      expect(result.data[0].actor).toBeNull();
+      expect(result.data[0]!.actor).toBeNull();
     });
   });
 });

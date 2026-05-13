@@ -87,7 +87,7 @@ describe("EventsService", () => {
       ]);
 
       const result = await service.findUpcoming(3);
-      expect(result[0].venueName).toBe("from-relation");
+      expect(result[0]!.venueName).toBe("from-relation");
     });
 
     it("venue リレーションが null なら venueName 列にフォールバックする", async () => {
@@ -106,7 +106,7 @@ describe("EventsService", () => {
       ]);
 
       const result = await service.findUpcoming(3);
-      expect(result[0].venueName).toBe("manual-input");
+      expect(result[0]!.venueName).toBe("manual-input");
     });
   });
 
