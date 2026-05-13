@@ -29,6 +29,7 @@ import {
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { VenuePicker } from "@/components/venue-picker";
+import { TagInput } from "@/components/tag-input";
 import { EVENT_ORGANIZATION_ROLE_OPTIONS } from "@/lib/events/organization-role";
 
 const schema = z.object({
@@ -58,6 +59,7 @@ const schema = z.object({
     )
     .max(20)
     .optional(),
+  tags: z.array(z.string().min(1).max(50)).max(3).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -87,6 +89,7 @@ export default function NewEventPage() {
       cancellationPolicy: "",
       coverImageUrl: null,
       organizations: [],
+      tags: [],
     },
   });
 
@@ -108,6 +111,7 @@ export default function NewEventPage() {
         coverImageUrl: data.coverImageUrl || undefined,
         organizations:
           data.organizations && data.organizations.length > 0 ? data.organizations : undefined,
+        tags: data.tags && data.tags.length > 0 ? data.tags : undefined,
       },
       {
         onSuccess: (event) => router.push(`/events/${event.id}`),
@@ -337,6 +341,33 @@ export default function NewEventPage() {
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>タグ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <TagInput
+                            value={field.value ?? []}
+                            onChange={field.onChange}
+                            maxTags={3}
+                          />
+                        </FormControl>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          最大 3 つ。検索に使われます
+                        </p>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

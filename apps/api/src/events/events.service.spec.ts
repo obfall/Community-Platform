@@ -407,4 +407,199 @@ describe("EventsService", () => {
       });
     });
   });
+
+  describe("tags: 検索用 tags_text 同期と upsert", () => {
+    type TagTxMock = {
+      event: { create: jest.Mock; update: jest.Mock };
+      eventOrganization: { createMany: jest.Mock; deleteMany: jest.Mock };
+      eventTag: { createMany: jest.Mock; deleteMany: jest.Mock };
+      tag: { findFirst: jest.Mock; findUnique: jest.Mock; create: jest.Mock };
+    };
+
+    let txMock: TagTxMock;
+
+    const baseEventDetail = {
+      id: "e1",
+      deletedAt: null,
+      status: "draft",
+      createdByUser: { id: "u1", name: "creator", profile: null },
+      tickets: [],
+      speakers: [],
+      organizations: [],
+      tags: [],
+      _count: { participants: 0 },
+    };
+
+    beforeEach(() => {
+      txMock = {
+        event: {
+          create: jest.fn().mockResolvedValue({ id: "new-event" }),
+          update: jest.fn().mockResolvedValue({ id: "new-event" }),
+        },
+        eventOrganization: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        eventTag: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        tag: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn(),
+        },
+      };
+      prismaMock.$transaction.mockImplementation((cb: (tx: TagTxMock) => Promise<unknown>) =>
+        cb(txMock),
+      );
+    });
+
+    describe("create でのタグ upsert", () => {
+      beforeEach(() => {
+        prismaMock.event.findUnique.mockResolvedValue(baseEventDetail);
+      });
+
+      it("tags 未指定なら tag.findFirst も eventTag.* も呼ばれない", async () => {
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+        } as never);
+        expect(txMock.tag.findFirst).not.toHaveBeenCalled();
+        expect(txMock.eventTag.createMany).not.toHaveBeenCalled();
+      });
+
+      it("既存タグは findFirst で再利用、新規タグは create される", async () => {
+        // "勉強会" は既存、"初心者" は新規（findFirst→null→create）
+        txMock.tag.findFirst
+          .mockResolvedValueOnce({ id: "tag-existing" })
+          .mockResolvedValueOnce(null);
+        txMock.tag.findUnique.mockResolvedValueOnce(null);
+        txMock.tag.create.mockResolvedValueOnce({ id: "tag-new" });
+
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+          tags: ["勉強会", "初心者"],
+        } as never);
+
+        expect(txMock.tag.findFirst).toHaveBeenCalledTimes(2);
+        expect(txMock.tag.create).toHaveBeenCalledWith({
+          data: { name: "初心者", slug: "初心者" },
+          select: { id: true },
+        });
+        expect(txMock.eventTag.createMany).toHaveBeenCalledWith({
+          data: [
+            { eventId: "new-event", tagId: "tag-existing" },
+            { eventId: "new-event", tagId: "tag-new" },
+          ],
+          skipDuplicates: true,
+        });
+      });
+
+      it("tags_text は タグ名を sort してスペース連結", async () => {
+        txMock.tag.findFirst
+          .mockResolvedValueOnce({ id: "t1" })
+          .mockResolvedValueOnce({ id: "t2" });
+
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+          tags: ["技術", "初心者"],
+        } as never);
+
+        expect(txMock.event.update).toHaveBeenCalledWith({
+          where: { id: "new-event" },
+          data: { tagsText: "初心者 技術" },
+        });
+      });
+
+      it("空文字・重複は除外される", async () => {
+        txMock.tag.findFirst.mockResolvedValue({ id: "t1" });
+
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+          tags: ["技術", "技術", "  ", ""],
+        } as never);
+
+        expect(txMock.tag.findFirst).toHaveBeenCalledTimes(1);
+        expect(txMock.event.update).toHaveBeenCalledWith({
+          where: { id: "new-event" },
+          data: { tagsText: "技術" },
+        });
+      });
+
+      it("slug 衝突時は -2 を付与した slug で create", async () => {
+        txMock.tag.findFirst.mockResolvedValueOnce(null);
+        // slug "技術" は既存、 "技術-2" は空き
+        txMock.tag.findUnique
+          .mockResolvedValueOnce({ id: "other-tag" })
+          .mockResolvedValueOnce(null);
+        txMock.tag.create.mockResolvedValueOnce({ id: "tag-new" });
+
+        await service.create("user-1", {
+          title: "T",
+          startAt: "2026-06-01T10:00:00Z",
+          endAt: "2026-06-01T12:00:00Z",
+          locationType: "venue",
+          tags: ["技術"],
+        } as never);
+
+        expect(txMock.tag.create).toHaveBeenCalledWith({
+          data: { name: "技術", slug: "技術-2" },
+          select: { id: true },
+        });
+      });
+    });
+
+    describe("update でのタグ全件置換", () => {
+      beforeEach(() => {
+        prismaMock.event.findUnique
+          .mockResolvedValueOnce({ id: "e1", deletedAt: null })
+          .mockResolvedValueOnce(baseEventDetail);
+      });
+
+      it("tags: undefined なら eventTag も tag も触らない", async () => {
+        await service.update("e1", { title: "new title" });
+        expect(txMock.eventTag.deleteMany).not.toHaveBeenCalled();
+        expect(txMock.tag.findFirst).not.toHaveBeenCalled();
+      });
+
+      it("tags: [] なら EventTag 全削除 + tags_text='' に同期", async () => {
+        await service.update("e1", { tags: [] });
+        expect(txMock.eventTag.deleteMany).toHaveBeenCalledWith({
+          where: { eventId: "e1" },
+        });
+        expect(txMock.eventTag.createMany).not.toHaveBeenCalled();
+        expect(txMock.event.update).toHaveBeenCalledWith({
+          where: { id: "e1" },
+          data: { tagsText: "" },
+        });
+      });
+
+      it("tags: [...] なら全件置換 + tags_text 同期", async () => {
+        txMock.tag.findFirst.mockResolvedValue({ id: "t1" });
+
+        await service.update("e1", { tags: ["技術"] });
+        expect(txMock.eventTag.deleteMany).toHaveBeenCalled();
+        expect(txMock.eventTag.createMany).toHaveBeenCalledWith({
+          data: [{ eventId: "e1", tagId: "t1" }],
+          skipDuplicates: true,
+        });
+        expect(txMock.event.update).toHaveBeenCalledWith({
+          where: { id: "e1" },
+          data: { tagsText: "技術" },
+        });
+      });
+    });
+  });
 });

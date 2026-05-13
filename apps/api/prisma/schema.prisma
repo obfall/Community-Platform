@@ -1081,6 +1081,8 @@ model Event {
   requiredRankId           String?           @map("required_rank_id") @db.Uuid
   participantCount         Int               @default(0) @map("participant_count")
   isCalendarVisible        Boolean           @default(true) @map("is_calendar_visible")
+  /// 検索用のタグ名連結。サービス層でタグ変更時に同期更新する非正規化カラム。pgroonga インデックス対象。
+  tagsText                 String            @default("") @map("tags_text") @db.Text
   createdAt                DateTime          @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt                DateTime          @updatedAt @map("updated_at") @db.Timestamptz()
   deletedAt                DateTime?         @map("deleted_at") @db.Timestamptz()

@@ -706,6 +706,7 @@ export interface EventListItem {
   ticketCount: number;
   totalCapacity: number | null;
   minPrice: number | null;
+  tags: { id: string; name: string; slug: string }[];
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
@@ -793,7 +794,6 @@ export interface EventDetail extends EventListItem {
   tickets: EventTicket[];
   speakers: EventSpeaker[];
   organizations: EventOrganization[];
-  tags: { id: string; name: string; slug: string }[];
   updatedAt: string;
 }
 
@@ -879,6 +879,7 @@ export interface CreateEventInput {
   coverImageUrl?: string;
   requiredRankId?: string;
   organizations?: EventOrganizationInput[];
+  tags?: string[];
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {

@@ -132,6 +132,15 @@ export default function EventsPage() {
                   <h3 className="mb-2 line-clamp-2 text-sm font-semibold">
                     <HighlightedText html={event.titleHighlighted} fallback={event.title} />
                   </h3>
+                  {event.tags.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {event.tags.map((tag) => (
+                        <Badge key={tag.id} variant="secondary" className="text-xs">
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" />

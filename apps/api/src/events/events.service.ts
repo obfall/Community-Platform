@@ -73,6 +73,7 @@ export class EventsService {
           category: { select: { id: true, name: true } },
           venue: { select: { id: true, name: true } },
           tickets: { orderBy: { sortOrder: "asc" } },
+          tags: { include: { tag: true } },
           _count: { select: { participants: true } },
         },
       }),
@@ -112,7 +113,9 @@ export class EventsService {
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "events",
-      searchColumns: ["title", "description"],
+      // タグ名でもヒットさせるため tags_text を含める。description は対象外
+      // （description は snippet ハイライトのみで利用）
+      searchColumns: ["title", "tags_text"],
       titleColumn: "title",
       snippetColumn: "description",
       escaped,
@@ -127,6 +130,7 @@ export class EventsService {
             category: { select: { id: true, name: true } },
             venue: { select: { id: true, name: true } },
             tickets: { orderBy: { sortOrder: "asc" } },
+            tags: { include: { tag: true } },
             _count: { select: { participants: true } },
           },
         }),
@@ -143,6 +147,7 @@ export class EventsService {
           category: { select: { id: true; name: true } };
           venue: { select: { id: true; name: true } };
           tickets: true;
+          tags: { include: { tag: true } };
           _count: { select: { participants: true } };
         };
       }>
@@ -176,6 +181,7 @@ export class EventsService {
             ? e.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0)
             : null,
           minPrice: e.tickets.length > 0 ? Math.min(...e.tickets.map((t) => t.price)) : null,
+          tags: e.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
           createdAt: e.createdAt,
         };
       }),
@@ -249,6 +255,10 @@ export class EventsService {
         });
       }
 
+      if (dto.tags && dto.tags.length > 0) {
+        await this.syncEventTags(tx, created.id, dto.tags);
+      }
+
       return created;
     });
 
@@ -316,6 +326,11 @@ export class EventsService {
             })),
           });
         }
+      }
+
+      // tags: undefined なら変更なし、配列なら全件置換（空配列は全削除 + tags_text='' に同期）
+      if (dto.tags !== undefined) {
+        await this.syncEventTags(tx, id, dto.tags);
       }
     });
 
@@ -904,7 +919,7 @@ export class EventsService {
         applicationQuestions: { orderBy: { sortOrder: "asc" } },
         speakers: { orderBy: { sortOrder: "asc" } },
         organizations: { orderBy: { sortOrder: "asc" } },
-        tags: true,
+        tags: { include: { tag: true } },
       },
     });
     if (!source || source.deletedAt) throw new NotFoundException("イベントが見つかりません");
@@ -1025,14 +1040,13 @@ export class EventsService {
         });
       }
 
-      // タグ複製
+      // タグ複製（syncEventTags 経由で EventTag + tags_text を同期）
       if (source.tags.length > 0) {
-        await tx.eventTag.createMany({
-          data: source.tags.map((t) => ({
-            eventId: event.id,
-            tagId: t.tagId,
-          })),
-        });
+        await this.syncEventTags(
+          tx,
+          event.id,
+          source.tags.map((t) => t.tag.name),
+        );
       }
 
       return event;
@@ -1187,6 +1201,70 @@ export class EventsService {
   }
 
   // ========== Helpers ==========
+
+  /**
+   * タグ名の配列から、対応する Tag レコードを upsert（find by name → 既存再利用、なければ新規作成）し、
+   * `EventTag` リンクと `events.tags_text` を一括で更新する。
+   *
+   * トランザクション内で呼ぶ前提。tags が空配列なら EventTag 全削除 + tags_text='' に同期。
+   *
+   * slug は name をそのまま使う。VARCHAR(50) を超える場合は truncate、衝突時は `-2` `-3` ... を付与。
+   */
+  private async syncEventTags(
+    tx: Prisma.TransactionClient,
+    eventId: string,
+    tagNames: string[],
+  ): Promise<void> {
+    // 重複・空文字を除去
+    const uniqueNames = Array.from(
+      new Set(tagNames.map((n) => n.trim()).filter((n) => n.length > 0)),
+    );
+
+    // 各タグを find/create
+    const tagIds: string[] = [];
+    for (const name of uniqueNames) {
+      const existing = await tx.tag.findFirst({ where: { name }, select: { id: true } });
+      if (existing) {
+        tagIds.push(existing.id);
+        continue;
+      }
+      const created = await this.createTagWithUniqueSlug(tx, name);
+      tagIds.push(created.id);
+    }
+
+    // EventTag を全件置換
+    await tx.eventTag.deleteMany({ where: { eventId } });
+    if (tagIds.length > 0) {
+      await tx.eventTag.createMany({
+        data: tagIds.map((tagId) => ({ eventId, tagId })),
+        skipDuplicates: true,
+      });
+    }
+
+    // tags_text を同期（スペース区切り、name ソートで安定化）
+    const tagsText = [...uniqueNames].sort().join(" ");
+    await tx.event.update({ where: { id: eventId }, data: { tagsText } });
+  }
+
+  /**
+   * 名前から slug を生成して Tag を作成する。slug 衝突時は -2, -3 ... と suffix を付与。
+   * VARCHAR(50) を超える slug は base を truncate して suffix の余地を確保。
+   */
+  private async createTagWithUniqueSlug(
+    tx: Prisma.TransactionClient,
+    name: string,
+  ): Promise<{ id: string }> {
+    const SLUG_MAX = 50;
+    const baseSlug = name.slice(0, SLUG_MAX);
+    for (let suffix = 1; suffix <= 100; suffix++) {
+      const slug = suffix === 1 ? baseSlug : `${baseSlug.slice(0, SLUG_MAX - 4)}-${suffix}`;
+      const conflict = await tx.tag.findUnique({ where: { slug }, select: { id: true } });
+      if (!conflict) {
+        return tx.tag.create({ data: { name, slug }, select: { id: true } });
+      }
+    }
+    throw new BadRequestException("タグの slug 衝突上限を超えました");
+  }
 
   private async assertEventExists(eventId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });

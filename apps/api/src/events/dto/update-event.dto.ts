@@ -147,4 +147,15 @@ export class UpdateEventDto {
   @ValidateNested({ each: true })
   @Type(() => EventOrganizationItemDto)
   organizations?: EventOrganizationItemDto[];
+
+  @ApiPropertyOptional({
+    description: "タグ名（最大 3 つ）。配列を渡すと全件置換、省略すると変更なし",
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
 }

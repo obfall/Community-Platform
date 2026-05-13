@@ -133,4 +133,15 @@ export class CreateEventDto {
   @ValidateNested({ each: true })
   @Type(() => EventOrganizationItemDto)
   organizations?: EventOrganizationItemDto[];
+
+  @ApiPropertyOptional({
+    description: "タグ名（最大 3 つ）。既存タグは再利用、無ければ新規作成",
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
 }
