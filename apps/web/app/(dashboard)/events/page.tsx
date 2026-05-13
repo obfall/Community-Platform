@@ -29,9 +29,12 @@ const STATUS_LABELS: Record<string, string> = {
   ended: "終了",
 };
 
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const STATUS_VARIANTS: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline" | "success"
+> = {
   draft: "secondary",
-  recruiting: "default",
+  recruiting: "success",
   closed: "outline",
   canceled: "destructive",
   ended: "outline",
