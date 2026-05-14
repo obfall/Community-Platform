@@ -6,11 +6,15 @@ import { EventsService } from "./events.service";
 
 describe("EventsService", () => {
   let prismaMock: {
-    event: { findMany: jest.Mock; count: jest.Mock; findUnique: jest.Mock };
-    eventParticipant: { findMany: jest.Mock };
+    event: { findMany: jest.Mock; count: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    eventTicket: { findUnique: jest.Mock };
+    eventParticipant: { findMany: jest.Mock; findFirst: jest.Mock };
+    eventApplicationQuestion: { findMany: jest.Mock };
+    eventDiscountCode: { findFirst: jest.Mock };
     $queryRaw: jest.Mock;
     $transaction: jest.Mock;
   };
+  let notificationsMock: { create: jest.Mock };
   let service: EventsService;
 
   beforeEach(() => {
@@ -19,14 +23,26 @@ describe("EventsService", () => {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
         findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      eventTicket: {
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       eventParticipant: {
         findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      eventApplicationQuestion: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      eventDiscountCode: {
+        findFirst: jest.fn().mockResolvedValue(null),
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
       $transaction: jest.fn(),
     };
-    service = new EventsService(prismaMock as never, {} as never);
+    notificationsMock = { create: jest.fn().mockResolvedValue(undefined) };
+    service = new EventsService(prismaMock as never, notificationsMock as never);
   });
 
   describe("findAll: search の有無で経路が分岐する", () => {
@@ -732,6 +748,547 @@ describe("EventsService", () => {
           ],
         });
       });
+    });
+  });
+
+  describe("findAll: pgroonga 検索経路の role 制御", () => {
+    // searchByPgroonga 内で組み立てる WHERE 句は Prisma.sql テンプレートリテラル。
+    // 非 admin/owner のときに `status = 'recruiting'::"EventStatus"` が SQL リテラルとして
+    // 埋め込まれることを、$queryRaw に渡された Prisma.Sql の `.sql` 文字列で検証する。
+    const sqlOf = (call: unknown[]): string => {
+      const first = call[0] as { sql?: string; strings?: readonly string[] };
+      // Prisma.Sql は `.sql` getter を持つが、フォールバックとして strings.join もケア。
+      return first.sql ?? (first.strings ? first.strings.join("?") : "");
+    };
+
+    it("admin が search すると WHERE 句に recruiting 強制は入らない", async () => {
+      await service.findAll({ search: "勉強会" }, "admin");
+      expect(prismaMock.$queryRaw).toHaveBeenCalled();
+      const sqlText = sqlOf(prismaMock.$queryRaw.mock.calls[0]);
+      expect(sqlText).not.toMatch(/'recruiting'::"EventStatus"/);
+    });
+
+    it("admin が status を明示すると status 条件が SQL に含まれる（値はパラメータ）", async () => {
+      await service.findAll({ search: "勉強会", status: "draft" }, "admin");
+      const sqlObj = prismaMock.$queryRaw.mock.calls[0][0] as {
+        sql: string;
+        values: unknown[];
+      };
+      expect(sqlObj.sql).toMatch(/status =/);
+      expect(sqlObj.values).toEqual(expect.arrayContaining(["draft"]));
+    });
+
+    it("member が search すると WHERE 句に status='recruiting' リテラルが強制される", async () => {
+      await service.findAll({ search: "勉強会" }, "member");
+      const sqlText = sqlOf(prismaMock.$queryRaw.mock.calls[0]);
+      expect(sqlText).toMatch(/status = 'recruiting'::"EventStatus"/);
+    });
+
+    it("member が status='draft' を指定しても recruiting に強制される（status パラメータは積まれない）", async () => {
+      await service.findAll({ search: "勉強会", status: "draft" }, "member");
+      const sqlObj = prismaMock.$queryRaw.mock.calls[0][0] as {
+        sql: string;
+        values: unknown[];
+      };
+      expect(sqlObj.sql).toMatch(/status = 'recruiting'::"EventStatus"/);
+      // member 経路では status の値はバインドされず、リテラルだけが入る
+      expect(sqlObj.values).not.toContain("draft");
+    });
+
+    it("visitor も recruiting に強制される", async () => {
+      await service.findAll({ search: "勉強会" }, "visitor");
+      const sqlText = sqlOf(prismaMock.$queryRaw.mock.calls[0]);
+      expect(sqlText).toMatch(/status = 'recruiting'::"EventStatus"/);
+    });
+  });
+
+  describe("findOne: not-found 系", () => {
+    it("findUnique が null を返したら NotFoundException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(null);
+      await expect(service.findOne("missing", "admin")).rejects.toThrow("イベントが見つかりません");
+    });
+
+    it("deletedAt が立っていれば admin でも NotFoundException（論理削除）", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce({
+        id: "e1",
+        deletedAt: new Date(),
+        status: "recruiting",
+      });
+      await expect(service.findOne("e1", "admin")).rejects.toThrow("イベントが見つかりません");
+    });
+  });
+
+  describe("participate: 事前バリデーション", () => {
+    type ParticipateTxMock = {
+      eventParticipant: { create: jest.Mock };
+      eventParticipantAnswer: { createMany: jest.Mock };
+      eventTicket: { update: jest.Mock };
+      event: { update: jest.Mock };
+      eventDiscountCode: { update: jest.Mock };
+    };
+
+    const baseTicket = {
+      id: "ticket-1",
+      isActive: true,
+      capacity: 10,
+      soldCount: 0,
+      purchaseLimit: 3,
+    };
+
+    const baseEvent = (over: Partial<Record<string, unknown>> = {}) => ({
+      id: "e1",
+      title: "勉強会",
+      status: "recruiting",
+      deletedAt: null,
+      registrationDeadlineAt: null,
+      createdByUserId: "owner-1",
+      tickets: [baseTicket],
+      applicationFormConfig: null,
+      ...over,
+    });
+
+    const baseDto = { ticketId: "ticket-1" };
+
+    it("イベントが存在しなければ NotFoundException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(null);
+      await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
+        "イベントが見つかりません",
+      );
+    });
+
+    it("status≠recruiting なら BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent({ status: "draft" }));
+      await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
+        "現在募集していません",
+      );
+    });
+
+    it("申込締切を過ぎていたら BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(
+        baseEvent({ registrationDeadlineAt: new Date(Date.now() - 1000) }),
+      );
+      await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
+        "申込締切を過ぎています",
+      );
+    });
+
+    it("ticketId が無いと BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      await expect(
+        service.participate("e1", "user-1", { ticketId: "unknown" } as never),
+      ).rejects.toThrow("チケットが見つかりません");
+    });
+
+    it("チケットが isActive=false なら販売停止扱い", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(
+        baseEvent({ tickets: [{ ...baseTicket, isActive: false }] }),
+      );
+      await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
+        "販売停止中",
+      );
+    });
+
+    it("定員超過で BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(
+        baseEvent({ tickets: [{ ...baseTicket, capacity: 5, soldCount: 5 }] }),
+      );
+      await expect(
+        service.participate("e1", "user-1", { ticketId: "ticket-1", quantity: 1 } as never),
+      ).rejects.toThrow("定員に達しています");
+    });
+
+    it("quantity が purchaseLimit を超えると BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      await expect(
+        service.participate("e1", "user-1", { ticketId: "ticket-1", quantity: 5 } as never),
+      ).rejects.toThrow("購入上限");
+    });
+
+    it("applicationFormConfig が required を要求しているのに値が空なら BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(
+        baseEvent({
+          applicationFormConfig: {
+            askName: "required",
+            askNameKana: "off",
+            askAffiliation: "off",
+            askGender: "off",
+            askAge: "off",
+            askOccupation: "off",
+            askNationality: "off",
+          },
+        }),
+      );
+      await expect(
+        service.participate("e1", "user-1", { ticketId: "ticket-1" } as never),
+      ).rejects.toThrow("氏名は必須です");
+    });
+
+    it("カスタム質問が必須なのに answers に無いと BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventApplicationQuestion.findMany.mockResolvedValueOnce([
+        { id: "q1", label: "参加目的", isRequired: true, questionType: "text", options: null },
+      ]);
+      await expect(
+        service.participate("e1", "user-1", { ticketId: "ticket-1" } as never),
+      ).rejects.toThrow("「参加目的」は必須です");
+    });
+
+    it("radio/select/checkbox の回答が選択肢外なら BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventApplicationQuestion.findMany.mockResolvedValueOnce([
+        {
+          id: "q1",
+          label: "希望時間",
+          isRequired: false,
+          questionType: "radio",
+          options: [{ value: "morning" }, { value: "afternoon" }],
+        },
+      ]);
+      await expect(
+        service.participate("e1", "user-1", {
+          ticketId: "ticket-1",
+          answers: [{ questionId: "q1", answer: "evening" }],
+        } as never),
+      ).rejects.toThrow("無効な選択肢");
+    });
+
+    it("無効な割引コードを渡すと BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventDiscountCode.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        service.participate("e1", "user-1", {
+          ticketId: "ticket-1",
+          discountCode: "INVALID",
+        } as never),
+      ).rejects.toThrow("無効な割引コード");
+    });
+
+    it("割引コードが期限切れだと BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventDiscountCode.findFirst.mockResolvedValueOnce({
+        id: "d1",
+        expiresAt: new Date(Date.now() - 1000),
+        usageLimit: null,
+        usedCount: 0,
+      });
+      await expect(
+        service.participate("e1", "user-1", {
+          ticketId: "ticket-1",
+          discountCode: "EXPIRED",
+        } as never),
+      ).rejects.toThrow("有効期限が切れて");
+    });
+
+    it("割引コードの使用回数上限に達しているとBadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventDiscountCode.findFirst.mockResolvedValueOnce({
+        id: "d1",
+        expiresAt: null,
+        usageLimit: 5,
+        usedCount: 5,
+      });
+      await expect(
+        service.participate("e1", "user-1", {
+          ticketId: "ticket-1",
+          discountCode: "USED-UP",
+        } as never),
+      ).rejects.toThrow("使用回数上限");
+    });
+
+    it("バリデーション全通過なら participant.create が呼ばれて通知も走る", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      const txMock: ParticipateTxMock = {
+        eventParticipant: {
+          create: jest.fn().mockResolvedValue({ id: "p1" }),
+        },
+        eventParticipantAnswer: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        eventTicket: {
+          update: jest.fn().mockResolvedValue({}),
+        },
+        event: {
+          update: jest.fn().mockResolvedValue({ participantCount: 1 }),
+        },
+        eventDiscountCode: {
+          update: jest.fn().mockResolvedValue({}),
+        },
+      };
+      prismaMock.$transaction.mockImplementationOnce(
+        (cb: (tx: ParticipateTxMock) => Promise<unknown>) => cb(txMock),
+      );
+
+      const result = await service.participate("e1", "user-1", baseDto as never);
+      expect(result).toEqual({ id: "p1" });
+      expect(txMock.eventParticipant.create).toHaveBeenCalled();
+      expect(txMock.eventTicket.update).toHaveBeenCalledWith({
+        where: { id: "ticket-1" },
+        data: { soldCount: { increment: 1 } },
+      });
+      expect(notificationsMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          type: "event_application",
+        }),
+      );
+    });
+  });
+
+  describe("duplicate: イベント複製", () => {
+    type DuplicateTxMock = {
+      event: { create: jest.Mock };
+      eventTicket: { createMany: jest.Mock };
+      eventApplicationFormConfig: { create: jest.Mock };
+      eventApplicationQuestion: { createMany: jest.Mock };
+      eventSpeaker: { createMany: jest.Mock };
+      eventOrganization: { createMany: jest.Mock };
+      eventTag: { createMany: jest.Mock; deleteMany: jest.Mock };
+      tag: { findFirst: jest.Mock; findUnique: jest.Mock; create: jest.Mock };
+    };
+
+    const sourceDetail = {
+      id: "src",
+      title: "元イベント",
+      description: "desc",
+      locationType: "venue",
+      venueId: "v1",
+      venueName: null,
+      venueAddress: null,
+      onlineUrl: null,
+      startAt: new Date("2026-06-01T10:00:00Z"),
+      endAt: new Date("2026-06-01T12:00:00Z"),
+      registrationDeadlineAt: null,
+      ticketSaleStartAt: null,
+      allowMultiTicketPurchase: false,
+      acceptedPaymentMethods: null,
+      planningRole: null,
+      eventType: "study",
+      accessInfo: null,
+      participationMethod: null,
+      contactInfo: null,
+      cancellationPolicy: null,
+      language: "ja",
+      isAttendeeVisible: false,
+      coverImageUrl: null,
+      requiredRankId: null,
+      isCalendarVisible: true,
+      deletedAt: null,
+      tickets: [
+        {
+          ticketName: "一般",
+          price: 1000,
+          currency: "JPY",
+          capacity: 10,
+          purchaseLimit: 1,
+          sortOrder: 0,
+          isActive: true,
+        },
+      ],
+      applicationFormConfig: {
+        notifyOnCapacityReached: true,
+        notifyOnRemainingThreshold: null,
+        completionMessageApp: "ありがとう",
+        completionMessageEmail: null,
+        askName: "required",
+        askNameKana: "off",
+        askAffiliation: "off",
+        askGender: "off",
+        askAge: "off",
+        askOccupation: "off",
+        askNationality: "off",
+        reminderEnabled: false,
+        reminderHoursBefore: 24,
+        reminderMessage: null,
+      },
+      applicationQuestions: [
+        {
+          label: "参加目的",
+          description: null,
+          questionType: "text",
+          options: null,
+          isRequired: true,
+          sortOrder: 0,
+        },
+      ],
+      speakers: [
+        {
+          userId: null,
+          name: "山田 先生",
+          title: "教授",
+          role: "speaker",
+          sortOrder: 0,
+        },
+      ],
+      organizations: [
+        {
+          organizationName: "東京大学",
+          role: "co_organizer",
+          sortOrder: 0,
+        },
+      ],
+      tags: [{ tag: { id: "t1", name: "勉強会", slug: "勉強会" } }],
+    };
+
+    const newDetailReturn = {
+      id: "new-event",
+      title: "元イベント（コピー）",
+      deletedAt: null,
+      status: "draft",
+      createdByUser: { id: "user-1", name: "u", profile: null },
+      tickets: [],
+      speakers: [],
+      organizations: [],
+      tags: [],
+      _count: { participants: 0 },
+    };
+
+    let txMock: DuplicateTxMock;
+
+    beforeEach(() => {
+      txMock = {
+        event: {
+          create: jest.fn().mockResolvedValue({ id: "new-event" }),
+        },
+        eventTicket: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        eventApplicationFormConfig: { create: jest.fn().mockResolvedValue({}) },
+        eventApplicationQuestion: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        eventSpeaker: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        eventOrganization: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        eventTag: {
+          createMany: jest.fn().mockResolvedValue({ count: 0 }),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        tag: {
+          findFirst: jest.fn().mockResolvedValue({ id: "t1" }),
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({ id: "t1" }),
+        },
+      };
+      // event.update は syncEventTags 内で tagsText 同期用に呼ばれる
+      (txMock.event as unknown as { update: jest.Mock }).update = jest.fn().mockResolvedValue({});
+      prismaMock.$transaction.mockImplementation((cb: (tx: DuplicateTxMock) => Promise<unknown>) =>
+        cb(txMock),
+      );
+    });
+
+    it("複製元が存在しなければ NotFoundException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(null);
+      await expect(service.duplicate("missing", "user-1")).rejects.toThrow(
+        "イベントが見つかりません",
+      );
+    });
+
+    it("複製元が論理削除済みなら NotFoundException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce({ ...sourceDetail, deletedAt: new Date() });
+      await expect(service.duplicate("src", "user-1")).rejects.toThrow("イベントが見つかりません");
+    });
+
+    it("title に「（コピー）」が付き、status=draft、参加者数 0 で作成される", async () => {
+      // 1 回目: duplicate() 冒頭の findUnique（source）
+      // 2 回目: 末尾の findOne(newEvent.id, "admin")
+      prismaMock.event.findUnique
+        .mockResolvedValueOnce(sourceDetail)
+        .mockResolvedValueOnce(newDetailReturn);
+
+      await service.duplicate("src", "user-1");
+
+      const createArgs = txMock.event.create.mock.calls[0][0];
+      expect(createArgs.data.title).toBe("元イベント（コピー）");
+      expect(createArgs.data.status).toBe("draft");
+      expect(createArgs.data.participantCount).toBe(0);
+      expect(createArgs.data.createdByUserId).toBe("user-1");
+    });
+
+    it("tickets / questions / speakers / organizations が複製される", async () => {
+      prismaMock.event.findUnique
+        .mockResolvedValueOnce(sourceDetail)
+        .mockResolvedValueOnce(newDetailReturn);
+
+      await service.duplicate("src", "user-1");
+
+      expect(txMock.eventTicket.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            eventId: "new-event",
+            ticketName: "一般",
+            soldCount: 0,
+          }),
+        ],
+      });
+      expect(txMock.eventApplicationFormConfig.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          eventId: "new-event",
+          askName: "required",
+        }),
+      });
+      expect(txMock.eventApplicationQuestion.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            eventId: "new-event",
+            label: "参加目的",
+            isRequired: true,
+          }),
+        ],
+      });
+      expect(txMock.eventSpeaker.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            eventId: "new-event",
+            name: "山田 先生",
+            role: "speaker",
+          }),
+        ],
+      });
+      expect(txMock.eventOrganization.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            eventId: "new-event",
+            organizationName: "東京大学",
+            role: "co_organizer",
+          }),
+        ],
+      });
+    });
+
+    it("tags は syncEventTags 経由で EventTag が貼られ tags_text も同期される", async () => {
+      prismaMock.event.findUnique
+        .mockResolvedValueOnce(sourceDetail)
+        .mockResolvedValueOnce(newDetailReturn);
+
+      await service.duplicate("src", "user-1");
+
+      expect(txMock.eventTag.createMany).toHaveBeenCalledWith({
+        data: [{ eventId: "new-event", tagId: "t1" }],
+        skipDuplicates: true,
+      });
+      const updateMock = (txMock.event as unknown as { update: jest.Mock }).update;
+      expect(updateMock).toHaveBeenCalledWith({
+        where: { id: "new-event" },
+        data: { tagsText: "勉強会" },
+      });
+    });
+
+    it("複製元が空コレクションなら対応する createMany は呼ばれない", async () => {
+      prismaMock.event.findUnique
+        .mockResolvedValueOnce({
+          ...sourceDetail,
+          tickets: [],
+          applicationFormConfig: null,
+          applicationQuestions: [],
+          speakers: [],
+          organizations: [],
+          tags: [],
+        })
+        .mockResolvedValueOnce(newDetailReturn);
+
+      await service.duplicate("src", "user-1");
+
+      expect(txMock.eventTicket.createMany).not.toHaveBeenCalled();
+      expect(txMock.eventApplicationFormConfig.create).not.toHaveBeenCalled();
+      expect(txMock.eventApplicationQuestion.createMany).not.toHaveBeenCalled();
+      expect(txMock.eventSpeaker.createMany).not.toHaveBeenCalled();
+      expect(txMock.eventOrganization.createMany).not.toHaveBeenCalled();
+      expect(txMock.eventTag.createMany).not.toHaveBeenCalled();
     });
   });
 });

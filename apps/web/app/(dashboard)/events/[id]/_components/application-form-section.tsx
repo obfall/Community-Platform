@@ -61,145 +61,147 @@ export function ApplicationFormSection({ eventId }: Props) {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">申込フォーム設定</h2>
 
-      {/* 通知設定 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Settings className="h-4 w-4" />
-            通知設定
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">定員達成時通知</span>
-            <span>{config?.notifyOnCapacityReached ? "ON" : "OFF"}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">残席閾値通知</span>
-            <span>
-              {config?.notifyOnRemainingThreshold != null
-                ? `残り${config.notifyOnRemainingThreshold}件で通知`
-                : "OFF"}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="ml-1 space-y-4 border-l-2 pl-4">
+        {/* 通知設定 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Settings className="h-4 w-4" />
+              通知設定
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">定員達成時通知</span>
+              <span>{config?.notifyOnCapacityReached ? "ON" : "OFF"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">残席閾値通知</span>
+              <span>
+                {config?.notifyOnRemainingThreshold != null
+                  ? `残り${config.notifyOnRemainingThreshold}件で通知`
+                  : "OFF"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* 完了メッセージ */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-4 w-4" />
-            申込完了メッセージ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">アプリ内通知:</span>
-            <p className="mt-0.5 whitespace-pre-wrap">
-              {config?.completionMessageApp || DEFAULT_COMPLETION_MESSAGE}
-            </p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">メール:</span>
-            <p className="mt-0.5 whitespace-pre-wrap">
-              {config?.completionMessageEmail || DEFAULT_COMPLETION_MESSAGE}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* 完了メッセージ */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4" />
+              申込完了メッセージ
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">アプリ内通知:</span>
+              <p className="mt-0.5 whitespace-pre-wrap">
+                {config?.completionMessageApp || DEFAULT_COMPLETION_MESSAGE}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">メール:</span>
+              <p className="mt-0.5 whitespace-pre-wrap">
+                {config?.completionMessageEmail || DEFAULT_COMPLETION_MESSAGE}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* リマインダー設定 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="h-4 w-4" />
-            リマインダー設定
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">リマインダー</span>
-            <span>{config?.reminderEnabled ? "ON" : "OFF"}</span>
-          </div>
-          {config?.reminderEnabled && (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">送信タイミング</span>
-                <span>開始{config.reminderHoursBefore ?? 24}時間前</span>
-              </div>
-              {config.reminderMessage && (
-                <div>
-                  <span className="text-muted-foreground">メッセー��:</span>
-                  <p className="mt-0.5 whitespace-pre-wrap">{config.reminderMessage}</p>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 基本属性 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ClipboardList className="h-4 w-4" />
-            基本属性の表示設定
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {BASIC_FIELDS.map((field) => {
-            const v: FormFieldVisibility =
-              (config?.[field.key] as FormFieldVisibility | undefined) ??
-              (field.key === "askName" ? "required" : "hidden");
-            return (
-              <div key={field.key} className="flex items-center justify-between text-sm">
-                <span>{field.label}</span>
-                <Badge variant={VISIBILITY_VARIANTS[v]} className="text-xs">
-                  {VISIBILITY_LABELS[v]}
-                </Badge>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      {/* カスタム質問 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ClipboardList className="h-4 w-4" />
-            カスタム質問
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {questions.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">カスタム質問はありません</p>
-          ) : (
-            questions.map((q) => (
-              <div key={q.id} className="rounded border p-2">
+        {/* リマインダー設定 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bell className="h-4 w-4" />
+              リマインダー設定
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">リマインダー</span>
+              <span>{config?.reminderEnabled ? "ON" : "OFF"}</span>
+            </div>
+            {config?.reminderEnabled && (
+              <>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{q.label}</p>
-                  {q.isRequired && (
-                    <Badge variant="default" className="text-xs">
-                      必須
-                    </Badge>
-                  )}
+                  <span className="text-muted-foreground">送信タイミング</span>
+                  <span>開始{config.reminderHoursBefore ?? 24}時間前</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {QUESTION_TYPE_LABELS[q.questionType]}
-                  {q.options && (q.options as Array<{ label: string }>).length > 0 && (
-                    <>
-                      {" ・ "}
-                      {(q.options as Array<{ label: string }>).map((o) => o.label).join(" / ")}
-                    </>
-                  )}
-                </p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+                {config.reminderMessage && (
+                  <div>
+                    <span className="text-muted-foreground">メッセー��:</span>
+                    <p className="mt-0.5 whitespace-pre-wrap">{config.reminderMessage}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 基本属性 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ClipboardList className="h-4 w-4" />
+              基本属性の表示設定
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {BASIC_FIELDS.map((field) => {
+              const v: FormFieldVisibility =
+                (config?.[field.key] as FormFieldVisibility | undefined) ??
+                (field.key === "askName" ? "required" : "hidden");
+              return (
+                <div key={field.key} className="flex items-center justify-between text-sm">
+                  <span>{field.label}</span>
+                  <Badge variant={VISIBILITY_VARIANTS[v]} className="text-xs">
+                    {VISIBILITY_LABELS[v]}
+                  </Badge>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* カスタム質問 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ClipboardList className="h-4 w-4" />
+              カスタム質問
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {questions.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">カスタム質問はありません</p>
+            ) : (
+              questions.map((q) => (
+                <div key={q.id} className="rounded border p-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{q.label}</p>
+                    {q.isRequired && (
+                      <Badge variant="default" className="text-xs">
+                        必須
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {QUESTION_TYPE_LABELS[q.questionType]}
+                    {q.options && (q.options as Array<{ label: string }>).length > 0 && (
+                      <>
+                        {" ・ "}
+                        {(q.options as Array<{ label: string }>).map((o) => o.label).join(" / ")}
+                      </>
+                    )}
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
