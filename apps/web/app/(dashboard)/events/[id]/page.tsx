@@ -37,6 +37,9 @@ import {
   Copy,
   Trash2,
   MoreVertical,
+  Tag,
+  Mic,
+  Building2,
 } from "lucide-react";
 import { InfoRow } from "./_components/info-row";
 import { TicketSection } from "./_components/ticket-section";
@@ -145,7 +148,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <CardHeader>
               <CardTitle>{tCard("basicInfo")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               {/* 日時 */}
               <div className="flex items-start gap-3 text-sm">
                 <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -174,6 +177,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
 
+              {/* 申込締切 */}
               {event.registrationDeadlineAt && (
                 <div className="flex items-center gap-3 text-sm">
                   <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -190,110 +194,109 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
 
-              {/* 会場 */}
-              <div className="flex items-start gap-3 text-sm">
-                {event.locationType === EventLocationType.ONLINE ? (
-                  <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                ) : (
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
+              {/* 参加人数（目立たせる） */}
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 shrink-0 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">{event.venueName ?? tLocation(event.locationType)}</p>
-                  {event.venueAddress && (
-                    <p className="text-muted-foreground">{event.venueAddress}</p>
-                  )}
-                  {event.onlineUrl && <p className="text-muted-foreground">{event.onlineUrl}</p>}
+                  <p className="text-xs text-muted-foreground">{t("participantsLabel")}</p>
+                  <p className="text-2xl leading-tight font-bold">
+                    {event.participantCount}
+                    <span className="ml-1 text-sm font-normal text-muted-foreground">
+                      {t("participantsUnit")}
+                    </span>
+                  </p>
                 </div>
               </div>
 
-              {/* 参加者数 */}
+              {/* 定員（別行） */}
               <div className="flex items-center gap-3 text-sm">
-                <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="font-medium">
-                  {t("participantsLabel", { count: event.participantCount })}
-                </p>
+                <span className="text-muted-foreground">{t("capacityPrefix")}</span>
+                <span className="font-medium">
+                  {event.totalCapacity !== null
+                    ? t("capacityValue", { total: event.totalCapacity })
+                    : t("capacityUnlimited")}
+                </span>
               </div>
 
               {/* 企画役割 */}
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-muted-foreground">{t("planningPrefix")}</span>
-                <span>{event.planningRole}</span>
-                {event.eventType && (
-                  <>
-                    <span className="text-muted-foreground">{t("typePrefix")}</span>
-                    <span>{event.eventType}</span>
-                  </>
-                )}
-              </div>
-
-              <Separator />
+              {event.planningRole && (
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-muted-foreground">{t("planningPrefix")}</span>
+                  <span>{event.planningRole}</span>
+                </div>
+              )}
 
               {/* 概要 */}
               {event.description && (
-                <div>
-                  <p className="mb-2 text-sm font-medium text-muted-foreground">
-                    {t("descriptionLabel")}
-                  </p>
-                  <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                    {event.description}
+                <>
+                  <Separator />
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-muted-foreground">
+                      {t("descriptionLabel")}
+                    </p>
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                      {event.description}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
-            </CardContent>
-          </Card>
 
-          {/* 登壇者 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("speakersCard")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {event.speakers && event.speakers.length > 0 ? (
-                <div className="space-y-3">
-                  {event.speakers.map((speaker) => (
-                    <div key={speaker.id} className="flex items-center gap-3">
-                      {speaker.user && (
+              {/* 登壇者 */}
+              <Separator />
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t("speakersSection")}
+                  </p>
+                </div>
+                {event.speakers && event.speakers.length > 0 ? (
+                  <div className="space-y-3">
+                    {event.speakers.map((speaker) => (
+                      <div key={speaker.id} className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
-                          {speaker.user.avatarUrl && (
+                          {speaker.user?.avatarUrl && (
                             <AvatarImage src={speaker.user.avatarUrl} alt={speaker.name} />
                           )}
                           <AvatarFallback>{speaker.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">{speaker.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {speaker.title && `${speaker.title} / `}
-                          {tSpeakerRole(speaker.role)}
-                        </p>
+                        <div>
+                          <p className="text-sm font-medium">{speaker.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {speaker.title && `${speaker.title} / `}
+                            {tSpeakerRole(speaker.role)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
+                )}
+              </div>
 
-          {/* 関係団体 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("organizationsCard")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {event.organizations && event.organizations.length > 0 ? (
-                <div className="space-y-2">
-                  {event.organizations.map((org) => (
-                    <div key={org.id} className="flex items-center justify-between text-sm">
-                      <span>{org.organizationName}</span>
-                      <Badge variant="outline">{tOrgRole(org.role)}</Badge>
-                    </div>
-                  ))}
+              {/* 関係団体 */}
+              <Separator />
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t("organizationsSection")}
+                  </p>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
-              )}
+                {event.organizations && event.organizations.length > 0 ? (
+                  <div className="space-y-2">
+                    {event.organizations.map((org) => (
+                      <div key={org.id} className="flex items-center justify-between text-sm">
+                        <span>{org.organizationName}</span>
+                        <Badge variant="outline">{tOrgRole(org.role)}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{t("noneFallback")}</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -302,8 +305,44 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <CardHeader>
               <CardTitle>{t("detailInfoCard")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {event.language && <InfoRow label={t("infoRow.language")} value={event.language} />}
+            <CardContent className="space-y-4 text-sm">
+              {/* イベント種別（複数バッジ表示で視認性アップ） */}
+              {event.eventTypes && event.eventTypes.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <Tag className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">{t("eventTypeLabel")}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {event.eventTypes.map((type) => (
+                      <Badge key={type} variant="secondary" className="font-medium">
+                        {type}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 開催形式 + 会場/オンライン情報 */}
+              <div className="flex items-start gap-3">
+                {event.locationType === EventLocationType.ONLINE ? (
+                  <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                ) : (
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-muted-foreground">{t("locationTypeLabel")}</p>
+                    <Badge variant="outline">{tLocation(event.locationType)}</Badge>
+                  </div>
+                  {event.venueName && <p className="mt-1 font-medium">{event.venueName}</p>}
+                  {event.venueAddress && (
+                    <p className="text-muted-foreground">{event.venueAddress}</p>
+                  )}
+                  {event.onlineUrl && (
+                    <p className="break-all text-muted-foreground">{event.onlineUrl}</p>
+                  )}
+                </div>
+              </div>
+
               {event.accessInfo && (
                 <InfoRow label={t("infoRow.accessInfo")} value={event.accessInfo} />
               )}
@@ -328,36 +367,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* 右: サイドバー */}
         <div className="space-y-4">
-          {/* 参加申込 CTA */}
-          {event.status === EventStatus.RECRUITING && (
-            <Card>
-              <CardContent className="space-y-3 p-4">
-                {event.registrationDeadlineAt && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 shrink-0" />
-                    <span>
-                      {t("deadlineLabel", {
-                        date: new Date(event.registrationDeadlineAt).toLocaleString("ja-JP", {
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }),
-                      })}
-                    </span>
-                  </div>
-                )}
-                <Link href={`/events/${id}/apply`}>
-                  <Button className="w-full" size="lg">
-                    {t("applyButton")}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
           {/* チケット */}
           <TicketSection eventId={id} tickets={event.tickets} isAdmin={isAdmin} />
+
+          {/* 参加申込 CTA */}
+          {event.status === EventStatus.RECRUITING && (
+            <Link href={`/events/${id}/apply`}>
+              <Button className="w-full" size="lg">
+                {t("applyButton")}
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

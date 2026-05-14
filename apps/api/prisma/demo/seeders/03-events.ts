@@ -345,7 +345,7 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
         registrationDeadlineAt:
           def.status === "recruiting" ? daysAhead(Math.max(def.daysOffset - 1, 0)) : null,
         planningRole: "主催",
-        eventType: "交流会",
+        eventTypes: ["交流会"],
         status: def.status,
         coverImageUrl: `https://picsum.photos/seed/event-${def.title.length}/800/400`,
         createdByUserId: creator.id,

@@ -3,7 +3,8 @@
 import { useApplicationForm } from "@/hooks/events/use-events";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, MessageSquare, ClipboardList, Bell } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Settings, MessageSquare, ClipboardList, Bell, ListChecks } from "lucide-react";
 import type { FormFieldVisibility, ApplicationQuestionType } from "@/lib/api/types";
 
 const DEFAULT_COMPLETION_MESSAGE =
@@ -58,19 +59,18 @@ export function ApplicationFormSection({ eventId }: Props) {
   const questions = form?.questions ?? [];
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">申込フォーム設定</h2>
-
-      <div className="ml-1 space-y-4 border-l-2 pl-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>申込フォーム設定</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
         {/* 通知設定 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Settings className="h-4 w-4" />
-              通知設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">通知設定</p>
+          </div>
+          <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">定員達成時通知</span>
               <span>{config?.notifyOnCapacityReached ? "ON" : "OFF"}</span>
@@ -83,18 +83,18 @@ export function ApplicationFormSection({ eventId }: Props) {
                   : "OFF"}
               </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* 完了メッセージ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="h-4 w-4" />
-              申込完了メッセージ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <Separator />
+
+        {/* 申込完了メッセージ */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">申込完了メッセージ</p>
+          </div>
+          <div className="space-y-2 text-sm">
             <div>
               <span className="text-muted-foreground">アプリ内通知:</span>
               <p className="mt-0.5 whitespace-pre-wrap">
@@ -107,18 +107,18 @@ export function ApplicationFormSection({ eventId }: Props) {
                 {config?.completionMessageEmail || DEFAULT_COMPLETION_MESSAGE}
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
+
+        <Separator />
 
         {/* リマインダー設定 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bell className="h-4 w-4" />
-              リマインダー設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">リマインダー設定</p>
+          </div>
+          <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">リマインダー</span>
               <span>{config?.reminderEnabled ? "ON" : "OFF"}</span>
@@ -131,24 +131,24 @@ export function ApplicationFormSection({ eventId }: Props) {
                 </div>
                 {config.reminderMessage && (
                   <div>
-                    <span className="text-muted-foreground">メッセー��:</span>
+                    <span className="text-muted-foreground">メッセージ:</span>
                     <p className="mt-0.5 whitespace-pre-wrap">{config.reminderMessage}</p>
                   </div>
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* 基本属性 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardList className="h-4 w-4" />
-              基本属性の表示設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <Separator />
+
+        {/* 基本属性の表示設定 */}
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">基本属性の表示設定</p>
+          </div>
+          <div className="space-y-2">
             {BASIC_FIELDS.map((field) => {
               const v: FormFieldVisibility =
                 (config?.[field.key] as FormFieldVisibility | undefined) ??
@@ -162,18 +162,18 @@ export function ApplicationFormSection({ eventId }: Props) {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
+
+        <Separator />
 
         {/* カスタム質問 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardList className="h-4 w-4" />
-              カスタム質問
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">カスタム質問</p>
+          </div>
+          <div className="space-y-2">
             {questions.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground">カスタム質問はありません</p>
             ) : (
@@ -199,9 +199,9 @@ export function ApplicationFormSection({ eventId }: Props) {
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+          </div>
+        </section>
+      </CardContent>
+    </Card>
   );
 }

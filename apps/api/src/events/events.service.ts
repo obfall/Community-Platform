@@ -54,7 +54,7 @@ export class EventsService {
       // 非管理者は recruiting のみ。クエリの status 指定は無視する。
       where.status = EventStatus.recruiting;
     }
-    if (query.eventType) where.eventType = query.eventType;
+    if (query.eventType) where.eventTypes = { has: query.eventType };
     if (query.from || query.to) {
       where.startAt = {};
       if (query.from) where.startAt.gte = new Date(query.from);
@@ -102,7 +102,7 @@ export class EventsService {
             : Prisma.empty
           : Prisma.sql`AND status = 'recruiting'::"EventStatus"`
       }
-      ${query.eventType ? Prisma.sql`AND event_type = ${query.eventType}` : Prisma.empty}
+      ${query.eventType ? Prisma.sql`AND ${query.eventType} = ANY(event_types)` : Prisma.empty}
       ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
       ${toDate ? Prisma.sql`AND start_at <= ${toDate}` : Prisma.empty}
     `;
@@ -223,7 +223,7 @@ export class EventsService {
           ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : undefined,
           allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
           planningRole: dto.planningRole,
-          eventType: dto.eventType,
+          eventTypes: dto.eventTypes ?? [],
           accessInfo: dto.accessInfo,
           participationMethod: dto.participationMethod,
           contactInfo: dto.contactInfo,
@@ -299,7 +299,7 @@ export class EventsService {
             allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
           }),
           ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
-          ...(dto.eventType !== undefined && { eventType: dto.eventType }),
+          ...(dto.eventTypes !== undefined && { eventTypes: dto.eventTypes }),
           ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
           ...(dto.participationMethod !== undefined && {
             participationMethod: dto.participationMethod,
@@ -961,7 +961,7 @@ export class EventsService {
           allowMultiTicketPurchase: source.allowMultiTicketPurchase,
           acceptedPaymentMethods: source.acceptedPaymentMethods ?? undefined,
           planningRole: source.planningRole,
-          eventType: source.eventType,
+          eventTypes: source.eventTypes,
           accessInfo: source.accessInfo,
           participationMethod: source.participationMethod,
           contactInfo: source.contactInfo,
@@ -1307,7 +1307,7 @@ export class EventsService {
       ticketSaleStartAt: event.ticketSaleStartAt,
       allowMultiTicketPurchase: event.allowMultiTicketPurchase,
       planningRole: event.planningRole,
-      eventType: event.eventType,
+      eventTypes: event.eventTypes,
       accessInfo: event.accessInfo,
       participationMethod: event.participationMethod,
       contactInfo: event.contactInfo,
@@ -1320,6 +1320,15 @@ export class EventsService {
       participantCount: event._count?.participants ?? event.participantCount,
       requiredRank: event.requiredRank,
       createdBy: formatAuthor(event.createdByUser),
+      ticketCount: event.tickets?.length ?? 0,
+      // 全チケットが capacity=null（無制限）の場合は totalCapacity も null = 定員なし
+      totalCapacity: event.tickets?.some((t: any) => t.capacity !== null)
+        ? event.tickets.reduce((sum: number, t: any) => sum + (t.capacity ?? 0), 0)
+        : null,
+      minPrice:
+        event.tickets && event.tickets.length > 0
+          ? Math.min(...event.tickets.map((t: any) => t.price))
+          : null,
       tickets: event.tickets,
       speakers: event.speakers?.map((s: any) => ({
         id: s.id,

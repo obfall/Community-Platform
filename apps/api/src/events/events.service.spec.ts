@@ -1062,7 +1062,7 @@ describe("EventsService", () => {
       allowMultiTicketPurchase: false,
       acceptedPaymentMethods: null,
       planningRole: null,
-      eventType: "study",
+      eventTypes: ["セミナー・ワークショップ"],
       accessInfo: null,
       participationMethod: null,
       contactInfo: null,

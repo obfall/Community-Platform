@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Form,
   FormControl,
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, Mic, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { VenuePicker } from "@/components/venue-picker";
 import { TagInput } from "@/components/tag-input";
@@ -47,10 +48,14 @@ import {
   EVENT_ORGANIZATION_ROLE_VALUES,
   EVENT_SPEAKER_ROLE_VALUES,
   EVENT_LOCATION_TYPE_VALUES,
+  EVENT_PLANNING_ROLE_VALUES,
+  EVENT_TYPE_VALUES,
   EventOrganizationRole,
   EventSpeakerRole,
   EventLocationType,
+  EventPlanningRole,
 } from "@community-platform/shared";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function buildSchema(t: (key: string) => string) {
   return z.object({
@@ -64,8 +69,8 @@ function buildSchema(t: (key: string) => string) {
     startAt: z.string().min(1, t("startAtRequired")),
     endAt: z.string().min(1, t("endAtRequired")),
     registrationDeadlineAt: z.string().optional(),
-    eventType: z.string().optional(),
-    planningRole: z.string().optional(),
+    eventTypes: z.array(z.enum(EVENT_TYPE_VALUES)).optional(),
+    planningRole: z.enum(EVENT_PLANNING_ROLE_VALUES).optional(),
     accessInfo: z.string().optional(),
     participationMethod: z.string().optional(),
     contactInfo: z.string().optional(),
@@ -129,8 +134,8 @@ export default function NewEventPage() {
       startAt: "",
       endAt: "",
       registrationDeadlineAt: "",
-      eventType: "",
-      planningRole: "主催",
+      eventTypes: [],
+      planningRole: EventPlanningRole.ORGANIZER,
       accessInfo: "",
       participationMethod: "",
       contactInfo: "",
@@ -153,7 +158,7 @@ export default function NewEventPage() {
         ...data,
         venueId: data.venueId || undefined,
         registrationDeadlineAt: data.registrationDeadlineAt || undefined,
-        eventType: data.eventType || undefined,
+        eventTypes: data.eventTypes && data.eventTypes.length > 0 ? data.eventTypes : undefined,
         accessInfo: data.accessInfo || undefined,
         participationMethod: data.participationMethod || undefined,
         contactInfo: data.contactInfo || undefined,
@@ -186,11 +191,12 @@ export default function NewEventPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* メイン */}
             <div className="space-y-6 lg:col-span-2">
+              {/* 基本情報 */}
               <Card>
                 <CardHeader>
                   <CardTitle>{tCard("basicInfo")}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5">
                   <FormField
                     control={form.control}
                     name="title"
@@ -199,19 +205,6 @@ export default function NewEventPage() {
                         <FormLabel>{tLabel("title")}</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder={tPh("title")} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tLabel("description")}</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} placeholder={tPh("description")} rows={6} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -229,14 +222,346 @@ export default function NewEventPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("description")}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} placeholder={tPh("description")} rows={6} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="startAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{tLabel("startAt")}</FormLabel>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="endAt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{tLabel("endAt")}</FormLabel>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="registrationDeadlineAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("registrationDeadlineAt")}</FormLabel>
+                        <FormControl>
+                          <Input type="datetime-local" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="planningRole"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("planningRole")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {EVENT_PLANNING_ROLE_VALUES.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {v}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* 登壇者 */}
+                  <Separator />
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <Mic className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {tCard("speakers")}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {speakerFields.fields.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">{tHint("speakers")}</p>
+                      ) : (
+                        speakerFields.fields.map((field, index) => (
+                          <div key={field.id} className="space-y-2 rounded-md border p-3">
+                            <FormField
+                              control={form.control}
+                              name={`speakers.${index}.userId`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">{tLabel("memberLink")}</FormLabel>
+                                  <FormControl>
+                                    <MemberPicker
+                                      value={
+                                        f.value
+                                          ? {
+                                              id: f.value,
+                                              name: form.getValues(`speakers.${index}.name`) || "",
+                                              avatarUrl: null,
+                                            }
+                                          : null
+                                      }
+                                      onChange={(m) => {
+                                        f.onChange(m?.id ?? undefined);
+                                        if (m) {
+                                          form.setValue(`speakers.${index}.name`, m.name);
+                                          if (m.defaultTitle) {
+                                            form.setValue(
+                                              `speakers.${index}.title`,
+                                              m.defaultTitle,
+                                            );
+                                          }
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`speakers.${index}.name`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">{tLabel("speakerName")}</FormLabel>
+                                  <FormControl>
+                                    <Input {...f} placeholder={tPh("speakerName")} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`speakers.${index}.title`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">
+                                    {tLabel("speakerTitle")}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input {...f} placeholder={tPh("speakerTitle")} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`speakers.${index}.role`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
+                                  <Select onValueChange={f.onChange} value={f.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={tPh("selectRole")} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {EVENT_SPEAKER_ROLE_VALUES_ORDERED.map((v) => (
+                                        <SelectItem key={v} value={v}>
+                                          {tSpeakerRole(v)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => speakerFields.remove(index)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-1 h-3 w-3" />
+                              {tBtn("remove")}
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                      {speakerFields.fields.length < MAX_EVENT_SPEAKERS && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() =>
+                            speakerFields.append({
+                              name: "",
+                              title: "",
+                              role: EventSpeakerRole.SPEAKER,
+                            })
+                          }
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          {tBtn("addSpeaker")}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 関係団体 */}
+                  <Separator />
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {tCard("organizations")}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {orgFields.fields.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">{tHint("organizations")}</p>
+                      ) : (
+                        orgFields.fields.map((field, index) => (
+                          <div key={field.id} className="space-y-2 rounded-md border p-3">
+                            <FormField
+                              control={form.control}
+                              name={`organizations.${index}.organizationName`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">
+                                    {tLabel("organizationName")}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input {...f} placeholder={tPh("organizationName")} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`organizations.${index}.role`}
+                              render={({ field: f }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
+                                  <Select onValueChange={f.onChange} value={f.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={tPh("selectRole")} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {EVENT_ORGANIZATION_ROLE_VALUES_ORDERED.map((v) => (
+                                        <SelectItem key={v} value={v}>
+                                          {tOrgRole(v)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => orgFields.remove(index)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-1 h-3 w-3" />
+                              {tBtn("remove")}
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                      {orgFields.fields.length < MAX_EVENT_ORGANIZATIONS && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() =>
+                            orgFields.append({
+                              organizationName: "",
+                              role: EventOrganizationRole.CO_ORGANIZER,
+                            })
+                          }
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          {tBtn("addOrganization")}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
+              {/* 詳細情報 */}
               <Card>
                 <CardHeader>
-                  <CardTitle>{tCard("eventInfo")}</CardTitle>
+                  <CardTitle>{tCard("detailInfo")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="eventTypes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("eventType")}</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            {EVENT_TYPE_VALUES.map((v) => {
+                              const checked = field.value?.includes(v) ?? false;
+                              return (
+                                <label
+                                  key={v}
+                                  className="flex items-center gap-2 text-sm font-normal"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(c) => {
+                                      const next = new Set(field.value ?? []);
+                                      if (c) next.add(v);
+                                      else next.delete(v);
+                                      field.onChange(Array.from(next));
+                                    }}
+                                  />
+                                  <span>{v}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="locationType"
@@ -324,42 +649,50 @@ export default function NewEventPage() {
                       )}
                     />
                   )}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="startAt"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{tLabel("startAt")}</FormLabel>
-                          <FormControl>
-                            <Input type="datetime-local" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="endAt"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{tLabel("endAt")}</FormLabel>
-                          <FormControl>
-                            <Input type="datetime-local" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
                   <FormField
                     control={form.control}
-                    name="registrationDeadlineAt"
+                    name="accessInfo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{tLabel("registrationDeadlineAt")}</FormLabel>
+                        <FormLabel>{tLabel("accessInfo")}</FormLabel>
                         <FormControl>
-                          <Input type="datetime-local" {...field} />
+                          <Textarea {...field} rows={3} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="participationMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("participationMethod")}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={3} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="contactInfo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("contactInfo")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="cancellationPolicy"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tLabel("cancellationPolicy")}</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={3} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -370,38 +703,6 @@ export default function NewEventPage() {
 
             {/* サイドバー */}
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{tCard("settings")}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="eventType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tLabel("eventType")}</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder={tPh("eventType")} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="planningRole"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tLabel("planningRole")}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
               <Card>
                 <CardHeader>
                   <CardTitle>{tCard("tags")}</CardTitle>
@@ -426,213 +727,6 @@ export default function NewEventPage() {
                       </FormItem>
                     )}
                   />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>{tCard("organizations")}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {orgFields.fields.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">{tHint("organizations")}</p>
-                  ) : (
-                    orgFields.fields.map((field, index) => (
-                      <div key={field.id} className="space-y-2 rounded-md border p-3">
-                        <FormField
-                          control={form.control}
-                          name={`organizations.${index}.organizationName`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">
-                                {tLabel("organizationName")}
-                              </FormLabel>
-                              <FormControl>
-                                <Input {...f} placeholder={tPh("organizationName")} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`organizations.${index}.role`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
-                              <Select onValueChange={f.onChange} value={f.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={tPh("selectRole")} />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {EVENT_ORGANIZATION_ROLE_VALUES_ORDERED.map((v) => (
-                                    <SelectItem key={v} value={v}>
-                                      {tOrgRole(v)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => orgFields.remove(index)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-1 h-3 w-3" />
-                          {tBtn("remove")}
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                  {orgFields.fields.length < MAX_EVENT_ORGANIZATIONS && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() =>
-                        orgFields.append({
-                          organizationName: "",
-                          role: EventOrganizationRole.CO_ORGANIZER,
-                        })
-                      }
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      {tBtn("addOrganization")}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>{tCard("speakers")}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {speakerFields.fields.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">{tHint("speakers")}</p>
-                  ) : (
-                    speakerFields.fields.map((field, index) => (
-                      <div key={field.id} className="space-y-2 rounded-md border p-3">
-                        <FormField
-                          control={form.control}
-                          name={`speakers.${index}.userId`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">{tLabel("memberLink")}</FormLabel>
-                              <FormControl>
-                                <MemberPicker
-                                  value={
-                                    f.value
-                                      ? {
-                                          id: f.value,
-                                          name: form.getValues(`speakers.${index}.name`) || "",
-                                          avatarUrl: null,
-                                        }
-                                      : null
-                                  }
-                                  onChange={(m) => {
-                                    f.onChange(m?.id ?? undefined);
-                                    if (m) {
-                                      form.setValue(`speakers.${index}.name`, m.name);
-                                      if (m.defaultTitle) {
-                                        form.setValue(`speakers.${index}.title`, m.defaultTitle);
-                                      }
-                                    }
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`speakers.${index}.name`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">{tLabel("speakerName")}</FormLabel>
-                              <FormControl>
-                                <Input {...f} placeholder={tPh("speakerName")} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`speakers.${index}.title`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">{tLabel("speakerTitle")}</FormLabel>
-                              <FormControl>
-                                <Input {...f} placeholder={tPh("speakerTitle")} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`speakers.${index}.role`}
-                          render={({ field: f }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">{tLabel("role")}</FormLabel>
-                              <Select onValueChange={f.onChange} value={f.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={tPh("selectRole")} />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {EVENT_SPEAKER_ROLE_VALUES_ORDERED.map((v) => (
-                                    <SelectItem key={v} value={v}>
-                                      {tSpeakerRole(v)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => speakerFields.remove(index)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-1 h-3 w-3" />
-                          {tBtn("remove")}
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                  {speakerFields.fields.length < MAX_EVENT_SPEAKERS && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() =>
-                        speakerFields.append({
-                          name: "",
-                          title: "",
-                          role: EventSpeakerRole.SPEAKER,
-                        })
-                      }
-                    >
-                      <Plus className="mr-1 h-3 w-3" />
-                      {tBtn("addSpeaker")}
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
 

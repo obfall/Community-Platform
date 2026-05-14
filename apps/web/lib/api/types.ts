@@ -787,7 +787,7 @@ export interface EventDetail extends EventListItem {
   ticketSaleStartAt: string | null;
   allowMultiTicketPurchase: boolean;
   planningRole: string;
-  eventType: string | null;
+  eventTypes: string[];
   accessInfo: string | null;
   participationMethod: string | null;
   contactInfo: string | null;
@@ -853,7 +853,6 @@ export interface EventQuery {
   page?: number;
   limit?: number;
   status?: string;
-  categoryId?: string;
   eventType?: string;
   search?: string;
   from?: string;
@@ -874,8 +873,7 @@ export interface CreateEventInput {
   ticketSaleStartAt?: string;
   allowMultiTicketPurchase?: boolean;
   planningRole?: string;
-  eventType?: string;
-  categoryId?: string;
+  eventTypes?: string[];
   accessInfo?: string;
   participationMethod?: string;
   contactInfo?: string;

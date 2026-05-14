@@ -51,6 +51,39 @@ export const EVENT_SPEAKER_ROLE_VALUES = Object.values(
   EventSpeakerRole,
 ) as readonly EventSpeakerRole[];
 
+// planningRole は DB 上 String VarChar(30) のままで、アプリ層で日本語表示値に限定する。
+// 値そのものが表示ラベルなので i18n キーは持たない。
+export const EventPlanningRole = {
+  ORGANIZER: "主催",
+  CO_ORGANIZER: "共催",
+  SPONSOR: "協賛",
+  SUPPORTER: "後援",
+  COOPERATION: "協力",
+} as const;
+export type EventPlanningRole = (typeof EventPlanningRole)[keyof typeof EventPlanningRole];
+export const EVENT_PLANNING_ROLE_VALUES = Object.values(
+  EventPlanningRole,
+) as readonly EventPlanningRole[];
+
+// eventTypes は DB 上 text[] で、1 イベントに複数タイプを付けられる。
+// 値そのものが表示ラベルなので i18n キーは持たない。
+export const EventType = {
+  LECTURE: "講演",
+  SEMINAR_WORKSHOP: "セミナー・ワークショップ",
+  REC_DEMO: "レクデモ",
+  CLASS: "教室",
+  PERFORMANCE: "公演・コンサート",
+  EXHIBITION: "展示",
+  COURSE: "講座",
+  SCREENING: "映画・ビデオ上映会",
+  MEETUP: "交流会",
+  BRIEFING: "説明会",
+  HANDS_ON: "体験会",
+  OTHER: "その他",
+} as const;
+export type EventType = (typeof EventType)[keyof typeof EventType];
+export const EVENT_TYPE_VALUES = Object.values(EventType) as readonly EventType[];
+
 // ============================================================
 // Events: input limits
 // ============================================================

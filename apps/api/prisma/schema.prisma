@@ -1073,7 +1073,7 @@ model Event {
   allowMultiTicketPurchase Boolean           @default(false) @map("allow_multi_ticket_purchase")
   acceptedPaymentMethods   Json?             @map("accepted_payment_methods") @db.JsonB
   planningRole             String            @default("主催") @map("planning_role") @db.VarChar(30)
-  eventType                String?           @map("event_type") @db.VarChar(30)
+  eventTypes               String[]          @default([]) @map("event_types")
   accessInfo               String?           @map("access_info") @db.Text
   participationMethod      String?           @map("participation_method") @db.Text
   contactInfo              String?           @map("contact_info") @db.Text

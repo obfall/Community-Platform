@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -19,6 +20,8 @@ import {
   MAX_EVENT_TAG_LENGTH,
   MAX_EVENT_TAGS,
   MAX_EVENT_TITLE_LENGTH,
+  EVENT_PLANNING_ROLE_VALUES,
+  EVENT_TYPE_VALUES,
 } from "@community-platform/shared";
 import { EventOrganizationItemDto } from "./event-organization.dto";
 import { EventSpeakerItemDto } from "./event-speaker.dto";
@@ -85,15 +88,20 @@ export class UpdateEventDto {
   @IsBoolean()
   allowMultiTicketPurchase?: boolean;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "企画役割", enum: EVENT_PLANNING_ROLE_VALUES })
   @IsOptional()
-  @IsString()
+  @IsIn(EVENT_PLANNING_ROLE_VALUES)
   planningRole?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: "イベント種別（複数選択可）",
+    enum: EVENT_TYPE_VALUES,
+    isArray: true,
+  })
   @IsOptional()
-  @IsString()
-  eventType?: string;
+  @IsArray()
+  @IsIn(EVENT_TYPE_VALUES, { each: true })
+  eventTypes?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
