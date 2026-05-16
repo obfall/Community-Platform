@@ -23,8 +23,13 @@
     "capacityValue": "{total}人",
     "capacityUnlimited": "定員なし",
     "planningPrefix": "企画:",
+    "creatorPrefix": "作成者:",
     "descriptionLabel": "概要",
     "applyButton": "参加申込",
+    "appliedButton": "申込済み",
+    "appliedTooltip": "このイベントには既に申込済みです（チケット: {ticket}）",
+    "deadlinePassedButton": "申込締切",
+    "deadlinePassedTooltip": "このイベントの申込締切を過ぎています",
     "speakersSection": "登壇者",
     "organizationsSection": "関係団体",
     "noneFallback": "なし",
@@ -126,7 +131,10 @@
   },
   "apply": {
     "notFound": "イベントが見つかりません",
-    "notRecruiting": "このイベントは現在募集していません"
+    "notRecruiting": "このイベントは現在募集していません",
+    "alreadyApplied": "このイベントには既に申込済みです",
+    "deadlinePassed": "このイベントの申込締切を過ぎています",
+    "backToEvent": "イベント詳細へ戻る"
   },
   "memberPicker": {
     "selectButton": "メンバーを選択（任意）",

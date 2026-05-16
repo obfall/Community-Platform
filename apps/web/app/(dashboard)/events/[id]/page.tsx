@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   CalendarDays,
   MapPin,
@@ -226,6 +227,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
 
+              {/* 作成者 */}
+              {event.createdBy && (
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-muted-foreground">{t("creatorPrefix")}</span>
+                  <Avatar className="h-6 w-6">
+                    {event.createdBy.avatarUrl && (
+                      <AvatarImage src={event.createdBy.avatarUrl} alt={event.createdBy.name} />
+                    )}
+                    <AvatarFallback className="text-xs">
+                      {event.createdBy.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{event.createdBy.name}</span>
+                </div>
+              )}
+
               {/* 概要 */}
               {event.description && (
                 <>
@@ -371,13 +388,55 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <TicketSection eventId={id} tickets={event.tickets} isAdmin={isAdmin} />
 
           {/* 参加申込 CTA */}
-          {event.status === EventStatus.RECRUITING && (
-            <Link href={`/events/${id}/apply`}>
-              <Button className="w-full" size="lg">
-                {t("applyButton")}
-              </Button>
-            </Link>
-          )}
+          {event.status === EventStatus.RECRUITING &&
+            (() => {
+              const isDeadlinePassed =
+                !!event.registrationDeadlineAt &&
+                new Date() > new Date(event.registrationDeadlineAt);
+
+              if (event.myParticipation) {
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* disabled な button は pointer-events:none で tooltip が出ないため span でラップ */}
+                      <span tabIndex={0} className="block">
+                        <Button className="w-full" size="lg" disabled>
+                          {t("appliedButton")}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {t("appliedTooltip", {
+                        ticket: event.myParticipation.ticketName ?? "",
+                      })}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              if (isDeadlinePassed) {
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0} className="block">
+                        <Button className="w-full" size="lg" disabled>
+                          {t("deadlinePassedButton")}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("deadlinePassedTooltip")}</TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <Link href={`/events/${id}/apply`}>
+                  <Button className="w-full" size="lg">
+                    {t("applyButton")}
+                  </Button>
+                </Link>
+              );
+            })()}
         </div>
       </div>
 

@@ -408,7 +408,7 @@ export class SurveysService {
               participants: {
                 some: {
                   userId,
-                  status: { in: ["applied", "confirmed", "attended"] },
+                  status: { in: ["applied", "attended"] },
                 },
               },
             },

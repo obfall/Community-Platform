@@ -55,7 +55,6 @@ export default function FaqDetailPage({ params }: { params: Promise<{ id: string
           <div className="flex items-center gap-2">
             <Badge variant="outline">{data.category}</Badge>
             {!data.isPublished && <Badge variant="secondary">下書き</Badge>}
-            <span className="text-xs text-muted-foreground">閲覧数 {data.viewCount}</span>
           </div>
           <h1 className="text-2xl font-bold">{data.title}</h1>
           <div className="prose max-w-none whitespace-pre-wrap text-sm">{data.body}</div>

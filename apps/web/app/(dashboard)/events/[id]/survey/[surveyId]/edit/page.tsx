@@ -56,7 +56,7 @@ function EditForm({
           questions: data.questions,
         },
       },
-      { onSuccess: () => router.push(`/events/${eventId}/survey`) },
+      { onSuccess: () => router.push(`/events/${eventId}/survey/${surveyId}`) },
     );
   };
 
@@ -66,7 +66,7 @@ function EditForm({
       onSubmit={handleSubmit}
       isSubmitting={updateSurvey.isPending}
       submitLabel="保存"
-      backHref={`/events/${eventId}/survey`}
+      backHref={`/events/${eventId}/survey/${surveyId}`}
       pageTitle="イベントアンケート編集"
     />
   );

@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import {
   GripVertical,
   MessageCircle,
-  Eye,
   Pin,
   PinOff,
   MoreVertical,
@@ -105,10 +104,6 @@ export function SortableTopicItem({ topic, isAdmin }: { topic: BoardTopic; isAdm
           <Badge variant="secondary" className="gap-1">
             <MessageCircle className="h-3 w-3" />
             {topic.postCount}
-          </Badge>
-          <Badge variant="secondary" className="gap-1">
-            <Eye className="h-3 w-3" />
-            {topic.viewCount}
           </Badge>
         </div>
       </Link>

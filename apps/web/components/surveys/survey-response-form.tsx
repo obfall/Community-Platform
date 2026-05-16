@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,6 @@ interface SurveyResponseFormProps {
   survey: SurveyDetail;
   onSubmit: (answers: AnswerPayload[]) => void;
   isSubmitting: boolean;
-  backHref: string;
   showCompleted?: boolean;
 }
 
@@ -47,9 +46,11 @@ export function SurveyResponseForm({
   survey,
   onSubmit,
   isSubmitting,
-  backHref,
   showCompleted = false,
 }: SurveyResponseFormProps) {
+  const router = useRouter();
+  const goBack = () => router.back();
+
   const [answers, setAnswers] = useState<
     Record<string, { selectedOptions?: string[]; textValue?: string; numericValue?: number }>
   >({});
@@ -98,9 +99,9 @@ export function SurveyResponseForm({
             <CheckCircle2 className="h-16 w-16 text-green-500" />
             <h2 className="text-xl font-bold">回答ありがとうございました</h2>
             <p className="text-sm text-muted-foreground">アンケートへのご回答が送信されました。</p>
-            <Link href={backHref}>
-              <Button variant="outline">戻る</Button>
-            </Link>
+            <Button variant="outline" onClick={goBack}>
+              戻る
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -121,11 +122,9 @@ export function SurveyResponseForm({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href={backHref}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={goBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{survey.title}</h1>
           {survey.description && (
@@ -227,9 +226,9 @@ export function SurveyResponseForm({
       ))}
 
       <div className="flex justify-end gap-2">
-        <Link href={backHref}>
-          <Button variant="outline">戻る</Button>
-        </Link>
+        <Button variant="outline" onClick={goBack}>
+          戻る
+        </Button>
         <Button onClick={handleSubmit} disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           回答を送信

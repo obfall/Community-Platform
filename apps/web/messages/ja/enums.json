@@ -2,8 +2,8 @@
   "role": {
     "admin": "管理者",
     "owner": "運営者",
-    "moderator": "モデレーター",
-    "member": "メンバー"
+    "member": "メンバー",
+    "visitor": "ビジター"
   },
   "occupation": {
     "company_employee": "会社員",
@@ -49,7 +49,6 @@
   },
   "participantStatus": {
     "applied": "申込済",
-    "confirmed": "確定",
     "attended": "出席",
     "canceled": "キャンセル",
     "no_show": "欠席"

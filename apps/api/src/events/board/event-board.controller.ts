@@ -27,8 +27,8 @@ import {
   UpdateTopicPostCommentDto,
 } from "@/board/dto";
 import { PaginationQueryDto } from "@/common/dto/pagination.dto";
-import { CurrentUser, FeatureEnabled } from "@/common/decorators";
-import { FeatureEnabledGuard } from "@/common/guards";
+import { CurrentUser, FeatureEnabled, Roles } from "@/common/decorators";
+import { FeatureEnabledGuard, RolesGuard } from "@/common/guards";
 
 @ApiTags("event-board")
 @ApiBearerAuth()
@@ -132,7 +132,9 @@ export class EventBoardController {
     return this.service.toggleTopicLike(userId, id);
   }
 
-  @Post("topics/:id/pin")
+  @Patch("topics/:id/pin")
+  @Roles("admin", "owner")
+  @UseGuards(RolesGuard)
   @ApiOperation({ summary: "イベント掲示板 トピックピン留め切替" })
   togglePin(@Param("id", ParseUUIDPipe) id: string) {
     return this.service.togglePin(id);

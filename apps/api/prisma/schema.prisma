@@ -629,7 +629,6 @@ model BoardTopic {
   publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
-  viewCount     Int           @default(0) @map("view_count")
   postCount     Int           @default(0) @map("post_count")
   likeCount     Int           @default(0) @map("like_count")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
@@ -1010,7 +1009,6 @@ enum EventSpeakerRole {
 
 enum ParticipantStatus {
   applied
-  confirmed
   canceled
   attended
   no_show
@@ -1239,7 +1237,7 @@ model EventParticipantAnswer {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   participant EventParticipant         @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  question    EventApplicationQuestion @relation(fields: [questionId], references: [id])
+  question    EventApplicationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([participantId, questionId])
   @@index([questionId])
@@ -1325,7 +1323,6 @@ model EventBoardTopic {
   publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
-  viewCount     Int           @default(0) @map("view_count")
   postCount     Int           @default(0) @map("post_count")
   likeCount     Int           @default(0) @map("like_count")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
@@ -1794,7 +1791,6 @@ model ProjectBoardTopic {
   publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
-  viewCount     Int           @default(0) @map("view_count")
   postCount     Int           @default(0) @map("post_count")
   likeCount     Int           @default(0) @map("like_count")
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz()
@@ -2844,7 +2840,6 @@ model FaqArticle {
   body        String   @db.Text
   sortOrder   Int      @default(0) @map("sort_order")
   isPublished Boolean  @default(true) @map("is_published")
-  viewCount   Int      @default(0) @map("view_count")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 

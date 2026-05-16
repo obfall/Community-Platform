@@ -308,7 +308,6 @@ export async function seedProjects(prisma: PrismaClient): Promise<void> {
             title: pick(BOARD_TOPIC_TITLES),
             body: pick(BOARD_POST_BODIES),
             publishStatus: "published",
-            viewCount: randInt(5, 50),
           },
           select: { id: true },
         });

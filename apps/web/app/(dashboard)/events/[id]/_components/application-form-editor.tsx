@@ -216,7 +216,12 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
     setQDescription(q.description ?? "");
     setQType(q.questionType);
     setQRequired(q.isRequired);
-    setQOptions(q.options && q.options.length > 0 ? q.options : [{ value: "", label: "" }]);
+    // 旧データ（options が {} や undefined フィールド）でも controlled な空文字に正規化
+    setQOptions(
+      q.options && q.options.length > 0
+        ? q.options.map((o) => ({ value: o.value ?? "", label: o.label ?? "" }))
+        : [{ value: "", label: "" }],
+    );
     setQuestionDialogOpen(true);
   };
 
@@ -224,19 +229,19 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
     const hasOptions = qType === "radio" || qType === "checkbox" || qType === "select";
     let options: ApplicationQuestionOption[] | undefined;
     if (hasOptions) {
-      // 値・ラベルの trim と必須チェック
-      const trimmed = qOptions.map((o) => ({
-        value: o.value.trim(),
-        label: o.label.trim(),
-      }));
-      if (trimmed.some((o) => !o.value || !o.label)) {
-        toast.error("選択肢の「値」「ラベル」は両方とも入力してください");
+      // 入力欄は「選択肢」1 つに統合済み。value と label は同じ文字列で保存する。
+      const trimmed = qOptions.map((o) => {
+        const text = (o.label ?? "").trim();
+        return { value: text, label: text };
+      });
+      if (trimmed.some((o) => !o.label)) {
+        toast.error("選択肢を入力してください");
         return;
       }
-      // value 重複チェック（apply 画面で同 value 同士が同時選択される不具合を防ぐ）
-      const values = trimmed.map((o) => o.value);
-      if (new Set(values).size !== values.length) {
-        toast.error("選択肢の「値」が重複しています。一意の値を指定してください");
+      // 重複チェック（同じ選択肢が複数登録されないように）
+      const labels = trimmed.map((o) => o.label);
+      if (new Set(labels).size !== labels.length) {
+        toast.error("選択肢が重複しています。一意の選択肢を入力してください");
         return;
       }
       options = trimmed;
@@ -419,6 +424,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                     {(["hidden", "optional", "required"] as FormFieldVisibility[]).map((v) => (
                       <Button
                         key={v}
+                        type="button"
                         size="sm"
                         variant={basicFieldState[field.key] === v ? "default" : "outline"}
                         className="h-7 px-2 text-xs"
@@ -442,7 +448,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                 <ListChecks className="h-4 w-4 text-muted-foreground" />
                 <p className="text-sm font-medium text-muted-foreground">カスタム質問</p>
               </div>
-              <Button size="sm" variant="outline" onClick={openNewQuestion}>
+              <Button type="button" size="sm" variant="outline" onClick={openNewQuestion}>
                 <Plus className="mr-1 h-3 w-3" />
                 追加
               </Button>
@@ -464,6 +470,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -473,6 +480,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                         <ArrowUp className="h-3 w-3" />
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -482,6 +490,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                         <ArrowDown className="h-3 w-3" />
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -490,6 +499,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                         <Pencil className="h-3 w-3" />
                       </Button>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
@@ -549,25 +559,19 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                   <div key={i} className="flex gap-2">
                     <Input
                       className="flex-1"
-                      placeholder="値"
-                      value={opt.value}
+                      placeholder="選択肢"
+                      // value と label を 1 入力に統合（内部的には両方を同じ文字列で持つ）。
+                      // 既存データで value と label が異なる場合は label を表示。
+                      value={opt.label ?? ""}
                       onChange={(e) => {
                         const next = [...qOptions];
-                        next[i] = { ...opt, value: e.target.value };
-                        setQOptions(next);
-                      }}
-                    />
-                    <Input
-                      className="flex-1"
-                      placeholder="ラベル"
-                      value={opt.label}
-                      onChange={(e) => {
-                        const next = [...qOptions];
-                        next[i] = { ...opt, label: e.target.value };
+                        // value と label を同期させる
+                        next[i] = { value: e.target.value, label: e.target.value };
                         setQOptions(next);
                       }}
                     />
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 shrink-0"
@@ -579,6 +583,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                   </div>
                 ))}
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setQOptions([...qOptions, { value: "", label: "" }])}
@@ -597,6 +602,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
               <Label htmlFor="q-required">必須</Label>
             </div>
             <Button
+              type="button"
               onClick={handleSaveQuestion}
               disabled={!qLabel || createQuestion.isPending || updateQuestion.isPending}
               className="w-full"

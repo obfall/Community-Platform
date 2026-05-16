@@ -240,7 +240,6 @@ export interface BoardTopic {
   publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
-  viewCount: number;
   postCount: number;
   likeCount: number;
   author: BoardPostAuthor;
@@ -799,6 +798,14 @@ export interface EventDetail extends EventListItem {
   tickets: EventTicket[];
   speakers: EventSpeaker[];
   organizations: EventOrganization[];
+  /** ログイン中ユーザーの有効な申込（キャンセル以外）。未申込なら null */
+  myParticipation: {
+    id: string;
+    status: string;
+    ticketId: string;
+    ticketName: string | null;
+    appliedAt: string;
+  } | null;
   updatedAt: string;
 }
 
@@ -1770,7 +1777,6 @@ export interface FaqArticle {
   body: string;
   sortOrder: number;
   isPublished: boolean;
-  viewCount: number;
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;

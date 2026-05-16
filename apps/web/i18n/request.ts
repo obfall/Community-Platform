@@ -8,7 +8,15 @@ import { getRequestConfig } from "next-intl/server";
 // ここで読み込んでトップレベル名前空間としてまとめて返す。
 // 新しい feature を i18n 化する時は messages/<locale>/<feature>.json を足し、
 // 下記の NAMESPACES 配列に追加するだけで済む。
-const NAMESPACES = ["common", "enums", "members", "board", "dashboard", "events"] as const;
+const NAMESPACES = [
+  "common",
+  "enums",
+  "members",
+  "board",
+  "dashboard",
+  "events",
+  "errors",
+] as const;
 
 export default getRequestConfig(async () => {
   const locale = "ja";

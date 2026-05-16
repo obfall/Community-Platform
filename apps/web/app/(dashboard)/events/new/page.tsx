@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Building2, Mic, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { StickyFooterBar } from "@/components/sticky-footer-bar";
 import { VenuePicker } from "@/components/venue-picker";
 import { TagInput } from "@/components/tag-input";
 import { MemberPicker } from "@/components/member-picker";
@@ -729,12 +730,14 @@ export default function NewEventPage() {
                   />
                 </CardContent>
               </Card>
-
-              <Button type="submit" className="w-full" disabled={createEvent.isPending}>
-                {tBtn("submitNew")}
-              </Button>
             </div>
           </div>
+
+          <StickyFooterBar
+            onCancel={() => router.push("/events")}
+            submitLabel={tBtn("submitNew")}
+            disabled={createEvent.isPending}
+          />
         </form>
       </Form>
     </div>

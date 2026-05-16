@@ -159,7 +159,22 @@ export default function EditEventResultPage({ params }: { params: Promise<{ id: 
 
     setUploading(true);
     try {
-      const category = file.type.startsWith("image/") ? "image" : "document";
+      // MIME に応じてカテゴリ判定。
+      // - 画像 → "image"（magic check + サムネ生成）
+      // - PDF / Word / Excel / PowerPoint → "document"（magic check + サイズ上限 20MB）
+      // - それ以外（テキスト / CSV / ZIP / 動画 等） → "general"（MIME 制限なし、上限 10MB）
+      const DOCUMENT_MIME_TYPES = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ];
+      const category = file.type.startsWith("image/")
+        ? "image"
+        : DOCUMENT_MIME_TYPES.includes(file.type)
+          ? "document"
+          : "general";
       const uploaded = await filesApi.upload(file, category, true);
       await addAttachment.mutateAsync(uploaded.id);
       toast.success("添付ファイルを追加しました");
@@ -423,7 +438,11 @@ export default function EditEventResultPage({ params }: { params: Promise<{ id: 
           </Card>
 
           <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.push(`/events/${id}`)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/events/${id}/results`)}
+            >
               キャンセル
             </Button>
             <Button

@@ -37,8 +37,9 @@ interface FormData {
   ticketId: string;
   quantity: number;
   discountCode: string;
+  /** ログインアカウントの email を固定値として送る（読み取り専用） */
   applicantEmail: string;
-  applicantEmailConfirm: string;
+  /** ログインアカウントの name を固定値として送る（読み取り専用） */
   applicantName: string;
   applicantNameKana: string;
   applicantAffiliation: string;
@@ -126,7 +127,6 @@ function EventApplyForm({
     quantity: 1,
     discountCode: "",
     applicantEmail: user?.email ?? "",
-    applicantEmailConfirm: user?.email ?? "",
     applicantName: user?.name ?? "",
     applicantNameKana: myProfile?.profile?.nameKana ?? "",
     applicantAffiliation: myProfile?.affiliations?.[0]?.organizationName ?? "",
@@ -148,6 +148,28 @@ function EventApplyForm({
 
   if (event.status !== EventStatus.RECRUITING) {
     return <div className="py-12 text-center text-muted-foreground">{tApply("notRecruiting")}</div>;
+  }
+
+  if (event.registrationDeadlineAt && new Date() > new Date(event.registrationDeadlineAt)) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">{tApply("deadlinePassed")}</p>
+        <Link href={`/events/${id}`}>
+          <Button variant="outline">{tApply("backToEvent")}</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (event.myParticipation) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">{tApply("alreadyApplied")}</p>
+        <Link href={`/events/${id}`}>
+          <Button variant="outline">{tApply("backToEvent")}</Button>
+        </Link>
+      </div>
+    );
   }
 
   const config = formPublic?.config;
@@ -180,8 +202,6 @@ function EventApplyForm({
 
     if (!formData.ticketId) errs.ticketId = "チケットを選択してください";
     if (!formData.applicantEmail) errs.applicantEmail = "メールアドレスは必須です";
-    if (formData.applicantEmail !== formData.applicantEmailConfirm)
-      errs.applicantEmailConfirm = "メールアドレスが一致しません";
 
     if (isRequired(config?.askName) && !formData.applicantName)
       errs.applicantName = "氏名は必須です";
@@ -483,47 +503,33 @@ function EventApplyForm({
               <CardTitle className="text-base">参加者情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* メールアドレス（常時必須） */}
+              {/* メールアドレス（アカウント固定・読み取り専用） */}
               <div>
                 <Label>
                   メールアドレス <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  type="email"
-                  value={formData.applicantEmail}
-                  onChange={(e) => set("applicantEmail", e.target.value)}
-                />
+                <Input type="email" value={formData.applicantEmail} readOnly className="bg-muted" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  アカウントの情報が使われます。変更する場合はプロフィールを編集してください。
+                </p>
                 {errors.applicantEmail && (
                   <p className="mt-1 text-sm text-destructive">{errors.applicantEmail}</p>
-                )}
-              </div>
-              <div>
-                <Label>
-                  メールアドレス（確認） <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="email"
-                  value={formData.applicantEmailConfirm}
-                  onChange={(e) => set("applicantEmailConfirm", e.target.value)}
-                />
-                {errors.applicantEmailConfirm && (
-                  <p className="mt-1 text-sm text-destructive">{errors.applicantEmailConfirm}</p>
                 )}
               </div>
 
               <Separator />
 
-              {/* 氏名 */}
+              {/* 氏名（アカウント固定・読み取り専用） */}
               {isVisible(config?.askName) && (
                 <div>
                   <Label>
                     氏名{" "}
                     {isRequired(config?.askName) && <span className="text-destructive">*</span>}
                   </Label>
-                  <Input
-                    value={formData.applicantName}
-                    onChange={(e) => set("applicantName", e.target.value)}
-                  />
+                  <Input value={formData.applicantName} readOnly className="bg-muted" />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    アカウントの情報が使われます。変更する場合はプロフィールを編集してください。
+                  </p>
                   {errors.applicantName && (
                     <p className="mt-1 text-sm text-destructive">{errors.applicantName}</p>
                   )}

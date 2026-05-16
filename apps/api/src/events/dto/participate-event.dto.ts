@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  Allow,
   IsArray,
   IsEmail,
   IsEnum,
@@ -19,7 +20,9 @@ class AnswerItem {
   @IsUUID()
   questionId!: string;
 
+  // string / string[] の両方を許容。値の妥当性 (radio/select/checkbox の選択肢一致) は service 層でチェック。
   @ApiProperty()
+  @Allow()
   answer!: string | string[];
 }
 

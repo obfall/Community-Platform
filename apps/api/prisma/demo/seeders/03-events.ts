@@ -487,15 +487,15 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
           })
         : [];
       for (const user of applicants) {
-        let status: "applied" | "confirmed" | "canceled" | "attended" | "no_show" = "confirmed";
+        let status: "applied" | "canceled" | "attended" | "no_show" = "applied";
         let paymentStatus: "pending" | "paid" | "canceled" | null = null;
         let attendedAt: Date | null = null;
         let canceledAt: Date | null = null;
 
         if (def.status === "recruiting") {
-          status = rand() < 0.7 ? "confirmed" : "applied";
+          status = "applied";
         } else if (def.status === "closed") {
-          status = "confirmed";
+          status = "applied";
         } else if (def.status === "ended") {
           const r = rand();
           status = r < 0.7 ? "attended" : r < 0.85 ? "no_show" : "canceled";
@@ -607,7 +607,6 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
             title: pick(BOARD_TOPIC_TITLES),
             body: pick(BOARD_POST_BODIES),
             publishStatus: "published",
-            viewCount: randInt(10, 100),
           },
           select: { id: true },
         });

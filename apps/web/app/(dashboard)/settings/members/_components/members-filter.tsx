@@ -49,8 +49,8 @@ export function MembersFilter({ query, onQueryChange }: MembersFilterProps) {
           <SelectItem value="all">すべてのロール</SelectItem>
           <SelectItem value="owner">オーナー</SelectItem>
           <SelectItem value="admin">管理者</SelectItem>
-          <SelectItem value="moderator">モデレーター</SelectItem>
           <SelectItem value="member">メンバー</SelectItem>
+          <SelectItem value="visitor">ビジター</SelectItem>
         </SelectContent>
       </Select>
       <Select

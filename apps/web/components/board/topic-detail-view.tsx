@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Trash2, Heart, Eye, MessageCircle, MoreVertical } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Heart, MessageCircle, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -113,10 +113,6 @@ function TopicDetailInner({ topicId }: { topicId: string }) {
           <span className="flex items-center gap-1">
             <MessageCircle className="h-4 w-4" />
             {topic.postCount}
-          </span>
-          <span className="flex items-center gap-1">
-            <Eye className="h-4 w-4" />
-            {topic.viewCount}
           </span>
         </div>
       </div>

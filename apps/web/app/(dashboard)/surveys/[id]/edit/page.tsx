@@ -50,7 +50,7 @@ function SurveyEditForm({
           questions: data.questions,
         },
       },
-      { onSuccess: () => router.push("/surveys") },
+      { onSuccess: () => router.push(`/surveys/${id}`) },
     );
   };
 
@@ -60,7 +60,7 @@ function SurveyEditForm({
       onSubmit={handleSubmit}
       isSubmitting={updateSurvey.isPending}
       submitLabel="保存"
-      backHref="/surveys"
+      backHref={`/surveys/${id}`}
       pageTitle="アンケート編集"
     />
   );

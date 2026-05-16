@@ -182,7 +182,7 @@ export class EventsService {
     };
   }
 
-  async findOne(id: string, role: UserRole) {
+  async findOne(id: string, role: UserRole, userId?: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
       include: {
@@ -201,7 +201,17 @@ export class EventsService {
     if (event.status !== EventStatus.recruiting && !canViewAllEventStatuses(role)) {
       throw new NotFoundException("イベントが見つかりません");
     }
-    return this.mapEventDetail(event);
+
+    // ログインユーザーの有効な申込状況（重複申込ブロックと UI 表示に使う）
+    const myParticipation = userId
+      ? await this.prisma.eventParticipant.findFirst({
+          where: { eventId: id, userId, status: { not: "canceled" } },
+          include: { ticket: { select: { id: true, ticketName: true } } },
+          orderBy: { appliedAt: "desc" },
+        })
+      : null;
+
+    return this.mapEventDetail(event, myParticipation);
   }
 
   async create(userId: string, dto: CreateEventDto) {
@@ -427,6 +437,14 @@ export class EventsService {
       throw new BadRequestException("申込締切を過ぎています");
     }
 
+    // 既存の有効な申込（キャンセル以外）があれば重複申込として拒否
+    const existingParticipation = await this.prisma.eventParticipant.findFirst({
+      where: { eventId, userId, status: { not: "canceled" } },
+    });
+    if (existingParticipation) {
+      throw new BadRequestException("すでにこのイベントに申込済みです");
+    }
+
     const quantity = dto.quantity ?? 1;
 
     const ticket = event.tickets.find((t) => t.id === dto.ticketId);
@@ -567,6 +585,7 @@ export class EventsService {
 
     // 通知（トランザクション外で非同期実行）
     try {
+      // 申込者本人 → 申込完了通知
       await this.notificationsService.create({
         userId,
         type: "event_application",
@@ -575,6 +594,42 @@ export class EventsService {
         referenceType: "event",
         referenceId: eventId,
       });
+
+      // イベント作成者 + 全 admin / owner に「申込がありました」通知
+      // - 申込者本人は除外（自分から自分への通知を避ける）
+      // - 作成者 + admin/owner で重複する場合は 1 通だけ
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ["admin", "owner"] },
+          status: "active",
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      const recipientIds = new Set<string>([event.createdByUserId, ...admins.map((a) => a.id)]);
+      recipientIds.delete(userId);
+
+      if (recipientIds.size > 0) {
+        let applicantName = dto.applicantName?.trim();
+        if (!applicantName) {
+          const applicant = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+          });
+          applicantName = applicant?.name ?? "参加者";
+        }
+        await this.notificationsService.createMany(
+          Array.from(recipientIds).map((recipientId) => ({
+            userId: recipientId,
+            type: "event_application_received",
+            title: "新しいイベント申込",
+            body: `${applicantName}さんが「${event.title}」に申込しました`,
+            referenceType: "event",
+            referenceId: eventId,
+            actorUserId: userId,
+          })),
+        );
+      }
 
       if (config?.notifyOnCapacityReached) {
         const totalCapacity = event.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0);
@@ -1291,7 +1346,7 @@ export class EventsService {
     return event;
   }
 
-  private mapEventDetail(event: any) {
+  private mapEventDetail(event: any, myParticipation?: any) {
     return {
       id: event.id,
       title: event.title,
@@ -1340,6 +1395,16 @@ export class EventsService {
       })),
       organizations: event.organizations,
       tags: event.tags?.map((t: any) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
+      // ログイン中ユーザーの有効な申込（キャンセル以外）。未ログイン or 未申込なら null
+      myParticipation: myParticipation
+        ? {
+            id: myParticipation.id,
+            status: myParticipation.status,
+            ticketId: myParticipation.ticketId,
+            ticketName: myParticipation.ticket?.ticketName ?? null,
+            appliedAt: myParticipation.appliedAt,
+          }
+        : null,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     };

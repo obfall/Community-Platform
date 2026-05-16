@@ -216,8 +216,8 @@ function MemberActions({ user }: { user: UserDetail }) {
             <SelectContent>
               <SelectItem value="owner">オーナー</SelectItem>
               <SelectItem value="admin">管理者</SelectItem>
-              <SelectItem value="moderator">モデレーター</SelectItem>
               <SelectItem value="member">メンバー</SelectItem>
+              <SelectItem value="visitor">ビジター</SelectItem>
             </SelectContent>
           </Select>
         </div>

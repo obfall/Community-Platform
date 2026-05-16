@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 import { NotificationsService } from "./notifications.service";
 import { NotificationQueryDto, UpdatePreferencesDto } from "./dto";
 import { CurrentUser, FeatureEnabled } from "@/common/decorators";
@@ -29,6 +30,9 @@ export class NotificationsController {
     return this.notificationsService.findAll(userId, query);
   }
 
+  // UI 通知バッジ用に高頻度（30〜60秒間隔）でポーリングされる軽量 COUNT クエリのため
+  // throttle 対象から外す（per-user JWT 認証済みで悪用リスクも低い）
+  @SkipThrottle()
   @Get("unread-count")
   @ApiOperation({ summary: "未読通知数" })
   getUnreadCount(@CurrentUser("id") userId: string) {

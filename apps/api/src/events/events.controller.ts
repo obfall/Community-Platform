@@ -83,8 +83,12 @@ export class EventsController {
 
   @Get(":id")
   @ApiOperation({ summary: "イベント詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string, @CurrentUser("role") role: UserRole) {
-    return this.eventsService.findOne(id, role);
+  findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("role") role: UserRole,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.eventsService.findOne(id, role, userId);
   }
 
   @Post()

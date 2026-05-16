@@ -30,7 +30,6 @@ export default function EventSurveyRespondPage({
       survey={survey}
       onSubmit={handleSubmit}
       isSubmitting={submitResponse.isPending}
-      backHref={`/events/${eventId}`}
       showCompleted
     />
   );

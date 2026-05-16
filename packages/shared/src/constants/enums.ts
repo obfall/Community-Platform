@@ -5,8 +5,8 @@
 export const UserRole = {
   OWNER: "owner",
   ADMIN: "admin",
-  MODERATOR: "moderator",
   MEMBER: "member",
+  VISITOR: "visitor",
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
@@ -87,7 +87,7 @@ export type LanguageProficiency = (typeof LanguageProficiency)[keyof typeof Lang
 export const PublishStatus = {
   DRAFT: "draft",
   PUBLISHED: "published",
-  ARCHIVED: "archived",
+  UNPUBLISHED: "unpublished",
 } as const;
 export type PublishStatus = (typeof PublishStatus)[keyof typeof PublishStatus];
 

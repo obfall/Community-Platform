@@ -11,10 +11,11 @@ describe("EventsService", () => {
     eventParticipant: { findMany: jest.Mock; findFirst: jest.Mock };
     eventApplicationQuestion: { findMany: jest.Mock };
     eventDiscountCode: { findFirst: jest.Mock };
+    user: { findUnique: jest.Mock; findMany: jest.Mock };
     $queryRaw: jest.Mock;
     $transaction: jest.Mock;
   };
-  let notificationsMock: { create: jest.Mock };
+  let notificationsMock: { create: jest.Mock; createMany: jest.Mock };
   let service: EventsService;
 
   beforeEach(() => {
@@ -38,10 +39,17 @@ describe("EventsService", () => {
       eventDiscountCode: {
         findFirst: jest.fn().mockResolvedValue(null),
       },
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       $queryRaw: jest.fn().mockResolvedValue([]),
       $transaction: jest.fn(),
     };
-    notificationsMock = { create: jest.fn().mockResolvedValue(undefined) };
+    notificationsMock = {
+      create: jest.fn().mockResolvedValue(undefined),
+      createMany: jest.fn().mockResolvedValue(undefined),
+    };
     service = new EventsService(prismaMock as never, notificationsMock as never);
   });
 
@@ -856,6 +864,17 @@ describe("EventsService", () => {
       );
     });
 
+    it("既に有効な申込（キャンセル以外）がある場合は BadRequestException", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent());
+      prismaMock.eventParticipant.findFirst.mockResolvedValueOnce({
+        id: "p-existing",
+        status: "applied",
+      });
+      await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
+        "すでにこのイベントに申込済み",
+      );
+    });
+
     it("status≠recruiting なら BadRequestException", async () => {
       prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent({ status: "draft" }));
       await expect(service.participate("e1", "user-1", baseDto as never)).rejects.toThrow(
@@ -1018,6 +1037,13 @@ describe("EventsService", () => {
         (cb: (tx: ParticipateTxMock) => Promise<unknown>) => cb(txMock),
       );
 
+      prismaMock.user.findMany.mockResolvedValueOnce([
+        { id: "admin-1" },
+        { id: "admin-2" },
+        { id: "owner-1" }, // 作成者と重複（dedupe される想定）
+      ]);
+      prismaMock.user.findUnique.mockResolvedValueOnce({ name: "申込者" });
+
       const result = await service.participate("e1", "user-1", baseDto as never);
       expect(result).toEqual({ id: "p1" });
       expect(txMock.eventParticipant.create).toHaveBeenCalled();
@@ -1025,12 +1051,43 @@ describe("EventsService", () => {
         where: { id: "ticket-1" },
         data: { soldCount: { increment: 1 } },
       });
+      // 申込者本人への通知
       expect(notificationsMock.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "user-1",
           type: "event_application",
         }),
       );
+      // 作成者 + admin 全員に対する通知（createMany で一括、申込者本人除外、重複排除）
+      expect(notificationsMock.createMany).toHaveBeenCalledTimes(1);
+      const adminNotifications = notificationsMock.createMany.mock.calls[0][0] as Array<{
+        userId: string;
+        type: string;
+        actorUserId: string;
+      }>;
+      const recipientIds = adminNotifications.map((n) => n.userId).sort();
+      expect(recipientIds).toEqual(["admin-1", "admin-2", "owner-1"]);
+      expect(adminNotifications[0]?.type).toBe("event_application_received");
+      expect(adminNotifications[0]?.actorUserId).toBe("user-1");
+    });
+
+    it("申込者が作成者かつ admin の場合は admin 通知をスキップ", async () => {
+      prismaMock.event.findUnique.mockResolvedValueOnce(baseEvent({ createdByUserId: "user-1" }));
+      const txMock: ParticipateTxMock = {
+        eventParticipant: { create: jest.fn().mockResolvedValue({ id: "p1" }) },
+        eventParticipantAnswer: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        eventTicket: { update: jest.fn().mockResolvedValue({}) },
+        event: { update: jest.fn().mockResolvedValue({ participantCount: 1 }) },
+        eventDiscountCode: { update: jest.fn().mockResolvedValue({}) },
+      };
+      prismaMock.$transaction.mockImplementationOnce(
+        (cb: (tx: ParticipateTxMock) => Promise<unknown>) => cb(txMock),
+      );
+      // admin 一覧にも自分しかいない場合 (申込者本人を除外すると 0 件)
+      prismaMock.user.findMany.mockResolvedValueOnce([{ id: "user-1" }]);
+
+      await service.participate("e1", "user-1", baseDto as never);
+      expect(notificationsMock.createMany).not.toHaveBeenCalled();
     });
   });
 
