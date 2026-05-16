@@ -255,7 +255,7 @@ describe("events hooks", () => {
       expect(toast.success).toHaveBeenCalledWith("参加申込しました");
     });
 
-    it("API エラー（response.data.message が文字列）の場合はその文字列をトースト表示する", async () => {
+    it("API エラー時は reject されるだけで、フック自身は toast.error を呼ばない（グローバル MutationCache.onError に委ねる）", async () => {
       vi.mocked(eventsApi.participate).mockRejectedValue({
         response: { data: { message: "定員に達しています" } },
       });
@@ -268,37 +268,7 @@ describe("events hooks", () => {
         ).rejects.toBeDefined();
       });
 
-      expect(toast.error).toHaveBeenCalledWith("定員に達しています");
-    });
-
-    it("API エラーで message が配列なら join してトースト表示する", async () => {
-      vi.mocked(eventsApi.participate).mockRejectedValue({
-        response: { data: { message: ["氏名は必須です", "ふりがなは必須です"] } },
-      });
-      const { wrapper } = createHookWrapper();
-      const { result } = renderHook(() => useParticipate(), { wrapper });
-
-      await act(async () => {
-        await expect(
-          result.current.mutateAsync({ eventId: "e1", data: undefined }),
-        ).rejects.toBeDefined();
-      });
-
-      expect(toast.error).toHaveBeenCalledWith("氏名は必須です, ふりがなは必須です");
-    });
-
-    it("API エラーで message が無いときはデフォルト文言にフォールバックする", async () => {
-      vi.mocked(eventsApi.participate).mockRejectedValue({ response: { data: {} } });
-      const { wrapper } = createHookWrapper();
-      const { result } = renderHook(() => useParticipate(), { wrapper });
-
-      await act(async () => {
-        await expect(
-          result.current.mutateAsync({ eventId: "e1", data: undefined }),
-        ).rejects.toBeDefined();
-      });
-
-      expect(toast.error).toHaveBeenCalledWith("参加申込に失敗しました");
+      expect(toast.error).not.toHaveBeenCalled();
     });
   });
 

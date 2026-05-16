@@ -102,7 +102,7 @@ export class EventsService {
             : Prisma.empty
           : Prisma.sql`AND status = 'recruiting'::"EventStatus"`
       }
-      ${query.eventType ? Prisma.sql`AND ${query.eventType} = ANY(event_types)` : Prisma.empty}
+      ${query.eventType ? Prisma.sql`AND event_types @> ARRAY[${query.eventType}]::text[]` : Prisma.empty}
       ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
       ${toDate ? Prisma.sql`AND start_at <= ${toDate}` : Prisma.empty}
     `;
