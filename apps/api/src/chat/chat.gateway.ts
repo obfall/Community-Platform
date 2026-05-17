@@ -10,8 +10,10 @@ import {
 import { Logger, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { I18nService } from "nestjs-i18n";
 import { Server, Socket } from "socket.io";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
 import { ChatService } from "./chat.service";
 import { WsRateLimiter } from "./ws-rate-limiter";
 import type { JwtPayload } from "@/auth/types/jwt-payload";
@@ -20,10 +22,17 @@ type AuthenticatedSocket = Socket & {
   data: { userId: string; userName: string };
 };
 
+// CORS_ORIGIN をカンマ区切りで分割（main.ts と同じパターン）。
+// 単一なら文字列で、複数なら配列で WebSocket Gateway に渡す。
+const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 @WebSocketGateway({
   namespace: "/chat",
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
     credentials: true,
   },
 })
@@ -39,7 +48,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
+    private readonly i18n: I18nService,
   ) {}
+
+  /** WebSocket は HTTP リクエストの locale を取れないので ja 固定で翻訳する（MVP は ja 単独運用） */
+  private t(key: string): string {
+    const translated = this.i18n.translate(key, { lang: "ja" });
+    return typeof translated === "string" ? translated : key;
+  }
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
@@ -80,7 +96,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private assertAuth(client: AuthenticatedSocket): string | null {
     const userId: string | undefined = (client.data as { userId?: string })?.userId;
     if (!userId) {
-      client.emit("chat:error", { message: "認証されていません" });
+      client.emit("chat:error", { message: this.t("errors.ws.chat_unauthenticated") });
       return null;
     }
     return userId;
@@ -100,7 +116,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     if (!membership) {
-      client.emit("chat:error", { message: "このルームのメンバーではありません" });
+      client.emit("chat:error", { message: this.t("errors.ws.chat_not_member") });
       return;
     }
 
@@ -124,7 +140,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!this.rateLimiter.check(client.id)) {
       client.emit("chat:rate-limit", {
-        message: "送信頻度の上限に達しました。しばらく時間をおいてから再送信してください",
+        message: this.t("errors.ws.chat_rate_limit"),
       });
       return;
     }
@@ -141,7 +157,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // ルーム内の全メンバーにブロードキャスト
       this.server.to(`room:${data.roomId}`).emit("chat:message", message);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "メッセージ送信に失敗しました";
+      // BusinessException は messageKey を持つので i18n で翻訳して返す。
+      // それ以外（Prisma エラー等の内部例外）は内部メッセージを露出させず汎用文言にする。
+      // 詳細は logger / Sentry でサーバー側で追跡する。
+      if (!(error instanceof BusinessException)) {
+        this.logger.error("chat:message failed", error as Error);
+      }
+      const errorMessage =
+        error instanceof BusinessException && error.messageKey
+          ? this.t(error.messageKey)
+          : this.t("errors.ws.chat_message_failed");
       client.emit("chat:error", { message: errorMessage });
     }
   }

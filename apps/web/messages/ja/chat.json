@@ -1,0 +1,46 @@
+{
+  "heading": {
+    "title": "チャット",
+    "empty": "チャットルームがありません",
+    "selectPrompt": "チャットルームを選択してください"
+  },
+  "dialog": {
+    "newRoomTitle": "新規チャット",
+    "typeLabel": "種別",
+    "typeDm": "DM（1対1）",
+    "typeGroup": "グループ",
+    "groupNameLabel": "グループ名",
+    "groupNamePlaceholder": "グループ名を入力",
+    "membersLabel": "メンバー",
+    "memberSearchPlaceholder": "名前を入力して検索...",
+    "memberSearchNoResults": "該当するユーザーが見つかりません",
+    "submit": "作成"
+  },
+  "room": {
+    "defaultDm": "DM",
+    "defaultGroup": "グループチャット",
+    "memberCount": "{count}人のメンバー",
+    "fileLabel": "📎 ファイル"
+  },
+  "message": {
+    "inputPlaceholder": "メッセージを入力...",
+    "readDm": "既読",
+    "readGroup": "既読 {count}",
+    "typing": "{userName} が入力中..."
+  },
+  "toast": {
+    "roomCreated": "チャットルームを作成しました",
+    "roomCreateFailed": "ルームの作成に失敗しました",
+    "roomUpdated": "ルームを更新しました",
+    "roomUpdateFailed": "ルームの更新に失敗しました",
+    "memberAdded": "メンバーを追加しました",
+    "memberAddFailed": "メンバーの追加に失敗しました",
+    "memberRemoved": "メンバーを削除しました",
+    "memberRemoveFailed": "メンバーの削除に失敗しました"
+  },
+  "error": {
+    "wsConnect": "リアルタイム通信に接続できません",
+    "wsReconnecting": "再接続を試みています…",
+    "wsGeneric": "チャットでエラーが発生しました"
+  }
+}
