@@ -1377,12 +1377,15 @@ export class EventsService {
       createdBy: formatAuthor(event.createdByUser),
       ticketCount: event.tickets?.length ?? 0,
       // 全チケットが capacity=null（無制限）の場合は totalCapacity も null = 定員なし
-      totalCapacity: event.tickets?.some((t: any) => t.capacity !== null)
-        ? event.tickets.reduce((sum: number, t: any) => sum + (t.capacity ?? 0), 0)
+      totalCapacity: event.tickets?.some((t: { capacity: number | null }) => t.capacity !== null)
+        ? event.tickets.reduce(
+            (sum: number, t: { capacity: number | null }) => sum + (t.capacity ?? 0),
+            0,
+          )
         : null,
       minPrice:
         event.tickets && event.tickets.length > 0
-          ? Math.min(...event.tickets.map((t: any) => t.price))
+          ? Math.min(...event.tickets.map((t: { price: number }) => t.price))
           : null,
       tickets: event.tickets,
       speakers: event.speakers?.map((s: any) => ({

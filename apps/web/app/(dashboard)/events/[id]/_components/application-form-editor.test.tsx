@@ -114,7 +114,9 @@ describe("ApplicationFormEditor", () => {
       renderWithProviders(<ApplicationFormEditor eventId={EVENT_ID} />);
       await user.click(screen.getByRole("button", { name: /追加/ }));
 
-      const saveButton = screen.getByRole("button", { name: "追加", exact: true });
+      // ダイアログ内の保存ボタン「追加」を取得（外側の「+ 追加」と区別するため within で絞る）
+      const dialog = screen.getByRole("dialog");
+      const saveButton = within(dialog).getByRole("button", { name: "追加" });
       expect(saveButton).toBeDisabled();
     });
 
@@ -125,13 +127,14 @@ describe("ApplicationFormEditor", () => {
 
       await user.type(screen.getByPlaceholderText("質問文"), "自由記述");
 
-      const saveButton = screen.getByRole("button", { name: "追加", exact: true });
+      const dialog = screen.getByRole("dialog");
+      const saveButton = within(dialog).getByRole("button", { name: "追加" });
       expect(saveButton).not.toBeDisabled();
 
       await user.click(saveButton);
 
       expect(createQuestionMutate).toHaveBeenCalledTimes(1);
-      const callArg = createQuestionMutate.mock.calls[0][0] as {
+      const callArg = createQuestionMutate.mock.calls[0]![0] as {
         eventId: string;
         data: { label: string; questionType: string; options?: unknown; isRequired: boolean };
       };
@@ -240,7 +243,7 @@ describe("ApplicationFormEditor", () => {
       const optionInputs = screen.getAllByPlaceholderText("選択肢") as HTMLInputElement[];
       await user.clear(optionInputs[0]!);
 
-      await user.click(screen.getByRole("button", { name: "更新", exact: true }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "更新" }));
       expect(toast.error).toHaveBeenCalledWith("選択肢を入力してください");
       expect(updateQuestionMutate).not.toHaveBeenCalled();
     });
@@ -258,7 +261,7 @@ describe("ApplicationFormEditor", () => {
       await user.clear(optionInputs[1]!);
       await user.type(optionInputs[1]!, "赤");
 
-      await user.click(screen.getByRole("button", { name: "更新", exact: true }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "更新" }));
       expect(toast.error).toHaveBeenCalledWith(
         "選択肢が重複しています。一意の選択肢を入力してください",
       );
@@ -279,9 +282,9 @@ describe("ApplicationFormEditor", () => {
       await user.clear(optionInputs[1]!);
       await user.type(optionInputs[1]!, "黄");
 
-      await user.click(screen.getByRole("button", { name: "更新", exact: true }));
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "更新" }));
       expect(updateQuestionMutate).toHaveBeenCalledTimes(1);
-      const callArg = updateQuestionMutate.mock.calls[0][0] as {
+      const callArg = updateQuestionMutate.mock.calls[0]![0] as {
         data: { options: Array<{ value: string; label: string }> };
       };
       expect(callArg.data.options).toEqual([
@@ -350,7 +353,7 @@ describe("ApplicationFormEditor", () => {
       fireEvent.click(buttons[1]!);
 
       expect(reorderQuestionsMutate).toHaveBeenCalledTimes(1);
-      const callArg = reorderQuestionsMutate.mock.calls[0][0] as {
+      const callArg = reorderQuestionsMutate.mock.calls[0]![0] as {
         eventId: string;
         items: Array<{ id: string; sortOrder: number }>;
       };
