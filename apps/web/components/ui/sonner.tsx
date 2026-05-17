@@ -30,6 +30,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          // Dialog / DropdownMenu / StickyFooterBar (z-50, z-40) より上に出すため最上位 z-index を指定
+          "--toast-z-index": "2147483647",
+          zIndex: 2147483647,
         } as React.CSSProperties
       }
       {...props}

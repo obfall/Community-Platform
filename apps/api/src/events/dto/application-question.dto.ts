@@ -14,6 +14,16 @@ import { Type } from "class-transformer";
 
 const QUESTION_TYPES = ["text", "textarea", "radio", "checkbox", "select"] as const;
 
+class ApplicationQuestionOptionItem {
+  @ApiProperty()
+  @IsString()
+  value!: string;
+
+  @ApiProperty()
+  @IsString()
+  label!: string;
+}
+
 export class CreateApplicationQuestionDto {
   @ApiProperty()
   @IsString()
@@ -28,9 +38,12 @@ export class CreateApplicationQuestionDto {
   @IsEnum(QUESTION_TYPES)
   questionType!: (typeof QUESTION_TYPES)[number];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: [ApplicationQuestionOptionItem] })
   @IsOptional()
-  options?: Array<{ value: string; label: string }>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApplicationQuestionOptionItem)
+  options?: ApplicationQuestionOptionItem[];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -60,9 +73,12 @@ export class UpdateApplicationQuestionDto {
   @IsEnum(QUESTION_TYPES)
   questionType?: (typeof QUESTION_TYPES)[number];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: [ApplicationQuestionOptionItem] })
   @IsOptional()
-  options?: Array<{ value: string; label: string }> | null;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApplicationQuestionOptionItem)
+  options?: ApplicationQuestionOptionItem[] | null;
 
   @ApiPropertyOptional()
   @IsOptional()

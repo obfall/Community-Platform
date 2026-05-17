@@ -114,7 +114,6 @@ async function seedBoard(prisma: PrismaClient, users: UserSummary[]): Promise<vo
         publishStatus: isDraft ? "draft" : "published",
         isPinned,
         sortOrder: isPinned ? -(i + 1) : 0,
-        viewCount: isDraft ? 0 : randInt(5, 500),
         createdAt,
         updatedAt: createdAt,
       },

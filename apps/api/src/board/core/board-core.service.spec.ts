@@ -122,7 +122,6 @@ describe("BoardCoreService", () => {
       publishStatus: "published",
       isPinned: false,
       sortOrder: 0,
-      viewCount: 10,
       postCount: 0,
       likeCount: 2,
       authorUserId: "u-1",
@@ -132,17 +131,12 @@ describe("BoardCoreService", () => {
       updatedAt: new Date("2026-01-01"),
     };
 
-    it("公開トピックは viewCount をインクリメントし isLiked を判定する", async () => {
+    it("公開トピックは isLiked を判定して返す", async () => {
       prismaMock.boardTopic.findUnique.mockResolvedValue(baseTopic);
-      prismaMock.boardTopic.update.mockResolvedValue({});
       prismaMock.boardLike.findUnique.mockResolvedValue({ id: "like-1" });
 
       const result = await service.findOneTopic(GLOBAL_BOARD_SCOPE, "u-1", "t-1");
 
-      expect(prismaMock.boardTopic.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { viewCount: { increment: 1 } } }),
-      );
-      expect(result.viewCount).toBe(11);
       expect(result.isLiked).toBe(true);
     });
 
@@ -436,7 +430,6 @@ describe("BoardCoreService", () => {
         publishStatus: "published",
         isPinned: false,
         sortOrder: 0,
-        viewCount: 0,
         postCount: 0,
         likeCount: 0,
         author: { id: "u-1", name: "太郎" },

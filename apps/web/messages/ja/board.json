@@ -1,7 +1,8 @@
 {
   "heading": {
     "title": "掲示板",
-    "description": "コミュニティの掲示板"
+    "description": "コミュニティの掲示板",
+    "eventDescription": "イベント参加者向けの掲示板"
   },
   "search": {
     "placeholder": "トピックを検索...",

@@ -253,18 +253,18 @@ const EVENTS: EventDef[] = [
 ];
 
 const SPEAKER_NAMES = [
-  { name: "外部講師 山田 先生", title: "株式会社サンプル", role: "講師" },
-  { name: "外部講師 鈴木 博士", title: "大学研究員", role: "講師" },
-  { name: "外部講師 佐々木 氏", title: "フリーランス", role: "ゲスト" },
-  { name: "外部講師 田島 氏", title: "IT コンサルタント", role: "司会" },
+  { name: "外部講師 山田 先生", title: "株式会社サンプル", role: "speaker" },
+  { name: "外部講師 鈴木 博士", title: "大学研究員", role: "speaker" },
+  { name: "外部講師 佐々木 氏", title: "フリーランス", role: "guest" },
+  { name: "外部講師 田島 氏", title: "IT コンサルタント", role: "moderator" },
 ];
 
 const ORGANIZATIONS = [
-  { name: "株式会社パートナーA", role: "協賛" },
-  { name: "一般社団法人サポート団体", role: "共催" },
-  { name: "地域コミュニティB", role: "協力" },
-  { name: "株式会社スポンサーC", role: "スポンサー" },
-];
+  { name: "株式会社パートナーA", role: "sponsor" },
+  { name: "一般社団法人サポート団体", role: "co_organizer" },
+  { name: "地域コミュニティB", role: "cooperation" },
+  { name: "株式会社スポンサーC", role: "sponsor" },
+] as const;
 
 async function getDemoUsers(prisma: PrismaClient): Promise<UserSummary[]> {
   return await prisma.user.findMany({
@@ -345,7 +345,7 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
         registrationDeadlineAt:
           def.status === "recruiting" ? daysAhead(Math.max(def.daysOffset - 1, 0)) : null,
         planningRole: "主催",
-        eventType: "交流会",
+        eventTypes: ["交流会"],
         status: def.status,
         coverImageUrl: `https://picsum.photos/seed/event-${def.title.length}/800/400`,
         createdByUserId: creator.id,
@@ -406,7 +406,7 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
             eventId: event.id,
             userId: user.id,
             name: "（会員登壇）",
-            role: "共同講師",
+            role: "co_speaker",
             sortOrder: 2,
           },
         });
@@ -487,15 +487,15 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
           })
         : [];
       for (const user of applicants) {
-        let status: "applied" | "confirmed" | "canceled" | "attended" | "no_show" = "confirmed";
+        let status: "applied" | "canceled" | "attended" | "no_show" = "applied";
         let paymentStatus: "pending" | "paid" | "canceled" | null = null;
         let attendedAt: Date | null = null;
         let canceledAt: Date | null = null;
 
         if (def.status === "recruiting") {
-          status = rand() < 0.7 ? "confirmed" : "applied";
+          status = "applied";
         } else if (def.status === "closed") {
-          status = "confirmed";
+          status = "applied";
         } else if (def.status === "ended") {
           const r = rand();
           status = r < 0.7 ? "attended" : r < 0.85 ? "no_show" : "canceled";
@@ -607,7 +607,6 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
             title: pick(BOARD_TOPIC_TITLES),
             body: pick(BOARD_POST_BODIES),
             publishStatus: "published",
-            viewCount: randInt(10, 100),
           },
           select: { id: true },
         });

@@ -7,6 +7,7 @@ import enumsMessages from "@/messages/ja/enums.json";
 import membersMessages from "@/messages/ja/members.json";
 import boardMessages from "@/messages/ja/board.json";
 import dashboardMessages from "@/messages/ja/dashboard.json";
+import eventsMessages from "@/messages/ja/events.json";
 
 const messages = {
   common: commonMessages,
@@ -14,6 +15,7 @@ const messages = {
   members: membersMessages,
   board: boardMessages,
   dashboard: dashboardMessages,
+  events: eventsMessages,
 };
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useImperativeHandle, type Ref } from "react";
+import { toast } from "sonner";
 import {
   useApplicationForm,
   useUpsertApplicationFormConfig,
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
@@ -28,6 +30,7 @@ import {
   MessageSquare,
   ClipboardList,
   Bell,
+  ListChecks,
   Plus,
   Pencil,
   Trash2,
@@ -213,13 +216,36 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
     setQDescription(q.description ?? "");
     setQType(q.questionType);
     setQRequired(q.isRequired);
-    setQOptions(q.options && q.options.length > 0 ? q.options : [{ value: "", label: "" }]);
+    // 旧データ（options が {} や undefined フィールド）でも controlled な空文字に正規化
+    setQOptions(
+      q.options && q.options.length > 0
+        ? q.options.map((o) => ({ value: o.value ?? "", label: o.label ?? "" }))
+        : [{ value: "", label: "" }],
+    );
     setQuestionDialogOpen(true);
   };
 
   const handleSaveQuestion = () => {
     const hasOptions = qType === "radio" || qType === "checkbox" || qType === "select";
-    const options = hasOptions ? qOptions.filter((o) => o.value && o.label) : undefined;
+    let options: ApplicationQuestionOption[] | undefined;
+    if (hasOptions) {
+      // 入力欄は「選択肢」1 つに統合済み。value と label は同じ文字列で保存する。
+      const trimmed = qOptions.map((o) => {
+        const text = (o.label ?? "").trim();
+        return { value: text, label: text };
+      });
+      if (trimmed.some((o) => !o.label)) {
+        toast.error("選択肢を入力してください");
+        return;
+      }
+      // 重複チェック（同じ選択肢が複数登録されないように）
+      const labels = trimmed.map((o) => o.label);
+      if (new Set(labels).size !== labels.length) {
+        toast.error("選択肢が重複しています。一意の選択肢を入力してください");
+        return;
+      }
+      options = trimmed;
+    }
 
     if (editingQuestionId) {
       updateQuestion.mutate(
@@ -275,210 +301,220 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
 
   return (
     <>
-      <div className="space-y-6">
-        {/* 通知設定 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Settings className="h-4 w-4" />
-              通知設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="notify-capacity"
-                checked={notifyCapacity}
-                onCheckedChange={(v) => setNotifyCapacity(!!v)}
-              />
-              <Label htmlFor="notify-capacity">定員達成時に通知する</Label>
+      <Card>
+        <CardHeader>
+          <CardTitle>申込フォーム設定</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* 通知設定 */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">通知設定</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="shrink-0">残席</Label>
-              <Input
-                type="number"
-                className="w-24"
-                min="1"
-                value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
-                placeholder="—"
-              />
-              <Label className="shrink-0">件を下回ったら通知する</Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 完了メッセージ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="h-4 w-4" />
-              申込完了メッセージ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>アプリ内通知メッセージ</Label>
-              <Textarea
-                value={msgApp}
-                onChange={(e) => setMsgApp(e.target.value)}
-                placeholder="申込完了時に申込者へ送るメッセージ"
-              />
-            </div>
-            <div>
-              <Label>メール本文</Label>
-              <Textarea
-                value={msgEmail}
-                onChange={(e) => setMsgEmail(e.target.value)}
-                placeholder="申込完了時に申込者へ送るメール本文"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* リマインダー設定 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bell className="h-4 w-4" />
-              リマインダー設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="reminder-enabled"
-                checked={reminderEnabled}
-                onCheckedChange={(v) => setReminderEnabled(!!v)}
-              />
-              <Label htmlFor="reminder-enabled">リマインダーを送信する</Label>
-            </div>
-            {reminderEnabled && (
-              <>
-                <div className="flex items-center gap-2">
-                  <Label className="shrink-0">開始</Label>
-                  <Input
-                    type="number"
-                    className="w-20"
-                    min="1"
-                    max="168"
-                    value={reminderHours}
-                    onChange={(e) => setReminderHours(e.target.value)}
-                  />
-                  <Label className="shrink-0">時間前に送信</Label>
-                </div>
-                <div>
-                  <Label>リマインダーメッセージ（任意）</Label>
-                  <Textarea
-                    value={reminderMessage}
-                    onChange={(e) => setReminderMessage(e.target.value)}
-                    placeholder="未入力の場合、デフォルト��ッセージが使用されます"
-                  />
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 基本属性 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ClipboardList className="h-4 w-4" />
-              基本属性の表示設定
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {BASIC_FIELDS.map((field) => (
-              <div key={field.key} className="flex items-center justify-between">
-                <span className="text-sm">{field.label}</span>
-                <div className="flex gap-1">
-                  {(["hidden", "optional", "required"] as FormFieldVisibility[]).map((v) => (
-                    <Button
-                      key={v}
-                      size="sm"
-                      variant={basicFieldState[field.key] === v ? "default" : "outline"}
-                      className="h-7 px-2 text-xs"
-                      onClick={() => setBasicFieldState((prev) => ({ ...prev, [field.key]: v }))}
-                    >
-                      {VISIBILITY_LABELS[v]}
-                    </Button>
-                  ))}
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-capacity"
+                  checked={notifyCapacity}
+                  onCheckedChange={(v) => setNotifyCapacity(!!v)}
+                />
+                <Label htmlFor="notify-capacity">定員達成時に通知する</Label>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+              <div className="flex items-center gap-2">
+                <Label className="shrink-0">残席</Label>
+                <Input
+                  type="number"
+                  className="w-24"
+                  min="1"
+                  value={threshold}
+                  onChange={(e) => setThreshold(e.target.value)}
+                  placeholder="—"
+                />
+                <Label className="shrink-0">件を下回ったら通知する</Label>
+              </div>
+            </div>
+          </section>
 
-        {/* カスタム質問 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ClipboardList className="h-4 w-4" />
-                カスタム質問
-              </CardTitle>
-              <Button size="sm" variant="outline" onClick={openNewQuestion}>
+          <Separator />
+
+          {/* 完了メッセージ */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">申込完了メッセージ</p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label>アプリ内通知メッセージ</Label>
+                <Textarea
+                  value={msgApp}
+                  onChange={(e) => setMsgApp(e.target.value)}
+                  placeholder="申込完了時に申込者へ送るメッセージ"
+                />
+              </div>
+              <div>
+                <Label>メール本文</Label>
+                <Textarea
+                  value={msgEmail}
+                  onChange={(e) => setMsgEmail(e.target.value)}
+                  placeholder="申込完了時に申込者へ送るメール本文"
+                />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* リマインダー設定 */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">リマインダー設定</p>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="reminder-enabled"
+                  checked={reminderEnabled}
+                  onCheckedChange={(v) => setReminderEnabled(!!v)}
+                />
+                <Label htmlFor="reminder-enabled">リマインダーを送信する</Label>
+              </div>
+              {reminderEnabled && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Label className="shrink-0">開始</Label>
+                    <Input
+                      type="number"
+                      className="w-20"
+                      min="1"
+                      max="168"
+                      value={reminderHours}
+                      onChange={(e) => setReminderHours(e.target.value)}
+                    />
+                    <Label className="shrink-0">時間前に送信</Label>
+                  </div>
+                  <div>
+                    <Label>リマインダーメッセージ（任意）</Label>
+                    <Textarea
+                      value={reminderMessage}
+                      onChange={(e) => setReminderMessage(e.target.value)}
+                      placeholder="未入力の場合、デフォルトメッセージが使用されます"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* 基本属性 */}
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-muted-foreground">基本属性の表示設定</p>
+            </div>
+            <div className="space-y-3">
+              {BASIC_FIELDS.map((field) => (
+                <div key={field.key} className="flex items-center justify-between">
+                  <span className="text-sm">{field.label}</span>
+                  <div className="flex gap-1">
+                    {(["hidden", "optional", "required"] as FormFieldVisibility[]).map((v) => (
+                      <Button
+                        key={v}
+                        type="button"
+                        size="sm"
+                        variant={basicFieldState[field.key] === v ? "default" : "outline"}
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setBasicFieldState((prev) => ({ ...prev, [field.key]: v }))}
+                      >
+                        {VISIBILITY_LABELS[v]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* カスタム質問 */}
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">カスタム質問</p>
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={openNewQuestion}>
                 <Plus className="mr-1 h-3 w-3" />
                 追加
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {questions.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">カスタム質問はありません</p>
-            ) : (
-              questions.map((q, i) => (
-                <div key={q.id} className="flex items-center justify-between rounded border p-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{q.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {QUESTION_TYPE_LABELS[q.questionType]}
-                      {q.isRequired && " ・ 必須"}
-                    </p>
+            <div className="space-y-2">
+              {questions.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground">
+                  カスタム質問はありません
+                </p>
+              ) : (
+                questions.map((q, i) => (
+                  <div key={q.id} className="flex items-center justify-between rounded border p-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{q.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {QUESTION_TYPE_LABELS[q.questionType]}
+                        {q.isRequired && " ・ 必須"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={i === 0}
+                        onClick={() => handleMoveQuestion(i, "up")}
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={i === questions.length - 1}
+                        onClick={() => handleMoveQuestion(i, "down")}
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEditQuestion(q)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => deleteQuestion.mutate({ eventId, questionId: q.id })}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={i === 0}
-                      onClick={() => handleMoveQuestion(i, "up")}
-                    >
-                      <ArrowUp className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      disabled={i === questions.length - 1}
-                      onClick={() => handleMoveQuestion(i, "down")}
-                    >
-                      <ArrowDown className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEditQuestion(q)}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => deleteQuestion.mutate({ eventId, questionId: q.id })}
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                ))
+              )}
+            </div>
+          </section>
+        </CardContent>
+      </Card>
 
       {/* 質問編集ダイアログ */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
@@ -523,25 +559,19 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                   <div key={i} className="flex gap-2">
                     <Input
                       className="flex-1"
-                      placeholder="値"
-                      value={opt.value}
+                      placeholder="選択肢"
+                      // value と label を 1 入力に統合（内部的には両方を同じ文字列で持つ）。
+                      // 既存データで value と label が異なる場合は label を表示。
+                      value={opt.label ?? ""}
                       onChange={(e) => {
                         const next = [...qOptions];
-                        next[i] = { ...opt, value: e.target.value };
-                        setQOptions(next);
-                      }}
-                    />
-                    <Input
-                      className="flex-1"
-                      placeholder="ラベル"
-                      value={opt.label}
-                      onChange={(e) => {
-                        const next = [...qOptions];
-                        next[i] = { ...opt, label: e.target.value };
+                        // value と label を同期させる
+                        next[i] = { value: e.target.value, label: e.target.value };
                         setQOptions(next);
                       }}
                     />
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 shrink-0"
@@ -553,6 +583,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
                   </div>
                 ))}
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setQOptions([...qOptions, { value: "", label: "" }])}
@@ -571,6 +602,7 @@ export function ApplicationFormEditor({ eventId, handleRef }: Props) {
               <Label htmlFor="q-required">必須</Label>
             </div>
             <Button
+              type="button"
               onClick={handleSaveQuestion}
               disabled={!qLabel || createQuestion.isPending || updateQuestion.isPending}
               className="w-full"

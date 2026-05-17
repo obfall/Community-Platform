@@ -1,7 +1,7 @@
 import "./instrument";
 
 import { NestFactory } from "@nestjs/core";
-import { HttpStatus, ValidationPipe } from "@nestjs/common";
+import { HttpStatus, ValidationPipe, type ValidationError } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Logger } from "nestjs-pino";
 import helmet from "helmet";
@@ -65,13 +65,22 @@ async function bootstrap() {
         enableImplicitConversion: true,
       },
       exceptionFactory: (errors) => {
-        const errorDetails = errors.flatMap((e) =>
-          Object.entries(e.constraints ?? {}).map(([rule, message]) => ({
-            field: e.property,
-            rule,
-            message,
-          })),
-        );
+        // ValidateNested 等のネスト構造を再帰的に展開し、フィールドパスは "answers.0.questionId" 形式で返す
+        const collect = (
+          list: ValidationError[],
+          parent: string,
+        ): Array<{ field: string; rule: string; message: string }> =>
+          list.flatMap((e) => {
+            const path = parent ? `${parent}.${e.property}` : e.property;
+            const own = Object.entries(e.constraints ?? {}).map(([rule, message]) => ({
+              field: path,
+              rule,
+              message,
+            }));
+            const nested = e.children?.length ? collect(e.children, path) : [];
+            return [...own, ...nested];
+          });
+        const errorDetails = collect(errors, "");
         return new BusinessException(
           ErrorCode.VALIDATION_FAILED,
           HttpStatus.BAD_REQUEST,

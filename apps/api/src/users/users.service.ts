@@ -514,7 +514,6 @@ export class UsersService {
             locationType: true,
             venueName: true,
             coverImageUrl: true,
-            category: { select: { id: true, name: true } },
           },
         },
       },

@@ -1,20 +1,36 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { EventLocationType, EventStatus } from "@prisma/client";
+import {
+  MAX_EVENT_ORGANIZATIONS,
+  MAX_EVENT_SPEAKERS,
+  MAX_EVENT_TAG_LENGTH,
+  MAX_EVENT_TAGS,
+  MAX_EVENT_TITLE_LENGTH,
+  EVENT_PLANNING_ROLE_VALUES,
+  EVENT_TYPE_VALUES,
+} from "@community-platform/shared";
+import { EventOrganizationItemDto } from "./event-organization.dto";
+import { EventSpeakerItemDto } from "./event-speaker.dto";
 
 export class UpdateEventDto {
-  @ApiPropertyOptional({ description: "タイトル", maxLength: 200 })
+  @ApiPropertyOptional({ description: "タイトル", maxLength: MAX_EVENT_TITLE_LENGTH })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(MAX_EVENT_TITLE_LENGTH)
   title?: string;
 
   @ApiPropertyOptional({ description: "概要" })
@@ -72,20 +88,20 @@ export class UpdateEventDto {
   @IsBoolean()
   allowMultiTicketPurchase?: boolean;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "企画役割", enum: EVENT_PLANNING_ROLE_VALUES })
   @IsOptional()
-  @IsString()
+  @IsIn(EVENT_PLANNING_ROLE_VALUES)
   planningRole?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: "イベント種別（複数選択可）",
+    enum: EVENT_TYPE_VALUES,
+    isArray: true,
+  })
   @IsOptional()
-  @IsString()
-  eventType?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
+  @IsArray()
+  @IsIn(EVENT_TYPE_VALUES, { each: true })
+  eventTypes?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -131,4 +147,37 @@ export class UpdateEventDto {
   @IsOptional()
   @IsBoolean()
   isCalendarVisible?: boolean;
+
+  @ApiPropertyOptional({
+    description: "関係団体（配列を渡すと全件置換、省略すると変更なし）",
+    type: [EventOrganizationItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_EVENT_ORGANIZATIONS)
+  @ValidateNested({ each: true })
+  @Type(() => EventOrganizationItemDto)
+  organizations?: EventOrganizationItemDto[];
+
+  @ApiPropertyOptional({
+    description: `タグ名（最大 ${MAX_EVENT_TAGS} つ）。配列を渡すと全件置換、省略すると変更なし`,
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_EVENT_TAGS)
+  @IsString({ each: true })
+  @MaxLength(MAX_EVENT_TAG_LENGTH, { each: true })
+  tags?: string[];
+
+  @ApiPropertyOptional({
+    description: `登壇者（配列を渡すと全件置換、省略すると変更なし、最大 ${MAX_EVENT_SPEAKERS} 名）`,
+    type: [EventSpeakerItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_EVENT_SPEAKERS)
+  @ValidateNested({ each: true })
+  @Type(() => EventSpeakerItemDto)
+  speakers?: EventSpeakerItemDto[];
 }

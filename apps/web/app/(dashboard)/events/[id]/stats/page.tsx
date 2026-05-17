@@ -1,12 +1,10 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
 import { useEvent, useParticipantStats } from "@/hooks/events/use-events";
 import { useAuth } from "@/hooks/auth/use-auth";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Users, XCircle } from "lucide-react";
+import { Users, XCircle, Ticket, CircleCheck, CircleX } from "lucide-react";
 
 const GENDER_LABELS: Record<string, string> = {
   male: "男性",
@@ -63,26 +61,44 @@ export default function EventStatsPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
-      <div className="flex items-center gap-3">
-        <Link href={`/events/${id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">参加者統計</h1>
-          <p className="text-sm text-muted-foreground">{event.title}</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold">参加者統計</h1>
+        <p className="text-sm text-muted-foreground">{event.title}</p>
       </div>
 
       {/* サマリーカード */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
             <Users className="h-8 w-8 text-primary" />
             <div>
               <p className="text-2xl font-bold tabular-nums">{stats.total}</p>
               <p className="text-xs text-muted-foreground">参加者（有効）</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <CircleCheck className="h-8 w-8 text-emerald-600" />
+            <div>
+              <p className="text-2xl font-bold tabular-nums">
+                {stats.attendedTotal}
+                {stats.attendanceRate !== null && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({stats.attendanceRate}%)
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">出席</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-4">
+            <CircleX className="h-8 w-8 text-amber-600" />
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{stats.noShowTotal}</p>
+              <p className="text-xs text-muted-foreground">欠席</p>
             </div>
           </CardContent>
         </Card>
@@ -96,6 +112,32 @@ export default function EventStatsPage({ params }: { params: Promise<{ id: strin
           </CardContent>
         </Card>
       </div>
+
+      {/* チケット別販売数 */}
+      {stats.tickets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Ticket className="h-4 w-4" />
+              チケット別販売状況
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stats.tickets.map((t) => (
+              <StatBar
+                key={t.ticketId}
+                label={
+                  t.capacity !== null
+                    ? `${t.ticketName}（${t.soldCount}/${t.capacity}枚）`
+                    : `${t.ticketName}（${t.soldCount}枚・定員なし）`
+                }
+                count={t.soldCount}
+                total={t.capacity ?? Math.max(t.soldCount, 1)}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* 基本属性セクション */}
       {Object.entries(stats.basicAttributes).map(([key, attr]) => {

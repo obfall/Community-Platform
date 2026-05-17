@@ -26,7 +26,6 @@ export default function SurveyRespondPage({ params }: { params: Promise<{ id: st
       survey={survey}
       onSubmit={handleSubmit}
       isSubmitting={submitResponse.isPending}
-      backHref="/dashboard"
       showCompleted
     />
   );

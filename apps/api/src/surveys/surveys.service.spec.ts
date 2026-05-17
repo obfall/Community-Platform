@@ -84,7 +84,7 @@ describe("SurveysService", () => {
             participants: {
               some: {
                 userId: "user-1",
-                status: { in: ["applied", "confirmed", "attended"] },
+                status: { in: ["applied", "attended"] },
               },
             },
           },

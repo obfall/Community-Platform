@@ -16,8 +16,10 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: () => notificationsApi.getUnreadCount(),
-    staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    // 60秒ごとに自動更新。バッジ表示なので少し遅れても UX 上問題なし。
+    // dev 環境のレートリミット圧迫を避けるためにも 30→60 へ緩和。
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 }
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice">
+  <rect width="400" height="240" fill="#f1f5f9" />
+  <!-- Lucide CalendarDays icon, scaled 4x and centered. viewBox 0 0 24 24, stroke-width 2 → 効果 stroke 0.5 相当に見える -->
+  <g
+    transform="translate(152 72) scale(4)"
+    fill="none"
+    stroke="#94a3b8"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <rect width="18" height="18" x="3" y="4" rx="2" />
+    <line x1="16" x2="16" y1="2" y2="6" />
+    <line x1="8" x2="8" y1="2" y2="6" />
+    <line x1="3" x2="21" y1="10" y2="10" />
+    <path d="M8 14h.01" />
+    <path d="M12 14h.01" />
+    <path d="M16 14h.01" />
+    <path d="M8 18h.01" />
+    <path d="M12 18h.01" />
+    <path d="M16 18h.01" />
+  </g>
+</svg>

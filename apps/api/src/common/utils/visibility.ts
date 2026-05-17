@@ -28,7 +28,7 @@ export const VISIBILITY = {
 
   event: {
     deletedAt: null,
-    NOT: { status: "draft" },
+    status: "recruiting",
   } satisfies Prisma.EventWhereInput,
 
   video: {

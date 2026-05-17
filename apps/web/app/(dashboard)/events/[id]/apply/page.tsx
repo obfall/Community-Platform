@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Ticket } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { EventStatus } from "@community-platform/shared";
 import type {
   FormFieldVisibility,
   ApplicationQuestion,
@@ -35,8 +37,9 @@ interface FormData {
   ticketId: string;
   quantity: number;
   discountCode: string;
+  /** ログインアカウントの email を固定値として送る（読み取り専用） */
   applicantEmail: string;
-  applicantEmailConfirm: string;
+  /** ログインアカウントの name を固定値として送る（読み取り専用） */
   applicantName: string;
   applicantNameKana: string;
   applicantAffiliation: string;
@@ -115,6 +118,7 @@ function EventApplyForm({
 }) {
   const router = useRouter();
   const participate = useParticipate();
+  const tApply = useTranslations("events.apply");
 
   const [step, setStep] = useState<"input" | "confirm">("input");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -123,7 +127,6 @@ function EventApplyForm({
     quantity: 1,
     discountCode: "",
     applicantEmail: user?.email ?? "",
-    applicantEmailConfirm: user?.email ?? "",
     applicantName: user?.name ?? "",
     applicantNameKana: myProfile?.profile?.nameKana ?? "",
     applicantAffiliation: myProfile?.affiliations?.[0]?.organizationName ?? "",
@@ -140,13 +143,31 @@ function EventApplyForm({
   }));
 
   if (!event) {
-    return <div className="py-12 text-center text-muted-foreground">イベントが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tApply("notFound")}</div>;
   }
 
-  if (event.status !== "recruiting") {
+  if (event.status !== EventStatus.RECRUITING) {
+    return <div className="py-12 text-center text-muted-foreground">{tApply("notRecruiting")}</div>;
+  }
+
+  if (event.registrationDeadlineAt && new Date() > new Date(event.registrationDeadlineAt)) {
     return (
-      <div className="py-12 text-center text-muted-foreground">
-        このイベントは現在募集していません
+      <div className="mx-auto max-w-md space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">{tApply("deadlinePassed")}</p>
+        <Link href={`/events/${id}`}>
+          <Button variant="outline">{tApply("backToEvent")}</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (event.myParticipation) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">{tApply("alreadyApplied")}</p>
+        <Link href={`/events/${id}`}>
+          <Button variant="outline">{tApply("backToEvent")}</Button>
+        </Link>
       </div>
     );
   }
@@ -181,8 +202,6 @@ function EventApplyForm({
 
     if (!formData.ticketId) errs.ticketId = "チケットを選択してください";
     if (!formData.applicantEmail) errs.applicantEmail = "メールアドレスは必須です";
-    if (formData.applicantEmail !== formData.applicantEmailConfirm)
-      errs.applicantEmailConfirm = "メールアドレスが一致しません";
 
     if (isRequired(config?.askName) && !formData.applicantName)
       errs.applicantName = "氏名は必須です";
@@ -273,10 +292,10 @@ function EventApplyForm({
       case "radio":
         return (
           <RadioGroup value={(value as string) ?? ""} onValueChange={(v) => setAnswer(q.id, v)}>
-            {options.map((o) => (
-              <div key={o.value} className="flex items-center gap-2">
-                <RadioGroupItem value={o.value} id={`q_${q.id}_${o.value}`} />
-                <Label htmlFor={`q_${q.id}_${o.value}`}>{o.label}</Label>
+            {options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <RadioGroupItem value={o.value} id={`q_${q.id}_${i}`} />
+                <Label htmlFor={`q_${q.id}_${i}`}>{o.label}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -284,14 +303,14 @@ function EventApplyForm({
       case "checkbox":
         return (
           <div className="space-y-2">
-            {options.map((o) => (
-              <div key={o.value} className="flex items-center gap-2">
+            {options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
                 <Checkbox
-                  id={`q_${q.id}_${o.value}`}
+                  id={`q_${q.id}_${i}`}
                   checked={((value as string[]) ?? []).includes(o.value)}
                   onCheckedChange={() => toggleCheckboxAnswer(q.id, o.value)}
                 />
-                <Label htmlFor={`q_${q.id}_${o.value}`}>{o.label}</Label>
+                <Label htmlFor={`q_${q.id}_${i}`}>{o.label}</Label>
               </div>
             ))}
           </div>
@@ -303,8 +322,8 @@ function EventApplyForm({
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>
             <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
+              {options.map((o, i) => (
+                <SelectItem key={i} value={o.value}>
                   {o.label}
                 </SelectItem>
               ))}
@@ -484,47 +503,33 @@ function EventApplyForm({
               <CardTitle className="text-base">参加者情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* メールアドレス（常時必須） */}
+              {/* メールアドレス（アカウント固定・読み取り専用） */}
               <div>
                 <Label>
                   メールアドレス <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  type="email"
-                  value={formData.applicantEmail}
-                  onChange={(e) => set("applicantEmail", e.target.value)}
-                />
+                <Input type="email" value={formData.applicantEmail} readOnly className="bg-muted" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  アカウントの情報が使われます。変更する場合はプロフィールを編集してください。
+                </p>
                 {errors.applicantEmail && (
                   <p className="mt-1 text-sm text-destructive">{errors.applicantEmail}</p>
-                )}
-              </div>
-              <div>
-                <Label>
-                  メールアドレス（確認） <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="email"
-                  value={formData.applicantEmailConfirm}
-                  onChange={(e) => set("applicantEmailConfirm", e.target.value)}
-                />
-                {errors.applicantEmailConfirm && (
-                  <p className="mt-1 text-sm text-destructive">{errors.applicantEmailConfirm}</p>
                 )}
               </div>
 
               <Separator />
 
-              {/* 氏名 */}
+              {/* 氏名（アカウント固定・読み取り専用） */}
               {isVisible(config?.askName) && (
                 <div>
                   <Label>
                     氏名{" "}
                     {isRequired(config?.askName) && <span className="text-destructive">*</span>}
                   </Label>
-                  <Input
-                    value={formData.applicantName}
-                    onChange={(e) => set("applicantName", e.target.value)}
-                  />
+                  <Input value={formData.applicantName} readOnly className="bg-muted" />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    アカウントの情報が使われます。変更する場合はプロフィールを編集してください。
+                  </p>
                   {errors.applicantName && (
                     <p className="mt-1 text-sm text-destructive">{errors.applicantName}</p>
                   )}

@@ -1,0 +1,12 @@
+{
+  "network": "ネットワーク接続を確認してください",
+  "unexpected": "予期しないエラーが発生しました",
+  "forbidden": "この操作を行う権限がありません",
+  "server": "サーバーでエラーが発生しました",
+  "generic": "エラーが発生しました",
+  "notFound": "見つかりませんでした",
+  "methodNotAllowed": "この操作は許可されていません",
+  "conflict": "操作が競合しました",
+  "tooManyRequests": "リクエスト数が多すぎます。少し時間をおいてからお試しください",
+  "requestIdPrefix": "エラーID: {requestId}"
+}

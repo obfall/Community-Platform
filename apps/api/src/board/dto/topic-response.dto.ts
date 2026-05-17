@@ -39,9 +39,6 @@ export class TopicResponseDto {
   sortOrder!: number;
 
   @ApiProperty()
-  viewCount!: number;
-
-  @ApiProperty()
   postCount!: number;
 
   @ApiProperty()

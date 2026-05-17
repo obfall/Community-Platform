@@ -37,7 +37,6 @@ type TopicRaw = {
   publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
-  viewCount: number;
   postCount: number;
   likeCount: number;
   author: AuthorLike;
@@ -298,16 +297,11 @@ export class BoardCoreService {
       throw notFound("board_topic");
     }
 
-    await topicDelegate.update({
-      where: { id: topicId },
-      data: { viewCount: { increment: 1 } },
-    });
-
     const like = await this.delegate(cfg.likeDelegate).findUnique({
       where: { userId_targetType_targetId: { userId, targetType: "topic", targetId: topicId } },
     });
 
-    return this.formatTopic(topic, !!like, topic.viewCount + 1);
+    return this.formatTopic(topic, !!like);
   }
 
   async createTopic(cfg: BoardScopeConfig, userId: string, dto: CreateTopicDto, scopeId?: string) {
@@ -704,7 +698,7 @@ export class BoardCoreService {
   // ========================================================================
 
   /** Topic レスポンス整形（pgroonga 検索経路など外部からも呼ばれるため public） */
-  formatTopic(t: TopicRaw, isLiked: boolean, viewCountOverride?: number) {
+  formatTopic(t: TopicRaw, isLiked: boolean) {
     return {
       id: t.id,
       title: t.title,
@@ -712,7 +706,6 @@ export class BoardCoreService {
       publishStatus: t.publishStatus,
       isPinned: t.isPinned,
       sortOrder: t.sortOrder,
-      viewCount: viewCountOverride ?? t.viewCount,
       postCount: t.postCount,
       likeCount: t.likeCount,
       author: formatAuthor(t.author),

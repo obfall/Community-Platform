@@ -131,7 +131,8 @@ export class ApplicationFormService {
         label: dto.label,
         description: dto.description,
         questionType: dto.questionType,
-        options: dto.options ?? undefined,
+        // DTO クラスのインスタンス配列を Prisma の Json 入力型に変換するため as 経由でキャスト
+        options: dto.options ? (dto.options as unknown as Prisma.InputJsonValue) : undefined,
         isRequired: dto.isRequired ?? false,
         sortOrder: dto.sortOrder,
       },
@@ -150,7 +151,8 @@ export class ApplicationFormService {
       data: {
         ...rest,
         ...(options !== undefined && {
-          options: options === null ? Prisma.JsonNull : options,
+          options:
+            options === null ? Prisma.JsonNull : (options as unknown as Prisma.InputJsonValue),
         }),
       },
     });

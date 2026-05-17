@@ -77,10 +77,6 @@ export class FaqService {
   async findOne(id: string) {
     const faq = await this.prisma.faqArticle.findUnique({ where: { id } });
     if (!faq) throw new NotFoundException("FAQが見つかりません");
-    await this.prisma.faqArticle.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    });
     return faq;
   }
 

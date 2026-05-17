@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { useSurveys, useDeleteSurvey, useUpdateSurveyStatus } from "@/hooks/surveys/use-surveys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ import {
   Pencil,
   MoreVertical,
   Users,
+  MessageSquareReply,
 } from "lucide-react";
 import type { SurveyQuery } from "@/lib/api/types";
 import { HighlightedText } from "@/components/highlighted-text";
@@ -82,6 +84,10 @@ export function SurveyListView({
   headingLevel = "h1",
   emptySubText,
 }: SurveyListViewProps) {
+  const { user } = useAuth();
+  // admin / owner のみアンケートの作成・編集・削除・結果閲覧・状態変更が可能（API 側のロールガードと一致）
+  const isAdmin = user?.role === "owner" || user?.role === "admin";
+
   const [query, setQuery] = useState<SurveyQuery>({ page: 1, limit: 20, eventId });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useSurveys(query);
@@ -103,12 +109,14 @@ export function SurveyListView({
         <Heading className={headingLevel === "h1" ? "text-2xl font-bold" : "text-xl font-bold"}>
           {title}
         </Heading>
-        <Link href={createHref}>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            作成
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href={createHref}>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              作成
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -157,9 +165,13 @@ export function SurveyListView({
             {surveys.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">
-                  <Link href={surveyPath(s.id)} className="hover:underline">
+                  {isAdmin ? (
+                    <Link href={surveyPath(s.id)} className="hover:underline">
+                      <HighlightedText html={s.titleHighlighted} fallback={s.title} />
+                    </Link>
+                  ) : (
                     <HighlightedText html={s.titleHighlighted} fallback={s.title} />
-                  </Link>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[s.status] ?? "secondary"} className="text-xs">
@@ -170,58 +182,67 @@ export function SurveyListView({
                 <TableCell>{s.responseCount}</TableCell>
                 <TableCell>{new Date(s.createdAt).toLocaleDateString("ja-JP")}</TableCell>
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">メニューを開く</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={surveyPath(s.id, "edit")}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          編集
-                        </Link>
-                      </DropdownMenuItem>
-                      {s.status === "draft" && (
-                        <DropdownMenuItem
-                          onClick={() => updateStatus.mutate({ id: s.id, status: "active" })}
-                        >
-                          <Play className="mr-2 h-4 w-4" />
-                          受付開始
+                  {isAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">メニューを開く</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={surveyPath(s.id, "edit")}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            編集
+                          </Link>
                         </DropdownMenuItem>
-                      )}
-                      {s.status === "active" && (
-                        <DropdownMenuItem
-                          onClick={() => updateStatus.mutate({ id: s.id, status: "closed" })}
-                        >
-                          <Square className="mr-2 h-4 w-4" />
-                          受付終了
+                        {s.status === "draft" && (
+                          <DropdownMenuItem
+                            onClick={() => updateStatus.mutate({ id: s.id, status: "active" })}
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            受付開始
+                          </DropdownMenuItem>
+                        )}
+                        {s.status === "active" && (
+                          <DropdownMenuItem
+                            onClick={() => updateStatus.mutate({ id: s.id, status: "closed" })}
+                          >
+                            <Square className="mr-2 h-4 w-4" />
+                            受付終了
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link href={surveyPath(s.id)}>
+                            <Users className="mr-2 h-4 w-4" />
+                            詳細・回答状況
+                          </Link>
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem asChild>
-                        <Link href={surveyPath(s.id)}>
-                          <Users className="mr-2 h-4 w-4" />
-                          詳細・回答状況
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={surveyPath(s.id, "results")}>
-                          <BarChart3 className="mr-2 h-4 w-4" />
-                          結果を見る
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeleteTarget(s.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        削除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuItem asChild>
+                          <Link href={surveyPath(s.id, "results")}>
+                            <BarChart3 className="mr-2 h-4 w-4" />
+                            結果を見る
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href={surveyPath(s.id, "respond")}>
+                            <MessageSquareReply className="mr-2 h-4 w-4" />
+                            回答する
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget(s.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          削除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

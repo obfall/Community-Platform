@@ -117,7 +117,6 @@ async function seedFaq(prisma: PrismaClient): Promise<void> {
       body: a.body,
       sortOrder: idx,
       isPublished: idx < 13, // 最後の 2 件は非公開
-      viewCount: randInt(10, 500),
     })),
   });
 }

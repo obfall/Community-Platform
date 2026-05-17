@@ -53,20 +53,37 @@ interface HandleOptions {
 }
 
 /**
+ * 文言取得関数。next-intl の useTranslations / getTranslations と互換シグネチャ。
+ * messages/<locale>/errors.json のキーを引く。
+ */
+export type ErrorMessageTranslator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
+/**
  * API エラーを分類してトースト表示 + Sentry 送信を行う統一ハンドラ。
  * 個別の hook で onError を書く代わりに providers.tsx の QueryCache/MutationCache から呼び出す。
+ *
+ * @param error API レスポンスから飛んできた例外
+ * @param t messages/<locale>/errors.json の翻訳関数。providers.tsx で useTranslations("errors") から取得して注入する
+ * @param options silent などの追加オプション
  */
-export function handleApiError(error: unknown, options?: HandleOptions): void {
+export function handleApiError(
+  error: unknown,
+  t: ErrorMessageTranslator,
+  options?: HandleOptions,
+): void {
   if (options?.silent) return;
 
   if (isNetworkError(error)) {
-    toast.error("ネットワーク接続を確認してください", { id: "network-error" });
+    toast.error(t("network"), { id: "network-error" });
     return;
   }
 
   const apiError = extractApiError(error);
   if (!apiError) {
-    toast.error("予期しないエラーが発生しました", { id: "unknown-error" });
+    toast.error(t("unexpected"), { id: "unknown-error" });
     Sentry.captureException(error);
     return;
   }
@@ -77,19 +94,17 @@ export function handleApiError(error: unknown, options?: HandleOptions): void {
   // 認証切れは axios インターセプタが自動リフレッシュ → 失敗時はログイン画面へ遷移するためトースト不要
   if (apiError.statusCode === 401) return;
 
+  const description = apiError.requestId
+    ? t("requestIdPrefix", { requestId: apiError.requestId })
+    : undefined;
+
   if (apiError.statusCode === 403) {
-    toast.error("この操作を行う権限がありません", {
-      id: "forbidden-error",
-      description: apiError.requestId ? `エラーID: ${apiError.requestId}` : undefined,
-    });
+    toast.error(t("forbidden"), { id: "forbidden-error", description });
     return;
   }
 
   if (apiError.statusCode >= 500) {
-    toast.error(apiError.message || "サーバーでエラーが発生しました", {
-      id: "server-error",
-      description: apiError.requestId ? `エラーID: ${apiError.requestId}` : undefined,
-    });
+    toast.error(apiError.message || t("server"), { id: "server-error", description });
     Sentry.captureException(error, {
       contexts: {
         api: {
@@ -103,8 +118,20 @@ export function handleApiError(error: unknown, options?: HandleOptions): void {
   }
 
   // その他 4xx（404, 409, 429 等）
-  toast.error(apiError.message || "エラーが発生しました", {
-    id: `client-error-${apiError.statusCode}`,
-    description: apiError.requestId ? `エラーID: ${apiError.requestId}` : undefined,
-  });
+  // BusinessException 由来でない素の NestJS / Express エラー（例: "Cannot PATCH /api/..."）は
+  // 技術的すぎてユーザーに不適切なので、ステータス別の汎用メッセージに丸める
+  const isTechnicalMessage =
+    apiError.code === "UNKNOWN" || /^Cannot (GET|POST|PUT|PATCH|DELETE) /.test(apiError.message);
+  const fallbackByStatus =
+    apiError.statusCode === 404
+      ? t("notFound")
+      : apiError.statusCode === 405
+        ? t("methodNotAllowed")
+        : apiError.statusCode === 409
+          ? t("conflict")
+          : apiError.statusCode === 429
+            ? t("tooManyRequests")
+            : t("generic");
+  const message = isTechnicalMessage ? fallbackByStatus : apiError.message;
+  toast.error(message, { id: `client-error-${apiError.statusCode}`, description });
 }

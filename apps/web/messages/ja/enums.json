@@ -2,8 +2,8 @@
   "role": {
     "admin": "管理者",
     "owner": "運営者",
-    "moderator": "モデレーター",
-    "member": "メンバー"
+    "member": "メンバー",
+    "visitor": "ビジター"
   },
   "occupation": {
     "company_employee": "会社員",
@@ -28,9 +28,27 @@
     "canceled": "中止",
     "ended": "終了"
   },
+  "eventOrganizationRole": {
+    "organizer": "主催",
+    "co_organizer": "共催",
+    "cooperation": "協力",
+    "sponsor": "協賛",
+    "support": "後援"
+  },
+  "eventSpeakerRole": {
+    "speaker": "講師",
+    "co_speaker": "共同講師",
+    "guest": "ゲスト",
+    "moderator": "モデレーター",
+    "panelist": "パネリスト"
+  },
+  "eventLocationType": {
+    "venue": "会場",
+    "online": "オンライン",
+    "hybrid": "ハイブリッド"
+  },
   "participantStatus": {
     "applied": "申込済",
-    "confirmed": "確定",
     "attended": "出席",
     "canceled": "キャンセル",
     "no_show": "欠席"

@@ -240,7 +240,6 @@ export interface BoardTopic {
   publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
-  viewCount: number;
   postCount: number;
   likeCount: number;
   author: BoardPostAuthor;
@@ -701,11 +700,11 @@ export interface EventListItem {
   status: string;
   coverImageUrl: string | null;
   participantCount: number;
-  category: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   ticketCount: number;
   totalCapacity: number | null;
   minPrice: number | null;
+  tags: { id: string; name: string; slug: string }[];
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
@@ -745,20 +744,38 @@ export interface EventTicket {
   soldCount: number;
 }
 
+export type { EventSpeakerRole } from "@community-platform/shared";
+import type { EventSpeakerRole } from "@community-platform/shared";
+
 export interface EventSpeaker {
   id: string;
   name: string;
   title: string | null;
-  role: string;
+  role: EventSpeakerRole;
   sortOrder: number;
   user: { id: string; name: string; avatarUrl: string | null } | null;
 }
 
+export interface EventSpeakerInput {
+  name: string;
+  title?: string;
+  role: EventSpeakerRole;
+  userId?: string;
+}
+
+export type { EventOrganizationRole } from "@community-platform/shared";
+import type { EventOrganizationRole } from "@community-platform/shared";
+
 export interface EventOrganization {
   id: string;
   organizationName: string;
-  role: string;
+  role: EventOrganizationRole;
   sortOrder: number;
+}
+
+export interface EventOrganizationInput {
+  organizationName: string;
+  role: EventOrganizationRole;
 }
 
 export interface EventDetail extends EventListItem {
@@ -769,7 +786,7 @@ export interface EventDetail extends EventListItem {
   ticketSaleStartAt: string | null;
   allowMultiTicketPurchase: boolean;
   planningRole: string;
-  eventType: string | null;
+  eventTypes: string[];
   accessInfo: string | null;
   participationMethod: string | null;
   contactInfo: string | null;
@@ -781,7 +798,14 @@ export interface EventDetail extends EventListItem {
   tickets: EventTicket[];
   speakers: EventSpeaker[];
   organizations: EventOrganization[];
-  tags: { id: string; name: string; slug: string }[];
+  /** ログイン中ユーザーの有効な申込（キャンセル以外）。未申込なら null */
+  myParticipation: {
+    id: string;
+    status: string;
+    ticketId: string;
+    ticketName: string | null;
+    appliedAt: string;
+  } | null;
   updatedAt: string;
 }
 
@@ -836,7 +860,6 @@ export interface EventQuery {
   page?: number;
   limit?: number;
   status?: string;
-  categoryId?: string;
   eventType?: string;
   search?: string;
   from?: string;
@@ -857,15 +880,18 @@ export interface CreateEventInput {
   ticketSaleStartAt?: string;
   allowMultiTicketPurchase?: boolean;
   planningRole?: string;
-  eventType?: string;
-  categoryId?: string;
+  eventTypes?: string[];
   accessInfo?: string;
   participationMethod?: string;
   contactInfo?: string;
   cancellationPolicy?: string;
   isAttendeeVisible?: boolean;
-  coverImageUrl?: string;
+  /** null を渡すと既存画像をクリアする（update 用）。create 時は null/undefined 同義 */
+  coverImageUrl?: string | null;
   requiredRankId?: string;
+  organizations?: EventOrganizationInput[];
+  tags?: string[];
+  speakers?: EventSpeakerInput[];
 }
 
 export interface UpdateEventInput extends Partial<CreateEventInput> {
@@ -1751,7 +1777,6 @@ export interface FaqArticle {
   body: string;
   sortOrder: number;
   isPublished: boolean;
-  viewCount: number;
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;

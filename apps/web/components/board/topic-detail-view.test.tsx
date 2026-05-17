@@ -33,7 +33,6 @@ const baseTopic = {
   publishStatus: "published",
   isPinned: false,
   sortOrder: 0,
-  viewCount: 10,
   postCount: 2,
   likeCount: 3,
   author: { id: "u-1", name: "太郎" },

@@ -12,6 +12,7 @@ import {
   pgroongaSearchAndFetch,
 } from "@/common/utils";
 import { Prisma, EventStatus, ParticipantStatus } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import type { CreateEventDto } from "./dto/create-event.dto";
 import type { UpdateEventDto } from "./dto/update-event.dto";
 import type { EventQueryDto } from "./dto/event-query.dto";
@@ -19,8 +20,11 @@ import type { CreateTicketDto } from "./dto/create-ticket.dto";
 import type { ParticipateEventDto } from "./dto/participate-event.dto";
 import type { UpdateParticipantStatusDto } from "./dto/update-participant-status.dto";
 
-/** ホーム「今後のイベント」に出すイベント状態。draft / canceled / ended は除外。 */
-const UPCOMING_LISTABLE_STATUSES: EventStatus[] = [EventStatus.recruiting, EventStatus.closed];
+/** ホーム「今後のイベント」に出すイベント状態。recruiting 以外は非管理者から隠す方針に統一。 */
+const UPCOMING_LISTABLE_STATUSES: EventStatus[] = [EventStatus.recruiting];
+
+/** admin / owner は全ステータス参照可。それ以外は recruiting のみ。 */
+const canViewAllEventStatuses = (role: UserRole): boolean => role === "admin" || role === "owner";
 
 @Injectable()
 export class EventsService {
@@ -32,21 +36,25 @@ export class EventsService {
 
   // ========== Events ==========
 
-  async findAll(query: EventQueryDto) {
+  async findAll(query: EventQueryDto, role: UserRole) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
-      return this.searchByPgroonga(query, escaped);
+      return this.searchByPgroonga(query, escaped, role);
     }
-    return this.findAllStandard(query);
+    return this.findAllStandard(query, role);
   }
 
-  private async findAllStandard(query: EventQueryDto) {
+  private async findAllStandard(query: EventQueryDto, role: UserRole) {
     const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.EventWhereInput = { deletedAt: null };
-    if (query.status) where.status = query.status;
-    if (query.categoryId) where.categoryId = query.categoryId;
-    if (query.eventType) where.eventType = query.eventType;
+    if (canViewAllEventStatuses(role)) {
+      if (query.status) where.status = query.status;
+    } else {
+      // 非管理者は recruiting のみ。クエリの status 指定は無視する。
+      where.status = EventStatus.recruiting;
+    }
+    if (query.eventType) where.eventTypes = { has: query.eventType };
     if (query.from || query.to) {
       where.startAt = {};
       if (query.from) where.startAt.gte = new Date(query.from);
@@ -61,9 +69,9 @@ export class EventsService {
         take: limit,
         include: {
           createdByUser: { select: AUTHOR_SELECT },
-          category: { select: { id: true, name: true } },
           venue: { select: { id: true, name: true } },
           tickets: { orderBy: { sortOrder: "asc" } },
+          tags: { include: { tag: true } },
           _count: { select: { participants: true } },
         },
       }),
@@ -75,20 +83,26 @@ export class EventsService {
 
   /**
    * pgroonga による全文検索版。関連度スコア順 + ハイライト付き。
-   * 検索条件は通常一覧 (findAllStandard) と一致させる（下書き含む）。
+   * 検索条件は通常一覧 (findAllStandard) と一致させる（非管理者は recruiting のみ）。
    */
-  private async searchByPgroonga(query: EventQueryDto, escaped: string) {
+  private async searchByPgroonga(query: EventQueryDto, escaped: string, role: UserRole) {
     const { page, limit, offset } = extractPagination(query);
 
     const fromDate = query.from ? new Date(query.from) : null;
     const toDate = query.to ? new Date(query.to) : null;
+    const canViewAll = canViewAllEventStatuses(role);
 
     // 検索時の WHERE: 通常一覧と同じ条件 + クエリ別フィルタ
     const where = Prisma.sql`
       deleted_at IS NULL
-      ${query.status ? Prisma.sql`AND status = ${query.status}::"EventStatus"` : Prisma.empty}
-      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
-      ${query.eventType ? Prisma.sql`AND event_type = ${query.eventType}` : Prisma.empty}
+      ${
+        canViewAll
+          ? query.status
+            ? Prisma.sql`AND status = ${query.status}::"EventStatus"`
+            : Prisma.empty
+          : Prisma.sql`AND status = 'recruiting'::"EventStatus"`
+      }
+      ${query.eventType ? Prisma.sql`AND event_types @> ARRAY[${query.eventType}]::text[]` : Prisma.empty}
       ${fromDate ? Prisma.sql`AND start_at >= ${fromDate}` : Prisma.empty}
       ${toDate ? Prisma.sql`AND start_at <= ${toDate}` : Prisma.empty}
     `;
@@ -96,7 +110,8 @@ export class EventsService {
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "events",
-      searchColumns: ["title", "description"],
+      // タグ名・会場名でもヒットさせる。description は対象外（snippet ハイライト用のみ）。
+      searchColumns: ["title", "tags_text", "venue_name"],
       titleColumn: "title",
       snippetColumn: "description",
       escaped,
@@ -108,9 +123,9 @@ export class EventsService {
           where: { id: { in: ids }, deletedAt: null },
           include: {
             createdByUser: { select: AUTHOR_SELECT },
-            category: { select: { id: true, name: true } },
             venue: { select: { id: true, name: true } },
             tickets: { orderBy: { sortOrder: "asc" } },
+            tags: { include: { tag: true } },
             _count: { select: { participants: true } },
           },
         }),
@@ -124,9 +139,9 @@ export class EventsService {
       Prisma.EventGetPayload<{
         include: {
           createdByUser: { select: typeof AUTHOR_SELECT };
-          category: { select: { id: true; name: true } };
           venue: { select: { id: true; name: true } };
           tickets: true;
+          tags: { include: { tag: true } };
           _count: { select: { participants: true } };
         };
       }>
@@ -153,13 +168,13 @@ export class EventsService {
           status: e.status,
           coverImageUrl: e.coverImageUrl,
           participantCount: e._count.participants,
-          category: e.category,
           createdBy: formatAuthor(e.createdByUser),
           ticketCount: e.tickets.length,
           totalCapacity: e.tickets.some((t) => t.capacity !== null)
             ? e.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0)
             : null,
           minPrice: e.tickets.length > 0 ? Math.min(...e.tickets.map((t) => t.price)) : null,
+          tags: e.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
           createdAt: e.createdAt,
         };
       }),
@@ -167,12 +182,11 @@ export class EventsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, role: UserRole, userId?: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
       include: {
         createdByUser: { select: AUTHOR_SELECT },
-        category: { select: { id: true, name: true } },
         venue: { select: { id: true, name: true, address: true } },
         requiredRank: { select: { id: true, name: true } },
         tickets: { orderBy: { sortOrder: "asc" } },
@@ -184,86 +198,170 @@ export class EventsService {
     });
 
     if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
-    return this.mapEventDetail(event);
+    if (event.status !== EventStatus.recruiting && !canViewAllEventStatuses(role)) {
+      throw new NotFoundException("イベントが見つかりません");
+    }
+
+    // ログインユーザーの有効な申込状況（重複申込ブロックと UI 表示に使う）
+    const myParticipation = userId
+      ? await this.prisma.eventParticipant.findFirst({
+          where: { eventId: id, userId, status: { not: "canceled" } },
+          include: { ticket: { select: { id: true, ticketName: true } } },
+          orderBy: { appliedAt: "desc" },
+        })
+      : null;
+
+    return this.mapEventDetail(event, myParticipation);
   }
 
   async create(userId: string, dto: CreateEventDto) {
-    const event = await this.prisma.event.create({
-      data: {
-        title: dto.title,
-        description: dto.description,
-        locationType: dto.locationType,
-        venueId: dto.venueId,
-        venueName: dto.venueName,
-        venueAddress: dto.venueAddress,
-        onlineUrl: dto.onlineUrl,
-        startAt: new Date(dto.startAt),
-        endAt: new Date(dto.endAt),
-        registrationDeadlineAt: dto.registrationDeadlineAt
-          ? new Date(dto.registrationDeadlineAt)
-          : undefined,
-        ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : undefined,
-        allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
-        planningRole: dto.planningRole,
-        eventType: dto.eventType,
-        categoryId: dto.categoryId,
-        accessInfo: dto.accessInfo,
-        participationMethod: dto.participationMethod,
-        contactInfo: dto.contactInfo,
-        cancellationPolicy: dto.cancellationPolicy,
-        isAttendeeVisible: dto.isAttendeeVisible,
-        coverImageUrl: dto.coverImageUrl,
-        requiredRankId: dto.requiredRankId,
-        createdByUserId: userId,
-      },
+    const event = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.event.create({
+        data: {
+          title: dto.title,
+          description: dto.description,
+          locationType: dto.locationType,
+          venueId: dto.venueId,
+          venueName: dto.venueName,
+          venueAddress: dto.venueAddress,
+          onlineUrl: dto.onlineUrl,
+          startAt: new Date(dto.startAt),
+          endAt: new Date(dto.endAt),
+          registrationDeadlineAt: dto.registrationDeadlineAt
+            ? new Date(dto.registrationDeadlineAt)
+            : undefined,
+          ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : undefined,
+          allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
+          planningRole: dto.planningRole,
+          eventTypes: dto.eventTypes ?? [],
+          accessInfo: dto.accessInfo,
+          participationMethod: dto.participationMethod,
+          contactInfo: dto.contactInfo,
+          cancellationPolicy: dto.cancellationPolicy,
+          isAttendeeVisible: dto.isAttendeeVisible,
+          coverImageUrl: dto.coverImageUrl,
+          requiredRankId: dto.requiredRankId,
+          createdByUserId: userId,
+        },
+      });
+
+      if (dto.organizations && dto.organizations.length > 0) {
+        await tx.eventOrganization.createMany({
+          data: dto.organizations.map((o, idx) => ({
+            eventId: created.id,
+            organizationName: o.organizationName,
+            role: o.role,
+            sortOrder: idx,
+          })),
+        });
+      }
+
+      if (dto.tags && dto.tags.length > 0) {
+        await this.syncEventTags(tx, created.id, dto.tags);
+      }
+
+      if (dto.speakers && dto.speakers.length > 0) {
+        await tx.eventSpeaker.createMany({
+          data: dto.speakers.map((s, idx) => ({
+            eventId: created.id,
+            name: s.name,
+            title: s.title,
+            role: s.role,
+            userId: s.userId,
+            sortOrder: idx,
+          })),
+        });
+      }
+
+      return created;
     });
-    return this.findOne(event.id);
+
+    // create / update / duplicate は admin/owner 限定のため、role 制限を受けない "admin" で取得する。
+    return this.findOne(event.id, "admin");
   }
 
   async update(id: string, dto: UpdateEventDto) {
     const existing = await this.prisma.event.findUnique({ where: { id } });
     if (!existing || existing.deletedAt) throw new NotFoundException("イベントが見つかりません");
 
-    await this.prisma.event.update({
-      where: { id },
-      data: {
-        ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.locationType !== undefined && { locationType: dto.locationType }),
-        ...(dto.venueId !== undefined && { venueId: dto.venueId }),
-        ...(dto.venueName !== undefined && { venueName: dto.venueName }),
-        ...(dto.venueAddress !== undefined && { venueAddress: dto.venueAddress }),
-        ...(dto.onlineUrl !== undefined && { onlineUrl: dto.onlineUrl }),
-        ...(dto.startAt !== undefined && { startAt: new Date(dto.startAt) }),
-        ...(dto.endAt !== undefined && { endAt: new Date(dto.endAt) }),
-        ...(dto.registrationDeadlineAt !== undefined && {
-          registrationDeadlineAt: dto.registrationDeadlineAt
-            ? new Date(dto.registrationDeadlineAt)
-            : null,
-        }),
-        ...(dto.ticketSaleStartAt !== undefined && {
-          ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : null,
-        }),
-        ...(dto.allowMultiTicketPurchase !== undefined && {
-          allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
-        }),
-        ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
-        ...(dto.eventType !== undefined && { eventType: dto.eventType }),
-        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-        ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
-        ...(dto.participationMethod !== undefined && {
-          participationMethod: dto.participationMethod,
-        }),
-        ...(dto.contactInfo !== undefined && { contactInfo: dto.contactInfo }),
-        ...(dto.cancellationPolicy !== undefined && {
-          cancellationPolicy: dto.cancellationPolicy,
-        }),
-        ...(dto.isAttendeeVisible !== undefined && { isAttendeeVisible: dto.isAttendeeVisible }),
-        ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
-        ...(dto.requiredRankId !== undefined && { requiredRankId: dto.requiredRankId }),
-        ...(dto.isCalendarVisible !== undefined && { isCalendarVisible: dto.isCalendarVisible }),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.event.update({
+        where: { id },
+        data: {
+          ...(dto.title !== undefined && { title: dto.title }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.locationType !== undefined && { locationType: dto.locationType }),
+          ...(dto.venueId !== undefined && { venueId: dto.venueId }),
+          ...(dto.venueName !== undefined && { venueName: dto.venueName }),
+          ...(dto.venueAddress !== undefined && { venueAddress: dto.venueAddress }),
+          ...(dto.onlineUrl !== undefined && { onlineUrl: dto.onlineUrl }),
+          ...(dto.startAt !== undefined && { startAt: new Date(dto.startAt) }),
+          ...(dto.endAt !== undefined && { endAt: new Date(dto.endAt) }),
+          ...(dto.registrationDeadlineAt !== undefined && {
+            registrationDeadlineAt: dto.registrationDeadlineAt
+              ? new Date(dto.registrationDeadlineAt)
+              : null,
+          }),
+          ...(dto.ticketSaleStartAt !== undefined && {
+            ticketSaleStartAt: dto.ticketSaleStartAt ? new Date(dto.ticketSaleStartAt) : null,
+          }),
+          ...(dto.allowMultiTicketPurchase !== undefined && {
+            allowMultiTicketPurchase: dto.allowMultiTicketPurchase,
+          }),
+          ...(dto.planningRole !== undefined && { planningRole: dto.planningRole }),
+          ...(dto.eventTypes !== undefined && { eventTypes: dto.eventTypes }),
+          ...(dto.accessInfo !== undefined && { accessInfo: dto.accessInfo }),
+          ...(dto.participationMethod !== undefined && {
+            participationMethod: dto.participationMethod,
+          }),
+          ...(dto.contactInfo !== undefined && { contactInfo: dto.contactInfo }),
+          ...(dto.cancellationPolicy !== undefined && {
+            cancellationPolicy: dto.cancellationPolicy,
+          }),
+          ...(dto.isAttendeeVisible !== undefined && { isAttendeeVisible: dto.isAttendeeVisible }),
+          ...(dto.status !== undefined && { status: dto.status }),
+          ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
+          ...(dto.requiredRankId !== undefined && { requiredRankId: dto.requiredRankId }),
+          ...(dto.isCalendarVisible !== undefined && { isCalendarVisible: dto.isCalendarVisible }),
+        },
+      });
+
+      // organizations: undefined なら変更なし、配列なら全件置換（空配列は全削除）
+      if (dto.organizations !== undefined) {
+        await tx.eventOrganization.deleteMany({ where: { eventId: id } });
+        if (dto.organizations.length > 0) {
+          await tx.eventOrganization.createMany({
+            data: dto.organizations.map((o, idx) => ({
+              eventId: id,
+              organizationName: o.organizationName,
+              role: o.role,
+              sortOrder: idx,
+            })),
+          });
+        }
+      }
+
+      // tags: undefined なら変更なし、配列なら全件置換（空配列は全削除 + tags_text='' に同期）
+      if (dto.tags !== undefined) {
+        await this.syncEventTags(tx, id, dto.tags);
+      }
+
+      // speakers: undefined なら変更なし、配列なら全件置換（空配列は全削除）
+      if (dto.speakers !== undefined) {
+        await tx.eventSpeaker.deleteMany({ where: { eventId: id } });
+        if (dto.speakers.length > 0) {
+          await tx.eventSpeaker.createMany({
+            data: dto.speakers.map((s, idx) => ({
+              eventId: id,
+              name: s.name,
+              title: s.title,
+              role: s.role,
+              userId: s.userId,
+              sortOrder: idx,
+            })),
+          });
+        }
+      }
     });
 
     // リマインダー再スケジュール
@@ -273,7 +371,7 @@ export class EventsService {
       await this.scheduleReminder(id);
     }
 
-    return this.findOne(id);
+    return this.findOne(id, "admin");
   }
 
   async remove(id: string) {
@@ -337,6 +435,14 @@ export class EventsService {
 
     if (event.registrationDeadlineAt && new Date() > event.registrationDeadlineAt) {
       throw new BadRequestException("申込締切を過ぎています");
+    }
+
+    // 既存の有効な申込（キャンセル以外）があれば重複申込として拒否
+    const existingParticipation = await this.prisma.eventParticipant.findFirst({
+      where: { eventId, userId, status: { not: "canceled" } },
+    });
+    if (existingParticipation) {
+      throw new BadRequestException("すでにこのイベントに申込済みです");
     }
 
     const quantity = dto.quantity ?? 1;
@@ -479,6 +585,7 @@ export class EventsService {
 
     // 通知（トランザクション外で非同期実行）
     try {
+      // 申込者本人 → 申込完了通知
       await this.notificationsService.create({
         userId,
         type: "event_application",
@@ -487,6 +594,42 @@ export class EventsService {
         referenceType: "event",
         referenceId: eventId,
       });
+
+      // イベント作成者 + 全 admin / owner に「申込がありました」通知
+      // - 申込者本人は除外（自分から自分への通知を避ける）
+      // - 作成者 + admin/owner で重複する場合は 1 通だけ
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ["admin", "owner"] },
+          status: "active",
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      const recipientIds = new Set<string>([event.createdByUserId, ...admins.map((a) => a.id)]);
+      recipientIds.delete(userId);
+
+      if (recipientIds.size > 0) {
+        let applicantName = dto.applicantName?.trim();
+        if (!applicantName) {
+          const applicant = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { name: true },
+          });
+          applicantName = applicant?.name ?? "参加者";
+        }
+        await this.notificationsService.createMany(
+          Array.from(recipientIds).map((recipientId) => ({
+            userId: recipientId,
+            type: "event_application_received",
+            title: "新しいイベント申込",
+            body: `${applicantName}さんが「${event.title}」に申込しました`,
+            referenceType: "event",
+            referenceId: eventId,
+            actorUserId: userId,
+          })),
+        );
+      }
 
       if (config?.notifyOnCapacityReached) {
         const totalCapacity = event.tickets.reduce((sum, t) => sum + (t.capacity ?? 0), 0);
@@ -851,7 +994,7 @@ export class EventsService {
         applicationQuestions: { orderBy: { sortOrder: "asc" } },
         speakers: { orderBy: { sortOrder: "asc" } },
         organizations: { orderBy: { sortOrder: "asc" } },
-        tags: true,
+        tags: { include: { tag: true } },
       },
     });
     if (!source || source.deletedAt) throw new NotFoundException("イベントが見つかりません");
@@ -873,8 +1016,7 @@ export class EventsService {
           allowMultiTicketPurchase: source.allowMultiTicketPurchase,
           acceptedPaymentMethods: source.acceptedPaymentMethods ?? undefined,
           planningRole: source.planningRole,
-          eventType: source.eventType,
-          categoryId: source.categoryId,
+          eventTypes: source.eventTypes,
           accessInfo: source.accessInfo,
           participationMethod: source.participationMethod,
           contactInfo: source.contactInfo,
@@ -972,30 +1114,30 @@ export class EventsService {
         });
       }
 
-      // タグ複製
+      // タグ複製（syncEventTags 経由で EventTag + tags_text を同期）
       if (source.tags.length > 0) {
-        await tx.eventTag.createMany({
-          data: source.tags.map((t) => ({
-            eventId: event.id,
-            tagId: t.tagId,
-          })),
-        });
+        await this.syncEventTags(
+          tx,
+          event.id,
+          source.tags.map((t) => t.tag.name),
+        );
       }
 
       return event;
     });
 
-    return this.findOne(newEvent.id);
+    return this.findOne(newEvent.id, "admin");
   }
 
   // ========== Calendar ==========
 
-  async getCalendarEvents(from: string, to: string) {
+  async getCalendarEvents(from: string, to: string, role: UserRole) {
     return this.prisma.event.findMany({
       where: {
         deletedAt: null,
         isCalendarVisible: true,
         startAt: { gte: new Date(from), lte: new Date(to) },
+        ...(canViewAllEventStatuses(role) ? {} : { status: EventStatus.recruiting }),
       },
       select: {
         id: true,
@@ -1134,13 +1276,77 @@ export class EventsService {
 
   // ========== Helpers ==========
 
+  /**
+   * タグ名の配列から、対応する Tag レコードを upsert（find by name → 既存再利用、なければ新規作成）し、
+   * `EventTag` リンクと `events.tags_text` を一括で更新する。
+   *
+   * トランザクション内で呼ぶ前提。tags が空配列なら EventTag 全削除 + tags_text='' に同期。
+   *
+   * slug は name をそのまま使う。VARCHAR(50) を超える場合は truncate、衝突時は `-2` `-3` ... を付与。
+   */
+  private async syncEventTags(
+    tx: Prisma.TransactionClient,
+    eventId: string,
+    tagNames: string[],
+  ): Promise<void> {
+    // 重複・空文字を除去
+    const uniqueNames = Array.from(
+      new Set(tagNames.map((n) => n.trim()).filter((n) => n.length > 0)),
+    );
+
+    // 各タグを find/create
+    const tagIds: string[] = [];
+    for (const name of uniqueNames) {
+      const existing = await tx.tag.findFirst({ where: { name }, select: { id: true } });
+      if (existing) {
+        tagIds.push(existing.id);
+        continue;
+      }
+      const created = await this.createTagWithUniqueSlug(tx, name);
+      tagIds.push(created.id);
+    }
+
+    // EventTag を全件置換
+    await tx.eventTag.deleteMany({ where: { eventId } });
+    if (tagIds.length > 0) {
+      await tx.eventTag.createMany({
+        data: tagIds.map((tagId) => ({ eventId, tagId })),
+        skipDuplicates: true,
+      });
+    }
+
+    // tags_text を同期（スペース区切り、name ソートで安定化）
+    const tagsText = [...uniqueNames].sort().join(" ");
+    await tx.event.update({ where: { id: eventId }, data: { tagsText } });
+  }
+
+  /**
+   * 名前から slug を生成して Tag を作成する。slug 衝突時は -2, -3 ... と suffix を付与。
+   * VARCHAR(50) を超える slug は base を truncate して suffix の余地を確保。
+   */
+  private async createTagWithUniqueSlug(
+    tx: Prisma.TransactionClient,
+    name: string,
+  ): Promise<{ id: string }> {
+    const SLUG_MAX = 50;
+    const baseSlug = name.slice(0, SLUG_MAX);
+    for (let suffix = 1; suffix <= 100; suffix++) {
+      const slug = suffix === 1 ? baseSlug : `${baseSlug.slice(0, SLUG_MAX - 4)}-${suffix}`;
+      const conflict = await tx.tag.findUnique({ where: { slug }, select: { id: true } });
+      if (!conflict) {
+        return tx.tag.create({ data: { name, slug }, select: { id: true } });
+      }
+    }
+    throw new BadRequestException("タグの slug 衝突上限を超えました");
+  }
+
   private async assertEventExists(eventId: string) {
     const event = await this.prisma.event.findUnique({ where: { id: eventId } });
     if (!event || event.deletedAt) throw new NotFoundException("イベントが見つかりません");
     return event;
   }
 
-  private mapEventDetail(event: any) {
+  private mapEventDetail(event: any, myParticipation?: any) {
     return {
       id: event.id,
       title: event.title,
@@ -1156,7 +1362,7 @@ export class EventsService {
       ticketSaleStartAt: event.ticketSaleStartAt,
       allowMultiTicketPurchase: event.allowMultiTicketPurchase,
       planningRole: event.planningRole,
-      eventType: event.eventType,
+      eventTypes: event.eventTypes,
       accessInfo: event.accessInfo,
       participationMethod: event.participationMethod,
       contactInfo: event.contactInfo,
@@ -1167,9 +1373,20 @@ export class EventsService {
       coverImageUrl: event.coverImageUrl,
       isCalendarVisible: event.isCalendarVisible,
       participantCount: event._count?.participants ?? event.participantCount,
-      category: event.category,
       requiredRank: event.requiredRank,
       createdBy: formatAuthor(event.createdByUser),
+      ticketCount: event.tickets?.length ?? 0,
+      // 全チケットが capacity=null（無制限）の場合は totalCapacity も null = 定員なし
+      totalCapacity: event.tickets?.some((t: { capacity: number | null }) => t.capacity !== null)
+        ? event.tickets.reduce(
+            (sum: number, t: { capacity: number | null }) => sum + (t.capacity ?? 0),
+            0,
+          )
+        : null,
+      minPrice:
+        event.tickets && event.tickets.length > 0
+          ? Math.min(...event.tickets.map((t: { price: number }) => t.price))
+          : null,
       tickets: event.tickets,
       speakers: event.speakers?.map((s: any) => ({
         id: s.id,
@@ -1181,6 +1398,16 @@ export class EventsService {
       })),
       organizations: event.organizations,
       tags: event.tags?.map((t: any) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
+      // ログイン中ユーザーの有効な申込（キャンセル以外）。未ログイン or 未申込なら null
+      myParticipation: myParticipation
+        ? {
+            id: myParticipation.id,
+            status: myParticipation.status,
+            ticketId: myParticipation.ticketId,
+            ticketName: myParticipation.ticket?.ticketName ?? null,
+            appliedAt: myParticipation.appliedAt,
+          }
+        : null,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     };

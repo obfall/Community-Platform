@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
+import type { UserRole } from "@prisma/client";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
@@ -44,14 +45,18 @@ export class EventsController {
 
   @Get()
   @ApiOperation({ summary: "イベント一覧" })
-  findAll(@Query() query: EventQueryDto) {
-    return this.eventsService.findAll(query);
+  findAll(@Query() query: EventQueryDto, @CurrentUser("role") role: UserRole) {
+    return this.eventsService.findAll(query, role);
   }
 
   @Get("calendar")
   @ApiOperation({ summary: "カレンダー用イベント一覧" })
-  getCalendar(@Query("from") from: string, @Query("to") to: string) {
-    return this.eventsService.getCalendarEvents(from, to);
+  getCalendar(
+    @Query("from") from: string,
+    @Query("to") to: string,
+    @CurrentUser("role") role: UserRole,
+  ) {
+    return this.eventsService.getCalendarEvents(from, to, role);
   }
 
   @Get("upcoming")
@@ -78,8 +83,12 @@ export class EventsController {
 
   @Get(":id")
   @ApiOperation({ summary: "イベント詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.eventsService.findOne(id);
+  findOne(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("role") role: UserRole,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.eventsService.findOne(id, role, userId);
   }
 
   @Post()
