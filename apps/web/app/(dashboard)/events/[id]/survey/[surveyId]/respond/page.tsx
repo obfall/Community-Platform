@@ -10,7 +10,7 @@ export default function EventSurveyRespondPage({
 }: {
   params: Promise<{ id: string; surveyId: string }>;
 }) {
-  const { id: eventId, surveyId } = use(params);
+  const { surveyId } = use(params);
   const { data: survey, isLoading } = useSurvey(surveyId);
   const submitResponse = useSubmitSurveyResponse();
 
