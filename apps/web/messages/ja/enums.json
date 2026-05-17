@@ -58,5 +58,26 @@
     "in_progress": "進行中",
     "completed": "終了",
     "cancelled": "中止"
+  },
+  "publishStatus": {
+    "draft": "下書き",
+    "published": "公開",
+    "unpublished": "未公開"
+  },
+  "videoStreamStatus": {
+    "uploading": "アップロード中",
+    "processing": "変換中",
+    "ready": "配信可能",
+    "error": "エラー"
+  },
+  "videoViewPermission": {
+    "all": "すべて",
+    "role_restricted": "ロール制限",
+    "rank_restricted": "ランク制限"
+  },
+  "videoTaskStatus": {
+    "not_started": "未着手",
+    "in_progress": "進行中",
+    "completed": "完了"
   }
 }

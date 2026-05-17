@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,13 +13,14 @@ interface Props {
 }
 
 export function SeriesNav({ prevVideo, nextVideo, currentOrder, seriesVideoCount }: Props) {
+  const t = useTranslations("videos.seriesNav");
   if (!prevVideo && !nextVideo) return null;
 
   return (
     <div className="space-y-2">
       {currentOrder != null && seriesVideoCount != null && (
         <p className="text-sm text-muted-foreground text-center">
-          シリーズ内 {currentOrder} / {seriesVideoCount}
+          {t("summary", { current: currentOrder, total: seriesVideoCount })}
         </p>
       )}
       <div className="flex items-center justify-between gap-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
+import { useTranslations } from "next-intl";
 import { useUpdateVideoProgress } from "@/hooks/videos/use-videos";
 import { Loader2, Play } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function HlsPlayer({
   durationSeconds,
   resumePosition,
 }: HlsPlayerProps) {
+  const t = useTranslations("videos.player");
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const updateProgress = useUpdateVideoProgress();
@@ -81,7 +83,7 @@ export function HlsPlayer({
         <div className="text-center text-white">
           <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin" />
           <p className="text-sm">
-            {streamStatus === "uploading" ? "アップロード中..." : "HLS 変換中..."}
+            {streamStatus === "uploading" ? t("uploading") : t("processing")}
           </p>
         </div>
       </div>
@@ -91,7 +93,7 @@ export function HlsPlayer({
   if (streamStatus === "error") {
     return (
       <div className="flex aspect-video items-center justify-center rounded-lg bg-black">
-        <p className="text-sm text-red-400">動画の処理中にエラーが発生しました</p>
+        <p className="text-sm text-red-400">{t("errorMessage")}</p>
       </div>
     );
   }

@@ -15,7 +15,6 @@ import type {
 interface UploadPayload {
   title: string;
   description?: string;
-  categoryId?: string;
   seriesId?: string;
   watchOrder?: number;
   publishStatus?: string;
@@ -32,7 +31,6 @@ interface UpdatePayload {
   title?: string;
   description?: string | null;
   publishStatus?: string;
-  categoryId?: string | null;
   seriesId?: string | null;
   watchOrder?: number | null;
   availableUntil?: string | null;
@@ -74,20 +72,11 @@ export const videosApi = {
       .get<{ nextOrder: number }>(`/videos/series/${seriesId}/next-watch-order`)
       .then((r) => r.data),
 
-  getCategories: () =>
-    apiClient
-      .get<Array<{ id: string; name: string; sortOrder: number }>>("/videos/categories")
-      .then((r) => r.data),
-
-  createCategory: (name: string) =>
-    apiClient.post("/videos/categories", { name }).then((r) => r.data),
-
   upload: (file: File, data: UploadPayload) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("title", data.title);
     if (data.description) formData.append("description", data.description);
-    if (data.categoryId) formData.append("categoryId", data.categoryId);
     if (data.seriesId) formData.append("seriesId", data.seriesId);
     if (data.watchOrder != null) formData.append("watchOrder", String(data.watchOrder));
     if (data.publishStatus) formData.append("publishStatus", data.publishStatus);

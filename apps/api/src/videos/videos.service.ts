@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-  ForbiddenException,
-} from "@nestjs/common";
+import { Injectable, HttpStatus } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
-import { CacheService } from "@/cache/cache.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import { BusinessException } from "@/common/exceptions";
+import { ErrorCode } from "@community-platform/shared";
 import {
   AUTHOR_SELECT,
   buildPaginationMeta,
@@ -16,14 +12,29 @@ import {
   pgroongaSearchAndFetch,
 } from "@/common/utils";
 
-const VIDEO_CATEGORIES_CACHE_KEY = "master:categories:video:all";
-const VIDEO_CATEGORIES_CACHE_PREFIX = "master:categories:video:";
-const CATEGORIES_CACHE_TTL_SEC = 60 * 60;
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import type { CreateVideoDto } from "./dto/create-video.dto";
 import type { UpdateVideoDto } from "./dto/update-video.dto";
 import type { VideoQueryDto } from "./dto/video-query.dto";
+
+const videoNotFound = () =>
+  new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    "動画が見つかりません",
+    undefined,
+    "errors.not_found.video",
+  );
+
+const videoTaskNotFound = () =>
+  new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    "タスクが見つかりません",
+    undefined,
+    "errors.not_found.video_task",
+  );
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -32,7 +43,6 @@ export class VideosService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
-    private readonly cache: CacheService,
   ) {}
 
   // ───────────────────── findAll ─────────────────────
@@ -50,7 +60,6 @@ export class VideosService {
 
     const where: Prisma.VideoWhereInput = { deletedAt: null };
     if (query.publishStatus) where.publishStatus = query.publishStatus;
-    if (query.categoryId) where.categoryId = query.categoryId;
     if (query.seriesId) where.seriesId = query.seriesId;
 
     // admin/owner 以外は公開中の動画のみに制限
@@ -96,7 +105,6 @@ export class VideosService {
 
     const where = Prisma.sql`
       deleted_at IS NULL
-      ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
       ${query.seriesId ? Prisma.sql`AND series_id = ${query.seriesId}::uuid` : Prisma.empty}
     `;
 
@@ -122,7 +130,6 @@ export class VideosService {
 
   private videoListInclude(currentUserId?: string) {
     return {
-      category: { select: { id: true, name: true } },
       series: { select: { id: true, name: true } },
       createdBy: { select: AUTHOR_SELECT },
       tasks: {
@@ -151,7 +158,6 @@ export class VideosService {
     videos: Array<
       Prisma.VideoGetPayload<{
         include: {
-          category: { select: { id: true; name: true } };
           series: { select: { id: true; name: true } };
           createdBy: { select: typeof AUTHOR_SELECT };
           tasks: { select: { id: true; completions: { select: { id: true } } } };
@@ -186,7 +192,6 @@ export class VideosService {
           allowedRoles: v.allowedRoles,
           availableUntil: v.availableUntil,
           hasPassword: !!v.passwordHash,
-          category: v.category,
           series: v.series,
           createdBy: formatAuthor(v.createdBy),
           taskCount,
@@ -220,7 +225,6 @@ export class VideosService {
         ...(isPrivileged ? {} : { publishStatus: "published" as const }),
       },
       include: {
-        category: { select: { id: true, name: true } },
         series: { select: { id: true, name: true } },
         createdBy: { select: AUTHOR_SELECT },
         instructors: {
@@ -243,7 +247,7 @@ export class VideosService {
         },
       },
     });
-    if (!video) throw new NotFoundException("動画が見つかりません");
+    if (!video) throw videoNotFound();
 
     await this.prisma.video.update({ where: { id }, data: { viewCount: { increment: 1 } } });
 
@@ -344,7 +348,6 @@ export class VideosService {
         videoExternalId: dto.videoExternalId,
         playbackUrl: dto.playbackUrl,
         thumbnailUrl: dto.thumbnailUrl,
-        categoryId: dto.categoryId,
         seriesId: dto.seriesId,
         watchOrder: dto.watchOrder,
         publishStatus: dto.publishStatus ?? "draft",
@@ -418,7 +421,6 @@ export class VideosService {
     data: {
       title: string;
       description?: string;
-      categoryId?: string;
       seriesId?: string;
       watchOrder?: number;
       publishStatus?: string;
@@ -447,7 +449,6 @@ export class VideosService {
         videoProvider: "r2_hls",
         videoExternalId: "pending",
         streamStatus: "uploading",
-        categoryId: data.categoryId || undefined,
         seriesId: data.seriesId || undefined,
         watchOrder: data.watchOrder != null ? Number(data.watchOrder) : undefined,
         publishStatus: (data.publishStatus as "draft" | "published" | "unpublished") ?? "draft",
@@ -502,7 +503,7 @@ export class VideosService {
 
   async update(id: string, dto: UpdateVideoDto) {
     const video = await this.prisma.video.findUnique({ where: { id } });
-    if (!video || video.deletedAt) throw new NotFoundException("動画が見つかりません");
+    if (!video || video.deletedAt) throw videoNotFound();
 
     // パスワード処理
     let passwordHash: string | null | undefined = undefined;
@@ -517,7 +518,6 @@ export class VideosService {
           ...(dto.title !== undefined && { title: dto.title }),
           ...(dto.description !== undefined && { description: dto.description }),
           ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus }),
-          ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
           ...(dto.seriesId !== undefined && { seriesId: dto.seriesId }),
           ...(dto.watchOrder !== undefined && { watchOrder: dto.watchOrder }),
           ...(dto.availableUntil !== undefined && {
@@ -629,11 +629,18 @@ export class VideosService {
       where: { id },
       select: { passwordHash: true },
     });
-    if (!video) throw new NotFoundException("動画が見つかりません");
+    if (!video) throw videoNotFound();
     if (!video.passwordHash) return { ok: true };
 
     const valid = await bcrypt.compare(password, video.passwordHash);
-    if (!valid) throw new UnauthorizedException("パスワードが正しくありません");
+    if (!valid)
+      throw new BusinessException(
+        ErrorCode.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
+        "パスワードが正しくありません",
+        undefined,
+        "errors.unauthorized_resource.video_password",
+      );
     return { ok: true };
   }
 
@@ -651,11 +658,17 @@ export class VideosService {
         deletedAt: true,
       },
     });
-    if (!video || video.deletedAt) throw new NotFoundException("動画が見つかりません");
+    if (!video || video.deletedAt) throw videoNotFound();
 
     // 閲覧期限チェック
     if (video.availableUntil && new Date() > video.availableUntil) {
-      throw new ForbiddenException("この動画の閲覧期限が過ぎています");
+      throw new BusinessException(
+        ErrorCode.FORBIDDEN,
+        HttpStatus.FORBIDDEN,
+        "この動画の閲覧期限が過ぎています",
+        undefined,
+        "errors.forbidden_resource.video_expired",
+      );
     }
 
     // role_restricted チェック
@@ -665,7 +678,13 @@ export class VideosService {
         select: { role: true },
       });
       if (!user || !video.allowedRoles.includes(user.role)) {
-        throw new ForbiddenException("この動画へのアクセス権限がありません");
+        throw new BusinessException(
+          ErrorCode.FORBIDDEN,
+          HttpStatus.FORBIDDEN,
+          "この動画へのアクセス権限がありません",
+          undefined,
+          "errors.forbidden_resource.video_access_denied",
+        );
       }
     }
   }
@@ -678,7 +697,7 @@ export class VideosService {
     status: "not_started" | "in_progress" | "completed",
   ) {
     const task = await this.prisma.videoTask.findUnique({ where: { id: taskId } });
-    if (!task) throw new NotFoundException("タスクが見つかりません");
+    if (!task) throw videoTaskNotFound();
 
     if (status === "not_started") {
       // not_started はレコード削除で表現
@@ -709,7 +728,7 @@ export class VideosService {
       where: { id: videoId },
       select: { id: true, title: true },
     });
-    if (!video) throw new NotFoundException("動画が見つかりません");
+    if (!video) throw videoNotFound();
 
     const tasks = await this.prisma.videoTask.findMany({
       where: { videoId },
@@ -797,13 +816,13 @@ export class VideosService {
       where: { id: videoId },
       select: { title: true },
     });
-    if (!video) throw new NotFoundException("動画が見つかりません");
+    if (!video) throw videoNotFound();
 
     const task = await this.prisma.videoTask.findUnique({
       where: { id: taskId },
       select: { title: true },
     });
-    if (!task) throw new NotFoundException("タスクが見つかりません");
+    if (!task) throw videoTaskNotFound();
 
     // 対象ユーザー決定
     let targetUserIds: string[];
@@ -843,7 +862,7 @@ export class VideosService {
 
   async resetStreamForReplace(id: string) {
     const video = await this.prisma.video.findUnique({ where: { id } });
-    if (!video || video.deletedAt) throw new NotFoundException("動画が見つかりません");
+    if (!video || video.deletedAt) throw videoNotFound();
 
     await this.prisma.video.update({
       where: { id },
@@ -892,29 +911,6 @@ export class VideosService {
     return this.prisma.videoWatchProgress.findUnique({
       where: { videoId_userId: { videoId, userId } },
     });
-  }
-
-  // ───────────────────── Categories ─────────────────────
-
-  async getCategories() {
-    return this.cache.getOrSet(
-      VIDEO_CATEGORIES_CACHE_KEY,
-      () =>
-        this.prisma.category.findMany({
-          where: { scope: "video", isActive: true },
-          orderBy: { sortOrder: "asc" },
-        }),
-      CATEGORIES_CACHE_TTL_SEC,
-    );
-  }
-
-  async createCategory(name: string) {
-    const slug = `video-${Date.now()}`;
-    const created = await this.prisma.category.create({
-      data: { scope: "video", slug, name },
-    });
-    await this.cache.invalidate(VIDEO_CATEGORIES_CACHE_PREFIX);
-    return created;
   }
 
   // ───────────────────── Series ─────────────────────

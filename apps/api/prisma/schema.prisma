@@ -1916,7 +1916,6 @@ model VideoSeries {
 
 model Video {
   id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  categoryId      String?             @map("category_id") @db.Uuid
   seriesId        String?             @map("series_id") @db.Uuid
   title           String              @db.VarChar(200)
   description     String?             @db.Text
@@ -1941,7 +1940,6 @@ model Video {
   deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
 
   // Relations
-  category      Category?            @relation(fields: [categoryId], references: [id])
   series        VideoSeries?         @relation(fields: [seriesId], references: [id])
   requiredRank  MemberRank?          @relation(fields: [requiredRankId], references: [id])
   createdBy     User                 @relation("VideoCreator", fields: [createdByUserId], references: [id])
@@ -1949,9 +1947,10 @@ model Video {
   attachments   VideoAttachment[]
   watchProgress VideoWatchProgress[]
   tasks         VideoTask[]
+  category      Category?            @relation(fields: [categoryId], references: [id])
+  categoryId    String?              @db.Uuid
 
   @@index([publishStatus, sortOrder])
-  @@index([categoryId])
   @@index([seriesId])
   @@index([seriesId, watchOrder])
   @@map("videos")

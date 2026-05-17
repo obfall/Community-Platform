@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useVideoTaskProgress, useSendTaskReminder } from "@/hooks/videos/use-videos";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -21,21 +22,22 @@ import { ArrowLeft, Bell, CheckCircle, Clock, Circle, Loader2 } from "lucide-rea
 export default function TaskProgressPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useAuth();
+  const t = useTranslations("videos.taskProgress");
   const { data: progress, isLoading } = useVideoTaskProgress(id);
   const sendReminder = useSendTaskReminder();
 
   const isAdmin = user?.role === "admin" || user?.role === "owner";
 
   if (!isAdmin) {
-    return <div className="py-12 text-center text-muted-foreground">アクセス権限がありません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("forbidden")}</div>;
   }
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
   }
 
   if (!progress) {
-    return <div className="py-12 text-center text-muted-foreground">データが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
   }
 
   return (
@@ -47,12 +49,14 @@ export default function TaskProgressPage({ params }: { params: Promise<{ id: str
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">タスク進捗</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{progress.videoTitle}</p>
         </div>
       </div>
 
-      <div className="text-sm text-muted-foreground">対象メンバー数: {progress.totalMembers}名</div>
+      <div className="text-sm text-muted-foreground">
+        {t("totalMembersLabel", { count: progress.totalMembers })}
+      </div>
 
       {progress.tasks.map((task) => (
         <TaskProgressCard
@@ -103,12 +107,6 @@ type TaskData = {
   }[];
 };
 
-const STATUS_LABEL = {
-  completed: "完了",
-  in_progress: "進行中",
-  not_started: "未着手",
-} as const;
-
 function statusBadgeVariant(s: MemberRow["status"]): "default" | "secondary" | "outline" {
   if (s === "completed") return "default";
   if (s === "in_progress") return "secondary";
@@ -126,6 +124,8 @@ function TaskProgressCard({
   totalMembers: number;
   sendReminder: ReturnType<typeof useSendTaskReminder>;
 }) {
+  const t = useTranslations("videos.taskProgress");
+  const tTaskStatus = useTranslations("enums.videoTaskStatus");
   const completionRate =
     totalMembers > 0 ? Math.round((task.completionCount / totalMembers) * 100) : 0;
 
@@ -177,15 +177,15 @@ function TaskProgressCard({
           <div className="flex items-center gap-2">
             <Badge variant="default" className="gap-1">
               <CheckCircle className="h-3 w-3" />
-              完了 {task.completionCount}
+              {t("completedBadge", { count: task.completionCount })}
             </Badge>
             <Badge variant="secondary" className="gap-1">
               <Clock className="h-3 w-3" />
-              進行中 {task.inProgressCount}
+              {t("inProgressBadge", { count: task.inProgressCount })}
             </Badge>
             <Badge variant="outline" className="gap-1">
               <Circle className="h-3 w-3" />
-              未着手 {task.notStartedCount}
+              {t("notStartedBadge", { count: task.notStartedCount })}
             </Badge>
           </div>
         </CardTitle>
@@ -194,7 +194,9 @@ function TaskProgressCard({
       <CardContent className="space-y-4">
         {/* 進捗バー */}
         <div>
-          <div className="mb-1 text-xs text-muted-foreground">完了率 {completionRate}%</div>
+          <div className="mb-1 text-xs text-muted-foreground">
+            {t("completionRateLabel", { rate: completionRate })}
+          </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full bg-primary transition-all"
@@ -208,9 +210,9 @@ function TaskProgressCard({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>メンバー</TableHead>
-                <TableHead className="w-28">ステータス</TableHead>
-                <TableHead className="w-40">更新 / 完了日時</TableHead>
+                <TableHead>{t("table.member")}</TableHead>
+                <TableHead className="w-28">{t("table.status")}</TableHead>
+                <TableHead className="w-40">{t("table.updatedAt")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -226,14 +228,22 @@ function TaskProgressCard({
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusBadgeVariant(row.status)} className="text-[10px]">
-                      {STATUS_LABEL[row.status]}
+                      {tTaskStatus(row.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {row.status === "completed" && row.completedAt ? (
-                      <>完了: {new Date(row.completedAt).toLocaleDateString("ja-JP")}</>
+                      <>
+                        {t("table.completedAt", {
+                          date: new Date(row.completedAt).toLocaleDateString("ja-JP"),
+                        })}
+                      </>
                     ) : row.statusUpdatedAt ? (
-                      <>更新: {new Date(row.statusUpdatedAt).toLocaleDateString("ja-JP")}</>
+                      <>
+                        {t("table.updatedAtValue", {
+                          date: new Date(row.statusUpdatedAt).toLocaleDateString("ja-JP"),
+                        })}
+                      </>
                     ) : (
                       <span className="text-muted-foreground/60">—</span>
                     )}
@@ -248,7 +258,7 @@ function TaskProgressCard({
         {incompleteCount > 0 && (
           <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3">
             <span className="text-sm text-muted-foreground">
-              未完了者 {incompleteCount}名（進行中 + 未着手）
+              {t("incompleteSummary", { count: incompleteCount })}
             </span>
             <Button
               size="sm"
@@ -261,7 +271,7 @@ function TaskProgressCard({
               ) : (
                 <Bell className="mr-1 h-4 w-4" />
               )}
-              未完了者全員にリマインド
+              {t("remindAllAction")}
             </Button>
           </div>
         )}

@@ -8,7 +8,9 @@
     "board_topic": "トピックが見つかりません",
     "board_post": "投稿が見つかりません",
     "board_comment": "コメントが見つかりません",
-    "board_parent_comment": "返信先コメントが見つかりません"
+    "board_parent_comment": "返信先コメントが見つかりません",
+    "video": "動画が見つかりません",
+    "video_task": "タスクが見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました"
@@ -16,7 +18,16 @@
   "forbidden_resource": {
     "board_topic": "このトピックを操作する権限がありません",
     "board_post": "この投稿を操作する権限がありません",
-    "board_comment": "このコメントを操作する権限がありません"
+    "board_comment": "このコメントを操作する権限がありません",
+    "video_access_denied": "この動画へのアクセス権限がありません",
+    "video_expired": "この動画の閲覧期限が過ぎています"
+  },
+  "unauthorized_resource": {
+    "video_password": "パスワードが正しくありません"
+  },
+  "validation": {
+    "video_file_required": "動画ファイルが選択されていません",
+    "video_password_format": "パスワードは4桁の半角数字で指定してください"
   },
   "internal": "サーバーエラーが発生しました"
 }

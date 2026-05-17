@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { videosApi } from "@/lib/api/videos";
-import { useVideoCategories, useVideoSeries, useNextWatchOrder } from "@/hooks/videos/use-videos";
+import { useVideoSeries, useNextWatchOrder } from "@/hooks/videos/use-videos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
+import { VIDEO_PASSWORD_LENGTH } from "@community-platform/shared";
 import { InstructorList } from "../_components/instructor-list";
 import { AccessRolesField } from "../_components/access-roles-field";
 import { TaskListEditor } from "../_components/task-list-editor";
@@ -24,13 +26,14 @@ import type { InstructorInput, TaskInput } from "@/lib/api/types";
 export default function NewVideoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: categories } = useVideoCategories();
   const { data: seriesList } = useVideoSeries();
+  const t = useTranslations("videos.new");
+  const tForm = useTranslations("videos.form");
+  const tPermission = useTranslations("enums.videoViewPermission");
 
   // 基本情報
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
   const [seriesId, setSeriesId] = useState("");
   const [watchOrder, setWatchOrder] = useState<string>("");
   const [watchOrderTouched, setWatchOrderTouched] = useState(false);
@@ -70,11 +73,10 @@ export default function NewVideoPage() {
 
   const upload = useMutation({
     mutationFn: () => {
-      if (!file) throw new Error("ファイルが選択されていません");
+      if (!file) throw new Error(t("fileNotSelected"));
       return videosApi.upload(file, {
         title,
         description: description || undefined,
-        categoryId: categoryId || undefined,
         seriesId: seriesId || undefined,
         watchOrder: watchOrder ? Number(watchOrder) : undefined,
         publishStatus,
@@ -89,17 +91,17 @@ export default function NewVideoPage() {
     },
     onSuccess: (data: { id: string }) => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
-      toast.success("動画をアップロードしました。HLS 変換を開始します。");
+      toast.success(t("successToast"));
       router.push(`/videos/${data.id}`);
     },
-    onError: () => toast.error("アップロードに失敗しました"),
+    onError: () => toast.error(t("errorToast")),
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
     if (!selected.type.startsWith("video/")) {
-      toast.error("動画ファイルを選択してください");
+      toast.error(t("fileTypeError"));
       return;
     }
     setFile(selected);
@@ -113,29 +115,29 @@ export default function NewVideoPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">動画アップロード</h1>
+        <h1 className="text-2xl font-bold">{t("pageTitle")}</h1>
       </div>
 
       {/* シリーズ・順番 */}
       <Card>
         <CardHeader>
-          <CardTitle>シリーズ・順番</CardTitle>
+          <CardTitle>{tForm("card.seriesOrder")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>シリーズ</Label>
+              <Label>{tForm("label.series")}</Label>
               <SelectField
                 value={seriesId || NONE_VALUE}
                 onChange={(v) => setSeriesId(v === NONE_VALUE ? "" : v)}
                 options={seriesList?.map((s) => ({ value: s.id, label: s.name })) ?? []}
                 includeNone
-                placeholder="シリーズを選択"
+                placeholder={tForm("label.seriesPlaceholder")}
               />
             </div>
             {seriesId && (
               <div>
-                <Label>順番（watchOrder）</Label>
+                <Label>{tForm("label.watchOrder")}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -144,10 +146,10 @@ export default function NewVideoPage() {
                     setWatchOrder(e.target.value);
                     setWatchOrderTouched(true);
                   }}
-                  placeholder="シリーズ内の順番（数値）"
+                  placeholder={tForm("label.watchOrderPlaceholder")}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  シリーズ内で次に使う番号を自動で補完します（変更可）
+                  {tForm("label.watchOrderHintNew")}
                 </p>
               </div>
             )}
@@ -158,38 +160,28 @@ export default function NewVideoPage() {
       {/* 基本情報 */}
       <Card>
         <CardHeader>
-          <CardTitle>動画情報</CardTitle>
+          <CardTitle>{tForm("card.videoInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>タイトル</Label>
+            <Label>{tForm("label.title")}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="動画のタイトル"
+              placeholder={tForm("label.titlePlaceholder")}
             />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>{tForm("label.description")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              placeholder="動画の説明"
+              placeholder={tForm("label.descriptionPlaceholder")}
             />
           </div>
           <div>
-            <Label>カテゴリ</Label>
-            <SelectField
-              value={categoryId || NONE_VALUE}
-              onChange={(v) => setCategoryId(v === NONE_VALUE ? "" : v)}
-              options={categories?.map((c) => ({ value: c.id, label: c.name })) ?? []}
-              includeNone
-              placeholder="カテゴリを選択"
-            />
-          </div>
-          <div>
-            <Label>動画ファイル</Label>
+            <Label>{tForm("label.videoFile")}</Label>
             <div className="mt-1">
               {file ? (
                 <div className="flex items-center gap-3 rounded border p-3">
@@ -201,14 +193,16 @@ export default function NewVideoPage() {
                     </p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setFile(null)}>
-                    変更
+                    {tForm("label.changeAction")}
                   </Button>
                 </div>
               ) : (
                 <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors hover:border-primary/50">
                   <Upload className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">クリックして動画ファイルを選択</p>
-                  <p className="text-xs text-muted-foreground">MP4, MOV, WebM（最大 500MB）</p>
+                  <p className="text-sm text-muted-foreground">{tForm("label.filePickerHint")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {tForm("label.filePickerSizeHint")}
+                  </p>
                   <input
                     type="file"
                     accept="video/*"
@@ -225,7 +219,7 @@ export default function NewVideoPage() {
       {/* 講師 */}
       <Card>
         <CardHeader>
-          <CardTitle>担当講師</CardTitle>
+          <CardTitle>{tForm("card.instructors")}</CardTitle>
         </CardHeader>
         <CardContent>
           <InstructorList value={instructors} onChange={setInstructors} />
@@ -235,7 +229,7 @@ export default function NewVideoPage() {
       {/* 配布資料 */}
       <Card>
         <CardHeader>
-          <CardTitle>配布資料</CardTitle>
+          <CardTitle>{tForm("card.attachments")}</CardTitle>
         </CardHeader>
         <CardContent>
           <FileUploadList value={attachments} onChange={setAttachments} fileCategory="document" />
@@ -245,7 +239,7 @@ export default function NewVideoPage() {
       {/* タスク */}
       <Card>
         <CardHeader>
-          <CardTitle>タスク</CardTitle>
+          <CardTitle>{tForm("card.tasks")}</CardTitle>
         </CardHeader>
         <CardContent>
           <TaskListEditor value={tasks} onChange={setTasks} />
@@ -255,11 +249,11 @@ export default function NewVideoPage() {
       {/* 公開設定 */}
       <Card>
         <CardHeader>
-          <CardTitle>公開設定</CardTitle>
+          <CardTitle>{tForm("card.publish")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>公開ステータス</Label>
+            <Label>{tForm("label.publishStatus")}</Label>
             <SelectField
               value={publishStatus}
               onChange={setPublishStatus}
@@ -267,14 +261,14 @@ export default function NewVideoPage() {
             />
           </div>
           <div>
-            <Label>閲覧可能範囲</Label>
+            <Label>{tForm("label.viewPermission")}</Label>
             <SelectField
               value={viewPermission}
               onChange={setViewPermission}
               options={[
-                { value: "all", label: "すべて" },
-                { value: "role_restricted", label: "ロール制限" },
-                { value: "rank_restricted", label: "ランク制限" },
+                { value: "all", label: tPermission("all") },
+                { value: "role_restricted", label: tPermission("role_restricted") },
+                { value: "rank_restricted", label: tPermission("rank_restricted") },
               ]}
             />
           </div>
@@ -282,24 +276,28 @@ export default function NewVideoPage() {
             <AccessRolesField value={allowedRoles} onChange={setAllowedRoles} />
           )}
           <div>
-            <Label>閲覧期限</Label>
+            <Label>{tForm("label.availableUntil")}</Label>
             <Input
               type="datetime-local"
               value={availableUntil}
               onChange={(e) => setAvailableUntil(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground mt-1">空欄の場合は無期限</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {tForm("label.availableUntilHint")}
+            </p>
           </div>
           <div>
-            <Label>パスワード（4桁数字）</Label>
+            <Label>{tForm("label.password")}</Label>
             <Input
               type="password"
               inputMode="numeric"
-              pattern="\d{4}"
-              maxLength={4}
+              pattern={`\\d{${VIDEO_PASSWORD_LENGTH}}`}
+              maxLength={VIDEO_PASSWORD_LENGTH}
               value={password}
-              onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="空欄の場合はパスワードなし"
+              onChange={(e) =>
+                setPassword(e.target.value.replace(/\D/g, "").slice(0, VIDEO_PASSWORD_LENGTH))
+              }
+              placeholder={tForm("label.passwordPlaceholderEmpty")}
             />
           </div>
         </CardContent>
@@ -315,12 +313,12 @@ export default function NewVideoPage() {
         {upload.isPending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            アップロード中...
+            {t("uploading")}
           </>
         ) : (
           <>
             <Upload className="mr-2 h-4 w-4" />
-            アップロード
+            {t("uploadAction")}
           </>
         )}
       </Button>

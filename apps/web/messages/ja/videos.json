@@ -1,0 +1,237 @@
+{
+  "list": {
+    "title": "動画",
+    "searchPlaceholder": "動画を検索...",
+    "seriesPlaceholder": "シリーズ",
+    "allSeries": "すべてのシリーズ",
+    "watchStatusPlaceholder": "視聴状態",
+    "watchStatusAll": "すべて",
+    "watchStatusUnwatched": "未視聴",
+    "watchStatusWatched": "視聴済み",
+    "publishStatusPlaceholder": "公開状態",
+    "publishStatusAll": "すべて",
+    "loading": "読み込み中...",
+    "empty": "動画がありません",
+    "watchedBadge": "視聴済み",
+    "incompleteTaskBadge": "未完了ワーク {count}件",
+    "taskCompleteBadge": "ワーク完了",
+    "creatorPrefix": "作成者: {name}"
+  },
+  "manage": {
+    "title": "動画管理",
+    "uploadAction": "アップロード",
+    "addSeriesAction": "シリーズ追加",
+    "searchPlaceholder": "動画を検索...",
+    "statusPlaceholder": "ステータス",
+    "seriesPlaceholder": "シリーズ",
+    "allSeries": "すべてのシリーズ",
+    "loading": "読み込み中...",
+    "empty": "動画がありません",
+    "table": {
+      "title": "タイトル",
+      "series": "シリーズ",
+      "publishStatus": "公開状態",
+      "streamStatus": "配信状態",
+      "duration": "再生時間",
+      "viewCount": "再生数",
+      "createdAt": "作成日",
+      "actions": "操作"
+    },
+    "editAction": "編集",
+    "deleteAction": "削除",
+    "seriesDialog": {
+      "title": "シリーズ追加",
+      "nameLabel": "シリーズ名",
+      "namePlaceholder": "シリーズ名",
+      "createAction": "作成"
+    },
+    "deleteDialog": {
+      "title": "動画を削除しますか？",
+      "description": "「{title}」を削除します。この操作は取り消せません。",
+      "cancel": "キャンセル",
+      "action": "削除"
+    }
+  },
+  "new": {
+    "pageTitle": "動画アップロード",
+    "uploading": "アップロード中...",
+    "uploadAction": "アップロード",
+    "successToast": "動画をアップロードしました。HLS 変換を開始します。",
+    "errorToast": "アップロードに失敗しました",
+    "fileNotSelected": "ファイルが選択されていません",
+    "fileTypeError": "動画ファイルを選択してください"
+  },
+  "edit": {
+    "pageTitle": "動画編集",
+    "loading": "読み込み中...",
+    "notFound": "動画が見つかりません",
+    "cancelAction": "キャンセル",
+    "saveAction": "保存",
+    "replaceFile": {
+      "cardTitle": "動画ファイル",
+      "statusPrefix": "ステータス:",
+      "durationFormat": "時間: {minutes}分{seconds}秒",
+      "openButton": "動画ファイルを差し替える",
+      "newFileLabel": "新しい動画ファイル",
+      "submit": "差し替え開始",
+      "cancel": "キャンセル",
+      "fileTypeError": "動画ファイルを選択してください"
+    }
+  },
+  "form": {
+    "card": {
+      "seriesOrder": "シリーズ・順番",
+      "videoInfo": "動画情報",
+      "basicInfo": "基本情報",
+      "instructors": "担当講師",
+      "attachments": "配布資料",
+      "tasks": "タスク",
+      "publish": "公開設定"
+    },
+    "label": {
+      "series": "シリーズ",
+      "seriesPlaceholder": "シリーズを選択",
+      "watchOrder": "順番（watchOrder）",
+      "watchOrderPlaceholder": "シリーズ内の順番（数値）",
+      "watchOrderHintNew": "シリーズ内で次に使う番号を自動で補完します（変更可）",
+      "watchOrderHintEdit": "シリーズを変更すると次に使う番号を自動補完します",
+      "title": "タイトル",
+      "titlePlaceholder": "動画のタイトル",
+      "titlePlaceholderEdit": "動画タイトル",
+      "description": "説明",
+      "descriptionPlaceholder": "動画の説明",
+      "descriptionPlaceholderEdit": "動画の説明（任意）",
+      "videoFile": "動画ファイル",
+      "changeAction": "変更",
+      "filePickerHint": "クリックして動画ファイルを選択",
+      "filePickerSizeHint": "MP4, MOV, WebM（最大 500MB）",
+      "publishStatus": "公開ステータス",
+      "publishStatusEdit": "公開状態",
+      "viewPermission": "閲覧可能範囲",
+      "availableUntil": "閲覧期限",
+      "availableUntilHint": "空欄の場合は無期限",
+      "password": "パスワード（4桁数字）",
+      "passwordPlaceholderEmpty": "空欄の場合はパスワードなし",
+      "passwordPlaceholderChange": "変更する場合のみ入力",
+      "passwordToggleShow": "パスワードを表示",
+      "passwordToggleHide": "パスワードを隠す",
+      "passwordClearLabel": "パスワード保護を解除する",
+      "passwordExistingHint": "既存パスワードは表示できません。変更する場合のみ入力してください。"
+    }
+  },
+  "detail": {
+    "loading": "読み込み中...",
+    "notFound": "動画が見つかりません",
+    "metaPrefix": "{name} ・ {viewCount}回再生",
+    "metaDurationSuffix": " ・ {duration}",
+    "passwordProtectedBadge": "パスワード保護",
+    "roleRestrictedBadge": "限定: {roles}",
+    "availableUntilLabel": "閲覧期限: {date}",
+    "availableUntilExpiredLabel": "閲覧期限: {date}（期限切れ）",
+    "watchCompletedBadge": "視聴完了",
+    "nextVideoCta": "次の動画へ進みましょう",
+    "nextVideoButton": "{title} へ →",
+    "descriptionTitle": "概要",
+    "taskProgressLink": "タスク進捗を見る",
+    "tasksTitle": "ワーク・課題",
+    "taskTable": {
+      "index": "#",
+      "task": "タスク",
+      "currentStatus": "現在",
+      "statusChange": "ステータス変更",
+      "updatedAt": "更新 / 完了",
+      "completedAt": "完了: {date}",
+      "updatedAtValue": "更新: {date}"
+    },
+    "allTasksCompleted": "すべてのタスクを完了しました！",
+    "instructorsTitle": "講師",
+    "attachmentsTitle": "配布資料",
+    "playerLoadingAria": "読み込み中"
+  },
+  "player": {
+    "uploading": "アップロード中...",
+    "processing": "HLS 変換中...",
+    "errorMessage": "動画の処理中にエラーが発生しました"
+  },
+  "passwordDialog": {
+    "title": "パスワードが必要です",
+    "label": "4桁のパスワードを入力してください",
+    "placeholder": "●●●●",
+    "submit": "確認",
+    "errorToast": "パスワードが正しくありません"
+  },
+  "taskProgress": {
+    "title": "タスク進捗",
+    "loading": "読み込み中...",
+    "notFound": "データが見つかりません",
+    "forbidden": "アクセス権限がありません",
+    "totalMembersLabel": "対象メンバー数: {count}名",
+    "completedBadge": "完了 {count}",
+    "inProgressBadge": "進行中 {count}",
+    "notStartedBadge": "未着手 {count}",
+    "completionRateLabel": "完了率 {rate}%",
+    "table": {
+      "member": "メンバー",
+      "status": "ステータス",
+      "updatedAt": "更新 / 完了日時",
+      "completedAt": "完了: {date}",
+      "updatedAtValue": "更新: {date}"
+    },
+    "incompleteSummary": "未完了者 {count}名（進行中 + 未着手）",
+    "remindAllAction": "未完了者全員にリマインド"
+  },
+  "instructorList": {
+    "label": "担当講師",
+    "addSelfAction": "自分を講師として追加",
+    "addAction": "講師を追加",
+    "externalLabel": "外部講師",
+    "userSearchLabel": "ユーザー検索",
+    "userSearchPlaceholder": "名前で検索...",
+    "nameLabel": "名前",
+    "namePlaceholder": "講師名",
+    "affiliationLabel": "所属",
+    "affiliationPlaceholder": "所属・肩書"
+  },
+  "accessRolesField": {
+    "label": "閲覧可能ロール",
+    "options": {
+      "admin": "管理者 (admin)",
+      "owner": "オーナー (owner)",
+      "member": "メンバー (member)"
+    }
+  },
+  "taskListEditor": {
+    "label": "タスク（視聴後に行う作業）",
+    "titlePlaceholder": "タスクタイトル",
+    "descriptionPlaceholder": "説明（任意）",
+    "fileAttachAction": "ファイル添付",
+    "duplicateSuffix": "（コピー）",
+    "duplicateAction": "複製",
+    "removeAction": "削除",
+    "addAction": "タスクを追加",
+    "uploadErrorToast": "ファイルのアップロードに失敗しました"
+  },
+  "seriesNav": {
+    "summary": "シリーズ内 {current} / {total}"
+  },
+  "seriesVideoList": {
+    "title": "シリーズ: {name}",
+    "watchedBadge": "視聴済み"
+  },
+  "error": {
+    "title": "動画の読み込みに失敗しました",
+    "description": "再生中に問題が発生した可能性があります。再試行して解決しない場合はサポートまでご連絡ください。"
+  },
+  "hooks": {
+    "createSeriesSuccess": "シリーズを作成しました",
+    "createSeriesError": "シリーズの作成に失敗しました",
+    "updateSuccess": "動画を更新しました",
+    "updateError": "動画の更新に失敗しました",
+    "deleteSuccess": "動画を削除しました",
+    "deleteError": "動画の削除に失敗しました",
+    "reminderSuccess": "{count}件のリマインドを送信しました",
+    "reminderError": "リマインドの送信に失敗しました",
+    "replaceFileSuccess": "動画ファイルの差し替えを開始しました",
+    "replaceFileError": "動画ファイルの差し替えに失敗しました"
+  }
+}

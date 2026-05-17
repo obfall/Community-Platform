@@ -16,16 +16,23 @@ import {
   ValidateNested,
 } from "class-validator";
 import { PublishStatus, VideoViewPermission } from "@prisma/client";
+import {
+  MAX_VIDEO_ATTACHMENTS,
+  MAX_VIDEO_INSTRUCTORS,
+  MAX_VIDEO_TASKS,
+  MAX_VIDEO_TITLE_LENGTH,
+  VIDEO_PASSWORD_PATTERN,
+} from "@community-platform/shared";
 import { VideoInstructorInputDto } from "./video-instructor-input.dto";
 import { VideoTaskInputDto } from "./video-task-input.dto";
 
 const ALLOWED_ROLES = ["admin", "owner", "member", "visitor"] as const;
 
 export class UpdateVideoDto {
-  @ApiPropertyOptional({ maxLength: 200 })
+  @ApiPropertyOptional({ maxLength: MAX_VIDEO_TITLE_LENGTH })
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(MAX_VIDEO_TITLE_LENGTH)
   title?: string;
 
   @ApiPropertyOptional()
@@ -37,11 +44,6 @@ export class UpdateVideoDto {
   @IsOptional()
   @IsEnum(PublishStatus)
   publishStatus?: PublishStatus;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -81,13 +83,13 @@ export class UpdateVideoDto {
   @ApiPropertyOptional({ description: "4桁数字。空文字または null でパスワード解除" })
   @IsOptional()
   @IsString()
-  @Matches(/^(\d{4})?$/, { message: "パスワードは4桁の半角数字で指定してください" })
+  @Matches(VIDEO_PASSWORD_PATTERN, { message: "パスワードは4桁の半角数字で指定してください" })
   password?: string | null;
 
   @ApiPropertyOptional({ type: [VideoInstructorInputDto] })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(MAX_VIDEO_INSTRUCTORS)
   @ValidateNested({ each: true })
   @Type(() => VideoInstructorInputDto)
   instructors?: VideoInstructorInputDto[];
@@ -95,14 +97,14 @@ export class UpdateVideoDto {
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(20)
+  @ArrayMaxSize(MAX_VIDEO_ATTACHMENTS)
   @IsUUID("all", { each: true })
   attachmentFileIds?: string[];
 
   @ApiPropertyOptional({ type: [VideoTaskInputDto] })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(MAX_VIDEO_TASKS)
   @ValidateNested({ each: true })
   @Type(() => VideoTaskInputDto)
   tasks?: VideoTaskInputDto[];

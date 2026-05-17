@@ -1175,7 +1175,6 @@ export interface VideoListItem {
   allowedRoles: string[];
   availableUntil: string | null;
   hasPassword: boolean;
-  category: { id: string; name: string } | null;
   series: { id: string; name: string } | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   taskCount: number;
@@ -1255,7 +1254,6 @@ export interface VideoQuery {
   page?: number;
   limit?: number;
   publishStatus?: string;
-  categoryId?: string;
   seriesId?: string;
   search?: string;
   watchStatus?: "watched" | "unwatched";

@@ -15,6 +15,7 @@ const NAMESPACES = [
   "board",
   "dashboard",
   "events",
+  "videos",
   "errors",
 ] as const;
 

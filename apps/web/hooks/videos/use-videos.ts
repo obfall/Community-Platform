@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { videosApi } from "@/lib/api/videos";
 import type { VideoQuery, InstructorInput, TaskInput, VideoTaskStatus } from "@/lib/api/types";
 
@@ -39,26 +40,6 @@ export function useUpdateVideoProgress() {
   });
 }
 
-export function useVideoCategories() {
-  return useQuery({
-    queryKey: ["videos", "categories"],
-    queryFn: () => videosApi.getCategories(),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useCreateVideoCategory() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (name: string) => videosApi.createCategory(name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["videos", "categories"] });
-      toast.success("カテゴリを作成しました");
-    },
-    onError: () => toast.error("カテゴリの作成に失敗しました"),
-  });
-}
-
 export function useVideoSeries() {
   return useQuery({
     queryKey: ["videos", "series"],
@@ -78,18 +59,20 @@ export function useNextWatchOrder(seriesId: string | undefined) {
 }
 
 export function useCreateVideoSeries() {
+  const t = useTranslations("videos.hooks");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; description?: string }) => videosApi.createSeries(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos", "series"] });
-      toast.success("シリーズを作成しました");
+      toast.success(t("createSeriesSuccess"));
     },
-    onError: () => toast.error("シリーズの作成に失敗しました"),
+    onError: () => toast.error(t("createSeriesError")),
   });
 }
 
 export function useUpdateVideo() {
+  const t = useTranslations("videos.hooks");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -101,7 +84,6 @@ export function useUpdateVideo() {
         title?: string;
         description?: string | null;
         publishStatus?: string;
-        categoryId?: string | null;
         seriesId?: string | null;
         watchOrder?: number | null;
         availableUntil?: string | null;
@@ -117,21 +99,22 @@ export function useUpdateVideo() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
       queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
-      toast.success("動画を更新しました");
+      toast.success(t("updateSuccess"));
     },
-    onError: () => toast.error("動画の更新に失敗しました"),
+    onError: () => toast.error(t("updateError")),
   });
 }
 
 export function useDeleteVideo() {
+  const t = useTranslations("videos.hooks");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => videosApi.deleteVideo(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
-      toast.success("動画を削除しました");
+      toast.success(t("deleteSuccess"));
     },
-    onError: () => toast.error("動画の削除に失敗しました"),
+    onError: () => toast.error(t("deleteError")),
   });
 }
 
@@ -166,6 +149,7 @@ export function useVideoTaskProgress(videoId: string | undefined) {
 
 // タスクリマインド
 export function useSendTaskReminder() {
+  const t = useTranslations("videos.hooks");
   return useMutation({
     mutationFn: ({
       videoId,
@@ -177,21 +161,22 @@ export function useSendTaskReminder() {
       userIds: string[];
     }) => videosApi.sendTaskReminder(videoId, taskId, userIds),
     onSuccess: (data) => {
-      toast.success(`${data.sentCount}件のリマインドを送信しました`);
+      toast.success(t("reminderSuccess", { count: data.sentCount }));
     },
-    onError: () => toast.error("リマインドの送信に失敗しました"),
+    onError: () => toast.error(t("reminderError")),
   });
 }
 
 // 動画ファイル差し替え
 export function useReplaceVideoFile() {
+  const t = useTranslations("videos.hooks");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, file }: { id: string; file: File }) => videosApi.replaceFile(id, file),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
-      toast.success("動画ファイルの差し替えを開始しました");
+      toast.success(t("replaceFileSuccess"));
     },
-    onError: () => toast.error("動画ファイルの差し替えに失敗しました"),
+    onError: () => toast.error(t("replaceFileError")),
   });
 }

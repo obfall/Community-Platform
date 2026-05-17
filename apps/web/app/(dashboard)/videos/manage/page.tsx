@@ -3,10 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   useVideos,
-  useVideoCategories,
-  useCreateVideoCategory,
   useVideoSeries,
   useCreateVideoSeries,
   useDeleteVideo,
@@ -52,14 +51,7 @@ import {
 import { Upload, Plus, Pencil, Trash2, Video, ArrowLeft, MoreHorizontal } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 import { SelectField } from "@/components/select-field";
-import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-
-const STREAM_STATUS_LABELS: Record<string, string> = {
-  uploading: "アップロード中",
-  processing: "変換中",
-  ready: "配信可能",
-  error: "エラー",
-};
+import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
 const STREAM_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   uploading: "secondary",
@@ -85,18 +77,17 @@ function formatDate(dateStr: string) {
 
 export default function VideoManagePage() {
   const router = useRouter();
+  const t = useTranslations("videos.manage");
+  const tPublish = useTranslations("enums.publishStatus");
+  const tStream = useTranslations("enums.videoStreamStatus");
   const [query, setQuery] = useState<VideoQuery>({ page: 1, limit: 20 });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useVideos(query);
-  const { data: categories } = useVideoCategories();
   const { data: seriesList } = useVideoSeries();
-  const createCategory = useCreateVideoCategory();
   const createSeries = useCreateVideoSeries();
   const deleteVideo = useDeleteVideo();
 
-  const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
   const [newSeriesName, setNewSeriesName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<VideoListItem | null>(null);
 
@@ -111,7 +102,7 @@ export default function VideoManagePage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">動画管理</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </div>
       <div className="flex items-center justify-between">
         <div />
@@ -124,15 +115,11 @@ export default function VideoManagePage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => router.push("/videos/new")}>
               <Upload className="mr-2 h-3.5 w-3.5" />
-              アップロード
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCatDialogOpen(true)}>
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              カテゴリ追加
+              {t("uploadAction")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSeriesDialogOpen(true)}>
               <Plus className="mr-2 h-3.5 w-3.5" />
-              シリーズ追加
+              {t("addSeriesAction")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -144,7 +131,7 @@ export default function VideoManagePage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="動画を検索..."
+          placeholder={t("searchPlaceholder")}
           className="max-w-xs"
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -155,27 +142,9 @@ export default function VideoManagePage() {
             }
             options={PUBLISH_STATUS_OPTIONS}
             includeAll
-            placeholder="ステータス"
+            placeholder={t("statusPlaceholder")}
             className="w-36"
           />
-          <Select
-            value={query.categoryId ?? "all"}
-            onValueChange={(v) =>
-              setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
-            }
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="カテゴリ" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべてのカテゴリ</SelectItem>
-              {categories?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select
             value={query.seriesId ?? "all"}
             onValueChange={(v) =>
@@ -183,10 +152,10 @@ export default function VideoManagePage() {
             }
           >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="シリーズ" />
+              <SelectValue placeholder={t("seriesPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">すべてのシリーズ</SelectItem>
+              <SelectItem value="all">{t("allSeries")}</SelectItem>
               {seriesList?.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.name}
@@ -199,25 +168,24 @@ export default function VideoManagePage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : videos.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Video className="mx-auto mb-4 h-12 w-12" />
-          <p>動画がありません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>タイトル</TableHead>
-              <TableHead>カテゴリ</TableHead>
-              <TableHead>シリーズ</TableHead>
-              <TableHead>公開状態</TableHead>
-              <TableHead>配信状態</TableHead>
-              <TableHead>再生時間</TableHead>
-              <TableHead>再生数</TableHead>
-              <TableHead>作成日</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("table.title")}</TableHead>
+              <TableHead>{t("table.series")}</TableHead>
+              <TableHead>{t("table.publishStatus")}</TableHead>
+              <TableHead>{t("table.streamStatus")}</TableHead>
+              <TableHead>{t("table.duration")}</TableHead>
+              <TableHead>{t("table.viewCount")}</TableHead>
+              <TableHead>{t("table.createdAt")}</TableHead>
+              <TableHead className="text-right">{t("table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -228,11 +196,10 @@ export default function VideoManagePage() {
                     {v.title}
                   </Link>
                 </TableCell>
-                <TableCell>{v.category?.name ?? "-"}</TableCell>
                 <TableCell>{v.series?.name ?? "-"}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-[10px]">
-                    {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
+                    {tPublish.has(v.publishStatus) ? tPublish(v.publishStatus) : v.publishStatus}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -240,7 +207,7 @@ export default function VideoManagePage() {
                     variant={STREAM_STATUS_VARIANT[v.streamStatus] ?? "secondary"}
                     className="text-[10px]"
                   >
-                    {STREAM_STATUS_LABELS[v.streamStatus] ?? v.streamStatus}
+                    {tStream.has(v.streamStatus) ? tStream(v.streamStatus) : v.streamStatus}
                   </Badge>
                 </TableCell>
                 <TableCell>{formatDuration(v.durationSeconds)}</TableCell>
@@ -253,7 +220,7 @@ export default function VideoManagePage() {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => router.push(`/videos/${v.id}/edit`)}
-                      aria-label="編集"
+                      aria-label={t("editAction")}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -262,7 +229,7 @@ export default function VideoManagePage() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => setDeleteTarget(v)}
-                      aria-label="削除"
+                      aria-label={t("deleteAction")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -277,14 +244,14 @@ export default function VideoManagePage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => router.push(`/videos/${v.id}/edit`)}>
                           <Pencil className="mr-2 h-3.5 w-3.5" />
-                          編集
+                          {t("editAction")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => setDeleteTarget(v)}
                         >
                           <Trash2 className="mr-2 h-3.5 w-3.5" />
-                          削除
+                          {t("deleteAction")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -301,52 +268,19 @@ export default function VideoManagePage() {
         <PaginationBar meta={meta} onPageChange={(page) => setQuery((p) => ({ ...p, page }))} />
       )}
 
-      {/* Category Dialog */}
-      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>カテゴリ追加</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>カテゴリ名</Label>
-              <Input
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                placeholder="カテゴリ名"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                createCategory.mutate(newCatName, {
-                  onSuccess: () => {
-                    setCatDialogOpen(false);
-                    setNewCatName("");
-                  },
-                });
-              }}
-              disabled={!newCatName || createCategory.isPending}
-              className="w-full"
-            >
-              作成
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Series Dialog */}
       <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>シリーズ追加</DialogTitle>
+            <DialogTitle>{t("seriesDialog.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>シリーズ名</Label>
+              <Label>{t("seriesDialog.nameLabel")}</Label>
               <Input
                 value={newSeriesName}
                 onChange={(e) => setNewSeriesName(e.target.value)}
-                placeholder="シリーズ名"
+                placeholder={t("seriesDialog.namePlaceholder")}
               />
             </div>
             <Button
@@ -364,7 +298,7 @@ export default function VideoManagePage() {
               disabled={!newSeriesName || createSeries.isPending}
               className="w-full"
             >
-              作成
+              {t("seriesDialog.createAction")}
             </Button>
           </div>
         </DialogContent>
@@ -374,13 +308,13 @@ export default function VideoManagePage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>動画を削除しますか？</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              「{deleteTarget?.title}」を削除します。この操作は取り消せません。
+              {t("deleteDialog.description", { title: deleteTarget?.title ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogCancel>{t("deleteDialog.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -391,7 +325,7 @@ export default function VideoManagePage() {
                 }
               }}
             >
-              削除
+              {t("deleteDialog.action")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

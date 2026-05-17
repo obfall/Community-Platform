@@ -13,7 +13,6 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
@@ -21,9 +20,20 @@ import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
+import { BusinessException } from "@/common/exceptions";
+import { ErrorCode, MAX_VIDEO_UPLOAD_BYTES } from "@community-platform/shared";
 import { VideosService } from "./videos.service";
 import { VideoProcessorService } from "./video-processor.service";
 import { CreateVideoDto, UpdateVideoDto, VideoQueryDto } from "./dto";
+
+const videoFileRequired = () =>
+  new BusinessException(
+    ErrorCode.VALIDATION_FAILED,
+    HttpStatus.BAD_REQUEST,
+    "動画ファイルが選択されていません",
+    undefined,
+    "errors.validation.video_file_required",
+  );
 
 @Controller("videos")
 @ApiTags("Videos")
@@ -40,20 +50,6 @@ export class VideosController {
   @ApiOperation({ summary: "動画一覧" })
   findAll(@Query() query: VideoQueryDto, @CurrentUser("id") userId: string) {
     return this.service.findAll(query, userId);
-  }
-
-  @Get("categories")
-  @ApiOperation({ summary: "動画カテゴリ一覧" })
-  getCategories() {
-    return this.service.getCategories();
-  }
-
-  @Post("categories")
-  @ApiOperation({ summary: "動画カテゴリ作成" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
-  createCategory(@Body("name") name: string) {
-    return this.service.createCategory(name);
   }
 
   @Get("series")
@@ -81,7 +77,7 @@ export class VideosController {
   @ApiConsumes("multipart/form-data")
   @UseGuards(RolesGuard)
   @Roles("admin", "owner")
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 500 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_VIDEO_UPLOAD_BYTES } }))
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser("id") userId: string,
@@ -89,7 +85,6 @@ export class VideosController {
     body: {
       title: string;
       description?: string;
-      categoryId?: string;
       seriesId?: string;
       watchOrder?: number;
       publishStatus?: string;
@@ -102,7 +97,7 @@ export class VideosController {
       tasks?: string;
     },
   ) {
-    if (!file) throw new BadRequestException("動画ファイルが選択されていません");
+    if (!file) throw videoFileRequired();
 
     const video = await this.service.createForUpload(userId, body);
 
@@ -197,12 +192,12 @@ export class VideosController {
   @ApiConsumes("multipart/form-data")
   @UseGuards(RolesGuard)
   @Roles("admin", "owner")
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 500 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_VIDEO_UPLOAD_BYTES } }))
   async replaceFile(
     @Param("id", ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException("動画ファイルが選択されていません");
+    if (!file) throw videoFileRequired();
 
     const result = await this.service.resetStreamForReplace(id);
     this.processor.processVideo(result.id, file.buffer, file.originalname).catch(() => {});

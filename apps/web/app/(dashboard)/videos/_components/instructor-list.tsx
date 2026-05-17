@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function InstructorList({ value, onChange }: Props) {
+  const t = useTranslations("videos.instructorList");
   const { user } = useAuth();
 
   const addInstructor = () => {
@@ -40,11 +42,11 @@ export function InstructorList({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <Label>担当講師</Label>
+      <Label>{t("label")}</Label>
       <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" onClick={addSelf}>
           <User className="mr-1 h-4 w-4" />
-          自分を講師として追加
+          {t("addSelfAction")}
         </Button>
       </div>
       {value.map((instructor, idx) => (
@@ -57,7 +59,7 @@ export function InstructorList({ value, onChange }: Props) {
       ))}
       <Button type="button" variant="ghost" size="sm" onClick={addInstructor}>
         <Plus className="mr-1 h-4 w-4" />
-        講師を追加
+        {t("addAction")}
       </Button>
     </div>
   );
@@ -72,6 +74,7 @@ function InstructorRow({
   onChange: (patch: Partial<InstructorInput>) => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations("videos.instructorList");
   const [isExternal, setIsExternal] = useState(!value.userId);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -126,7 +129,7 @@ function InstructorRow({
             id={`ext-${value.userId ?? "new"}`}
           />
           <Label htmlFor={`ext-${value.userId ?? "new"}`} className="text-sm font-normal">
-            外部講師
+            {t("externalLabel")}
           </Label>
         </div>
         <Button type="button" variant="ghost" size="icon-xs" onClick={onRemove}>
@@ -136,9 +139,9 @@ function InstructorRow({
 
       {!isExternal && (
         <div className="relative" ref={wrapperRef}>
-          <Label className="text-xs text-muted-foreground">ユーザー検索</Label>
+          <Label className="text-xs text-muted-foreground">{t("userSearchLabel")}</Label>
           <Input
-            placeholder="名前で検索..."
+            placeholder={t("userSearchPlaceholder")}
             value={value.userId ? value.name : search}
             onChange={(e) => {
               if (value.userId) {
@@ -168,21 +171,21 @@ function InstructorRow({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-xs text-muted-foreground">名前</Label>
+          <Label className="text-xs text-muted-foreground">{t("nameLabel")}</Label>
           <Input
             value={value.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            placeholder="講師名"
+            placeholder={t("namePlaceholder")}
             required={isExternal}
             readOnly={!isExternal && !!value.userId}
           />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">所属</Label>
+          <Label className="text-xs text-muted-foreground">{t("affiliationLabel")}</Label>
           <Input
             value={value.affiliation ?? ""}
             onChange={(e) => onChange({ affiliation: e.target.value })}
-            placeholder="所属・肩書"
+            placeholder={t("affiliationPlaceholder")}
           />
         </div>
       </div>
