@@ -8,7 +8,8 @@
     "board_topic": "トピックが見つかりません",
     "board_post": "投稿が見つかりません",
     "board_comment": "コメントが見つかりません",
-    "board_parent_comment": "返信先コメントが見つかりません"
+    "board_parent_comment": "返信先コメントが見つかりません",
+    "chat_room": "ルームが見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました"
@@ -16,7 +17,26 @@
   "forbidden_resource": {
     "board_topic": "このトピックを操作する権限がありません",
     "board_post": "この投稿を操作する権限がありません",
-    "board_comment": "このコメントを操作する権限がありません"
+    "board_comment": "このコメントを操作する権限がありません",
+    "chat_room_not_member": "このルームのメンバーではありません",
+    "chat_room_update_admin": "管理者のみ更新できます",
+    "chat_room_add_member_admin": "管理者のみメンバーを追加できます",
+    "chat_room_remove_member_admin": "管理者のみ他のメンバーを削除できます"
+  },
+  "validation": {
+    "chat_dm_member_count": "DMは相手1人のみ指定してください",
+    "chat_dm_no_update": "DMルームは更新できません",
+    "chat_dm_no_member_add": "DMルームにメンバーは追加できません",
+    "chat_dm_no_member_remove": "DMルームからメンバーは削除できません",
+    "chat_room_max_members": "メンバー数の上限に達しています",
+    "chat_room_member_exists": "既にメンバーです",
+    "chat_room_target_not_member": "対象ユーザーはメンバーではありません"
+  },
+  "ws": {
+    "chat_unauthenticated": "認証されていません",
+    "chat_not_member": "このルームのメンバーではありません",
+    "chat_rate_limit": "送信頻度の上限に達しました。しばらく時間をおいてから再送信してください",
+    "chat_message_failed": "メッセージ送信に失敗しました"
   },
   "internal": "サーバーエラーが発生しました"
 }

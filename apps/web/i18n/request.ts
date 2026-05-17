@@ -13,6 +13,7 @@ const NAMESPACES = [
   "enums",
   "members",
   "board",
+  "chat",
   "dashboard",
   "events",
   "errors",
