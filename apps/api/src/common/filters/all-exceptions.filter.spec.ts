@@ -219,4 +219,125 @@ describe("AllExceptionsFilter", () => {
       expect.objectContaining({ message: "対象が見つかりません" }),
     );
   });
+
+  describe("videos モジュールの messageKey 経路", () => {
+    // videos service / controller が投げる BusinessException が
+    // errors.json の各キーを正しく I18nService に渡すことを保証する
+    // （keys そのものは i18n/messages/ja/errors.json に定義されている前提）
+
+    it("動画 NOT_FOUND は errors.not_found.video を i18n.translate に渡す", () => {
+      i18nMock.translate.mockReturnValueOnce("動画が見つかりません");
+      const exception = new BusinessException(
+        ErrorCode.NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+        "動画が見つかりません",
+        undefined,
+        "errors.not_found.video",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith("errors.not_found.video", expect.any(Object));
+      expect(response.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: HttpStatus.NOT_FOUND,
+          code: ErrorCode.NOT_FOUND,
+          message: "動画が見つかりません",
+        }),
+      );
+    });
+
+    it("タスク NOT_FOUND は errors.not_found.video_task", () => {
+      i18nMock.translate.mockReturnValueOnce("タスクが見つかりません");
+      const exception = new BusinessException(
+        ErrorCode.NOT_FOUND,
+        HttpStatus.NOT_FOUND,
+        "タスクが見つかりません",
+        undefined,
+        "errors.not_found.video_task",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith(
+        "errors.not_found.video_task",
+        expect.any(Object),
+      );
+    });
+
+    it("閲覧期限切れは errors.forbidden_resource.video_expired", () => {
+      i18nMock.translate.mockReturnValueOnce("この動画の閲覧期限が過ぎています");
+      const exception = new BusinessException(
+        ErrorCode.FORBIDDEN,
+        HttpStatus.FORBIDDEN,
+        "この動画の閲覧期限が過ぎています",
+        undefined,
+        "errors.forbidden_resource.video_expired",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith(
+        "errors.forbidden_resource.video_expired",
+        expect.any(Object),
+      );
+      expect(response.status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+    });
+
+    it("ロール制限は errors.forbidden_resource.video_access_denied", () => {
+      i18nMock.translate.mockReturnValueOnce("この動画へのアクセス権限がありません");
+      const exception = new BusinessException(
+        ErrorCode.FORBIDDEN,
+        HttpStatus.FORBIDDEN,
+        "この動画へのアクセス権限がありません",
+        undefined,
+        "errors.forbidden_resource.video_access_denied",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith(
+        "errors.forbidden_resource.video_access_denied",
+        expect.any(Object),
+      );
+    });
+
+    it("パスワード不一致は errors.unauthorized_resource.video_password", () => {
+      i18nMock.translate.mockReturnValueOnce("パスワードが正しくありません");
+      const exception = new BusinessException(
+        ErrorCode.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
+        "パスワードが正しくありません",
+        undefined,
+        "errors.unauthorized_resource.video_password",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith(
+        "errors.unauthorized_resource.video_password",
+        expect.any(Object),
+      );
+      expect(response.status).toHaveBeenCalledWith(HttpStatus.UNAUTHORIZED);
+    });
+
+    it("ファイル未選択は errors.validation.video_file_required", () => {
+      i18nMock.translate.mockReturnValueOnce("動画ファイルが選択されていません");
+      const exception = new BusinessException(
+        ErrorCode.VALIDATION_FAILED,
+        HttpStatus.BAD_REQUEST,
+        "動画ファイルが選択されていません",
+        undefined,
+        "errors.validation.video_file_required",
+      );
+
+      filter.catch(exception, buildHost());
+
+      expect(i18nMock.translate).toHaveBeenCalledWith(
+        "errors.validation.video_file_required",
+        expect.any(Object),
+      );
+      expect(response.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    });
+  });
 });
