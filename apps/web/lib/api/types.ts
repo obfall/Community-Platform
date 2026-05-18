@@ -1700,12 +1700,14 @@ export interface Order {
 }
 
 // --- Albums ---
+export type AlbumPublishStatus = "draft" | "published" | "unpublished";
+
 export interface AlbumListItem {
   id: string;
   title: string;
   description: string | null;
   coverPhotoUrl: string | null;
-  publishStatus: string;
+  publishStatus: AlbumPublishStatus;
   photoCount: number;
   category: { id: string; name: string } | null;
   createdBy: { id: string; name: string };
@@ -1713,6 +1715,51 @@ export interface AlbumListItem {
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
   snippetHighlighted?: string;
+}
+
+export interface AlbumPhoto {
+  id: string;
+  title: string | null;
+  caption: string | null;
+  file: { id: string; publicUrl: string | null; originalName: string };
+}
+
+export interface AlbumDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  publishStatus: AlbumPublishStatus;
+  photoCount: number;
+  coverPhotoUrl: string | null;
+  category: { id: string; name: string } | null;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+  photos: AlbumPhoto[];
+}
+
+export interface AlbumCategory {
+  id: string;
+  name: string;
+}
+
+export interface CreateAlbumInput {
+  title: string;
+  description?: string;
+  categoryId?: string;
+  publishStatus?: AlbumPublishStatus;
+}
+
+export interface UpdateAlbumInput {
+  title?: string;
+  description?: string | null;
+  categoryId?: string | null;
+  publishStatus?: AlbumPublishStatus;
+}
+
+export interface AddAlbumPhotosInput {
+  fileId: string;
+  title?: string;
+  caption?: string;
 }
 
 // --- Venues ---
@@ -1874,6 +1921,8 @@ export interface OrientationCompletion {
 }
 
 // --- Contents ---
+export type ContentPublishStatus = "draft" | "published" | "unpublished";
+
 export interface ContentListItem {
   id: string;
   name: string;
@@ -1881,13 +1930,42 @@ export interface ContentListItem {
   description: string | null;
   price: number | null;
   coverImageUrl: string | null;
-  inviteToken: string;
-  publishStatus: string;
+  publishStatus: ContentPublishStatus;
   createdBy: { id: string; name: string };
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
   snippetHighlighted?: string;
+}
+
+export interface ContentDetail {
+  id: string;
+  name: string;
+  contentType: string;
+  description: string | null;
+  price: number | null;
+  coverImageUrl: string | null;
+  publishStatus: ContentPublishStatus;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface CreateContentInput {
+  name: string;
+  contentType: string;
+  description?: string;
+  price?: number;
+  coverImageUrl?: string;
+  publishStatus?: ContentPublishStatus;
+}
+
+export interface UpdateContentInput {
+  name?: string;
+  contentType?: string;
+  description?: string | null;
+  price?: number | null;
+  coverImageUrl?: string | null;
+  publishStatus?: ContentPublishStatus;
 }
 
 // --- Event Results ---

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { chatApi } from "@/lib/api/chat";
 import type { CreateChatRoomInput, UpdateChatRoomInput } from "@/lib/api/types";
@@ -37,52 +38,56 @@ export function useChatMessages(
 
 export function useCreateChatRoom() {
   const queryClient = useQueryClient();
+  const t = useTranslations("chat.toast");
   return useMutation({
     mutationFn: (data: CreateChatRoomInput) => chatApi.createRoom(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
-      toast.success("チャットルームを作成しました");
+      toast.success(t("roomCreated"));
     },
-    onError: () => toast.error("ルームの作成に失敗しました"),
+    onError: () => toast.error(t("roomCreateFailed"), { id: "chat-room-create-error" }),
   });
 }
 
 export function useUpdateChatRoom() {
   const queryClient = useQueryClient();
+  const t = useTranslations("chat.toast");
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateChatRoomInput }) =>
       chatApi.updateRoom(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
-      toast.success("ルームを更新しました");
+      toast.success(t("roomUpdated"));
     },
-    onError: () => toast.error("ルームの更新に失敗しました"),
+    onError: () => toast.error(t("roomUpdateFailed"), { id: "chat-room-update-error" }),
   });
 }
 
 export function useAddChatMember() {
   const queryClient = useQueryClient();
+  const t = useTranslations("chat.toast");
   return useMutation({
     mutationFn: ({ roomId, userId }: { roomId: string; userId: string }) =>
       chatApi.addMember(roomId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
-      toast.success("メンバーを追加しました");
+      toast.success(t("memberAdded"));
     },
-    onError: () => toast.error("メンバーの追加に失敗しました"),
+    onError: () => toast.error(t("memberAddFailed"), { id: "chat-member-add-error" }),
   });
 }
 
 export function useRemoveChatMember() {
   const queryClient = useQueryClient();
+  const t = useTranslations("chat.toast");
   return useMutation({
     mutationFn: ({ roomId, userId }: { roomId: string; userId: string }) =>
       chatApi.removeMember(roomId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
-      toast.success("メンバーを削除しました");
+      toast.success(t("memberRemoved"));
     },
-    onError: () => toast.error("メンバーの削除に失敗しました"),
+    onError: () => toast.error(t("memberRemoveFailed"), { id: "chat-member-remove-error" }),
   });
 }
 

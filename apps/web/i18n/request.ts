@@ -13,10 +13,13 @@ const NAMESPACES = [
   "enums",
   "members",
   "board",
+  "chat",
   "dashboard",
   "events",
   "videos",
   "errors",
+  "albums",
+  "contents",
 ] as const;
 
 export default getRequestConfig(async () => {

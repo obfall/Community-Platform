@@ -10,7 +10,11 @@
     "board_comment": "コメントが見つかりません",
     "board_parent_comment": "返信先コメントが見つかりません",
     "video": "動画が見つかりません",
-    "video_task": "タスクが見つかりません"
+    "video_task": "タスクが見つかりません",
+    "chat_room": "ルームが見つかりません",
+    "album": "アルバムが見つかりません",
+    "album_photo": "写真が見つかりません",
+    "content": "コンテンツが見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました"
@@ -18,14 +22,35 @@
   "forbidden_resource": {
     "board_topic": "このトピックを操作する権限がありません",
     "board_post": "この投稿を操作する権限がありません",
-    "board_comment": "このコメントを操作する権限がありません"
+    "board_comment": "このコメントを操作する権限がありません",
+    "chat_room_not_member": "このルームのメンバーではありません",
+    "chat_room_update_admin": "管理者のみ更新できます",
+    "chat_room_add_member_admin": "管理者のみメンバーを追加できます",
+    "chat_room_remove_member_admin": "管理者のみ他のメンバーを削除できます",
+    "album_update": "自分のアルバムのみ更新できます",
+    "album_delete": "自分のアルバムのみ削除できます",
+    "content_update": "自分のコンテンツのみ更新できます",
+    "content_delete": "自分のコンテンツのみ削除できます"
   },
   "unauthorized_resource": {
     "video_password": "パスワードが正しくありません"
   },
   "validation": {
+    "chat_dm_member_count": "DMは相手1人のみ指定してください",
+    "chat_dm_no_update": "DMルームは更新できません",
+    "chat_dm_no_member_add": "DMルームにメンバーは追加できません",
+    "chat_dm_no_member_remove": "DMルームからメンバーは削除できません",
+    "chat_room_max_members": "メンバー数の上限に達しています",
+    "chat_room_member_exists": "既にメンバーです",
+    "chat_room_target_not_member": "対象ユーザーはメンバーではありません",
     "video_file_required": "動画ファイルが選択されていません",
     "video_password_format": "パスワードは4桁の半角数字で指定してください"
+  },
+  "ws": {
+    "chat_unauthenticated": "認証されていません",
+    "chat_not_member": "このルームのメンバーではありません",
+    "chat_rate_limit": "送信頻度の上限に達しました。しばらく時間をおいてから再送信してください",
+    "chat_message_failed": "メッセージ送信に失敗しました"
   },
   "internal": "サーバーエラーが発生しました"
 }

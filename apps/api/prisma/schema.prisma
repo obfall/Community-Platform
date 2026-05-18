@@ -2741,7 +2741,6 @@ model Content {
   description     String?       @db.Text
   price           Int?
   coverImageUrl   String?       @map("cover_image_url") @db.VarChar(500)
-  inviteToken     String        @unique @map("invite_token") @db.VarChar(100)
   publishStatus   PublishStatus @default(draft) @map("publish_status")
   createdByUserId String        @map("created_by_user_id") @db.Uuid
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()

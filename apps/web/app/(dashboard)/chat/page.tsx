@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useRef, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { io, type Socket } from "socket.io-client";
 import { toast } from "sonner";
 import * as Sentry from "@sentry/nextjs";
@@ -38,6 +39,8 @@ import type { ChatRoom, ChatMessage, UserListItem } from "@/lib/api/types";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function ChatPage() {
+  const t = useTranslations("chat");
+  const tCommon = useTranslations("common");
   const { user } = useAuth();
   const { data: rooms, isLoading } = useChatRooms();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -90,9 +93,9 @@ export default function ChatPage() {
     });
 
     socket.on("connect_error", (err) => {
-      toast.error("リアルタイム通信に接続できません", {
+      toast.error(t("error.wsConnect"), {
         id: "ws-error",
-        description: "再接続を試みています…",
+        description: t("error.wsReconnecting"),
       });
       Sentry.captureException(err);
     });
@@ -123,7 +126,7 @@ export default function ChatPage() {
     });
 
     socket.on("chat:error", (data: { message: string }) => {
-      toast.error(data.message || "チャットでエラーが発生しました", { id: "chat-error" });
+      toast.error(data.message || t("error.wsGeneric"), { id: "chat-error" });
     });
 
     socketRef.current = socket;
@@ -243,9 +246,9 @@ export default function ChatPage() {
     if (room.name) return room.name;
     if (room.type === "dm") {
       const other = room.members.find((m) => m.userId !== user?.id);
-      return other?.name ?? "DM";
+      return other?.name ?? t("room.defaultDm");
     }
-    return "グループチャット";
+    return t("room.defaultGroup");
   };
 
   return (
@@ -253,7 +256,7 @@ export default function ChatPage() {
       {/* 左パネル: ルーム一覧 */}
       <div className="flex w-80 flex-col border-r">
         <div className="flex items-center justify-between border-b p-4">
-          <h2 className="text-lg font-semibold">チャット</h2>
+          <h2 className="text-lg font-semibold">{t("heading.title")}</h2>
           <Dialog open={newRoomOpen} onOpenChange={setNewRoomOpen}>
             <DialogTrigger asChild>
               <Button size="icon" variant="ghost">
@@ -262,11 +265,11 @@ export default function ChatPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>新規チャット</DialogTitle>
+                <DialogTitle>{t("dialog.newRoomTitle")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>種別</Label>
+                  <Label>{t("dialog.typeLabel")}</Label>
                   <Select
                     value={newRoomType}
                     onValueChange={(v) => setNewRoomType(v as "dm" | "group")}
@@ -275,23 +278,23 @@ export default function ChatPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dm">DM（1対1）</SelectItem>
-                      <SelectItem value="group">グループ</SelectItem>
+                      <SelectItem value="dm">{t("dialog.typeDm")}</SelectItem>
+                      <SelectItem value="group">{t("dialog.typeGroup")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {newRoomType === "group" && (
                   <div>
-                    <Label>グループ名</Label>
+                    <Label>{t("dialog.groupNameLabel")}</Label>
                     <Input
                       value={newRoomName}
                       onChange={(e) => setNewRoomName(e.target.value)}
-                      placeholder="グループ名を入力"
+                      placeholder={t("dialog.groupNamePlaceholder")}
                     />
                   </div>
                 )}
                 <div>
-                  <Label>メンバー</Label>
+                  <Label>{t("dialog.membersLabel")}</Label>
                   {/* 選択済みメンバー */}
                   {selectedMembers.length > 0 && (
                     <div className="mb-2 flex flex-wrap gap-1">
@@ -316,7 +319,7 @@ export default function ChatPage() {
                       onChange={(e) => setMemberSearch(e.target.value)}
                       onFocus={() => searchResults.length > 0 && setShowSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                      placeholder="名前を入力して検索..."
+                      placeholder={t("dialog.memberSearchPlaceholder")}
                     />
                     {/* 候補リスト */}
                     {showSuggestions && searchResults.length > 0 && (
@@ -341,7 +344,7 @@ export default function ChatPage() {
                     )}
                     {showSuggestions && memberSearch.trim() && searchResults.length === 0 && (
                       <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-3 text-center text-sm text-muted-foreground shadow-md">
-                        該当するユーザーが見つかりません
+                        {t("dialog.memberSearchNoResults")}
                       </div>
                     )}
                   </div>
@@ -350,7 +353,7 @@ export default function ChatPage() {
                   onClick={handleCreateRoom}
                   disabled={createRoom.isPending || selectedMembers.length === 0}
                 >
-                  作成
+                  {t("dialog.submit")}
                 </Button>
               </div>
             </DialogContent>
@@ -359,10 +362,12 @@ export default function ChatPage() {
 
         <ScrollArea className="flex-1">
           {isLoading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">読み込み中...</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {tCommon("loading")}
+            </div>
           ) : !rooms?.length ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              チャットルームがありません
+              {t("heading.empty")}
             </div>
           ) : (
             <div className="flex flex-col">
@@ -396,7 +401,8 @@ export default function ChatPage() {
                     </div>
                     {room.lastMessage && (
                       <p className="truncate text-xs text-muted-foreground">
-                        {room.lastMessage.senderName}: {room.lastMessage.body ?? "📎 ファイル"}
+                        {room.lastMessage.senderName}:{" "}
+                        {room.lastMessage.body ?? t("room.fileLabel")}
                       </p>
                     )}
                   </div>
@@ -425,7 +431,7 @@ export default function ChatPage() {
               <div>
                 <h3 className="text-sm font-semibold">{getRoomDisplayName(selectedRoom)}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {selectedRoom.memberCount}人のメンバー
+                  {t("room.memberCount", { count: selectedRoom.memberCount })}
                 </p>
               </div>
             </div>
@@ -448,7 +454,9 @@ export default function ChatPage() {
             {/* タイピングインジケーター + メッセージ入力 */}
             <div className="border-t">
               {typingUser && (
-                <p className="px-4 pt-2 text-xs text-muted-foreground">{typingUser} が入力中...</p>
+                <p className="px-4 pt-2 text-xs text-muted-foreground">
+                  {t("message.typing", { userName: typingUser })}
+                </p>
               )}
               <form
                 onSubmit={(e) => {
@@ -463,7 +471,7 @@ export default function ChatPage() {
                     setMessageText(e.target.value);
                     handleTyping();
                   }}
-                  placeholder="メッセージを入力..."
+                  placeholder={t("message.inputPlaceholder")}
                   className="flex-1"
                 />
                 <Button type="submit" size="icon" disabled={!messageText.trim()}>
@@ -476,7 +484,7 @@ export default function ChatPage() {
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center text-muted-foreground">
               <MessageCircle className="mx-auto mb-4 h-12 w-12" />
-              <p>チャットルームを選択してください</p>
+              <p>{t("heading.selectPrompt")}</p>
             </div>
           </div>
         )}
@@ -497,6 +505,7 @@ const MessageItem = memo(function MessageItem({
   isOwn: boolean;
   isDmRoom: boolean;
 }) {
+  const t = useTranslations("chat");
   return (
     <div className={`flex gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
       {!isOwn && (
@@ -511,13 +520,17 @@ const MessageItem = memo(function MessageItem({
             isOwn ? "bg-primary text-primary-foreground" : "bg-muted"
           }`}
         >
-          {message.body ?? "📎 ファイル"}
+          {message.body ?? t("room.fileLabel")}
         </div>
         <div
           className={`mt-1 flex items-center gap-1.5 text-xs text-muted-foreground ${isOwn ? "justify-end" : ""}`}
         >
           {isOwn && message.readCount > 0 && (
-            <span className="text-primary">{isDmRoom ? "既読" : `既読 ${message.readCount}`}</span>
+            <span className="text-primary">
+              {isDmRoom
+                ? t("message.readDm")
+                : t("message.readGroup", { count: message.readCount })}
+            </span>
           )}
           <span>
             {new Date(message.createdAt).toLocaleTimeString("ja-JP", {

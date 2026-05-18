@@ -1,12 +1,10 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from "@nestjs/common";
+import { HttpStatus, Injectable, Logger } from "@nestjs/common";
+import { I18nService } from "nestjs-i18n";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import { ChatRoomType } from "@prisma/client";
 import type { CreateRoomDto } from "./dto/create-room.dto";
 import type { UpdateRoomDto } from "./dto/update-room.dto";
@@ -26,6 +24,36 @@ function mapMemberUser(user: {
   return { id: user.id, name: user.name, avatarUrl: user.profile?.avatarUrl ?? null };
 }
 
+function notFoundRoom() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.chat_room,
+    undefined,
+    "errors.not_found.chat_room",
+  );
+}
+
+function forbidden(resourceKey: keyof typeof errorMessages.forbidden_resource) {
+  return new BusinessException(
+    ErrorCode.FORBIDDEN,
+    HttpStatus.FORBIDDEN,
+    errorMessages.forbidden_resource[resourceKey],
+    undefined,
+    `errors.forbidden_resource.${resourceKey}`,
+  );
+}
+
+function badRequest(validationKey: keyof typeof errorMessages.validation) {
+  return new BusinessException(
+    ErrorCode.VALIDATION_FAILED,
+    HttpStatus.BAD_REQUEST,
+    errorMessages.validation[validationKey],
+    undefined,
+    `errors.validation.${validationKey}`,
+  );
+}
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -33,7 +61,14 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly i18n: I18nService,
   ) {}
+
+  /** 通知 title は保存時点で文字列確定する必要があるため ja 固定で翻訳する（MVP は ja 単独運用） */
+  private translateNotificationTitle(key: string): string {
+    const result = this.i18n.translate(key, { lang: "ja" });
+    return typeof result === "string" ? result : key;
+  }
 
   /** ルーム一覧（自分が所属するルームのみ） */
   async findRooms(userId: string) {
@@ -125,7 +160,7 @@ export class ChatService {
   async createRoom(userId: string, dto: CreateRoomDto) {
     if (dto.type === ChatRoomType.dm) {
       if (dto.memberIds.length !== 1 || !dto.memberIds[0]) {
-        throw new BadRequestException("DMは相手1人のみ指定してください");
+        throw badRequest("chat_dm_member_count");
       }
       // 既存DMがあればそれを返す
       const targetUserId: string = dto.memberIds[0];
@@ -162,10 +197,10 @@ export class ChatService {
       },
     });
 
-    if (!room) throw new NotFoundException("ルームが見つかりません");
+    if (!room) throw notFoundRoom();
 
     const isMember = room.members.some((m) => m.userId === userId);
-    if (!isMember) throw new ForbiddenException("このルームのメンバーではありません");
+    if (!isMember) throw forbidden("chat_room_not_member");
 
     const membership = room.members.find((m) => m.userId === userId);
     const lastReadAt = membership?.lastReadAt;
@@ -231,14 +266,14 @@ export class ChatService {
       where: { id: roomId },
       include: { members: true },
     });
-    if (!room) throw new NotFoundException("ルームが見つかりません");
+    if (!room) throw notFoundRoom();
     if (room.type !== ChatRoomType.group) {
-      throw new BadRequestException("DMルームは更新できません");
+      throw badRequest("chat_dm_no_update");
     }
 
     const member = room.members.find((m) => m.userId === userId);
-    if (!member) throw new ForbiddenException("このルームのメンバーではありません");
-    if (member.role !== "admin") throw new ForbiddenException("管理者のみ更新できます");
+    if (!member) throw forbidden("chat_room_not_member");
+    if (member.role !== "admin") throw forbidden("chat_room_update_admin");
 
     await this.prisma.chatRoom.update({
       where: { id: roomId },
@@ -356,12 +391,13 @@ export class ChatService {
     if (room) {
       const recipients = room.members.filter((m) => m.userId !== userId && !m.isMuted);
 
+      const title = this.translateNotificationTitle("notifications.chat_new_message");
       Promise.all(
         recipients.map((m) =>
           this.notificationsService.create({
             userId: m.userId,
             type: "chat_message",
-            title: "チャットに新着メッセージがあります",
+            title,
             referenceType: "chat_room",
             referenceId: roomId,
             actorUserId: userId,
@@ -391,21 +427,21 @@ export class ChatService {
       where: { id: roomId },
       include: { members: true },
     });
-    if (!room) throw new NotFoundException("ルームが見つかりません");
+    if (!room) throw notFoundRoom();
     if (room.type !== ChatRoomType.group) {
-      throw new BadRequestException("DMルームにメンバーは追加できません");
+      throw badRequest("chat_dm_no_member_add");
     }
 
     const member = room.members.find((m) => m.userId === userId);
-    if (!member) throw new ForbiddenException("このルームのメンバーではありません");
-    if (member.role !== "admin") throw new ForbiddenException("管理者のみメンバーを追加できます");
+    if (!member) throw forbidden("chat_room_not_member");
+    if (member.role !== "admin") throw forbidden("chat_room_add_member_admin");
 
     if (room.maxMembers && room.members.length >= room.maxMembers) {
-      throw new BadRequestException("メンバー数の上限に達しています");
+      throw badRequest("chat_room_max_members");
     }
 
     const already = room.members.find((m) => m.userId === targetUserId);
-    if (already) throw new BadRequestException("既にメンバーです");
+    if (already) throw badRequest("chat_room_member_exists");
 
     await this.prisma.chatRoomMember.create({
       data: { chatRoomId: roomId, userId: targetUserId, role: "member" },
@@ -420,21 +456,21 @@ export class ChatService {
       where: { id: roomId },
       include: { members: true },
     });
-    if (!room) throw new NotFoundException("ルームが見つかりません");
+    if (!room) throw notFoundRoom();
     if (room.type !== ChatRoomType.group) {
-      throw new BadRequestException("DMルームからメンバーは削除できません");
+      throw badRequest("chat_dm_no_member_remove");
     }
 
     const member = room.members.find((m) => m.userId === userId);
-    if (!member) throw new ForbiddenException("このルームのメンバーではありません");
+    if (!member) throw forbidden("chat_room_not_member");
 
     // 自分自身の退出、または管理者による削除
     if (userId !== targetUserId && member.role !== "admin") {
-      throw new ForbiddenException("管理者のみ他のメンバーを削除できます");
+      throw forbidden("chat_room_remove_member_admin");
     }
 
     const target = room.members.find((m) => m.userId === targetUserId);
-    if (!target) throw new BadRequestException("対象ユーザーはメンバーではありません");
+    if (!target) throw badRequest("chat_room_target_not_member");
 
     await this.prisma.chatRoomMember.delete({ where: { id: target.id } });
   }
@@ -444,7 +480,7 @@ export class ChatService {
     const membership = await this.prisma.chatRoomMember.findFirst({
       where: { chatRoomId: roomId, userId },
     });
-    if (!membership) throw new ForbiddenException("このルームのメンバーではありません");
+    if (!membership) throw forbidden("chat_room_not_member");
 
     const now = new Date();
     await Promise.all([
@@ -470,7 +506,7 @@ export class ChatService {
     const membership = await this.prisma.chatRoomMember.findFirst({
       where: { chatRoomId: roomId, userId },
     });
-    if (!membership) throw new ForbiddenException("このルームのメンバーではありません");
+    if (!membership) throw forbidden("chat_room_not_member");
 
     const updated = await this.prisma.chatRoomMember.update({
       where: { id: membership.id },
@@ -486,7 +522,7 @@ export class ChatService {
     const membership = await this.prisma.chatRoomMember.findFirst({
       where: { chatRoomId: roomId, userId },
     });
-    if (!membership) throw new ForbiddenException("このルームのメンバーではありません");
+    if (!membership) throw forbidden("chat_room_not_member");
     return membership;
   }
 
