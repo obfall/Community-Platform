@@ -29,20 +29,20 @@ export class ContentsController {
 
   @Get()
   @ApiOperation({ summary: "コンテンツ一覧" })
-  findAll(@Query() query: ContentQueryDto) {
-    return this.service.findAll(query);
-  }
-
-  @Get("share/:token")
-  @ApiOperation({ summary: "招待トークンでコンテンツ取得" })
-  findByToken(@Param("token") token: string) {
-    return this.service.findByInviteToken(token);
+  findAll(
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Query() query: ContentQueryDto,
+  ) {
+    return this.service.findAll(query, currentUser);
   }
 
   @Get(":id")
   @ApiOperation({ summary: "コンテンツ詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.service.findOne(id, currentUser);
   }
 
   @Post()

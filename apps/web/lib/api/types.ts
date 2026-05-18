@@ -1925,6 +1925,8 @@ export interface OrientationCompletion {
 }
 
 // --- Contents ---
+export type ContentPublishStatus = "draft" | "published" | "unpublished";
+
 export interface ContentListItem {
   id: string;
   name: string;
@@ -1932,13 +1934,42 @@ export interface ContentListItem {
   description: string | null;
   price: number | null;
   coverImageUrl: string | null;
-  inviteToken: string;
-  publishStatus: string;
+  publishStatus: ContentPublishStatus;
   createdBy: { id: string; name: string };
   createdAt: string;
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
   snippetHighlighted?: string;
+}
+
+export interface ContentDetail {
+  id: string;
+  name: string;
+  contentType: string;
+  description: string | null;
+  price: number | null;
+  coverImageUrl: string | null;
+  publishStatus: ContentPublishStatus;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+}
+
+export interface CreateContentInput {
+  name: string;
+  contentType: string;
+  description?: string;
+  price?: number;
+  coverImageUrl?: string;
+  publishStatus?: ContentPublishStatus;
+}
+
+export interface UpdateContentInput {
+  name?: string;
+  contentType?: string;
+  description?: string | null;
+  price?: number | null;
+  coverImageUrl?: string | null;
+  publishStatus?: ContentPublishStatus;
 }
 
 // --- Event Results ---

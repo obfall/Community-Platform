@@ -1,63 +1,40 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useContent, useDeleteContent } from "@/hooks/content/use-content";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, Copy, Check, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, FileText, Trash2 } from "lucide-react";
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  unpublished: "未公開",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  article: "記事",
-  course: "コース",
-  document: "ドキュメント",
-  other: "その他",
-};
+const CONTENT_TYPE_KEYS = ["meal_drink", "product", "tourist_spot", "room_space"] as const;
+type ContentTypeKey = (typeof CONTENT_TYPE_KEYS)[number];
 
 export default function ContentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("contents");
+  const tCommon = useTranslations("common");
   const { id } = use(params);
   const router = useRouter();
   const { data: content, isLoading } = useContent(id);
   const deleteContent = useDeleteContent();
-  const [copied, setCopied] = useState(false);
 
   const handleDelete = () => {
-    if (confirm("本当に削除しますか?")) {
+    if (confirm(t("detail.deleteConfirm"))) {
       deleteContent.mutate(id, { onSuccess: () => router.push("/content") });
     }
   };
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>;
   if (!content)
-    return (
-      <div className="py-12 text-center text-muted-foreground">コンテンツが見つかりません</div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
-  const shareUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/content/share/${content.inviteToken}`
-      : "";
-
-  const copyShareUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success("URLをコピーしました");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("コピーに失敗しました");
-    }
-  };
+  const typeLabel = CONTENT_TYPE_KEYS.includes(content.contentType as ContentTypeKey)
+    ? t(`type.${content.contentType as ContentTypeKey}`)
+    : content.contentType;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -69,12 +46,8 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
         </Link>
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <Badge variant="outline">
-              {STATUS_LABELS[content.publishStatus] ?? content.publishStatus}
-            </Badge>
-            <Badge variant="secondary">
-              {TYPE_LABELS[content.contentType] ?? content.contentType}
-            </Badge>
+            <Badge variant="outline">{t(`status.${content.publishStatus}`)}</Badge>
+            <Badge variant="secondary">{typeLabel}</Badge>
           </div>
           <h1 className="text-2xl font-bold">{content.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -84,7 +57,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center gap-2">
           <Link href={`/content/${content.id}/edit`}>
             <Button variant="outline" size="sm">
-              編集
+              {t("detail.edit")}
             </Button>
           </Link>
           <Button
@@ -94,7 +67,7 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             disabled={deleteContent.isPending}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            削除
+            {t("detail.delete")}
           </Button>
         </div>
       </div>
@@ -125,25 +98,6 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
               <div className="text-2xl font-bold">¥{content.price.toLocaleString()}</div>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">共有URL</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <input
-              readOnly
-              value={shareUrl}
-              className="flex-1 rounded border bg-muted px-3 py-2 text-xs"
-            />
-            <Button size="sm" variant="outline" onClick={copyShareUrl}>
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">招待トークン: {content.inviteToken}</p>
         </CardContent>
       </Card>
     </div>

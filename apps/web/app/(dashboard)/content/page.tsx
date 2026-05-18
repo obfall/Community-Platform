@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useContents } from "@/hooks/content/use-content";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/search-input";
@@ -13,21 +14,12 @@ import { SelectField } from "@/components/select-field";
 import { HighlightedText } from "@/components/highlighted-text";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 
-const CONTENT_TYPE_LABELS: Record<string, string> = {
-  article: "記事",
-  course: "コース",
-  document: "ドキュメント",
-  other: "その他",
-};
-
-const CONTENT_TYPE_OPTIONS = [
-  { value: "article", label: "記事" },
-  { value: "course", label: "コース" },
-  { value: "document", label: "ドキュメント" },
-  { value: "other", label: "その他" },
-];
+const CONTENT_TYPE_KEYS = ["meal_drink", "product", "tourist_spot", "room_space"] as const;
+type ContentTypeKey = (typeof CONTENT_TYPE_KEYS)[number];
 
 export default function ContentPage() {
+  const t = useTranslations("contents");
+  const tCommon = useTranslations("common");
   const [query, setQuery] = useState<{
     page?: number;
     limit?: number;
@@ -40,14 +32,19 @@ export default function ContentPage() {
   const contents = data?.data ?? [];
   const meta = data?.meta;
 
+  const typeLabel = (type: string) =>
+    CONTENT_TYPE_KEYS.includes(type as ContentTypeKey) ? t(`type.${type as ContentTypeKey}`) : type;
+
+  const typeOptions = CONTENT_TYPE_KEYS.map((k) => ({ value: k, label: t(`type.${k}`) }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">コンテンツ</h1>
+        <h1 className="text-2xl font-bold">{t("list.title")}</h1>
         <Link href="/content/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            作成
+            {t("list.create")}
           </Button>
         </Link>
       </div>
@@ -57,7 +54,7 @@ export default function ContentPage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="コンテンツを検索..."
+          placeholder={t("list.searchPlaceholder")}
           className="max-w-xs"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -66,9 +63,9 @@ export default function ContentPage() {
             onChange={(v) =>
               setQuery((p) => ({ ...p, contentType: v === "all" ? undefined : v, page: 1 }))
             }
-            options={CONTENT_TYPE_OPTIONS}
+            options={typeOptions}
             includeAll
-            placeholder="種別"
+            placeholder={t("list.typePlaceholder")}
             className="w-36"
           />
           <SelectField
@@ -76,18 +73,18 @@ export default function ContentPage() {
             onChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
             options={PUBLISH_STATUS_OPTIONS}
             includeAll
-            placeholder="ステータス"
+            placeholder={t("list.statusPlaceholder")}
             className="w-36"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : contents.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <FileText className="mx-auto mb-4 h-12 w-12" />
-          <p>コンテンツがありません</p>
+          <p>{t("list.empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -109,13 +106,13 @@ export default function ContentPage() {
                 <CardContent className="p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {CONTENT_TYPE_LABELS[c.contentType] ?? c.contentType}
+                      {typeLabel(c.contentType)}
                     </Badge>
                     <Badge
                       variant={c.publishStatus === "published" ? "default" : "secondary"}
                       className="text-xs"
                     >
-                      {c.publishStatus === "published" ? "公開" : "下書き"}
+                      {t(`status.${c.publishStatus}`)}
                     </Badge>
                   </div>
                   <h3 className="line-clamp-2 text-sm font-semibold">

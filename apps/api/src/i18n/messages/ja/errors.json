@@ -11,7 +11,8 @@
     "board_parent_comment": "返信先コメントが見つかりません",
     "chat_room": "ルームが見つかりません",
     "album": "アルバムが見つかりません",
-    "album_photo": "写真が見つかりません"
+    "album_photo": "写真が見つかりません",
+    "content": "コンテンツが見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました"
@@ -25,7 +26,9 @@
     "chat_room_add_member_admin": "管理者のみメンバーを追加できます",
     "chat_room_remove_member_admin": "管理者のみ他のメンバーを削除できます",
     "album_update": "自分のアルバムのみ更新できます",
-    "album_delete": "自分のアルバムのみ削除できます"
+    "album_delete": "自分のアルバムのみ削除できます",
+    "content_update": "自分のコンテンツのみ更新できます",
+    "content_delete": "自分のコンテンツのみ削除できます"
   },
   "validation": {
     "chat_dm_member_count": "DMは相手1人のみ指定してください",

@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import {
   buildPaginationMeta,
   escapePgroongaQuery,
@@ -9,24 +12,69 @@ import {
 import { Prisma } from "@prisma/client";
 import type { CreateContentDto } from "./dto/create-content.dto";
 import type { ContentQueryDto } from "./dto/content-query.dto";
-import * as crypto from "crypto";
+
+type CurrentUser = { id: string; role: string };
+
+function isPrivileged(user: CurrentUser) {
+  return user.role === "admin" || user.role === "owner";
+}
+
+function notFoundContent() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.content,
+    undefined,
+    "errors.not_found.content",
+  );
+}
+
+function forbidden(resourceKey: "content_update" | "content_delete") {
+  return new BusinessException(
+    ErrorCode.FORBIDDEN,
+    HttpStatus.FORBIDDEN,
+    errorMessages.forbidden_resource[resourceKey],
+    undefined,
+    `errors.forbidden_resource.${resourceKey}`,
+  );
+}
+
+function canMutateContent(content: { createdByUserId: string }, user: CurrentUser) {
+  return isPrivileged(user) || content.createdByUserId === user.id;
+}
 
 @Injectable()
 export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: ContentQueryDto) {
-    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
-    if (escaped) {
-      return this.searchByPgroonga(query, escaped);
-    }
-    return this.findAllStandard(query);
+  /**
+   * 一覧の可視性条件:
+   * - published: 全員に表示
+   * - draft / unpublished: 作成者本人のみ表示（admin / owner は全件表示）
+   */
+  private visibilityWhere(currentUser: CurrentUser): Prisma.ContentWhereInput {
+    if (isPrivileged(currentUser)) return {};
+    return {
+      OR: [{ publishStatus: "published" }, { createdByUserId: currentUser.id }],
+    };
   }
 
-  private async findAllStandard(query: ContentQueryDto) {
+  async findAll(query: ContentQueryDto, currentUser: CurrentUser) {
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      return this.searchByPgroonga(query, escaped, currentUser);
+    }
+    return this.findAllStandard(query, currentUser);
+  }
+
+  private async findAllStandard(query: ContentQueryDto, currentUser: CurrentUser) {
     const { page, limit, skip } = extractPagination(query);
 
-    const where: Prisma.ContentWhereInput = { deletedAt: null };
+    const where: Prisma.ContentWhereInput = {
+      deletedAt: null,
+      ...this.visibilityWhere(currentUser),
+    };
+    // クライアントから指定された publishStatus は可視性ヘルパ上で更に絞り込む（all は無視）
     if (query.publishStatus && query.publishStatus !== "all") {
       where.publishStatus = query.publishStatus as "draft" | "published" | "unpublished";
     }
@@ -46,12 +94,21 @@ export class ContentsService {
     return this.formatContentList(data, total, page, limit);
   }
 
-  /** pgroonga 全文検索。検索条件は通常一覧と一致させる（下書き含む）。 */
-  private async searchByPgroonga(query: ContentQueryDto, escaped: string) {
+  /** pgroonga 全文検索。published に加えて作成者自身の下書きも対象（admin/owner は全件）。 */
+  private async searchByPgroonga(
+    query: ContentQueryDto,
+    escaped: string,
+    currentUser: CurrentUser,
+  ) {
     const { page, limit, offset } = extractPagination(query);
+
+    const visibilitySql = isPrivileged(currentUser)
+      ? Prisma.empty
+      : Prisma.sql`AND (publish_status = 'published'::"PublishStatus" OR created_by_user_id = ${currentUser.id}::uuid)`;
 
     const where = Prisma.sql`
       deleted_at IS NULL
+      ${visibilitySql}
       ${query.contentType ? Prisma.sql`AND content_type = ${query.contentType}` : Prisma.empty}
     `;
 
@@ -67,7 +124,7 @@ export class ContentsService {
       offset,
       fetchByIds: (ids) =>
         this.prisma.content.findMany({
-          where: { id: { in: ids }, deletedAt: null },
+          where: { id: { in: ids }, deletedAt: null, ...this.visibilityWhere(currentUser) },
           include: this.contentListInclude(),
         }),
     });
@@ -104,7 +161,6 @@ export class ContentsService {
           snippetHighlighted: h?.snippetHighlighted,
           price: c.price,
           coverImageUrl: c.coverImageUrl,
-          inviteToken: c.inviteToken,
           publishStatus: c.publishStatus,
           createdBy: c.createdBy,
           createdAt: c.createdAt,
@@ -114,26 +170,20 @@ export class ContentsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, currentUser: CurrentUser) {
     const content = await this.prisma.content.findUnique({
       where: { id },
       include: { createdBy: { select: { id: true, name: true } } },
     });
-    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
+    if (!content || content.deletedAt) throw notFoundContent();
+    if (content.publishStatus !== "published" && !canMutateContent(content, currentUser)) {
+      // draft / unpublished の他人コンテンツは存在自体を漏らさない
+      throw notFoundContent();
+    }
     return content;
   }
 
-  async findByInviteToken(token: string) {
-    const content = await this.prisma.content.findUnique({
-      where: { inviteToken: token },
-      include: { createdBy: { select: { id: true, name: true } } },
-    });
-    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
-    return content;
-  }
-
-  async create(userId: string, dto: CreateContentDto) {
-    const inviteToken = crypto.randomBytes(16).toString("hex");
+  async create(currentUserId: string, dto: CreateContentDto) {
     return this.prisma.content.create({
       data: {
         name: dto.name,
@@ -141,9 +191,8 @@ export class ContentsService {
         description: dto.description,
         price: dto.price,
         coverImageUrl: dto.coverImageUrl,
-        inviteToken,
         publishStatus: (dto.publishStatus as "draft" | "published" | "unpublished") ?? "draft",
-        createdByUserId: userId,
+        createdByUserId: currentUserId,
       },
     });
   }
@@ -158,17 +207,12 @@ export class ContentsService {
       coverImageUrl?: string | null;
       publishStatus?: string;
     },
-    currentUser: { id: string; role: string },
+    currentUser: CurrentUser,
   ) {
     const content = await this.prisma.content.findUnique({ where: { id } });
-    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
-    if (
-      currentUser.role !== "admin" &&
-      currentUser.role !== "owner" &&
-      content.createdByUserId !== currentUser.id
-    ) {
-      throw new ForbiddenException("自分のコンテンツのみ更新できます");
-    }
+    if (!content || content.deletedAt) throw notFoundContent();
+    if (!canMutateContent(content, currentUser)) throw forbidden("content_update");
+
     return this.prisma.content.update({
       where: { id },
       data: {
@@ -184,16 +228,10 @@ export class ContentsService {
     });
   }
 
-  async remove(id: string, currentUser: { id: string; role: string }) {
+  async remove(id: string, currentUser: CurrentUser) {
     const content = await this.prisma.content.findUnique({ where: { id } });
-    if (!content || content.deletedAt) throw new NotFoundException("コンテンツが見つかりません");
-    if (
-      currentUser.role !== "admin" &&
-      currentUser.role !== "owner" &&
-      content.createdByUserId !== currentUser.id
-    ) {
-      throw new ForbiddenException("自分のコンテンツのみ削除できます");
-    }
+    if (!content || content.deletedAt) throw notFoundContent();
+    if (!canMutateContent(content, currentUser)) throw forbidden("content_delete");
     await this.prisma.content.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }

@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { contentsApi } from "@/lib/api/content";
+import type { CreateContentInput, UpdateContentInput } from "@/lib/api/types";
 
 export function useContents(query?: {
   page?: number;
@@ -25,38 +27,38 @@ export function useContent(id: string | undefined) {
 
 export function useCreateContent() {
   const queryClient = useQueryClient();
+  const t = useTranslations("contents.toast");
   return useMutation({
-    mutationFn: contentsApi.create,
+    mutationFn: (data: CreateContentInput) => contentsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contents"] });
-      toast.success("コンテンツを作成しました");
+      toast.success(t("created"));
     },
-    onError: () => toast.error("コンテンツ作成に失敗しました"),
   });
 }
 
 export function useUpdateContent() {
   const queryClient = useQueryClient();
+  const t = useTranslations("contents.toast");
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateContentInput }) =>
       contentsApi.update(id, data),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["contents"] });
       queryClient.invalidateQueries({ queryKey: ["contents", vars.id] });
-      toast.success("コンテンツを更新しました");
+      toast.success(t("updated"));
     },
-    onError: () => toast.error("コンテンツ更新に失敗しました"),
   });
 }
 
 export function useDeleteContent() {
   const queryClient = useQueryClient();
+  const t = useTranslations("contents.toast");
   return useMutation({
     mutationFn: (id: string) => contentsApi.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contents"] });
-      toast.success("コンテンツを削除しました");
+      toast.success(t("deleted"));
     },
-    onError: () => toast.error("コンテンツ削除に失敗しました"),
   });
 }

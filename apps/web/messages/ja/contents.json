@@ -1,0 +1,60 @@
+{
+  "list": {
+    "title": "コンテンツ",
+    "create": "作成",
+    "searchPlaceholder": "コンテンツを検索...",
+    "typePlaceholder": "種別",
+    "statusPlaceholder": "ステータス",
+    "empty": "コンテンツがありません"
+  },
+  "new": {
+    "title": "コンテンツ作成",
+    "basicInfo": "基本情報",
+    "coverImageLabel": "カバー画像",
+    "nameLabel": "名前",
+    "namePlaceholder": "コンテンツ名を入力",
+    "typeLabel": "種別",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "コンテンツの説明（任意）",
+    "priceLabel": "価格（円）",
+    "pricePlaceholder": "無料の場合は空欄",
+    "publishStatusLabel": "公開ステータス",
+    "cancel": "キャンセル",
+    "submit": "作成"
+  },
+  "edit": {
+    "title": "コンテンツ編集",
+    "basicInfo": "基本情報",
+    "coverImageLabel": "カバー画像",
+    "nameLabel": "名前",
+    "typeLabel": "種別",
+    "descriptionLabel": "説明",
+    "priceLabel": "価格（円）",
+    "pricePlaceholder": "無料の場合は空欄",
+    "publishStatusLabel": "公開ステータス",
+    "cancel": "キャンセル",
+    "submit": "保存"
+  },
+  "detail": {
+    "notFound": "コンテンツが見つかりません",
+    "edit": "編集",
+    "delete": "削除",
+    "deleteConfirm": "本当に削除しますか?"
+  },
+  "status": {
+    "draft": "下書き",
+    "published": "公開",
+    "unpublished": "未公開"
+  },
+  "type": {
+    "meal_drink": "料理・飲料",
+    "product": "商品",
+    "tourist_spot": "観光施設",
+    "room_space": "部屋・施設"
+  },
+  "toast": {
+    "created": "コンテンツを作成しました",
+    "updated": "コンテンツを更新しました",
+    "deleted": "コンテンツを削除しました"
+  }
+}
