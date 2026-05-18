@@ -265,43 +265,6 @@ describe("AllExceptionsFilter", () => {
       );
     });
 
-    it("閲覧期限切れは errors.forbidden_resource.video_expired", () => {
-      i18nMock.translate.mockReturnValueOnce("この動画の閲覧期限が過ぎています");
-      const exception = new BusinessException(
-        ErrorCode.FORBIDDEN,
-        HttpStatus.FORBIDDEN,
-        "この動画の閲覧期限が過ぎています",
-        undefined,
-        "errors.forbidden_resource.video_expired",
-      );
-
-      filter.catch(exception, buildHost());
-
-      expect(i18nMock.translate).toHaveBeenCalledWith(
-        "errors.forbidden_resource.video_expired",
-        expect.any(Object),
-      );
-      expect(response.status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
-    });
-
-    it("ロール制限は errors.forbidden_resource.video_access_denied", () => {
-      i18nMock.translate.mockReturnValueOnce("この動画へのアクセス権限がありません");
-      const exception = new BusinessException(
-        ErrorCode.FORBIDDEN,
-        HttpStatus.FORBIDDEN,
-        "この動画へのアクセス権限がありません",
-        undefined,
-        "errors.forbidden_resource.video_access_denied",
-      );
-
-      filter.catch(exception, buildHost());
-
-      expect(i18nMock.translate).toHaveBeenCalledWith(
-        "errors.forbidden_resource.video_access_denied",
-        expect.any(Object),
-      );
-    });
-
     it("パスワード不一致は errors.unauthorized_resource.video_password", () => {
       i18nMock.translate.mockReturnValueOnce("パスワードが正しくありません");
       const exception = new BusinessException(

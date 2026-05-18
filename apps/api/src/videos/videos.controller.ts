@@ -89,8 +89,6 @@ export class VideosController {
       watchOrder?: number;
       publishStatus?: string;
       availableUntil?: string;
-      viewPermission?: string;
-      allowedRoles?: string[];
       password?: string;
       instructors?: string;
       attachmentFileIds?: string;

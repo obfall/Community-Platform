@@ -302,8 +302,6 @@ model MemberRank {
   categories         Category[]
   // Phase 5
   events             Event[]
-  // Phase 7
-  videos             Video[]
 
   @@index([sortOrder])
   @@map("member_ranks")
@@ -1885,12 +1883,6 @@ enum StreamStatus {
   error
 }
 
-enum VideoViewPermission {
-  all
-  rank_restricted
-  role_restricted
-}
-
 enum VideoTaskStatus {
   not_started
   in_progress
@@ -1915,33 +1907,29 @@ model VideoSeries {
 }
 
 model Video {
-  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seriesId        String?             @map("series_id") @db.Uuid
-  title           String              @db.VarChar(200)
-  description     String?             @db.Text
-  videoProvider   VideoProvider       @map("video_provider")
-  videoExternalId String              @map("video_external_id") @db.VarChar(200)
-  playbackUrl     String?             @map("playback_url") @db.VarChar(500)
-  streamStatus    StreamStatus        @default(uploading) @map("stream_status")
-  thumbnailUrl    String?             @map("thumbnail_url") @db.VarChar(500)
-  durationSeconds Int?                @map("duration_seconds")
-  viewPermission  VideoViewPermission @default(all) @map("view_permission")
-  requiredRankId  String?             @map("required_rank_id") @db.Uuid
-  allowedRoles    String[]            @default([]) @map("allowed_roles")
-  availableUntil  DateTime?           @map("available_until") @db.Timestamptz()
-  passwordHash    String?             @map("password_hash") @db.VarChar(255)
-  publishStatus   PublishStatus       @default(draft) @map("publish_status")
-  watchOrder      Int?                @map("watch_order")
-  sortOrder       Int                 @default(0) @map("sort_order")
-  viewCount       Int                 @default(0) @map("view_count")
-  createdByUserId String              @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz()
-  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz()
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId        String?       @map("series_id") @db.Uuid
+  title           String        @db.VarChar(200)
+  description     String?       @db.Text
+  videoProvider   VideoProvider @map("video_provider")
+  videoExternalId String        @map("video_external_id") @db.VarChar(200)
+  playbackUrl     String?       @map("playback_url") @db.VarChar(500)
+  streamStatus    StreamStatus  @default(uploading) @map("stream_status")
+  thumbnailUrl    String?       @map("thumbnail_url") @db.VarChar(500)
+  durationSeconds Int?          @map("duration_seconds")
+  availableUntil  DateTime?     @map("available_until") @db.Timestamptz()
+  passwordHash    String?       @map("password_hash") @db.VarChar(255)
+  publishStatus   PublishStatus @default(draft) @map("publish_status")
+  watchOrder      Int?          @map("watch_order")
+  sortOrder       Int           @default(0) @map("sort_order")
+  viewCount       Int           @default(0) @map("view_count")
+  createdByUserId String        @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz()
 
   // Relations
   series        VideoSeries?         @relation(fields: [seriesId], references: [id])
-  requiredRank  MemberRank?          @relation(fields: [requiredRankId], references: [id])
   createdBy     User                 @relation("VideoCreator", fields: [createdByUserId], references: [id])
   instructors   VideoInstructor[]
   attachments   VideoAttachment[]

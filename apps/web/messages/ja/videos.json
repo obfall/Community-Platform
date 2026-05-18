@@ -93,8 +93,8 @@
       "seriesPlaceholder": "シリーズを選択",
       "watchOrder": "順番（watchOrder）",
       "watchOrderPlaceholder": "シリーズ内の順番（数値）",
-      "watchOrderHintNew": "シリーズ内で次に使う番号を自動で補完します（変更可）",
       "watchOrderHintEdit": "シリーズを変更すると次に使う番号を自動補完します",
+      "watchOrderNoticeNew": "シリーズ内の最後に追加されます。順番を変えたい場合は、登録後に編集画面から変更してください。",
       "title": "タイトル",
       "titlePlaceholder": "動画のタイトル",
       "titlePlaceholderEdit": "動画タイトル",
@@ -107,7 +107,6 @@
       "filePickerSizeHint": "MP4, MOV, WebM（最大 500MB）",
       "publishStatus": "公開ステータス",
       "publishStatusEdit": "公開状態",
-      "viewPermission": "閲覧可能範囲",
       "availableUntil": "閲覧期限",
       "availableUntilHint": "空欄の場合は無期限",
       "password": "パスワード（4桁数字）",
@@ -125,7 +124,6 @@
     "metaPrefix": "{name} ・ {viewCount}回再生",
     "metaDurationSuffix": " ・ {duration}",
     "passwordProtectedBadge": "パスワード保護",
-    "roleRestrictedBadge": "限定: {roles}",
     "availableUntilLabel": "閲覧期限: {date}",
     "availableUntilExpiredLabel": "閲覧期限: {date}（期限切れ）",
     "watchCompletedBadge": "視聴完了",
@@ -191,14 +189,6 @@
     "namePlaceholder": "講師名",
     "affiliationLabel": "所属",
     "affiliationPlaceholder": "所属・肩書"
-  },
-  "accessRolesField": {
-    "label": "閲覧可能ロール",
-    "options": {
-      "admin": "管理者 (admin)",
-      "owner": "オーナー (owner)",
-      "member": "メンバー (member)"
-    }
   },
   "taskListEditor": {
     "label": "タスク（視聴後に行う作業）",

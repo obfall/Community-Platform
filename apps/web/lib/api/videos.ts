@@ -19,8 +19,6 @@ interface UploadPayload {
   watchOrder?: number;
   publishStatus?: string;
   availableUntil?: string;
-  viewPermission?: string;
-  allowedRoles?: string[];
   password?: string;
   instructors?: InstructorInput[];
   attachmentFileIds?: string[];
@@ -34,9 +32,6 @@ interface UpdatePayload {
   seriesId?: string | null;
   watchOrder?: number | null;
   availableUntil?: string | null;
-  viewPermission?: string;
-  allowedRoles?: string[];
-  requiredRankId?: string | null;
   password?: string | null;
   instructors?: InstructorInput[];
   attachmentFileIds?: string[];
@@ -81,9 +76,6 @@ export const videosApi = {
     if (data.watchOrder != null) formData.append("watchOrder", String(data.watchOrder));
     if (data.publishStatus) formData.append("publishStatus", data.publishStatus);
     if (data.availableUntil) formData.append("availableUntil", data.availableUntil);
-    if (data.viewPermission) formData.append("viewPermission", data.viewPermission);
-    if (data.allowedRoles?.length)
-      formData.append("allowedRoles", JSON.stringify(data.allowedRoles));
     if (data.password) formData.append("password", data.password);
     if (data.instructors?.length) formData.append("instructors", JSON.stringify(data.instructors));
     if (data.attachmentFileIds?.length)

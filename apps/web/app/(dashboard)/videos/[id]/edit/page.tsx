@@ -22,7 +22,6 @@ import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { MAX_VIDEO_TITLE_LENGTH, VIDEO_PASSWORD_LENGTH } from "@community-platform/shared";
 import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
 import { InstructorList } from "../../_components/instructor-list";
-import { AccessRolesField } from "../../_components/access-roles-field";
 import { TaskListEditor } from "../../_components/task-list-editor";
 import type { VideoDetail, InstructorInput, TaskInput } from "@/lib/api/types";
 import { toast } from "sonner";
@@ -72,7 +71,6 @@ function VideoEditForm({
 }) {
   const t = useTranslations("videos.edit");
   const tForm = useTranslations("videos.form");
-  const tPermission = useTranslations("enums.videoViewPermission");
   const tStream = useTranslations("enums.videoStreamStatus");
 
   // 基本情報
@@ -114,8 +112,6 @@ function VideoEditForm({
   }, [seriesId, nextOrder, watchOrderTouched, originalSeriesId, video.watchOrder]);
 
   // 公開設定
-  const [viewPermission, setViewPermission] = useState(video.viewPermission ?? "all");
-  const [allowedRoles, setAllowedRoles] = useState<string[]>(video.allowedRoles ?? []);
   const [availableUntil, setAvailableUntil] = useState(
     video.availableUntil ? video.availableUntil.slice(0, 16) : "",
   );
@@ -173,8 +169,6 @@ function VideoEditForm({
           publishStatus,
           seriesId: seriesId === NONE_VALUE ? null : seriesId,
           watchOrder: seriesId !== NONE_VALUE && watchOrder ? Number(watchOrder) : null,
-          viewPermission,
-          allowedRoles: viewPermission === "role_restricted" ? allowedRoles : [],
           availableUntil: availableUntil ? new Date(availableUntil).toISOString() : null,
           password: passwordValue,
           instructors: instructors.filter((i) => i.name),
@@ -326,22 +320,6 @@ function VideoEditForm({
               options={PUBLISH_STATUS_OPTIONS}
             />
           </div>
-
-          <div>
-            <Label>{tForm("label.viewPermission")}</Label>
-            <SelectField
-              value={viewPermission}
-              onChange={setViewPermission}
-              options={[
-                { value: "all", label: tPermission("all") },
-                { value: "role_restricted", label: tPermission("role_restricted") },
-                { value: "rank_restricted", label: tPermission("rank_restricted") },
-              ]}
-            />
-          </div>
-          {viewPermission === "role_restricted" && (
-            <AccessRolesField value={allowedRoles} onChange={setAllowedRoles} />
-          )}
 
           <div>
             <Label>{tForm("label.availableUntil")}</Label>

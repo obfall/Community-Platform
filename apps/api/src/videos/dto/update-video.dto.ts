@@ -5,7 +5,6 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
-  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -15,7 +14,7 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
-import { PublishStatus, VideoViewPermission } from "@prisma/client";
+import { PublishStatus } from "@prisma/client";
 import {
   MAX_VIDEO_ATTACHMENTS,
   MAX_VIDEO_INSTRUCTORS,
@@ -25,8 +24,6 @@ import {
 } from "@community-platform/shared";
 import { VideoInstructorInputDto } from "./video-instructor-input.dto";
 import { VideoTaskInputDto } from "./video-task-input.dto";
-
-const ALLOWED_ROLES = ["admin", "owner", "member", "visitor"] as const;
 
 export class UpdateVideoDto {
   @ApiPropertyOptional({ maxLength: MAX_VIDEO_TITLE_LENGTH })
@@ -60,25 +57,6 @@ export class UpdateVideoDto {
   @IsOptional()
   @IsDateString()
   availableUntil?: string | null;
-
-  @ApiPropertyOptional({ enum: VideoViewPermission })
-  @IsOptional()
-  @IsEnum(VideoViewPermission)
-  viewPermission?: VideoViewPermission;
-
-  @ApiPropertyOptional({
-    description: "許可ロール（viewPermission=role_restricted 時のみ有効）",
-    type: [String],
-  })
-  @IsOptional()
-  @IsArray()
-  @IsIn(ALLOWED_ROLES as unknown as string[], { each: true })
-  allowedRoles?: string[];
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  requiredRankId?: string | null;
 
   @ApiPropertyOptional({ description: "4桁数字。空文字または null でパスワード解除" })
   @IsOptional()

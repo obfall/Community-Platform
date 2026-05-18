@@ -188,8 +188,6 @@ export class VideosService {
           publishStatus: v.publishStatus,
           streamStatus: v.streamStatus,
           viewCount: v.viewCount,
-          viewPermission: v.viewPermission,
-          allowedRoles: v.allowedRoles,
           availableUntil: v.availableUntil,
           hasPassword: !!v.passwordHash,
           series: v.series,
@@ -352,8 +350,6 @@ export class VideosService {
         watchOrder: dto.watchOrder,
         publishStatus: dto.publishStatus ?? "draft",
         availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : undefined,
-        viewPermission: dto.viewPermission,
-        allowedRoles: dto.allowedRoles ?? [],
         passwordHash,
         createdByUserId: userId,
         ...(dto.instructors?.length && {
@@ -425,8 +421,6 @@ export class VideosService {
       watchOrder?: number;
       publishStatus?: string;
       availableUntil?: string;
-      viewPermission?: string;
-      allowedRoles?: string[];
       password?: string;
       instructors?: string;
       attachmentFileIds?: string;
@@ -453,9 +447,6 @@ export class VideosService {
         watchOrder: data.watchOrder != null ? Number(data.watchOrder) : undefined,
         publishStatus: (data.publishStatus as "draft" | "published" | "unpublished") ?? "draft",
         availableUntil: data.availableUntil ? new Date(data.availableUntil) : undefined,
-        viewPermission:
-          (data.viewPermission as "all" | "rank_restricted" | "role_restricted") ?? undefined,
-        allowedRoles: data.allowedRoles ?? [],
         passwordHash,
         createdByUserId: userId,
         ...(instructors.length > 0 && {
@@ -523,9 +514,6 @@ export class VideosService {
           ...(dto.availableUntil !== undefined && {
             availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : null,
           }),
-          ...(dto.viewPermission !== undefined && { viewPermission: dto.viewPermission }),
-          ...(dto.allowedRoles !== undefined && { allowedRoles: dto.allowedRoles }),
-          ...(dto.requiredRankId !== undefined && { requiredRankId: dto.requiredRankId }),
           ...(passwordHash !== undefined && { passwordHash }),
         },
       });
@@ -642,51 +630,6 @@ export class VideosService {
         "errors.unauthorized_resource.video_password",
       );
     return { ok: true };
-  }
-
-  // ───────────────────── Access control ─────────────────────
-
-  async checkViewAccess(id: string, userId: string) {
-    const video = await this.prisma.video.findUnique({
-      where: { id },
-      select: {
-        viewPermission: true,
-        allowedRoles: true,
-        requiredRankId: true,
-        availableUntil: true,
-        publishStatus: true,
-        deletedAt: true,
-      },
-    });
-    if (!video || video.deletedAt) throw videoNotFound();
-
-    // 閲覧期限チェック
-    if (video.availableUntil && new Date() > video.availableUntil) {
-      throw new BusinessException(
-        ErrorCode.FORBIDDEN,
-        HttpStatus.FORBIDDEN,
-        "この動画の閲覧期限が過ぎています",
-        undefined,
-        "errors.forbidden_resource.video_expired",
-      );
-    }
-
-    // role_restricted チェック
-    if (video.viewPermission === "role_restricted" && video.allowedRoles.length > 0) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { role: true },
-      });
-      if (!user || !video.allowedRoles.includes(user.role)) {
-        throw new BusinessException(
-          ErrorCode.FORBIDDEN,
-          HttpStatus.FORBIDDEN,
-          "この動画へのアクセス権限がありません",
-          undefined,
-          "errors.forbidden_resource.video_access_denied",
-        );
-      }
-    }
   }
 
   // ───────────────────── Tasks: status 更新 ─────────────────────

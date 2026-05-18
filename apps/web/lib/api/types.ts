@@ -1171,8 +1171,6 @@ export interface VideoListItem {
   publishStatus: string;
   streamStatus: string;
   viewCount: number;
-  viewPermission: string;
-  allowedRoles: string[];
   availableUntil: string | null;
   hasPassword: boolean;
   series: { id: string; name: string } | null;

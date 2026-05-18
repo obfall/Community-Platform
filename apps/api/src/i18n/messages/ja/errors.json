@@ -18,9 +18,7 @@
   "forbidden_resource": {
     "board_topic": "このトピックを操作する権限がありません",
     "board_post": "この投稿を操作する権限がありません",
-    "board_comment": "このコメントを操作する権限がありません",
-    "video_access_denied": "この動画へのアクセス権限がありません",
-    "video_expired": "この動画の閲覧期限が過ぎています"
+    "board_comment": "このコメントを操作する権限がありません"
   },
   "unauthorized_resource": {
     "video_password": "パスワードが正しくありません"

@@ -95,7 +95,7 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
               <span className="font-bold">{siteName}</span>
             )}
           </div>
-          <div onClick={() => setMobileOpen(false)}>
+          <div onClick={() => setMobileOpen(false)} className="min-h-0 flex-1">
             {eventId ? (
               <EventDetailSidebar eventId={eventId} />
             ) : projectId ? (

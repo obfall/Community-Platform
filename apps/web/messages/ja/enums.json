@@ -70,11 +70,6 @@
     "ready": "配信可能",
     "error": "エラー"
   },
-  "videoViewPermission": {
-    "all": "すべて",
-    "role_restricted": "ロール制限",
-    "rank_restricted": "ランク制限"
-  },
   "videoTaskStatus": {
     "not_started": "未着手",
     "in_progress": "進行中",

@@ -67,7 +67,6 @@ async function seedVideoModels(prisma: PrismaClient, users: UserSummary[]): Prom
     for (let v = 0; v < def.videoCount; v++) {
       const isDraft = videoIdx === 12;
       const isProcessing = videoIdx === 3;
-      const permission = v % 4 === 0 ? "rank_restricted" : "all";
       const video = await prisma.video.create({
         data: {
           seriesId: seriesIds[sIdx]!,
@@ -80,7 +79,6 @@ async function seedVideoModels(prisma: PrismaClient, users: UserSummary[]): Prom
           streamStatus: isProcessing ? "processing" : "ready",
           thumbnailUrl: `https://picsum.photos/seed/video-${videoIdx}/640/360`,
           durationSeconds: randInt(300, 3600),
-          viewPermission: permission === "all" ? "all" : "rank_restricted",
           publishStatus: isDraft ? "draft" : "published",
           watchOrder: v,
           sortOrder: videoIdx,
@@ -124,7 +122,6 @@ async function seedVideoModels(prisma: PrismaClient, users: UserSummary[]): Prom
         streamStatus: "ready",
         thumbnailUrl: `https://picsum.photos/seed/video-${videoIdx}/640/360`,
         durationSeconds: def.duration,
-        viewPermission: "all",
         publishStatus: "published",
         sortOrder: videoIdx,
         viewCount: randInt(50, 300),

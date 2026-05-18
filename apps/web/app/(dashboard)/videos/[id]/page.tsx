@@ -124,12 +124,6 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
         <div className="flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             {video.series && <Badge variant="secondary">{video.series.name}</Badge>}
-            {video.viewPermission === "role_restricted" && (
-              <Badge variant="destructive" className="gap-1">
-                <Shield className="h-3 w-3" />
-                {t("roleRestrictedBadge", { roles: video.allowedRoles.join(", ") })}
-              </Badge>
-            )}
             {video.hasPassword && (
               <Badge variant="outline" className="gap-1">
                 <Shield className="h-3 w-3" />

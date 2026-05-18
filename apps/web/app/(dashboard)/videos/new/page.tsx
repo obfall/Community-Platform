@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -19,7 +19,6 @@ import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { VIDEO_PASSWORD_LENGTH } from "@community-platform/shared";
 import { InstructorList } from "../_components/instructor-list";
-import { AccessRolesField } from "../_components/access-roles-field";
 import { TaskListEditor } from "../_components/task-list-editor";
 import type { InstructorInput, TaskInput } from "@/lib/api/types";
 
@@ -29,40 +28,18 @@ export default function NewVideoPage() {
   const { data: seriesList } = useVideoSeries();
   const t = useTranslations("videos.new");
   const tForm = useTranslations("videos.form");
-  const tPermission = useTranslations("enums.videoViewPermission");
 
   // 基本情報
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [seriesId, setSeriesId] = useState("");
-  const [watchOrder, setWatchOrder] = useState<string>("");
-  const [watchOrderTouched, setWatchOrderTouched] = useState(false);
   const [file, setFile] = useState<File | null>(null);
 
-  // シリーズ変更時に watchOrder を自動補完（ユーザー未編集時のみ）
+  // シリーズ選択時は末尾の順番（max + 1）をサーバから取得して送信する
   const { data: nextOrder } = useNextWatchOrder(seriesId || undefined);
-  const lastSeriesIdRef = useRef<string>("");
-  useEffect(() => {
-    const seriesChanged = seriesId !== lastSeriesIdRef.current;
-    if (seriesChanged) lastSeriesIdRef.current = seriesId;
-    if (watchOrderTouched) return;
-
-    let newValue: string | null = null;
-    if (!seriesId && seriesChanged) {
-      newValue = "";
-    } else if (seriesId && nextOrder) {
-      newValue = String(nextOrder.nextOrder);
-    }
-    if (newValue === null) return;
-    // 非同期データを state に反映する正当な用途
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWatchOrder(newValue);
-  }, [seriesId, nextOrder, watchOrderTouched]);
 
   // 公開設定
   const [publishStatus, setPublishStatus] = useState("draft");
-  const [viewPermission, setViewPermission] = useState("all");
-  const [allowedRoles, setAllowedRoles] = useState<string[]>([]);
   const [availableUntil, setAvailableUntil] = useState("");
   const [password, setPassword] = useState("");
 
@@ -78,11 +55,9 @@ export default function NewVideoPage() {
         title,
         description: description || undefined,
         seriesId: seriesId || undefined,
-        watchOrder: watchOrder ? Number(watchOrder) : undefined,
+        watchOrder: seriesId && nextOrder ? nextOrder.nextOrder : undefined,
         publishStatus,
         availableUntil: availableUntil || undefined,
-        viewPermission: viewPermission !== "all" ? viewPermission : undefined,
-        allowedRoles: viewPermission === "role_restricted" ? allowedRoles : undefined,
         password: password || undefined,
         instructors: instructors.filter((i) => i.name),
         attachmentFileIds: attachments.map((a) => a.fileId),
@@ -118,51 +93,27 @@ export default function NewVideoPage() {
         <h1 className="text-2xl font-bold">{t("pageTitle")}</h1>
       </div>
 
-      {/* シリーズ・順番 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{tForm("card.seriesOrder")}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>{tForm("label.series")}</Label>
-              <SelectField
-                value={seriesId || NONE_VALUE}
-                onChange={(v) => setSeriesId(v === NONE_VALUE ? "" : v)}
-                options={seriesList?.map((s) => ({ value: s.id, label: s.name })) ?? []}
-                includeNone
-                placeholder={tForm("label.seriesPlaceholder")}
-              />
-            </div>
-            {seriesId && (
-              <div>
-                <Label>{tForm("label.watchOrder")}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={watchOrder}
-                  onChange={(e) => {
-                    setWatchOrder(e.target.value);
-                    setWatchOrderTouched(true);
-                  }}
-                  placeholder={tForm("label.watchOrderPlaceholder")}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {tForm("label.watchOrderHintNew")}
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 基本情報 */}
+      {/* 動画情報 */}
       <Card>
         <CardHeader>
           <CardTitle>{tForm("card.videoInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label>{tForm("label.series")}</Label>
+            <SelectField
+              value={seriesId || NONE_VALUE}
+              onChange={(v) => setSeriesId(v === NONE_VALUE ? "" : v)}
+              options={seriesList?.map((s) => ({ value: s.id, label: s.name })) ?? []}
+              includeNone
+              placeholder={tForm("label.seriesPlaceholder")}
+            />
+            {seriesId && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {tForm("label.watchOrderNoticeNew")}
+              </p>
+            )}
+          </div>
           <div>
             <Label>{tForm("label.title")}</Label>
             <Input
@@ -260,21 +211,6 @@ export default function NewVideoPage() {
               options={PUBLISH_STATUS_OPTIONS}
             />
           </div>
-          <div>
-            <Label>{tForm("label.viewPermission")}</Label>
-            <SelectField
-              value={viewPermission}
-              onChange={setViewPermission}
-              options={[
-                { value: "all", label: tPermission("all") },
-                { value: "role_restricted", label: tPermission("role_restricted") },
-                { value: "rank_restricted", label: tPermission("rank_restricted") },
-              ]}
-            />
-          </div>
-          {viewPermission === "role_restricted" && (
-            <AccessRolesField value={allowedRoles} onChange={setAllowedRoles} />
-          )}
           <div>
             <Label>{tForm("label.availableUntil")}</Label>
             <Input

@@ -154,64 +154,6 @@ describe("VideosService", () => {
     });
   });
 
-  describe("checkViewAccess: 閲覧期限 / role 制限", () => {
-    it("動画が無ければ NOT_FOUND", async () => {
-      prismaMock.video.findUnique.mockResolvedValue(null);
-
-      await expect(service.checkViewAccess("v-missing", "u-1")).rejects.toMatchObject({
-        code: ErrorCode.NOT_FOUND,
-        messageKey: "errors.not_found.video",
-      });
-    });
-
-    it("availableUntil を過ぎていれば FORBIDDEN + errors.forbidden_resource.video_expired", async () => {
-      prismaMock.video.findUnique.mockResolvedValue({
-        viewPermission: "all",
-        allowedRoles: [],
-        requiredRankId: null,
-        availableUntil: new Date("2000-01-01"),
-        publishStatus: "published",
-        deletedAt: null,
-      });
-
-      await expect(service.checkViewAccess("v-1", "u-1")).rejects.toMatchObject({
-        code: ErrorCode.FORBIDDEN,
-        messageKey: "errors.forbidden_resource.video_expired",
-      });
-    });
-
-    it("role_restricted で許可ロール外なら FORBIDDEN + errors.forbidden_resource.video_access_denied", async () => {
-      prismaMock.video.findUnique.mockResolvedValue({
-        viewPermission: "role_restricted",
-        allowedRoles: ["admin"],
-        requiredRankId: null,
-        availableUntil: null,
-        publishStatus: "published",
-        deletedAt: null,
-      });
-      prismaMock.user.findUnique.mockResolvedValue({ role: "member" });
-
-      await expect(service.checkViewAccess("v-1", "u-1")).rejects.toMatchObject({
-        code: ErrorCode.FORBIDDEN,
-        messageKey: "errors.forbidden_resource.video_access_denied",
-      });
-    });
-
-    it("role_restricted でも許可ロールに含まれていれば例外を投げない", async () => {
-      prismaMock.video.findUnique.mockResolvedValue({
-        viewPermission: "role_restricted",
-        allowedRoles: ["admin"],
-        requiredRankId: null,
-        availableUntil: null,
-        publishStatus: "published",
-        deletedAt: null,
-      });
-      prismaMock.user.findUnique.mockResolvedValue({ role: "admin" });
-
-      await expect(service.checkViewAccess("v-1", "u-1")).resolves.toBeUndefined();
-    });
-  });
-
   describe("updateTaskStatus: タスクステータス更新", () => {
     it("タスクが無ければ errors.not_found.video_task を投げる", async () => {
       prismaMock.videoTask.findUnique.mockResolvedValue(null);
@@ -302,23 +244,6 @@ describe("VideosService", () => {
       } catch (err) {
         expect(err).toBeInstanceOf(BusinessException);
         expect((err as BusinessException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-      }
-    });
-
-    it("checkViewAccess の expired は statusCode 403 を持つ", async () => {
-      prismaMock.video.findUnique.mockResolvedValue({
-        viewPermission: "all",
-        allowedRoles: [],
-        requiredRankId: null,
-        availableUntil: new Date("2000-01-01"),
-        publishStatus: "published",
-        deletedAt: null,
-      });
-      try {
-        await service.checkViewAccess("v-1", "u-1");
-        fail("should have thrown");
-      } catch (err) {
-        expect((err as BusinessException).getStatus()).toBe(HttpStatus.FORBIDDEN);
       }
     });
   });

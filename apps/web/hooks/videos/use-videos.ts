@@ -87,9 +87,6 @@ export function useUpdateVideo() {
         seriesId?: string | null;
         watchOrder?: number | null;
         availableUntil?: string | null;
-        viewPermission?: string;
-        allowedRoles?: string[];
-        requiredRankId?: string | null;
         password?: string | null;
         instructors?: InstructorInput[];
         attachmentFileIds?: string[];

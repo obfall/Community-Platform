@@ -4,9 +4,7 @@ import { resolve } from "node:path";
 test.use({ storageState: resolve(__dirname, "../../.auth/admin.json") });
 
 test.describe("動画アップロードページ", () => {
-  test("各カード（シリーズ・動画情報・講師・配布資料・タスク・公開設定）が表示される", async ({
-    page,
-  }) => {
+  test("各カード（動画情報・講師・配布資料・タスク・公開設定）が表示される", async ({ page }) => {
     await page.goto("/videos/new");
 
     await expect(page.getByRole("heading", { name: "動画アップロード" })).toBeVisible({
@@ -14,7 +12,6 @@ test.describe("動画アップロードページ", () => {
     });
 
     // videos.form.card.* のタイトル
-    await expect(page.getByRole("heading", { name: "シリーズ・順番" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "動画情報" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "担当講師" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "配布資料" })).toBeVisible();
