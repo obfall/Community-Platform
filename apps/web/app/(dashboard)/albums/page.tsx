@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAlbums, useAlbumCategories, useCreateAlbumCategory } from "@/hooks/albums/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,8 @@ import { Plus, Image as ImageIcon, Camera } from "lucide-react";
 import { HighlightedText } from "@/components/highlighted-text";
 
 export default function AlbumsPage() {
+  const t = useTranslations("albums");
+  const tCommon = useTranslations("common");
   const [query, setQuery] = useState<{
     page?: number;
     limit?: number;
@@ -43,16 +46,16 @@ export default function AlbumsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">アルバム</h1>
+        <h1 className="text-2xl font-bold">{t("list.title")}</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
             <Plus className="mr-1 h-3 w-3" />
-            カテゴリ追加
+            {t("list.addCategory")}
           </Button>
           <Link href="/albums/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              作成
+              {t("list.create")}
             </Button>
           </Link>
         </div>
@@ -63,7 +66,7 @@ export default function AlbumsPage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="アルバムを検索..."
+          placeholder={t("list.searchPlaceholder")}
           className="max-w-xs"
         />
         <Select
@@ -73,10 +76,10 @@ export default function AlbumsPage() {
           }
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="カテゴリ" />
+            <SelectValue placeholder={t("list.categoryPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">すべてのカテゴリ</SelectItem>
+            <SelectItem value="all">{t("list.categoryAll")}</SelectItem>
             {categories?.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name}
@@ -89,15 +92,15 @@ export default function AlbumsPage() {
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>カテゴリ追加</DialogTitle>
+            <DialogTitle>{t("categoryDialog.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>カテゴリ名</Label>
+              <Label>{t("categoryDialog.nameLabel")}</Label>
               <Input
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                placeholder="カテゴリ名"
+                placeholder={t("categoryDialog.namePlaceholder")}
               />
             </div>
             <Button
@@ -112,18 +115,18 @@ export default function AlbumsPage() {
                 });
               }}
             >
-              作成
+              {t("categoryDialog.submit")}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : albums.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <ImageIcon className="mx-auto mb-4 h-12 w-12" />
-          <p>アルバムがありません</p>
+          <p>{t("list.empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -149,6 +152,16 @@ export default function AlbumsPage() {
                         {a.category.name}
                       </Badge>
                     )}
+                    {a.publishStatus === "draft" && (
+                      <Badge variant="outline" className="text-xs">
+                        {t("status.draft")}
+                      </Badge>
+                    )}
+                    {a.publishStatus === "unpublished" && (
+                      <Badge variant="outline" className="text-xs">
+                        {t("status.unpublished")}
+                      </Badge>
+                    )}
                   </div>
                   <h3 className="line-clamp-1 text-sm font-semibold">
                     <HighlightedText html={a.titleHighlighted} fallback={a.title} />
@@ -156,7 +169,7 @@ export default function AlbumsPage() {
                   <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Camera className="h-3 w-3" />
-                      {a.photoCount}枚
+                      {t("list.photoCount", { count: a.photoCount })}
                     </span>
                     <span>{a.createdBy.name}</span>
                   </div>

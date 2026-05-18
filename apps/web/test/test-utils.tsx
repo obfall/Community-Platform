@@ -9,6 +9,7 @@ import boardMessages from "@/messages/ja/board.json";
 import chatMessages from "@/messages/ja/chat.json";
 import dashboardMessages from "@/messages/ja/dashboard.json";
 import eventsMessages from "@/messages/ja/events.json";
+import albumsMessages from "@/messages/ja/albums.json";
 
 const messages = {
   common: commonMessages,
@@ -18,6 +19,7 @@ const messages = {
   chat: chatMessages,
   dashboard: dashboardMessages,
   events: eventsMessages,
+  albums: albumsMessages,
 };
 
 /**

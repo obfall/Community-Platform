@@ -2,6 +2,7 @@
 
 import { use, useRef, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAlbum, useAddAlbumPhotos, useRemoveAlbumPhoto } from "@/hooks/albums/use-albums";
 import { filesApi } from "@/lib/api/files";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Camera, Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  unpublished: "未公開",
-};
+const PHOTO_MAX_SIZE_MB = 10;
+const PHOTO_MAX_SIZE_BYTES = PHOTO_MAX_SIZE_MB * 1024 * 1024;
 
 interface AlbumDetail {
   id: string;
@@ -34,6 +32,8 @@ interface AlbumDetail {
 }
 
 export default function AlbumDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("albums");
+  const tCommon = useTranslations("common");
   const { id } = use(params);
   const { data, isLoading } = useAlbum(id);
   const album = data as AlbumDetail | undefined;
@@ -43,11 +43,14 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
   const inputRef = useRef<HTMLInputElement>(null);
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>;
   if (!album)
-    return <div className="py-12 text-center text-muted-foreground">アルバムが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
   const validPhotos = album.photos?.filter((p) => p.file.publicUrl) ?? [];
+  const statusLabel = t(
+    `status.${album.publishStatus}` as `status.${"draft" | "published" | "unpublished"}`,
+  );
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -56,11 +59,11 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
       const photos: Array<{ fileId: string }> = [];
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) {
-          toast.error(`${file.name} は画像ではありません`);
+          toast.error(t("toast.photoNotImage", { name: file.name }));
           continue;
         }
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error(`${file.name} は 10MB を超えています`);
+        if (file.size > PHOTO_MAX_SIZE_BYTES) {
+          toast.error(t("toast.photoTooLarge", { name: file.name, limitMB: PHOTO_MAX_SIZE_MB }));
           continue;
         }
         const result = await filesApi.upload(file, "image", true);
@@ -70,7 +73,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
         addPhotos.mutate({ albumId: id, photos });
       }
     } catch {
-      toast.error("写真のアップロードに失敗しました");
+      toast.error(t("toast.photoUploadFailed"));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -87,20 +90,21 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <Badge variant="outline">
-              {STATUS_LABELS[album.publishStatus] ?? album.publishStatus}
-            </Badge>
+            <Badge variant="outline">{statusLabel || album.publishStatus}</Badge>
             {album.category && <Badge variant="secondary">{album.category.name}</Badge>}
           </div>
           <h1 className="text-2xl font-bold">{album.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {album.createdBy.name} ・ {album.photoCount}枚 ・{" "}
-            {new Date(album.createdAt).toLocaleDateString("ja-JP")}
+            {t("detail.metaLine", {
+              createdBy: album.createdBy.name,
+              count: album.photoCount,
+              date: new Date(album.createdAt).toLocaleDateString("ja-JP"),
+            })}
           </p>
         </div>
         <Link href={`/albums/${album.id}/edit`}>
           <Button variant="outline" size="sm">
-            編集
+            {t("detail.edit")}
           </Button>
         </Link>
       </div>
@@ -108,7 +112,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
       {album.description && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">キャプション</CardTitle>
+            <CardTitle className="text-base">{t("detail.captionTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap text-sm">{album.description}</p>
@@ -117,7 +121,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">写真</h2>
+        <h2 className="text-lg font-semibold">{t("detail.photosTitle")}</h2>
         <input
           ref={inputRef}
           type="file"
@@ -132,14 +136,14 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
           ) : (
             <Upload className="mr-2 h-4 w-4" />
           )}
-          写真を追加
+          {t("detail.addPhotos")}
         </Button>
       </div>
 
       {validPhotos.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Camera className="mx-auto mb-4 h-12 w-12" />
-          <p>写真がありません</p>
+          <p>{t("detail.noPhotos")}</p>
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -158,7 +162,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
                 type="button"
                 onClick={() => removePhoto.mutate({ albumId: id, photoId: photo.id })}
                 className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
-                aria-label="削除"
+                aria-label={t("detail.photoDeleteLabel")}
               >
                 <X className="h-4 w-4" />
               </button>

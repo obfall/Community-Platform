@@ -1,12 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
 import { CacheService } from "@/cache/cache.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import {
   buildPaginationMeta,
   escapePgroongaQuery,
   extractPagination,
   pgroongaSearchAndFetch,
-  VISIBILITY,
 } from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateAlbumDto } from "./dto/create-album.dto";
@@ -16,6 +18,36 @@ const ALBUM_CATEGORIES_CACHE_KEY = "master:categories:album:all";
 const ALBUM_CATEGORIES_CACHE_PREFIX = "master:categories:album:";
 const CATEGORIES_CACHE_TTL_SEC = 60 * 60;
 
+function notFoundAlbum() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.album,
+    undefined,
+    "errors.not_found.album",
+  );
+}
+
+function notFoundPhoto() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.album_photo,
+    undefined,
+    "errors.not_found.album_photo",
+  );
+}
+
+function forbidden(resourceKey: "album_update" | "album_delete") {
+  return new BusinessException(
+    ErrorCode.FORBIDDEN,
+    HttpStatus.FORBIDDEN,
+    errorMessages.forbidden_resource[resourceKey],
+    undefined,
+    `errors.forbidden_resource.${resourceKey}`,
+  );
+}
+
 @Injectable()
 export class AlbumsService {
   constructor(
@@ -23,18 +55,33 @@ export class AlbumsService {
     private readonly cache: CacheService,
   ) {}
 
-  async findAll(query: AlbumQueryDto) {
+  async findAll(query: AlbumQueryDto, currentUser: { id: string; role: string }) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
-      return this.searchByPgroonga(query, escaped);
+      return this.searchByPgroonga(query, escaped, currentUser);
     }
-    return this.findAllStandard(query);
+    return this.findAllStandard(query, currentUser);
   }
 
-  private async findAllStandard(query: AlbumQueryDto) {
+  /**
+   * 一覧の可視性条件:
+   * - published: 全員に表示
+   * - draft / unpublished: 作成者本人のみ表示（admin / owner は全件表示）
+   */
+  private visibilityWhere(currentUser: { id: string; role: string }): Prisma.AlbumWhereInput {
+    if (currentUser.role === "admin" || currentUser.role === "owner") return {};
+    return {
+      OR: [{ publishStatus: "published" }, { createdByUserId: currentUser.id }],
+    };
+  }
+
+  private async findAllStandard(query: AlbumQueryDto, currentUser: { id: string; role: string }) {
     const { page, limit, skip } = extractPagination(query);
 
-    const where: Prisma.AlbumWhereInput = { deletedAt: null, publishStatus: "published" };
+    const where: Prisma.AlbumWhereInput = {
+      deletedAt: null,
+      ...this.visibilityWhere(currentUser),
+    };
     if (query.categoryId) where.categoryId = query.categoryId;
 
     const [data, total] = await Promise.all([
@@ -51,13 +98,22 @@ export class AlbumsService {
     return this.formatAlbumList(data, total, page, limit);
   }
 
-  /** pgroonga 全文検索（VISIBILITY.album 強制）。 */
-  private async searchByPgroonga(query: AlbumQueryDto, escaped: string) {
+  /** pgroonga 全文検索。published に加えて作成者自身の下書きも対象（admin/owner は全件）。 */
+  private async searchByPgroonga(
+    query: AlbumQueryDto,
+    escaped: string,
+    currentUser: { id: string; role: string },
+  ) {
     const { page, limit, offset } = extractPagination(query);
+
+    const isPrivileged = currentUser.role === "admin" || currentUser.role === "owner";
+    const visibilitySql = isPrivileged
+      ? Prisma.empty
+      : Prisma.sql`AND (publish_status = 'published'::"PublishStatus" OR created_by_user_id = ${currentUser.id}::uuid)`;
 
     const where = Prisma.sql`
       deleted_at IS NULL
-      AND publish_status = 'published'::"PublishStatus"
+      ${visibilitySql}
       ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
     `;
 
@@ -73,7 +129,7 @@ export class AlbumsService {
       offset,
       fetchByIds: (ids) =>
         this.prisma.album.findMany({
-          where: { id: { in: ids }, ...VISIBILITY.album },
+          where: { id: { in: ids }, deletedAt: null, ...this.visibilityWhere(currentUser) },
           include: this.albumListInclude(),
         }),
     });
@@ -123,7 +179,7 @@ export class AlbumsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, currentUser: { id: string; role: string }) {
     const album = await this.prisma.album.findUnique({
       where: { id },
       include: {
@@ -136,7 +192,15 @@ export class AlbumsService {
         },
       },
     });
-    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (!album || album.deletedAt) throw notFoundAlbum();
+    if (
+      album.publishStatus !== "published" &&
+      currentUser.role !== "admin" &&
+      currentUser.role !== "owner" &&
+      album.createdByUserId !== currentUser.id
+    ) {
+      throw notFoundAlbum();
+    }
     return album;
   }
 
@@ -158,13 +222,13 @@ export class AlbumsService {
     currentUser: { id: string; role: string },
   ) {
     const album = await this.prisma.album.findUnique({ where: { id } });
-    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (!album || album.deletedAt) throw notFoundAlbum();
     if (
       currentUser.role !== "admin" &&
       currentUser.role !== "owner" &&
       album.createdByUserId !== currentUser.id
     ) {
-      throw new ForbiddenException("自分のアルバムのみ更新できます");
+      throw forbidden("album_update");
     }
     return this.prisma.album.update({
       where: { id },
@@ -180,13 +244,13 @@ export class AlbumsService {
 
   async remove(id: string, currentUser: { id: string; role: string }) {
     const album = await this.prisma.album.findUnique({ where: { id } });
-    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (!album || album.deletedAt) throw notFoundAlbum();
     if (
       currentUser.role !== "admin" &&
       currentUser.role !== "owner" &&
       album.createdByUserId !== currentUser.id
     ) {
-      throw new ForbiddenException("自分のアルバムのみ削除できます");
+      throw forbidden("album_delete");
     }
     await this.prisma.album.update({ where: { id }, data: { deletedAt: new Date() } });
   }
@@ -199,7 +263,7 @@ export class AlbumsService {
     photos: Array<{ fileId: string; title?: string; caption?: string }>,
   ) {
     const album = await this.prisma.album.findUnique({ where: { id: albumId } });
-    if (!album || album.deletedAt) throw new NotFoundException("アルバムが見つかりません");
+    if (!album || album.deletedAt) throw notFoundAlbum();
 
     const existingCount = await this.prisma.albumPhoto.count({ where: { albumId } });
 
@@ -233,7 +297,7 @@ export class AlbumsService {
 
   async removePhoto(albumId: string, photoId: string) {
     const photo = await this.prisma.albumPhoto.findUnique({ where: { id: photoId } });
-    if (!photo || photo.albumId !== albumId) throw new NotFoundException("写真が見つかりません");
+    if (!photo || photo.albumId !== albumId) throw notFoundPhoto();
 
     await this.prisma.albumPhoto.delete({ where: { id: photoId } });
     await this.prisma.album.update({

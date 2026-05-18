@@ -1,0 +1,75 @@
+{
+  "list": {
+    "title": "アルバム",
+    "addCategory": "カテゴリ追加",
+    "create": "作成",
+    "searchPlaceholder": "アルバムを検索...",
+    "categoryPlaceholder": "カテゴリ",
+    "categoryAll": "すべてのカテゴリ",
+    "empty": "アルバムがありません",
+    "photoCount": "{count}枚"
+  },
+  "categoryDialog": {
+    "title": "カテゴリ追加",
+    "nameLabel": "カテゴリ名",
+    "namePlaceholder": "カテゴリ名",
+    "submit": "作成"
+  },
+  "new": {
+    "title": "アルバム作成",
+    "basicInfo": "基本情報",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "アルバムのタイトル",
+    "captionLabel": "キャプション",
+    "captionPlaceholder": "アルバムのキャプション（任意）",
+    "categoryLabel": "カテゴリ",
+    "categoryNone": "なし",
+    "publishStatusLabel": "公開ステータス",
+    "photosLabel": "写真",
+    "cancel": "キャンセル",
+    "submit": "作成"
+  },
+  "edit": {
+    "title": "アルバム編集",
+    "basicInfo": "基本情報",
+    "titleLabel": "タイトル",
+    "captionLabel": "キャプション",
+    "categoryLabel": "カテゴリ",
+    "categoryNone": "なし",
+    "publishStatusLabel": "公開ステータス",
+    "cancel": "キャンセル",
+    "submit": "保存"
+  },
+  "detail": {
+    "notFound": "アルバムが見つかりません",
+    "edit": "編集",
+    "captionTitle": "キャプション",
+    "photosTitle": "写真",
+    "addPhotos": "写真を追加",
+    "noPhotos": "写真がありません",
+    "metaLine": "{createdBy} ・ {count}枚 ・ {date}",
+    "photoDeleteLabel": "削除"
+  },
+  "status": {
+    "draft": "下書き",
+    "published": "公開",
+    "unpublished": "未公開"
+  },
+  "toast": {
+    "created": "アルバムを作成しました",
+    "createFailed": "アルバム作成に失敗しました",
+    "updated": "アルバムを更新しました",
+    "updateFailed": "アルバム更新に失敗しました",
+    "deleted": "アルバムを削除しました",
+    "deleteFailed": "アルバム削除に失敗しました",
+    "photosAdded": "写真を追加しました",
+    "photosAddFailed": "写真の追加に失敗しました",
+    "photoRemoved": "写真を削除しました",
+    "photoRemoveFailed": "写真の削除に失敗しました",
+    "categoryCreated": "カテゴリを作成しました",
+    "categoryCreateFailed": "カテゴリ作成に失敗しました",
+    "photoUploadFailed": "写真のアップロードに失敗しました",
+    "photoNotImage": "{name} は画像ではありません",
+    "photoTooLarge": "{name} は {limitMB}MB を超えています"
+  }
+}

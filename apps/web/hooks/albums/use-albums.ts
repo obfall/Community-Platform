@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { albumsApi } from "@/lib/api/albums";
 
@@ -24,44 +25,48 @@ export function useAlbum(id: string | undefined) {
 
 export function useCreateAlbum() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
-    mutationFn: albumsApi.create,
+    mutationFn: (data: Parameters<typeof albumsApi.create>[0]) => albumsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
-      toast.success("アルバムを作成しました");
+      toast.success(t("created"));
     },
-    onError: () => toast.error("アルバム作成に失敗しました"),
+    onError: () => toast.error(t("createFailed"), { id: "album-create-error" }),
   });
 }
 
 export function useUpdateAlbum() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       albumsApi.update(id, data),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       queryClient.invalidateQueries({ queryKey: ["albums", vars.id] });
-      toast.success("アルバムを更新しました");
+      toast.success(t("updated"));
     },
-    onError: () => toast.error("アルバム更新に失敗しました"),
+    onError: () => toast.error(t("updateFailed"), { id: "album-update-error" }),
   });
 }
 
 export function useDeleteAlbum() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
     mutationFn: (id: string) => albumsApi.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
-      toast.success("アルバムを削除しました");
+      toast.success(t("deleted"));
     },
-    onError: () => toast.error("アルバム削除に失敗しました"),
+    onError: () => toast.error(t("deleteFailed"), { id: "album-delete-error" }),
   });
 }
 
 export function useAddAlbumPhotos() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
     mutationFn: ({
       albumId,
@@ -73,23 +78,24 @@ export function useAddAlbumPhotos() {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
-      toast.success("写真を追加しました");
+      toast.success(t("photosAdded"));
     },
-    onError: () => toast.error("写真の追加に失敗しました"),
+    onError: () => toast.error(t("photosAddFailed"), { id: "album-photos-add-error" }),
   });
 }
 
 export function useRemoveAlbumPhoto() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
     mutationFn: ({ albumId, photoId }: { albumId: string; photoId: string }) =>
       albumsApi.removePhoto(albumId, photoId),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
-      toast.success("写真を削除しました");
+      toast.success(t("photoRemoved"));
     },
-    onError: () => toast.error("写真の削除に失敗しました"),
+    onError: () => toast.error(t("photoRemoveFailed"), { id: "album-photo-remove-error" }),
   });
 }
 
@@ -103,12 +109,13 @@ export function useAlbumCategories() {
 
 export function useCreateAlbumCategory() {
   const queryClient = useQueryClient();
+  const t = useTranslations("albums.toast");
   return useMutation({
     mutationFn: (name: string) => albumsApi.createCategory(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["albums", "categories"] });
-      toast.success("カテゴリを作成しました");
+      toast.success(t("categoryCreated"));
     },
-    onError: () => toast.error("カテゴリ作成に失敗しました"),
+    onError: () => toast.error(t("categoryCreateFailed"), { id: "album-category-create-error" }),
   });
 }

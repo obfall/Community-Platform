@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCreateAlbum, useAlbumCategories, useAddAlbumPhotos } from "@/hooks/albums/use-albums";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-
 const NONE_VALUE = "__none__";
 
 export default function AlbumNewPage() {
+  const t = useTranslations("albums");
   const router = useRouter();
   const createAlbum = useCreateAlbum();
   const addPhotos = useAddAlbumPhotos();
@@ -63,40 +65,40 @@ export default function AlbumNewPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">アルバム作成</h1>
+        <h1 className="text-2xl font-bold">{t("new.title")}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle>{t("new.basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>タイトル</Label>
+            <Label>{t("new.titleLabel")}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="アルバムのタイトル"
+              placeholder={t("new.titlePlaceholder")}
               maxLength={200}
             />
           </div>
           <div>
-            <Label>キャプション</Label>
+            <Label>{t("new.captionLabel")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="アルバムのキャプション（任意）"
+              placeholder={t("new.captionPlaceholder")}
               rows={4}
             />
           </div>
           <div>
-            <Label>カテゴリ</Label>
+            <Label>{t("new.categoryLabel")}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NONE_VALUE}>なし</SelectItem>
+                <SelectItem value={NONE_VALUE}>{t("new.categoryNone")}</SelectItem>
                 {categories?.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
@@ -106,7 +108,7 @@ export default function AlbumNewPage() {
             </Select>
           </div>
           <div>
-            <Label>公開ステータス</Label>
+            <Label>{t("new.publishStatusLabel")}</Label>
             <SelectField
               value={publishStatus}
               onChange={setPublishStatus}
@@ -114,7 +116,7 @@ export default function AlbumNewPage() {
             />
           </div>
           <div>
-            <Label>写真</Label>
+            <Label>{t("new.photosLabel")}</Label>
             <FileUploadList
               value={photos}
               onChange={setPhotos}
@@ -125,11 +127,11 @@ export default function AlbumNewPage() {
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/albums">
-              <Button variant="outline">キャンセル</Button>
+              <Button variant="outline">{t("new.cancel")}</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!title || submitting}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              作成
+              {t("new.submit")}
             </Button>
           </div>
         </CardContent>

@@ -30,8 +30,8 @@ export class AlbumsController {
 
   @Get()
   @ApiOperation({ summary: "アルバム一覧" })
-  findAll(@Query() query: AlbumQueryDto) {
-    return this.service.findAll(query);
+  findAll(@CurrentUser() currentUser: { id: string; role: string }, @Query() query: AlbumQueryDto) {
+    return this.service.findAll(query, currentUser);
   }
 
   @Get("categories")
@@ -50,8 +50,11 @@ export class AlbumsController {
 
   @Get(":id")
   @ApiOperation({ summary: "アルバム詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @CurrentUser() currentUser: { id: string; role: string },
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.service.findOne(id, currentUser);
   }
 
   @Post()
