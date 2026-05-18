@@ -137,16 +137,17 @@ const VENUES = [
 ];
 
 const CONTENT_TITLES = [
-  { name: "会員向けお知らせまとめ", type: "article" },
-  { name: "イベント実施報告", type: "article" },
-  { name: "会員インタビュー", type: "article" },
-  { name: "運営レポート 2025Q1", type: "report" },
-  { name: "運営レポート 2025Q2", type: "report" },
-  { name: "【下書き】新コンテンツ", type: "article" },
-  { name: "プレミアム限定コラム", type: "article" },
-  { name: "月刊アーカイブ 1月号", type: "article" },
-  { name: "月刊アーカイブ 2月号", type: "article" },
-  { name: "【非公開】内部資料", type: "report" },
+  { name: "おすすめランチセット", type: "meal_drink" },
+  { name: "季節の限定ドリンク", type: "meal_drink" },
+  { name: "【下書き】新メニュー", type: "meal_drink" },
+  { name: "オリジナルグッズ", type: "product" },
+  { name: "コラボアイテム", type: "product" },
+  { name: "プレミアム限定アイテム", type: "product" },
+  { name: "歴史的観光スポット", type: "tourist_spot" },
+  { name: "近隣の名所", type: "tourist_spot" },
+  { name: "貸し会議室", type: "room_space" },
+  { name: "イベントホール", type: "room_space" },
+  { name: "【非公開】内部用スペース", type: "room_space" },
 ];
 
 async function getDemoUsers(prisma: PrismaClient): Promise<UserSummary[]> {
@@ -474,7 +475,6 @@ async function seedContents(prisma: PrismaClient, users: UserSummary[]): Promise
         description: `${c.name} の説明`,
         price: idx % 4 === 0 ? randInt(500, 3000) : null,
         coverImageUrl: `https://picsum.photos/seed/content-${idx}/800/400`,
-        inviteToken: `demo-content-token-${idx}-${Date.now().toString(36)}`,
         publishStatus: isDraft
           ? c.name.includes("非公開")
             ? "unpublished"

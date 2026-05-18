@@ -18,6 +18,7 @@ const NAMESPACES = [
   "events",
   "errors",
   "albums",
+  "contents",
 ] as const;
 
 export default getRequestConfig(async () => {
