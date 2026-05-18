@@ -20,16 +20,9 @@ import {
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
+import type { AlbumDetail, AlbumPublishStatus } from "@/lib/api/types";
 
 const NONE_VALUE = "__none__";
-
-interface AlbumDetail {
-  id: string;
-  title: string;
-  description: string | null;
-  publishStatus: string;
-  category: { id: string; name: string } | null;
-}
 
 export default function AlbumEditPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations("albums");
@@ -42,7 +35,7 @@ export default function AlbumEditPage({ params }: { params: Promise<{ id: string
   if (!data)
     return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
-  return <AlbumEditForm id={id} album={data as AlbumDetail} />;
+  return <AlbumEditForm id={id} album={data} />;
 }
 
 function AlbumEditForm({ id, album }: { id: string; album: AlbumDetail }) {
@@ -54,7 +47,7 @@ function AlbumEditForm({ id, album }: { id: string; album: AlbumDetail }) {
   const [title, setTitle] = useState(album.title);
   const [description, setDescription] = useState(album.description ?? "");
   const [categoryId, setCategoryId] = useState(album.category?.id ?? NONE_VALUE);
-  const [publishStatus, setPublishStatus] = useState(album.publishStatus);
+  const [publishStatus, setPublishStatus] = useState<AlbumPublishStatus>(album.publishStatus);
 
   const handleSubmit = () => {
     updateAlbum.mutate(
@@ -119,7 +112,7 @@ function AlbumEditForm({ id, album }: { id: string; album: AlbumDetail }) {
             <Label>{t("edit.publishStatusLabel")}</Label>
             <SelectField
               value={publishStatus}
-              onChange={setPublishStatus}
+              onChange={(v) => setPublishStatus(v as AlbumPublishStatus)}
               options={PUBLISH_STATUS_OPTIONS}
             />
           </div>

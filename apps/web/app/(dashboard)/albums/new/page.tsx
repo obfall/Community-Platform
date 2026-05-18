@@ -21,6 +21,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
+import type { AlbumPublishStatus } from "@/lib/api/types";
 
 const NONE_VALUE = "__none__";
 
@@ -34,18 +35,18 @@ export default function AlbumNewPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState(NONE_VALUE);
-  const [publishStatus, setPublishStatus] = useState("draft");
+  const [publishStatus, setPublishStatus] = useState<AlbumPublishStatus>("draft");
   const [photos, setPhotos] = useState<UploadedFileItem[]>([]);
 
   const submitting = createAlbum.isPending || addPhotos.isPending;
 
   const handleSubmit = async () => {
-    const created = (await createAlbum.mutateAsync({
+    const created = await createAlbum.mutateAsync({
       title,
       description: description || undefined,
       categoryId: categoryId === NONE_VALUE ? undefined : categoryId,
       publishStatus,
-    })) as { id: string };
+    });
 
     if (photos.length > 0) {
       await addPhotos.mutateAsync({
@@ -111,7 +112,7 @@ export default function AlbumNewPage() {
             <Label>{t("new.publishStatusLabel")}</Label>
             <SelectField
               value={publishStatus}
-              onChange={setPublishStatus}
+              onChange={(v) => setPublishStatus(v as AlbumPublishStatus)}
               options={PUBLISH_STATUS_OPTIONS}
             />
           </div>

@@ -1704,12 +1704,14 @@ export interface Order {
 }
 
 // --- Albums ---
+export type AlbumPublishStatus = "draft" | "published" | "unpublished";
+
 export interface AlbumListItem {
   id: string;
   title: string;
   description: string | null;
   coverPhotoUrl: string | null;
-  publishStatus: string;
+  publishStatus: AlbumPublishStatus;
   photoCount: number;
   category: { id: string; name: string } | null;
   createdBy: { id: string; name: string };
@@ -1717,6 +1719,51 @@ export interface AlbumListItem {
   /** pgroonga 検索ヒット時のみ含まれる（<span class="keyword"> 付き HTML） */
   titleHighlighted?: string;
   snippetHighlighted?: string;
+}
+
+export interface AlbumPhoto {
+  id: string;
+  title: string | null;
+  caption: string | null;
+  file: { id: string; publicUrl: string | null; originalName: string };
+}
+
+export interface AlbumDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  publishStatus: AlbumPublishStatus;
+  photoCount: number;
+  coverPhotoUrl: string | null;
+  category: { id: string; name: string } | null;
+  createdBy: { id: string; name: string };
+  createdAt: string;
+  photos: AlbumPhoto[];
+}
+
+export interface AlbumCategory {
+  id: string;
+  name: string;
+}
+
+export interface CreateAlbumInput {
+  title: string;
+  description?: string;
+  categoryId?: string;
+  publishStatus?: AlbumPublishStatus;
+}
+
+export interface UpdateAlbumInput {
+  title?: string;
+  description?: string | null;
+  categoryId?: string | null;
+  publishStatus?: AlbumPublishStatus;
+}
+
+export interface AddAlbumPhotosInput {
+  fileId: string;
+  title?: string;
+  caption?: string;
 }
 
 // --- Venues ---

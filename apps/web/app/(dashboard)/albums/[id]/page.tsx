@@ -14,29 +14,11 @@ import { toast } from "sonner";
 const PHOTO_MAX_SIZE_MB = 10;
 const PHOTO_MAX_SIZE_BYTES = PHOTO_MAX_SIZE_MB * 1024 * 1024;
 
-interface AlbumDetail {
-  id: string;
-  title: string;
-  description: string | null;
-  publishStatus: string;
-  photoCount: number;
-  category: { id: string; name: string } | null;
-  createdBy: { id: string; name: string };
-  createdAt: string;
-  photos: Array<{
-    id: string;
-    title: string | null;
-    caption: string | null;
-    file: { id: string; publicUrl: string | null; originalName: string };
-  }>;
-}
-
 export default function AlbumDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations("albums");
   const tCommon = useTranslations("common");
   const { id } = use(params);
-  const { data, isLoading } = useAlbum(id);
-  const album = data as AlbumDetail | undefined;
+  const { data: album, isLoading } = useAlbum(id);
   const addPhotos = useAddAlbumPhotos();
   const removePhoto = useRemoveAlbumPhoto();
   const [uploading, setUploading] = useState(false);
@@ -48,9 +30,7 @@ export default function AlbumDetailPage({ params }: { params: Promise<{ id: stri
     return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
   const validPhotos = album.photos?.filter((p) => p.file.publicUrl) ?? [];
-  const statusLabel = t(
-    `status.${album.publishStatus}` as `status.${"draft" | "published" | "unpublished"}`,
-  );
+  const statusLabel = t(`status.${album.publishStatus}`);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

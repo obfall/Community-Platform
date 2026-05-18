@@ -57,17 +57,11 @@
   },
   "toast": {
     "created": "アルバムを作成しました",
-    "createFailed": "アルバム作成に失敗しました",
     "updated": "アルバムを更新しました",
-    "updateFailed": "アルバム更新に失敗しました",
     "deleted": "アルバムを削除しました",
-    "deleteFailed": "アルバム削除に失敗しました",
     "photosAdded": "写真を追加しました",
-    "photosAddFailed": "写真の追加に失敗しました",
     "photoRemoved": "写真を削除しました",
-    "photoRemoveFailed": "写真の削除に失敗しました",
     "categoryCreated": "カテゴリを作成しました",
-    "categoryCreateFailed": "カテゴリ作成に失敗しました",
     "photoUploadFailed": "写真のアップロードに失敗しました",
     "photoNotImage": "{name} は画像ではありません",
     "photoTooLarge": "{name} は {limitMB}MB を超えています"

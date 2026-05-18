@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { ErrorCode } from "@community-platform/shared";
+import { randomBytes } from "crypto";
 import { PrismaService } from "@/prisma/prisma.service";
 import { CacheService } from "@/cache/cache.service";
 import { BusinessException } from "@/common/exceptions";
@@ -12,7 +13,15 @@ import {
 } from "@/common/utils";
 import { Prisma } from "@prisma/client";
 import type { CreateAlbumDto } from "./dto/create-album.dto";
+import type { UpdateAlbumDto } from "./dto/update-album.dto";
+import type { AlbumPhotoEntryDto } from "./dto/add-photos.dto";
 import type { AlbumQueryDto } from "./dto/album-query.dto";
+
+type CurrentUser = { id: string; role: string };
+
+function isPrivileged(user: CurrentUser) {
+  return user.role === "admin" || user.role === "owner";
+}
 
 const ALBUM_CATEGORIES_CACHE_KEY = "master:categories:album:all";
 const ALBUM_CATEGORIES_CACHE_PREFIX = "master:categories:album:";
@@ -48,6 +57,10 @@ function forbidden(resourceKey: "album_update" | "album_delete") {
   );
 }
 
+function canMutateAlbum(album: { createdByUserId: string }, user: CurrentUser) {
+  return isPrivileged(user) || album.createdByUserId === user.id;
+}
+
 @Injectable()
 export class AlbumsService {
   constructor(
@@ -55,7 +68,7 @@ export class AlbumsService {
     private readonly cache: CacheService,
   ) {}
 
-  async findAll(query: AlbumQueryDto, currentUser: { id: string; role: string }) {
+  async findAll(query: AlbumQueryDto, currentUser: CurrentUser) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
       return this.searchByPgroonga(query, escaped, currentUser);
@@ -68,14 +81,14 @@ export class AlbumsService {
    * - published: 全員に表示
    * - draft / unpublished: 作成者本人のみ表示（admin / owner は全件表示）
    */
-  private visibilityWhere(currentUser: { id: string; role: string }): Prisma.AlbumWhereInput {
-    if (currentUser.role === "admin" || currentUser.role === "owner") return {};
+  private visibilityWhere(currentUser: CurrentUser): Prisma.AlbumWhereInput {
+    if (isPrivileged(currentUser)) return {};
     return {
       OR: [{ publishStatus: "published" }, { createdByUserId: currentUser.id }],
     };
   }
 
-  private async findAllStandard(query: AlbumQueryDto, currentUser: { id: string; role: string }) {
+  private async findAllStandard(query: AlbumQueryDto, currentUser: CurrentUser) {
     const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.AlbumWhereInput = {
@@ -99,15 +112,10 @@ export class AlbumsService {
   }
 
   /** pgroonga 全文検索。published に加えて作成者自身の下書きも対象（admin/owner は全件）。 */
-  private async searchByPgroonga(
-    query: AlbumQueryDto,
-    escaped: string,
-    currentUser: { id: string; role: string },
-  ) {
+  private async searchByPgroonga(query: AlbumQueryDto, escaped: string, currentUser: CurrentUser) {
     const { page, limit, offset } = extractPagination(query);
 
-    const isPrivileged = currentUser.role === "admin" || currentUser.role === "owner";
-    const visibilitySql = isPrivileged
+    const visibilitySql = isPrivileged(currentUser)
       ? Prisma.empty
       : Prisma.sql`AND (publish_status = 'published'::"PublishStatus" OR created_by_user_id = ${currentUser.id}::uuid)`;
 
@@ -179,7 +187,7 @@ export class AlbumsService {
     };
   }
 
-  async findOne(id: string, currentUser: { id: string; role: string }) {
+  async findOne(id: string, currentUser: CurrentUser) {
     const album = await this.prisma.album.findUnique({
       where: { id },
       include: {
@@ -193,77 +201,53 @@ export class AlbumsService {
       },
     });
     if (!album || album.deletedAt) throw notFoundAlbum();
-    if (
-      album.publishStatus !== "published" &&
-      currentUser.role !== "admin" &&
-      currentUser.role !== "owner" &&
-      album.createdByUserId !== currentUser.id
-    ) {
+    if (album.publishStatus !== "published" && !canMutateAlbum(album, currentUser)) {
       throw notFoundAlbum();
     }
     return album;
   }
 
-  async create(userId: string, dto: CreateAlbumDto) {
+  async create(currentUserId: string, dto: CreateAlbumDto) {
     return this.prisma.album.create({
       data: {
         title: dto.title,
         description: dto.description,
         categoryId: dto.categoryId,
-        createdByUserId: userId,
+        createdByUserId: currentUserId,
         publishStatus: dto.publishStatus ?? "draft",
       },
     });
   }
 
-  async update(
-    id: string,
-    data: { title?: string; description?: string; publishStatus?: string },
-    currentUser: { id: string; role: string },
-  ) {
+  async update(id: string, dto: UpdateAlbumDto, currentUser: CurrentUser) {
     const album = await this.prisma.album.findUnique({ where: { id } });
     if (!album || album.deletedAt) throw notFoundAlbum();
-    if (
-      currentUser.role !== "admin" &&
-      currentUser.role !== "owner" &&
-      album.createdByUserId !== currentUser.id
-    ) {
-      throw forbidden("album_update");
-    }
+    if (!canMutateAlbum(album, currentUser)) throw forbidden("album_update");
+
     return this.prisma.album.update({
       where: { id },
       data: {
-        ...(data.title !== undefined && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.publishStatus !== undefined && {
-          publishStatus: data.publishStatus as "draft" | "published" | "unpublished",
-        }),
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus }),
       },
     });
   }
 
-  async remove(id: string, currentUser: { id: string; role: string }) {
+  async remove(id: string, currentUser: CurrentUser) {
     const album = await this.prisma.album.findUnique({ where: { id } });
     if (!album || album.deletedAt) throw notFoundAlbum();
-    if (
-      currentUser.role !== "admin" &&
-      currentUser.role !== "owner" &&
-      album.createdByUserId !== currentUser.id
-    ) {
-      throw forbidden("album_delete");
-    }
+    if (!canMutateAlbum(album, currentUser)) throw forbidden("album_delete");
     await this.prisma.album.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 
   // --- 写真 ---
 
-  async addPhotos(
-    albumId: string,
-    userId: string,
-    photos: Array<{ fileId: string; title?: string; caption?: string }>,
-  ) {
+  async addPhotos(albumId: string, currentUser: CurrentUser, photos: AlbumPhotoEntryDto[]) {
     const album = await this.prisma.album.findUnique({ where: { id: albumId } });
     if (!album || album.deletedAt) throw notFoundAlbum();
+    if (!canMutateAlbum(album, currentUser)) throw forbidden("album_update");
 
     const existingCount = await this.prisma.albumPhoto.count({ where: { albumId } });
 
@@ -275,7 +259,7 @@ export class AlbumsService {
         caption: p.caption,
         sortOrder: existingCount + i,
         publishStatus: "published",
-        uploadedByUserId: userId,
+        uploadedByUserId: currentUser.id,
       })),
     });
 
@@ -295,7 +279,11 @@ export class AlbumsService {
     return { count: photos.length };
   }
 
-  async removePhoto(albumId: string, photoId: string) {
+  async removePhoto(albumId: string, photoId: string, currentUser: CurrentUser) {
+    const album = await this.prisma.album.findUnique({ where: { id: albumId } });
+    if (!album || album.deletedAt) throw notFoundAlbum();
+    if (!canMutateAlbum(album, currentUser)) throw forbidden("album_delete");
+
     const photo = await this.prisma.albumPhoto.findUnique({ where: { id: photoId } });
     if (!photo || photo.albumId !== albumId) throw notFoundPhoto();
 
@@ -321,7 +309,8 @@ export class AlbumsService {
   }
 
   async createCategory(name: string) {
-    const slug = `album-${Date.now()}`;
+    // 並行リクエストでも衝突しない一意な slug を生成（name は日本語のためそのままでは slugify できない）
+    const slug = `album-${randomBytes(6).toString("hex")}`;
     const created = await this.prisma.category.create({
       data: { scope: "album", slug, name },
     });

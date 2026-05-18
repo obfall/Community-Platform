@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { albumsApi } from "@/lib/api/albums";
+import type { CreateAlbumInput, UpdateAlbumInput, AddAlbumPhotosInput } from "@/lib/api/types";
 
 export function useAlbums(query?: {
   page?: number;
@@ -27,12 +28,11 @@ export function useCreateAlbum() {
   const queryClient = useQueryClient();
   const t = useTranslations("albums.toast");
   return useMutation({
-    mutationFn: (data: Parameters<typeof albumsApi.create>[0]) => albumsApi.create(data),
+    mutationFn: (data: CreateAlbumInput) => albumsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       toast.success(t("created"));
     },
-    onError: () => toast.error(t("createFailed"), { id: "album-create-error" }),
   });
 }
 
@@ -40,14 +40,13 @@ export function useUpdateAlbum() {
   const queryClient = useQueryClient();
   const t = useTranslations("albums.toast");
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateAlbumInput }) =>
       albumsApi.update(id, data),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       queryClient.invalidateQueries({ queryKey: ["albums", vars.id] });
       toast.success(t("updated"));
     },
-    onError: () => toast.error(t("updateFailed"), { id: "album-update-error" }),
   });
 }
 
@@ -60,7 +59,6 @@ export function useDeleteAlbum() {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       toast.success(t("deleted"));
     },
-    onError: () => toast.error(t("deleteFailed"), { id: "album-delete-error" }),
   });
 }
 
@@ -68,19 +66,13 @@ export function useAddAlbumPhotos() {
   const queryClient = useQueryClient();
   const t = useTranslations("albums.toast");
   return useMutation({
-    mutationFn: ({
-      albumId,
-      photos,
-    }: {
-      albumId: string;
-      photos: Array<{ fileId: string; title?: string; caption?: string }>;
-    }) => albumsApi.addPhotos(albumId, photos),
+    mutationFn: ({ albumId, photos }: { albumId: string; photos: AddAlbumPhotosInput[] }) =>
+      albumsApi.addPhotos(albumId, photos),
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
       toast.success(t("photosAdded"));
     },
-    onError: () => toast.error(t("photosAddFailed"), { id: "album-photos-add-error" }),
   });
 }
 
@@ -95,7 +87,6 @@ export function useRemoveAlbumPhoto() {
       queryClient.invalidateQueries({ queryKey: ["albums", vars.albumId] });
       toast.success(t("photoRemoved"));
     },
-    onError: () => toast.error(t("photoRemoveFailed"), { id: "album-photo-remove-error" }),
   });
 }
 
@@ -116,6 +107,5 @@ export function useCreateAlbumCategory() {
       queryClient.invalidateQueries({ queryKey: ["albums", "categories"] });
       toast.success(t("categoryCreated"));
     },
-    onError: () => toast.error(t("categoryCreateFailed"), { id: "album-category-create-error" }),
   });
 }

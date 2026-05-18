@@ -329,25 +329,61 @@ describe("AlbumsService", () => {
   // addPhotos: 写真追加
   // ============================================================================
   describe("addPhotos: 写真追加", () => {
+    const memberUser = { id: "u-1", role: "member" };
+    const otherUser = { id: "u-2", role: "member" };
+    const adminUser = { id: "u-3", role: "admin" };
+    const baseAlbum = { id: "a-1", deletedAt: null, createdByUserId: "u-1" };
+
     it("アルバムが無ければ NOT_FOUND", async () => {
       prismaMock.album.findUnique.mockResolvedValue(null);
-      await expect(service.addPhotos("a-1", "u-1", [{ fileId: "f-1" }])).rejects.toMatchObject({
-        code: ErrorCode.NOT_FOUND,
+      await expect(service.addPhotos("a-1", memberUser, [{ fileId: "f-1" }])).rejects.toMatchObject(
+        {
+          code: ErrorCode.NOT_FOUND,
+        },
+      );
+    });
+
+    it("論理削除済みアルバムなら NOT_FOUND", async () => {
+      prismaMock.album.findUnique.mockResolvedValue({ ...baseAlbum, deletedAt: new Date() });
+      await expect(service.addPhotos("a-1", memberUser, [{ fileId: "f-1" }])).rejects.toMatchObject(
+        {
+          code: ErrorCode.NOT_FOUND,
+        },
+      );
+    });
+
+    it("作成者ではない一般ユーザーが追加しようとすると FORBIDDEN（IDOR 対策）", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
+      await expect(service.addPhotos("a-1", otherUser, [{ fileId: "f-1" }])).rejects.toMatchObject({
+        code: ErrorCode.FORBIDDEN,
       });
+      expect(prismaMock.albumPhoto.createMany).not.toHaveBeenCalled();
+    });
+
+    it("admin / owner なら他人のアルバムにも追加できる", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
+      prismaMock.albumPhoto.count.mockResolvedValue(1);
+      prismaMock.album.update.mockResolvedValue({});
+
+      await service.addPhotos("a-1", adminUser, [{ fileId: "f-x" }]);
+      expect(prismaMock.albumPhoto.createMany).toHaveBeenCalled();
     });
 
     it("既存写真が無い場合は最初の写真をカバー画像として登録する", async () => {
-      prismaMock.album.findUnique.mockResolvedValue({ id: "a-1", deletedAt: null });
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.count.mockResolvedValue(0);
       prismaMock.file.findUnique.mockResolvedValue({ publicUrl: "https://x/y.jpg" });
       prismaMock.album.update.mockResolvedValue({});
 
-      const result = await service.addPhotos("a-1", "u-1", [{ fileId: "f-1" }, { fileId: "f-2" }]);
+      const result = await service.addPhotos("a-1", memberUser, [
+        { fileId: "f-1" },
+        { fileId: "f-2" },
+      ]);
 
       expect(prismaMock.albumPhoto.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
-          expect.objectContaining({ fileId: "f-1", sortOrder: 0 }),
-          expect.objectContaining({ fileId: "f-2", sortOrder: 1 }),
+          expect.objectContaining({ fileId: "f-1", sortOrder: 0, uploadedByUserId: "u-1" }),
+          expect.objectContaining({ fileId: "f-2", sortOrder: 1, uploadedByUserId: "u-1" }),
         ]),
       });
       expect(prismaMock.album.update).toHaveBeenCalledWith({
@@ -358,11 +394,11 @@ describe("AlbumsService", () => {
     });
 
     it("既存写真がある場合は coverPhotoUrl は更新せず photoCount のみ加算する", async () => {
-      prismaMock.album.findUnique.mockResolvedValue({ id: "a-1", deletedAt: null });
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.count.mockResolvedValue(3);
       prismaMock.album.update.mockResolvedValue({});
 
-      await service.addPhotos("a-1", "u-1", [{ fileId: "f-x" }]);
+      await service.addPhotos("a-1", memberUser, [{ fileId: "f-x" }]);
 
       expect(prismaMock.file.findUnique).not.toHaveBeenCalled();
       expect(prismaMock.album.update).toHaveBeenCalledWith({
@@ -372,11 +408,11 @@ describe("AlbumsService", () => {
     });
 
     it("sortOrder は既存写真数 + 配列 index の連番になる", async () => {
-      prismaMock.album.findUnique.mockResolvedValue({ id: "a-1", deletedAt: null });
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.count.mockResolvedValue(5);
       prismaMock.album.update.mockResolvedValue({});
 
-      await service.addPhotos("a-1", "u-1", [{ fileId: "f-1" }, { fileId: "f-2" }]);
+      await service.addPhotos("a-1", memberUser, [{ fileId: "f-1" }, { fileId: "f-2" }]);
 
       expect(prismaMock.albumPhoto.createMany).toHaveBeenCalledWith({
         data: [
@@ -391,27 +427,62 @@ describe("AlbumsService", () => {
   // removePhoto: 写真削除
   // ============================================================================
   describe("removePhoto: 写真削除", () => {
+    const memberUser = { id: "u-1", role: "member" };
+    const otherUser = { id: "u-2", role: "member" };
+    const adminUser = { id: "u-3", role: "admin" };
+    const baseAlbum = { id: "a-1", deletedAt: null, createdByUserId: "u-1" };
+
+    it("アルバムが無ければ NOT_FOUND", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(null);
+      await expect(service.removePhoto("a-1", "p-1", memberUser)).rejects.toMatchObject({
+        code: ErrorCode.NOT_FOUND,
+      });
+      expect(prismaMock.albumPhoto.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("作成者ではない一般ユーザーが削除しようとすると FORBIDDEN（破壊的 IDOR 対策）", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
+      await expect(service.removePhoto("a-1", "p-1", otherUser)).rejects.toMatchObject({
+        code: ErrorCode.FORBIDDEN,
+      });
+      expect(prismaMock.albumPhoto.findUnique).not.toHaveBeenCalled();
+      expect(prismaMock.albumPhoto.delete).not.toHaveBeenCalled();
+    });
+
+    it("admin / owner なら他人のアルバムの写真も削除できる", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
+      prismaMock.albumPhoto.findUnique.mockResolvedValue({ id: "p-1", albumId: "a-1" });
+      prismaMock.albumPhoto.delete.mockResolvedValue({});
+      prismaMock.album.update.mockResolvedValue({});
+
+      await service.removePhoto("a-1", "p-1", adminUser);
+      expect(prismaMock.albumPhoto.delete).toHaveBeenCalled();
+    });
+
     it("写真が存在しないなら NOT_FOUND", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.findUnique.mockResolvedValue(null);
-      await expect(service.removePhoto("a-1", "p-1")).rejects.toMatchObject({
+      await expect(service.removePhoto("a-1", "p-1", memberUser)).rejects.toMatchObject({
         code: ErrorCode.NOT_FOUND,
       });
     });
 
     it("写真が別アルバム所属だと NOT_FOUND（誤参照防止）", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.findUnique.mockResolvedValue({ id: "p-1", albumId: "other-album" });
-      await expect(service.removePhoto("a-1", "p-1")).rejects.toMatchObject({
+      await expect(service.removePhoto("a-1", "p-1", memberUser)).rejects.toMatchObject({
         code: ErrorCode.NOT_FOUND,
       });
       expect(prismaMock.albumPhoto.delete).not.toHaveBeenCalled();
     });
 
     it("正常時は写真を delete して photoCount を decrement する", async () => {
+      prismaMock.album.findUnique.mockResolvedValue(baseAlbum);
       prismaMock.albumPhoto.findUnique.mockResolvedValue({ id: "p-1", albumId: "a-1" });
       prismaMock.albumPhoto.delete.mockResolvedValue({});
       prismaMock.album.update.mockResolvedValue({});
 
-      await service.removePhoto("a-1", "p-1");
+      await service.removePhoto("a-1", "p-1", memberUser);
       expect(prismaMock.albumPhoto.delete).toHaveBeenCalledWith({ where: { id: "p-1" } });
       expect(prismaMock.album.update).toHaveBeenCalledWith({
         where: { id: "a-1" },

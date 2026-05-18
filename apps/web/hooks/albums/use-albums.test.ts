@@ -80,7 +80,7 @@ describe("albums hooks", () => {
       const { result } = renderHook(() => useCreateAlbum(), { wrapper });
 
       await act(async () => {
-        await result.current.mutateAsync({ title: "新規" } as never);
+        await result.current.mutateAsync({ title: "新規" });
       });
 
       expect(apiMock.create).toHaveBeenCalledWith({ title: "新規" });
@@ -88,18 +88,16 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.create.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useCreateAlbum(), { wrapper });
 
       await act(async () => {
-        await result.current.mutateAsync({ title: "x" } as never).catch(() => {});
+        await result.current.mutateAsync({ title: "x" }).catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("アルバム作成に失敗しました", {
-        id: "album-create-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 
@@ -120,7 +118,7 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums", "a-1"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.update.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useUpdateAlbum(), { wrapper });
@@ -129,9 +127,7 @@ describe("albums hooks", () => {
         await result.current.mutateAsync({ id: "a-1", data: { title: "x" } }).catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("アルバム更新に失敗しました", {
-        id: "album-update-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 
@@ -151,7 +147,7 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.remove.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useDeleteAlbum(), { wrapper });
@@ -160,9 +156,7 @@ describe("albums hooks", () => {
         await result.current.mutateAsync("a-1").catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("アルバム削除に失敗しました", {
-        id: "album-delete-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 
@@ -185,7 +179,7 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums", "a-1"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.addPhotos.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useAddAlbumPhotos(), { wrapper });
@@ -196,9 +190,7 @@ describe("albums hooks", () => {
           .catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("写真の追加に失敗しました", {
-        id: "album-photos-add-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 
@@ -218,7 +210,7 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums", "a-1"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.removePhoto.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useRemoveAlbumPhoto(), { wrapper });
@@ -227,9 +219,7 @@ describe("albums hooks", () => {
         await result.current.mutateAsync({ albumId: "a-1", photoId: "p-1" }).catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("写真の削除に失敗しました", {
-        id: "album-photo-remove-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 
@@ -261,7 +251,7 @@ describe("albums hooks", () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["albums", "categories"] });
     });
 
-    it("失敗時に toast.error が固定 id 付きで呼ばれる", async () => {
+    it("失敗時は個別 toast.error を呼ばずグローバルハンドラに委譲する", async () => {
       apiMock.createCategory.mockRejectedValue(new Error("boom"));
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useCreateAlbumCategory(), { wrapper });
@@ -270,9 +260,7 @@ describe("albums hooks", () => {
         await result.current.mutateAsync("風景").catch(() => {});
       });
 
-      expect(toastMock.error).toHaveBeenCalledWith("カテゴリ作成に失敗しました", {
-        id: "album-category-create-error",
-      });
+      expect(toastMock.error).not.toHaveBeenCalled();
     });
   });
 });
