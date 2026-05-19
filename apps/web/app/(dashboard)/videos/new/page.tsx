@@ -25,7 +25,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { ArrowLeft, Upload, Loader2 } from "lucide-react";
-import Link from "next/link";
 import { FileUploadList } from "@/components/file-upload-list";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { VIDEO_PASSWORD_LENGTH, PublishStatus } from "@community-platform/shared";
@@ -125,11 +124,9 @@ export default function NewVideoPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/videos">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <h1 className="text-2xl font-bold">{t("pageTitle")}</h1>
       </div>
 
