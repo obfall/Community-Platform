@@ -30,11 +30,8 @@ import {
 import { ArrowLeft, Eye, EyeOff, Loader2, Upload } from "lucide-react";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-import {
-  MAX_VIDEO_TITLE_LENGTH,
-  VIDEO_PASSWORD_LENGTH,
-  PublishStatus,
-} from "@community-platform/shared";
+import { MAX_VIDEO_TITLE_LENGTH, VIDEO_PASSWORD_LENGTH } from "@community-platform/shared";
+import type { PublishStatus } from "@community-platform/shared";
 import { FileUploadList } from "@/components/file-upload-list";
 import { InstructorList } from "../../_components/instructor-list";
 import { TaskListEditor } from "../../_components/task-list-editor";
@@ -164,15 +161,13 @@ function VideoEditForm({
       newValue = String(nextOrder.nextOrder);
     }
     if (newValue === null) return;
-    // 非同期データを form に反映
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // 非同期データ（nextOrder の解決）を form に反映する正当な用途
     form.setValue("watchOrder", newValue);
   }, [seriesId, nextOrder, watchOrderTouched, originalSeriesId, video.watchOrder, form]);
 
   // パスワード「解除する」チェック時は入力をクリア
   useEffect(() => {
     if (clearPassword) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       form.setValue("password", "");
     }
   }, [clearPassword, form]);
