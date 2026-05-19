@@ -548,7 +548,7 @@ export class VideosService {
         ...(attachmentFileIds.length > 0 && {
           attachments: {
             createMany: {
-              data: (attachmentFileIds as string[]).map((fileId: string, idx: number) => ({
+              data: attachmentFileIds.map((fileId: string, idx: number) => ({
                 fileId,
                 sortOrder: idx,
               })),
