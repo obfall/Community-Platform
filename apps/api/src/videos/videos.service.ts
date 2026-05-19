@@ -2,7 +2,7 @@ import { Injectable, HttpStatus } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { NotificationsService } from "@/notifications/notifications.service";
 import { BusinessException } from "@/common/exceptions";
-import { ErrorCode } from "@community-platform/shared";
+import { ErrorCode, VIDEO_WATCH_COMPLETION_THRESHOLD } from "@community-platform/shared";
 import {
   AUTHOR_SELECT,
   buildPaginationMeta,
@@ -55,6 +55,19 @@ export class VideosService {
     return this.findAllStandard(query, currentUserId);
   }
 
+  /**
+   * currentUserId が admin/owner ロールなら true。未認証や member 以下なら false。
+   * 公開ステータス / 期限切れフィルタの分岐に使う共通判定。
+   */
+  private async isPrivilegedUser(currentUserId?: string): Promise<boolean> {
+    if (!currentUserId) return false;
+    const user = await this.prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { role: true },
+    });
+    return user?.role === "admin" || user?.role === "owner";
+  }
+
   private async findAllStandard(query: VideoQueryDto, currentUserId?: string) {
     const { page, limit, skip } = extractPagination(query);
 
@@ -62,16 +75,11 @@ export class VideosService {
     if (query.publishStatus) where.publishStatus = query.publishStatus;
     if (query.seriesId) where.seriesId = query.seriesId;
 
-    // admin/owner 以外は公開中の動画のみに制限
-    const currentUser = currentUserId
-      ? await this.prisma.user.findUnique({
-          where: { id: currentUserId },
-          select: { role: true },
-        })
-      : null;
-    const isPrivileged = currentUser?.role === "admin" || currentUser?.role === "owner";
+    // admin/owner 以外は公開中の動画のみ／閲覧期限切れを除外
+    const isPrivileged = await this.isPrivilegedUser(currentUserId);
     if (!isPrivileged) {
       where.publishStatus = "published";
+      where.OR = [{ availableUntil: null }, { availableUntil: { gt: new Date() } }];
     }
 
     // 視聴状態フィルタ（自分視点）
@@ -99,13 +107,51 @@ export class VideosService {
     return this.formatVideoList(videos, total, page, limit);
   }
 
-  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
+  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（公開状態 / 期限 / 視聴状態）。 */
   private async searchByPgroonga(query: VideoQueryDto, escaped: string, currentUserId?: string) {
     const { page, limit, offset } = extractPagination(query);
+
+    // admin/owner 以外は published のみ + 閲覧期限切れを除外（通常一覧と同じ挙動）
+    const isPrivileged = await this.isPrivilegedUser(currentUserId);
+    const publishFilter = isPrivileged
+      ? query.publishStatus
+        ? Prisma.sql`AND publish_status = ${query.publishStatus}::"PublishStatus"`
+        : Prisma.empty
+      : Prisma.sql`AND publish_status = 'published'::"PublishStatus"`;
+    const expiryFilter = isPrivileged
+      ? Prisma.empty
+      : Prisma.sql`AND (available_until IS NULL OR available_until > NOW())`;
+
+    // 視聴状態フィルタ（自分視点 / completed = true を視聴済み扱い）
+    let watchFilter: Prisma.Sql = Prisma.empty;
+    if (query.watchStatus && currentUserId) {
+      if (query.watchStatus === "watched") {
+        watchFilter = Prisma.sql`
+          AND EXISTS (
+            SELECT 1 FROM video_watch_progress p
+            WHERE p.video_id = videos.id
+              AND p.user_id = ${currentUserId}::uuid
+              AND p.is_completed = true
+          )
+        `;
+      } else {
+        watchFilter = Prisma.sql`
+          AND NOT EXISTS (
+            SELECT 1 FROM video_watch_progress p
+            WHERE p.video_id = videos.id
+              AND p.user_id = ${currentUserId}::uuid
+              AND p.is_completed = true
+          )
+        `;
+      }
+    }
 
     const where = Prisma.sql`
       deleted_at IS NULL
       ${query.seriesId ? Prisma.sql`AND series_id = ${query.seriesId}::uuid` : Prisma.empty}
+      ${publishFilter}
+      ${expiryFilter}
+      ${watchFilter}
     `;
 
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
@@ -207,14 +253,7 @@ export class VideosService {
   async findOne(id: string, currentUserId?: string) {
     // admin/owner 以外は公開中の動画のみ閲覧可能
     // currentUserId が未指定の場合は内部呼び出し扱いで公開状態フィルタをスキップ
-    const currentUser = currentUserId
-      ? await this.prisma.user.findUnique({
-          where: { id: currentUserId },
-          select: { role: true },
-        })
-      : null;
-    const isPrivileged =
-      !currentUserId || currentUser?.role === "admin" || currentUser?.role === "owner";
+    const isPrivileged = !currentUserId || (await this.isPrivilegedUser(currentUserId));
 
     const video = await this.prisma.video.findFirst({
       where: {
@@ -246,8 +285,6 @@ export class VideosService {
       },
     });
     if (!video) throw videoNotFound();
-
-    await this.prisma.video.update({ where: { id }, data: { viewCount: { increment: 1 } } });
 
     // prev/next in series
     let prevVideo: { id: string; title: string; watchOrder: number | null } | null = null;
@@ -331,6 +368,23 @@ export class VideosService {
     };
   }
 
+  // ───────────────────── recordView ─────────────────────
+
+  /**
+   * 再生開始時に再生回数を +1 する。フロントの動画 play イベントから呼ばれる。
+   * 詳細ページの単なる表示やポーリングではカウントしない方針（findOne とは分離）。
+   */
+  async recordView(id: string) {
+    const video = await this.prisma.video.findUnique({
+      where: { id },
+      select: { id: true, deletedAt: true },
+    });
+    if (!video || video.deletedAt) throw videoNotFound();
+
+    await this.prisma.video.update({ where: { id }, data: { viewCount: { increment: 1 } } });
+    return { ok: true };
+  }
+
   // ───────────────────── create / createForUpload ─────────────────────
 
   async create(userId: string, dto: CreateVideoDto) {
@@ -338,76 +392,84 @@ export class VideosService {
       ? await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS)
       : undefined;
 
-    const video = await this.prisma.video.create({
-      data: {
-        title: dto.title,
-        description: dto.description,
-        videoProvider: dto.videoProvider,
-        videoExternalId: dto.videoExternalId,
-        playbackUrl: dto.playbackUrl,
-        thumbnailUrl: dto.thumbnailUrl,
-        seriesId: dto.seriesId,
-        watchOrder: dto.watchOrder,
-        publishStatus: dto.publishStatus ?? "draft",
-        availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : undefined,
-        passwordHash,
-        createdByUserId: userId,
-        ...(dto.instructors?.length && {
-          instructors: {
-            createMany: {
-              data: dto.instructors.map((ins, idx) => ({
-                userId: ins.userId ?? null,
-                name: ins.name,
-                affiliation: ins.affiliation ?? null,
-                sortOrder: idx,
-              })),
-            },
-          },
-        }),
-        ...(dto.attachmentFileIds?.length && {
-          attachments: {
-            createMany: {
-              data: dto.attachmentFileIds.map((fileId, idx) => ({
-                fileId,
-                sortOrder: idx,
-              })),
-            },
-          },
-        }),
-        ...(dto.tasks?.length &&
-          !dto.tasks.some((t) => t.fileIds?.length) && {
-            tasks: {
+    // 親 video.create と fileIds 付きタスクの個別 create を 1 トランザクション内で実行する。
+    // createMany はネストできない（attachments の作成と同時に親 task を作れない）ため、
+    // fileIds を持つタスクのみ for ループで子 attachments を含めて create する。
+    // トランザクション化していないと、N 件中 K 件目で失敗すると親 video と一部タスクのみが残る。
+    const video = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.video.create({
+        data: {
+          title: dto.title,
+          description: dto.description,
+          videoProvider: dto.videoProvider,
+          videoExternalId: dto.videoExternalId,
+          playbackUrl: dto.playbackUrl,
+          thumbnailUrl: dto.thumbnailUrl,
+          seriesId: dto.seriesId,
+          watchOrder: dto.watchOrder,
+          publishStatus: dto.publishStatus ?? "draft",
+          availableUntil: dto.availableUntil ? new Date(dto.availableUntil) : undefined,
+          passwordHash,
+          createdByUserId: userId,
+          ...(dto.instructors?.length && {
+            instructors: {
               createMany: {
-                data: dto.tasks.map((t, idx) => ({
-                  title: t.title,
-                  description: t.description ?? null,
-                  sortOrder: t.sortOrder ?? idx,
+                data: dto.instructors.map((ins, idx) => ({
+                  userId: ins.userId ?? null,
+                  name: ins.name,
+                  affiliation: ins.affiliation ?? null,
+                  sortOrder: idx,
                 })),
               },
             },
           }),
-      },
-    });
-
-    // fileIds 付きタスクは個別に create（createMany はネスト不可）
-    if (dto.tasks?.some((t) => t.fileIds?.length)) {
-      for (let idx = 0; idx < dto.tasks.length; idx++) {
-        const t = dto.tasks[idx]!;
-        if (t.fileIds?.length) {
-          await this.prisma.videoTask.create({
-            data: {
-              videoId: video.id,
-              title: t.title,
-              description: t.description ?? null,
-              sortOrder: t.sortOrder ?? idx,
-              attachments: {
-                createMany: { data: t.fileIds.map((fileId, i) => ({ fileId, sortOrder: i })) },
+          ...(dto.attachmentFileIds?.length && {
+            attachments: {
+              createMany: {
+                data: dto.attachmentFileIds.map((fileId, idx) => ({
+                  fileId,
+                  sortOrder: idx,
+                })),
               },
             },
-          });
+          }),
+          ...(dto.tasks?.length &&
+            !dto.tasks.some((t) => t.fileIds?.length) && {
+              tasks: {
+                createMany: {
+                  data: dto.tasks.map((t, idx) => ({
+                    title: t.title,
+                    description: t.description ?? null,
+                    sortOrder: t.sortOrder ?? idx,
+                  })),
+                },
+              },
+            }),
+        },
+      });
+
+      // fileIds 付きタスクは個別に create（createMany はネスト不可）
+      if (dto.tasks?.some((t) => t.fileIds?.length)) {
+        for (let idx = 0; idx < dto.tasks.length; idx++) {
+          const t = dto.tasks[idx]!;
+          if (t.fileIds?.length) {
+            await tx.videoTask.create({
+              data: {
+                videoId: created.id,
+                title: t.title,
+                description: t.description ?? null,
+                sortOrder: t.sortOrder ?? idx,
+                attachments: {
+                  createMany: { data: t.fileIds.map((fileId, i) => ({ fileId, sortOrder: i })) },
+                },
+              },
+            });
+          }
         }
       }
-    }
+
+      return created;
+    });
 
     return this.findOne(video.id);
   }
@@ -431,10 +493,30 @@ export class VideosService {
       ? await bcrypt.hash(data.password, BCRYPT_SALT_ROUNDS)
       : undefined;
 
-    // multipart body から JSON 文字列をパース
-    const instructors = data.instructors ? JSON.parse(data.instructors) : [];
-    const attachmentFileIds = data.attachmentFileIds ? JSON.parse(data.attachmentFileIds) : [];
-    const tasks = data.tasks ? JSON.parse(data.tasks) : [];
+    // multipart body から JSON 文字列をパース。不正 JSON は 400 で返す
+    const parseField = <T>(field: string | undefined, fieldName: string): T[] => {
+      if (!field) return [];
+      try {
+        return JSON.parse(field) as T[];
+      } catch {
+        throw new BusinessException(
+          ErrorCode.VALIDATION_FAILED,
+          HttpStatus.BAD_REQUEST,
+          `${fieldName} の JSON 形式が不正です`,
+          undefined,
+          "errors.validation.invalid_json",
+        );
+      }
+    };
+    const instructors = parseField<{ userId?: string; name: string; affiliation?: string }>(
+      data.instructors,
+      "instructors",
+    );
+    const attachmentFileIds = parseField<string>(data.attachmentFileIds, "attachmentFileIds");
+    const tasks = parseField<{ title: string; description?: string; sortOrder?: number }>(
+      data.tasks,
+      "tasks",
+    );
 
     return this.prisma.video.create({
       data: {
@@ -828,7 +910,9 @@ export class VideosService {
     userId: string,
     data: { watchedSeconds: number; lastPositionSeconds: number; totalSeconds: number },
   ) {
-    const isCompleted = data.watchedSeconds >= data.totalSeconds * 0.9;
+    const isCompleted =
+      data.totalSeconds > 0 &&
+      data.watchedSeconds >= data.totalSeconds * VIDEO_WATCH_COMPLETION_THRESHOLD;
 
     return this.prisma.videoWatchProgress.upsert({
       where: { videoId_userId: { videoId, userId } },

@@ -44,6 +44,9 @@ export const videosApi = {
 
   getVideo: (id: string) => apiClient.get<VideoDetail>(`/videos/${id}`).then((r) => r.data),
 
+  // 再生開始時に再生回数を +1（プレイヤー play 時に 1 回だけ呼ぶ）
+  recordView: (id: string) => apiClient.post(`/videos/${id}/view`).then((r) => r.data),
+
   updateVideo: (id: string, data: UpdatePayload) =>
     apiClient.patch<VideoDetail>(`/videos/${id}`, data).then((r) => r.data),
 

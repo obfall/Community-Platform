@@ -12,21 +12,27 @@ test.describe("動画タスク進捗ページ（admin 専用）", () => {
     await expect(page.getByRole("heading", { name: "動画" })).toBeVisible({ timeout: 30_000 });
     await page.waitForLoadState("networkidle");
 
-    // task を持っているのはシードの最初の 5 本（05-videos.ts）。
-    // 1 番目の動画詳細を開く。
-    const firstLink = page.locator('a[href^="/videos/"]').first();
-    await expect(firstLink).toBeVisible({ timeout: 30_000 });
-    await firstLink.click();
+    // seed の動画順序に依存しないよう、表示中の動画リンク一覧を取得して
+    // 「タスク進捗を見る」リンクが出る最初の動画を見つけて遷移する。
+    // 最大 10 件まで試行（それ以上はテスト対象の選び方が不適切）。
+    const videoLinks = await page.locator('a[href^="/videos/"]').all();
+    const candidateHrefs = (
+      await Promise.all(videoLinks.map((l) => l.getAttribute("href")))
+    ).filter((h): h is string => !!h && /^\/videos\/[0-9a-f-]+$/.test(h));
 
-    await page.waitForURL(/\/videos\/[0-9a-f-]+$/, { timeout: 30_000 });
+    let taskProgressUrl: string | null = null;
+    for (const href of candidateHrefs.slice(0, 10)) {
+      await page.goto(href);
+      await page.waitForURL(/\/videos\/[0-9a-f-]+$/, { timeout: 30_000 });
+      const link = page.getByRole("link", { name: "タスク進捗を見る" });
+      if (await link.isVisible().catch(() => false)) {
+        taskProgressUrl = `${href}/task-progress`;
+        break;
+      }
+    }
+    test.skip(!taskProgressUrl, "タスクを持つ動画が見つからない（seed を要確認）");
 
-    // 「タスク進捗を見る」リンクが admin に表示される（videos.detail.taskProgressLink）。
-    // タスクが無い動画を引いた場合はテストをスキップ。
-    const taskProgressLink = page.getByRole("link", { name: "タスク進捗を見る" });
-    const hasTaskProgress = await taskProgressLink.isVisible().catch(() => false);
-    test.skip(!hasTaskProgress, "この動画にはタスクが無いため進捗ページが存在しない");
-
-    await taskProgressLink.click();
+    await page.goto(taskProgressUrl!);
     await page.waitForURL(/\/task-progress$/, { timeout: 30_000 });
 
     // タイトル（videos.taskProgress.title）

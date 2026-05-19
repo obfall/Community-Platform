@@ -79,6 +79,15 @@
     }
   },
   "form": {
+    "validation": {
+      "titleRequired": "タイトルを入力してください",
+      "titleMax": "タイトルは {max} 文字以内で入力してください",
+      "instructorNameRequired": "講師名を入力してください",
+      "instructorNameMax": "講師名は {max} 文字以内で入力してください",
+      "taskTitleRequired": "タスク名を入力してください",
+      "taskTitleMax": "タスク名は {max} 文字以内で入力してください",
+      "passwordDigits": "パスワードは {len} 桁の半角数字で入力してください"
+    },
     "card": {
       "seriesOrder": "シリーズ・順番",
       "videoInfo": "動画情報",
@@ -123,10 +132,12 @@
     "notFound": "動画が見つかりません",
     "metaPrefix": "{name} ・ {viewCount}回再生",
     "metaDurationSuffix": " ・ {duration}",
+    "metaAvailableUntilSuffix": " ・ 閲覧期限: {date}",
     "passwordProtectedBadge": "パスワード保護",
     "availableUntilLabel": "閲覧期限: {date}",
     "availableUntilExpiredLabel": "閲覧期限: {date}（期限切れ）",
-    "watchCompletedBadge": "視聴完了",
+    "watchCompletedBadge": "視聴済み",
+    "watchUnwatchedBadge": "未視聴",
     "nextVideoCta": "次の動画へ進みましょう",
     "nextVideoButton": "{title} へ →",
     "descriptionTitle": "概要",

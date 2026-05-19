@@ -39,6 +39,11 @@ test.describe("動画パスワード関連 UI", () => {
       timeout: 30_000,
     });
 
+    // 2 回目の編集で同じ動画を再訪するために URL を保持する。
+    // 「最初の行をもう一度押す」だと並列実行や seed 順序変化で別動画に当たる可能性があるため、
+    // ID ベースで対象動画を固定する。
+    const editUrl = page.url();
+
     // videos.form.label.password
     await expect(page.getByText("パスワード（4桁数字）", { exact: false })).toBeVisible();
 
@@ -54,16 +59,11 @@ test.describe("動画パスワード関連 UI", () => {
     await page.getByRole("button", { name: "保存" }).click();
     await page.waitForURL(/\/videos\/manage$/, { timeout: 30_000 });
 
-    // もう一度同じ動画を編集して「パスワード保護を解除する」チェックボックスが表示されることを確認
-    const xlEdit2 = page.getByRole("button", { name: "編集" }).first();
-    const dropdownMenu2 = page.getByRole("button", { name: "Open menu" }).nth(1);
-    if (await xlEdit2.isVisible().catch(() => false)) {
-      await xlEdit2.click();
-    } else {
-      await dropdownMenu2.click();
-      await page.getByRole("menuitem", { name: "編集" }).click();
-    }
-    await page.waitForURL(/\/videos\/[0-9a-f-]+\/edit$/, { timeout: 30_000 });
+    // 同じ動画を URL 直指定で再訪（順序依存の排除）
+    await page.goto(editUrl);
+    await expect(page.getByRole("heading", { name: "動画編集" })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // videos.form.label.passwordClearLabel (hasPassword=true でのみ表示)
     await expect(page.getByText("パスワード保護を解除する")).toBeVisible({ timeout: 15_000 });

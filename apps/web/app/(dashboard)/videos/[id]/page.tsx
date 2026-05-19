@@ -24,8 +24,8 @@ import {
   ArrowLeft,
   Download,
   CheckCircle,
+  Circle,
   Shield,
-  Clock,
   BarChart3,
   Paperclip,
 } from "lucide-react";
@@ -98,9 +98,6 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
     return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
   if (!video) return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
 
-  // 閲覧期限チェック
-  const isExpired = video.availableUntil && new Date(video.availableUntil) < new Date();
-
   const allTasksComplete =
     video.tasks.length > 0 && video.tasks.every((t) => t.status === "completed");
 
@@ -130,12 +127,27 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
                 {t("passwordProtectedBadge")}
               </Badge>
             )}
+            {progress?.isCompleted ? (
+              <Badge variant="default" className="gap-1">
+                <CheckCircle className="h-3 w-3" />
+                {t("watchCompletedBadge")}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="gap-1">
+                <Circle className="h-3 w-3" />
+                {t("watchUnwatchedBadge")}
+              </Badge>
+            )}
           </div>
           <h1 className="text-2xl font-bold">{video.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("metaPrefix", { name: video.createdBy.name, viewCount: video.viewCount })}
             {video.durationSeconds &&
               t("metaDurationSuffix", { duration: formatDuration(video.durationSeconds) })}
+            {video.availableUntil &&
+              t("metaAvailableUntilSuffix", {
+                date: new Date(video.availableUntil).toLocaleDateString("ja-JP"),
+              })}
           </p>
         </div>
         {isAdmin && video.tasks.length > 0 && (
@@ -155,51 +167,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
           streamStatus={video.streamStatus}
           videoId={video.id}
           durationSeconds={video.durationSeconds}
-          resumePosition={progress?.lastPositionSeconds}
         />
-      )}
-
-      {/* 閲覧期限バナー */}
-      {video.availableUntil && (
-        <Card className={isExpired ? "border-destructive" : ""}>
-          <CardContent className="flex items-center gap-2 py-3">
-            <Clock className="h-4 w-4" />
-            <span className="text-sm">
-              {isExpired
-                ? t("availableUntilExpiredLabel", {
-                    date: new Date(video.availableUntil).toLocaleDateString("ja-JP"),
-                  })
-                : t("availableUntilLabel", {
-                    date: new Date(video.availableUntil).toLocaleDateString("ja-JP"),
-                  })}
-            </span>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 視聴進捗 */}
-      {progress && (
-        <Card>
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-primary"
-                style={{
-                  width: `${Math.round((progress.watchedSeconds / progress.totalSeconds) * 100)}%`,
-                }}
-              />
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {formatDuration(progress.watchedSeconds)} / {formatDuration(progress.totalSeconds)}
-            </span>
-            {progress.isCompleted && (
-              <Badge variant="default" className="gap-1">
-                <CheckCircle className="h-3 w-3" />
-                {t("watchCompletedBadge")}
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
       )}
 
       {/* シリーズナビ */}

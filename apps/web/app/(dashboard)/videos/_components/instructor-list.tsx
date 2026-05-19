@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, User } from "lucide-react";
+import { Plus, X, User, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMembers } from "@/hooks/members/use-members";
+import { usersApi } from "@/lib/api/members";
 import type { InstructorInput } from "@/lib/api/types";
 
 interface Props {
@@ -78,6 +79,7 @@ function InstructorRow({
   const [isExternal, setIsExternal] = useState(!value.userId);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [pickingId, setPickingId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: membersData } = useMembers(
@@ -105,18 +107,27 @@ function InstructorRow({
     }
   };
 
-  const selectMember = (member: {
-    id: string;
-    name: string;
-    affiliations?: { organizationName: string; title: string | null }[];
-  }) => {
-    const first = member.affiliations?.[0];
-    const affiliation = first
-      ? [first.organizationName, first.title].filter(Boolean).join(" / ")
-      : "";
-    onChange({ userId: member.id, name: member.name, affiliation });
-    setSearch("");
-    setIsOpen(false);
+  const selectMember = async (member: { id: string; name: string }) => {
+    setPickingId(member.id);
+    try {
+      const detail = await usersApi.getUser(member.id);
+      const primary = detail.affiliations[0];
+      const affiliation = primary
+        ? primary.title
+          ? `${primary.organizationName} ${primary.title}`
+          : primary.organizationName
+        : "";
+      onChange({ userId: member.id, name: member.name, affiliation });
+    } catch (err) {
+      // 詳細取得失敗時は基本情報のみで確定（フォールバック）。原因を握り潰さず警告を残す。
+      // グローバル QueryCache.onError 経路を通らない手動 fetch なのでここで明示的に log。
+      console.warn(`Failed to fetch user detail for instructor picker (userId=${member.id})`, err);
+      onChange({ userId: member.id, name: member.name, affiliation: "" });
+    } finally {
+      setPickingId(null);
+      setSearch("");
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -158,10 +169,12 @@ function InstructorRow({
                 <button
                   key={m.id}
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                  disabled={pickingId !== null}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent disabled:opacity-50"
                   onClick={() => selectMember(m)}
                 >
-                  {m.name}
+                  <span className="flex-1">{m.name}</span>
+                  {pickingId === m.id && <Loader2 className="h-3 w-3 animate-spin" />}
                 </button>
               ))}
             </div>

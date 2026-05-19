@@ -36,3 +36,10 @@ export const MAX_VIDEO_UPLOAD_BYTES = 500 * 1024 * 1024;
 /** 動画パスワードの桁数 (4桁の半角数字) */
 export const VIDEO_PASSWORD_PATTERN = /^(\d{4})?$/;
 export const VIDEO_PASSWORD_LENGTH = 4;
+
+/**
+ * 視聴完了とみなす再生比率（watchedSeconds / totalSeconds の閾値）。
+ * バック (updateWatchProgress の isCompleted 判定) と
+ * フロント (詳細ページの「次の動画 CTA」表示判定など) で共通。
+ */
+export const VIDEO_WATCH_COMPLETION_THRESHOLD = 0.9;

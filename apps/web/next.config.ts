@@ -95,6 +95,8 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // 開発環境の MinIO（R2_PUBLIC_URL=http://localhost:9000/...）
+      { protocol: "http", hostname: "localhost", port: "9000" },
     ],
     // モダンフォーマット自動配信（PNG/JPEG → AVIF/WebP に変換）
     formats: ["image/avif", "image/webp"],

@@ -17,6 +17,12 @@ export function useVideo(id: string | undefined) {
     queryKey: ["videos", id],
     queryFn: () => videosApi.getVideo(id!),
     enabled: !!id,
+    // HLS 変換中はバックエンドが非同期でステータスを更新するため、
+    // uploading / processing の間だけ 5 秒ごとにポーリングして ready / error を拾う。
+    refetchInterval: (query) => {
+      const status = query.state.data?.streamStatus;
+      return status === "uploading" || status === "processing" ? 5000 : false;
+    },
   });
 }
 
@@ -37,6 +43,13 @@ export function useUpdateVideoProgress() {
       videoId: string;
       data: { watchedSeconds: number; lastPositionSeconds: number; totalSeconds: number };
     }) => videosApi.updateProgress(videoId, data),
+  });
+}
+
+// 再生開始時に再生回数を +1 する mutation。プレイヤー側の play イベントから 1 回だけ呼ぶ。
+export function useRecordVideoView() {
+  return useMutation({
+    mutationFn: (videoId: string) => videosApi.recordView(videoId),
   });
 }
 
@@ -67,7 +80,7 @@ export function useCreateVideoSeries() {
       queryClient.invalidateQueries({ queryKey: ["videos", "series"] });
       toast.success(t("createSeriesSuccess"));
     },
-    onError: () => toast.error(t("createSeriesError")),
+    // エラートーストはグローバルの MutationCache.onError 任せ（Phase 11.3 規約）
   });
 }
 
@@ -98,7 +111,7 @@ export function useUpdateVideo() {
       queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
       toast.success(t("updateSuccess"));
     },
-    onError: () => toast.error(t("updateError")),
+    // エラートーストはグローバル任せ
   });
 }
 
@@ -111,7 +124,7 @@ export function useDeleteVideo() {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
       toast.success(t("deleteSuccess"));
     },
-    onError: () => toast.error(t("deleteError")),
+    // エラートーストはグローバル任せ
   });
 }
 
@@ -160,7 +173,7 @@ export function useSendTaskReminder() {
     onSuccess: (data) => {
       toast.success(t("reminderSuccess", { count: data.sentCount }));
     },
-    onError: () => toast.error(t("reminderError")),
+    // エラートーストはグローバル任せ
   });
 }
 
@@ -174,6 +187,6 @@ export function useReplaceVideoFile() {
       queryClient.invalidateQueries({ queryKey: ["videos", variables.id] });
       toast.success(t("replaceFileSuccess"));
     },
-    onError: () => toast.error(t("replaceFileError")),
+    // エラートーストはグローバル任せ
   });
 }

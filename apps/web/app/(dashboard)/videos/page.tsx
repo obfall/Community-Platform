@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useVideos, useVideoSeries } from "@/hooks/videos/use-videos";
 import { SearchInput } from "@/components/search-input";
@@ -134,11 +135,12 @@ export default function VideosPage() {
               <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
                 <div className="relative h-40 bg-muted">
                   {v.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={v.thumbnailUrl}
                       alt={v.title}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center">

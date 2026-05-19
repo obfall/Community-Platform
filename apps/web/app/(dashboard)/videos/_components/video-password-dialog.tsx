@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Lock } from "lucide-react";
 import { useVerifyVideoPassword } from "@/hooks/videos/use-videos";
-import { toast } from "sonner";
 import { VIDEO_PASSWORD_LENGTH } from "@community-platform/shared";
 
 const STORAGE_KEY = "videosUnlocked";
@@ -57,10 +56,8 @@ export function VideoPasswordDialog({ videoId, onUnlocked }: Props) {
           addUnlockedId(videoId);
           onUnlocked();
         },
-        onError: () => {
-          toast.error(t("errorToast"));
-          setPassword("");
-        },
+        // エラートーストはグローバル任せ。入力欄のクリアだけはこの場で行う。
+        onError: () => setPassword(""),
       },
     );
   };

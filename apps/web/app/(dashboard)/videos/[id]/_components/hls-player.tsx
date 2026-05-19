@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import Hls from "hls.js";
 import { useTranslations } from "next-intl";
-import { useUpdateVideoProgress } from "@/hooks/videos/use-videos";
+import { useUpdateVideoProgress, useRecordVideoView } from "@/hooks/videos/use-videos";
 import { Loader2, Play } from "lucide-react";
 
 interface HlsPlayerProps {
@@ -11,20 +11,15 @@ interface HlsPlayerProps {
   streamStatus: string;
   videoId: string;
   durationSeconds: number | null;
-  resumePosition?: number;
 }
 
-export function HlsPlayer({
-  playbackUrl,
-  streamStatus,
-  videoId,
-  durationSeconds,
-  resumePosition,
-}: HlsPlayerProps) {
+export function HlsPlayer({ playbackUrl, streamStatus, videoId, durationSeconds }: HlsPlayerProps) {
   const t = useTranslations("videos.player");
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const viewRecordedRef = useRef(false);
   const updateProgress = useUpdateVideoProgress();
+  const recordView = useRecordVideoView();
 
   // HLS.js 初期化
   useEffect(() => {
@@ -35,11 +30,6 @@ export function HlsPlayer({
       const hls = new Hls();
       hls.loadSource(playbackUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (resumePosition && resumePosition > 0) {
-          video.currentTime = resumePosition;
-        }
-      });
       hlsRef.current = hls;
 
       return () => {
@@ -49,31 +39,40 @@ export function HlsPlayer({
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       // Safari ネイティブ HLS
       video.src = playbackUrl;
-      if (resumePosition && resumePosition > 0) {
-        video.currentTime = resumePosition;
-      }
     }
-  }, [playbackUrl, resumePosition]);
+  }, [playbackUrl]);
 
-  // 視聴進捗を定期保存（30秒ごと）
+  // 視聴進捗は再生終了時にのみ保存する（途中保存はしない方針）。
+  // lastPositionSeconds は 0 を送り、次回視聴時のレジュームは先頭からになる。
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !playbackUrl) return;
 
-    const interval = setInterval(() => {
-      if (video.currentTime > 0 && !video.paused) {
-        updateProgress.mutate({
-          videoId,
-          data: {
-            watchedSeconds: Math.round(video.currentTime),
-            lastPositionSeconds: Math.round(video.currentTime),
-            totalSeconds: Math.round(video.duration || durationSeconds || 0),
-          },
-        });
-      }
-    }, 30000);
+    const handleEnded = () => {
+      const total = Math.round(video.duration || durationSeconds || 0);
+      if (total <= 0) return;
+      updateProgress.mutate({
+        videoId,
+        data: { watchedSeconds: total, lastPositionSeconds: 0, totalSeconds: total },
+      });
+    };
+    video.addEventListener("ended", handleEnded);
+    return () => video.removeEventListener("ended", handleEnded);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playbackUrl, videoId]);
 
-    return () => clearInterval(interval);
+  // 再生開始時に再生回数を +1（同一マウント内で 1 回だけ）
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playbackUrl) return;
+
+    const handlePlay = () => {
+      if (viewRecordedRef.current) return;
+      viewRecordedRef.current = true;
+      recordView.mutate(videoId);
+    };
+    video.addEventListener("play", handlePlay);
+    return () => video.removeEventListener("play", handlePlay);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playbackUrl, videoId]);
 
