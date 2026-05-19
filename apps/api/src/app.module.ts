@@ -59,21 +59,17 @@ import { validateEnv } from "./config/env.config";
     }),
 
     // レートリミット（IP ベース、メモリストレージ）。
-    // dev 環境では HMR + React Query の refetch で 60 req/min が簡単に飽和するため、
-    // dev のみ default / upload を大幅に緩和する。strict は dev でも 5 のままで保護を維持。
-    ThrottlerModule.forRoot(
-      process.env.NODE_ENV === "production"
-        ? [
-            { name: "default", ttl: 60_000, limit: 60 },
-            { name: "strict", ttl: 60_000, limit: 5 },
-            { name: "upload", ttl: 60_000, limit: 10 },
-          ]
-        : [
-            { name: "default", ttl: 60_000, limit: 600 },
-            { name: "strict", ttl: 60_000, limit: 5 },
-            { name: "upload", ttl: 60_000, limit: 100 },
-          ],
-    ),
+    // 注意: @nestjs/throttler v6 では forRoot の配列に複数 throttler を入れると
+    // 全てが全ルートに適用される（最小値が実効値になる）。そのため strict / upload は
+    // ここでは登録せず、各コントローラ側で `@Throttle({ default: { limit, ttl } })` で
+    // インライン上書きする運用にする。
+    // dev 環境では HMR + React Query の refetch で 60 req/min が簡単に飽和するため大幅に緩和。
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === "production" ? 60 : 600,
+      },
+    ]),
 
     // Structured logging (pino)
     LoggerModule.forRoot({

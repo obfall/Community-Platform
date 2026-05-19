@@ -76,7 +76,9 @@ function InstructorRow({
   onRemove: () => void;
 }) {
   const t = useTranslations("videos.instructorList");
-  const [isExternal, setIsExternal] = useState(!value.userId);
+  // 「追加」直後（userId 未設定 + 名前未入力）はメンバー検索モードを既定にする。
+  // 既存データで「userId 無し + 名前あり」= 外部講師として保存済みの場合は外部モードで開く。
+  const [isExternal, setIsExternal] = useState(!value.userId && !!value.name);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [pickingId, setPickingId] = useState<string | null>(null);

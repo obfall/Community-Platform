@@ -46,7 +46,20 @@ export class StorageService {
     this.publicUrl = config.get<string>("R2_PUBLIC_URL") ?? null;
   }
 
-  async upload(key: string, body: Buffer, contentType: string): Promise<string | null> {
+  /**
+   * S3 互換ストレージにファイルをアップロード。
+   *
+   * @param originalName 指定するとオブジェクトに Content-Disposition: attachment; filename=... を
+   *   メタデータとして保存し、ブラウザがダウンロード時に元のファイル名で保存するようになる。
+   *   日本語ファイル名は RFC 5987 (filename*=UTF-8''...) に対応した形式で書き込む。
+   *   HLS chunks やサムネイル等、ブラウザ表示が目的のオブジェクトでは省略してよい。
+   */
+  async upload(
+    key: string,
+    body: Buffer,
+    contentType: string,
+    originalName?: string,
+  ): Promise<string | null> {
     this.ensureClient();
 
     try {
@@ -56,6 +69,9 @@ export class StorageService {
           Key: key,
           Body: body,
           ContentType: contentType,
+          ...(originalName && {
+            ContentDisposition: buildContentDisposition(originalName),
+          }),
         }),
       );
     } catch (error) {
@@ -101,4 +117,16 @@ export class StorageService {
       throw new ServiceUnavailableException("ファイルストレージが設定されていません");
     }
   }
+}
+
+/**
+ * Content-Disposition ヘッダーを RFC 5987 / RFC 6266 に従って組み立てる。
+ * ASCII セーフな filename と、UTF-8 percent-encoded な filename* の両方を入れることで
+ * 古いブラウザでも妥当な代替名にフォールバックしつつ、モダンブラウザは日本語ファイル名を正しく扱う。
+ */
+function buildContentDisposition(originalName: string): string {
+  // ファイル名内のダブルクォートとバックスラッシュをエスケープ + 非 ASCII を _ に置換
+  const asciiSafe = originalName.replace(/[\\"]/g, "_").replace(/[^\x20-\x7E]/g, "_");
+  const encoded = encodeURIComponent(originalName);
+  return `attachment; filename="${asciiSafe}"; filename*=UTF-8''${encoded}`;
 }

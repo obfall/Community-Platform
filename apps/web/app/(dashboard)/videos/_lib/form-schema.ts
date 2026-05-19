@@ -32,11 +32,13 @@ export interface BuildVideoFormSchemaT {
 }
 
 export function buildVideoFormSchema(t: BuildVideoFormSchemaT) {
+  // 講師・タスクの行は「追加直後で空のまま」もフォーム上は許容する。
+  // 送信時に呼び出し側が name/title が空の行をフィルタするため、ここでは max のみ検証。
+  // min を入れると空行が残ったまま送信ボタンが効かなくなり、ユーザーから「何も起きない」と見える。
   const instructorSchema = z.object({
     userId: z.string().uuid().optional(),
     name: z
       .string()
-      .min(1, t.required("name"))
       .max(MAX_VIDEO_INSTRUCTOR_NAME_LENGTH, t.maxLength("name", MAX_VIDEO_INSTRUCTOR_NAME_LENGTH)),
     affiliation: z.string().max(MAX_VIDEO_INSTRUCTOR_AFFILIATION_LENGTH).optional(),
   });
@@ -45,7 +47,6 @@ export function buildVideoFormSchema(t: BuildVideoFormSchemaT) {
     id: z.string().uuid().optional(),
     title: z
       .string()
-      .min(1, t.required("title"))
       .max(MAX_VIDEO_TASK_TITLE_LENGTH, t.maxLength("title", MAX_VIDEO_TASK_TITLE_LENGTH)),
     description: z.string().optional(),
     sortOrder: z.number().int().min(0).optional(),

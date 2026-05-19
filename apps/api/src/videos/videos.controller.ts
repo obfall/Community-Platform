@@ -181,7 +181,7 @@ export class VideosController {
   // ───────────── パスワード検証 ─────────────
 
   @Post(":id/verify-password")
-  @Throttle({ strict: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: "動画パスワード検証" })
   @ApiResponse({ status: 201, description: "{ ok: true }" })
   @ApiResponse({ status: 401, description: "パスワード不一致" })

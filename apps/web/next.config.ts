@@ -84,6 +84,12 @@ if (process.env.NODE_ENV === "production") {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@community-platform/shared"],
+  experimental: {
+    // /api/:path* を Next.js が API サーバへプロキシする際の body サイズ上限。
+    // デフォルトは 10MB で、超えるとプロキシ層で切り捨てられ multer が "Request aborted" を投げる。
+    // 動画アップロードは MAX_VIDEO_UPLOAD_BYTES (500MB) を許可しているので、それに合わせる。
+    middlewareClientMaxBodySize: "500mb",
+  },
   images: {
     // 許可するリモートホスト（CSP の img-src と整合させる）
     remotePatterns: [

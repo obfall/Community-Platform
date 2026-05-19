@@ -48,7 +48,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Upload, Plus, Pencil, Trash2, Video, ArrowLeft, MoreHorizontal } from "lucide-react";
+import { Upload, Plus, Pencil, Trash2, Video, MoreHorizontal } from "lucide-react";
 import type { VideoListItem, VideoQuery } from "@/lib/api/types";
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
@@ -96,16 +96,8 @@ export default function VideoManagePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/videos">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-      </div>
-      <div className="flex items-center justify-between">
-        <div />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">

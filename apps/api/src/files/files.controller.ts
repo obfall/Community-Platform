@@ -26,7 +26,7 @@ import { CurrentUser } from "@/common/decorators";
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Throttle({ upload: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post("upload")
   @ApiOperation({ summary: "ファイルアップロード" })
   @ApiConsumes("multipart/form-data")
