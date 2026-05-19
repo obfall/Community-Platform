@@ -1,24 +1,30 @@
 "use client";
 
-import {
-  useOrientationPages,
-  useCompleteOrientation,
-  useMyCompletion,
-} from "@/hooks/orientation/use-orientation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { GraduationCap, CheckCircle2 } from "lucide-react";
+// import {
+//   useOrientationPages,
+//   useCompleteOrientation,
+//   useMyCompletion,
+// } from "@/hooks/orientation/use-orientation";
+// import { Button } from "@/components/ui/button";
+// import { Card, CardContent } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
+// import { GraduationCap, CheckCircle2 } from "lucide-react";
 
 export default function OrientationPage() {
-  const { data, isLoading } = useOrientationPages();
-  const { data: completion } = useMyCompletion();
-  const complete = useCompleteOrientation();
-
-  const pages = (data ?? []).filter((p) => p.isPublished);
+  // const { data, isLoading } = useOrientationPages();
+  // const { data: completion } = useMyCompletion();
+  // const complete = useCompleteOrientation();
+  //
+  // const pages = (data ?? []).filter((p) => p.isPublished);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">オリエンテーション</h1>
+      </div>
+      <div className="py-12 text-center text-muted-foreground">準備中</div>
+
+      {/*
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">オリエンテーション</h1>
         {completion && (
@@ -62,6 +68,7 @@ export default function OrientationPage() {
           )}
         </>
       )}
+      */}
     </div>
   );
 }

@@ -8,7 +8,14 @@ import { useContent, useDeleteContent } from "@/hooks/content/use-content";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, FileText, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, FileText, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 const CONTENT_TYPE_KEYS = ["meal_drink", "product", "tourist_spot", "room_space"] as const;
 type ContentTypeKey = (typeof CONTENT_TYPE_KEYS)[number];
@@ -54,22 +61,28 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             {content.createdBy.name} ・ {new Date(content.createdAt).toLocaleDateString("ja-JP")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={`/content/${content.id}/edit`}>
-            <Button variant="outline" size="sm">
-              {t("detail.edit")}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <MoreVertical className="h-4 w-4" />
             </Button>
-          </Link>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleteContent.isPending}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t("detail.delete")}
-          </Button>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => router.push(`/content/${content.id}/edit`)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              {t("detail.edit")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={handleDelete}
+              disabled={deleteContent.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t("detail.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Card>
