@@ -16,8 +16,11 @@ apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   // FormData 送信時は Content-Type を削除（axios が boundary 付きで自動設定）
+  // + ファイルアップロード（最大 500MB の動画含む）はデフォルト 15 秒タイムアウトでは
+  // 確実に切れるため、FormData リクエストはタイムアウトを無制限にする。
   if (config.data instanceof FormData) {
     delete config.headers["Content-Type"];
+    config.timeout = 0;
   }
   return config;
 });

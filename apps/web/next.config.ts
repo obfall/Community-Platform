@@ -84,6 +84,12 @@ if (process.env.NODE_ENV === "production") {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@community-platform/shared"],
+  experimental: {
+    // /api/:path* を Next.js が API サーバへプロキシする際の body サイズ上限。
+    // デフォルトは 10MB で、超えるとプロキシ層で切り捨てられ multer が "Request aborted" を投げる。
+    // 動画アップロードは MAX_VIDEO_UPLOAD_BYTES (500MB) を許可しているので、それに合わせる。
+    middlewareClientMaxBodySize: "500mb",
+  },
   images: {
     // 許可するリモートホスト（CSP の img-src と整合させる）
     remotePatterns: [
@@ -95,6 +101,8 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // 開発環境の MinIO（R2_PUBLIC_URL=http://localhost:9000/...）
+      { protocol: "http", hostname: "localhost", port: "9000" },
     ],
     // モダンフォーマット自動配信（PNG/JPEG → AVIF/WebP に変換）
     formats: ["image/avif", "image/webp"],

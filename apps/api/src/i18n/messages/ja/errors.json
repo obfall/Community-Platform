@@ -9,6 +9,8 @@
     "board_post": "投稿が見つかりません",
     "board_comment": "コメントが見つかりません",
     "board_parent_comment": "返信先コメントが見つかりません",
+    "video": "動画が見つかりません",
+    "video_task": "タスクが見つかりません",
     "chat_room": "ルームが見つかりません",
     "album": "アルバムが見つかりません",
     "album_photo": "写真が見つかりません",
@@ -30,6 +32,9 @@
     "content_update": "自分のコンテンツのみ更新できます",
     "content_delete": "自分のコンテンツのみ削除できます"
   },
+  "unauthorized_resource": {
+    "video_password": "パスワードが正しくありません"
+  },
   "validation": {
     "chat_dm_member_count": "DMは相手1人のみ指定してください",
     "chat_dm_no_update": "DMルームは更新できません",
@@ -37,7 +42,9 @@
     "chat_dm_no_member_remove": "DMルームからメンバーは削除できません",
     "chat_room_max_members": "メンバー数の上限に達しています",
     "chat_room_member_exists": "既にメンバーです",
-    "chat_room_target_not_member": "対象ユーザーはメンバーではありません"
+    "chat_room_target_not_member": "対象ユーザーはメンバーではありません",
+    "video_file_required": "動画ファイルが選択されていません",
+    "video_password_format": "パスワードは4桁の半角数字で指定してください"
   },
   "ws": {
     "chat_unauthenticated": "認証されていません",

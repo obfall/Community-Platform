@@ -15,13 +15,10 @@ import type {
 interface UploadPayload {
   title: string;
   description?: string;
-  categoryId?: string;
   seriesId?: string;
   watchOrder?: number;
   publishStatus?: string;
   availableUntil?: string;
-  viewPermission?: string;
-  allowedRoles?: string[];
   password?: string;
   instructors?: InstructorInput[];
   attachmentFileIds?: string[];
@@ -32,13 +29,9 @@ interface UpdatePayload {
   title?: string;
   description?: string | null;
   publishStatus?: string;
-  categoryId?: string | null;
   seriesId?: string | null;
   watchOrder?: number | null;
   availableUntil?: string | null;
-  viewPermission?: string;
-  allowedRoles?: string[];
-  requiredRankId?: string | null;
   password?: string | null;
   instructors?: InstructorInput[];
   attachmentFileIds?: string[];
@@ -50,6 +43,9 @@ export const videosApi = {
     apiClient.get<PaginatedResponse<VideoListItem>>("/videos", { params }).then((r) => r.data),
 
   getVideo: (id: string) => apiClient.get<VideoDetail>(`/videos/${id}`).then((r) => r.data),
+
+  // 再生開始時に再生回数を +1（プレイヤー play 時に 1 回だけ呼ぶ）
+  recordView: (id: string) => apiClient.post(`/videos/${id}/view`).then((r) => r.data),
 
   updateVideo: (id: string, data: UpdatePayload) =>
     apiClient.patch<VideoDetail>(`/videos/${id}`, data).then((r) => r.data),
@@ -74,27 +70,15 @@ export const videosApi = {
       .get<{ nextOrder: number }>(`/videos/series/${seriesId}/next-watch-order`)
       .then((r) => r.data),
 
-  getCategories: () =>
-    apiClient
-      .get<Array<{ id: string; name: string; sortOrder: number }>>("/videos/categories")
-      .then((r) => r.data),
-
-  createCategory: (name: string) =>
-    apiClient.post("/videos/categories", { name }).then((r) => r.data),
-
   upload: (file: File, data: UploadPayload) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("title", data.title);
     if (data.description) formData.append("description", data.description);
-    if (data.categoryId) formData.append("categoryId", data.categoryId);
     if (data.seriesId) formData.append("seriesId", data.seriesId);
     if (data.watchOrder != null) formData.append("watchOrder", String(data.watchOrder));
     if (data.publishStatus) formData.append("publishStatus", data.publishStatus);
     if (data.availableUntil) formData.append("availableUntil", data.availableUntil);
-    if (data.viewPermission) formData.append("viewPermission", data.viewPermission);
-    if (data.allowedRoles?.length)
-      formData.append("allowedRoles", JSON.stringify(data.allowedRoles));
     if (data.password) formData.append("password", data.password);
     if (data.instructors?.length) formData.append("instructors", JSON.stringify(data.instructors));
     if (data.attachmentFileIds?.length)

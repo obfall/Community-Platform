@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useVideos, useVideoCategories, useVideoSeries } from "@/hooks/videos/use-videos";
+import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { useVideos, useVideoSeries } from "@/hooks/videos/use-videos";
 import { SearchInput } from "@/components/search-input";
 import { PaginationBar } from "@/components/pagination-bar";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ function formatDuration(seconds: number | null) {
 }
 
 export default function VideosPage() {
+  const t = useTranslations("videos.list");
+  const tPublish = useTranslations("enums.publishStatus");
   const [query, setQuery] = useState<VideoQuery>({
     page: 1,
     limit: 12,
@@ -34,7 +38,6 @@ export default function VideosPage() {
   });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useVideos(query);
-  const { data: categories } = useVideoCategories();
   const { data: seriesList } = useVideoSeries();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "owner";
@@ -44,7 +47,7 @@ export default function VideosPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">動画</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -52,28 +55,10 @@ export default function VideosPage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="動画を検索..."
+          placeholder={t("searchPlaceholder")}
           className="max-w-xs"
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={query.categoryId ?? "all"}
-            onValueChange={(v) =>
-              setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
-            }
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="カテゴリ" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべてのカテゴリ</SelectItem>
-              {categories?.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select
             value={query.seriesId ?? "all"}
             onValueChange={(v) =>
@@ -81,10 +66,10 @@ export default function VideosPage() {
             }
           >
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="シリーズ" />
+              <SelectValue placeholder={t("seriesPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">すべてのシリーズ</SelectItem>
+              <SelectItem value="all">{t("allSeries")}</SelectItem>
               {seriesList?.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   {s.name}
@@ -103,12 +88,12 @@ export default function VideosPage() {
             }
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="視聴状態" />
+              <SelectValue placeholder={t("watchStatusPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">すべて</SelectItem>
-              <SelectItem value="unwatched">未視聴</SelectItem>
-              <SelectItem value="watched">視聴済み</SelectItem>
+              <SelectItem value="all">{t("watchStatusAll")}</SelectItem>
+              <SelectItem value="unwatched">{t("watchStatusUnwatched")}</SelectItem>
+              <SelectItem value="watched">{t("watchStatusWatched")}</SelectItem>
             </SelectContent>
           </Select>
           {isAdmin && (
@@ -123,13 +108,13 @@ export default function VideosPage() {
               }
             >
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="公開状態" />
+                <SelectValue placeholder={t("publishStatusPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">すべて</SelectItem>
-                <SelectItem value="draft">下書き</SelectItem>
-                <SelectItem value="published">公開</SelectItem>
-                <SelectItem value="unpublished">未公開</SelectItem>
+                <SelectItem value="all">{t("publishStatusAll")}</SelectItem>
+                <SelectItem value="draft">{tPublish("draft")}</SelectItem>
+                <SelectItem value="published">{tPublish("published")}</SelectItem>
+                <SelectItem value="unpublished">{tPublish("unpublished")}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -137,11 +122,11 @@ export default function VideosPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : videos.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Video className="mx-auto mb-4 h-12 w-12" />
-          <p>動画がありません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -150,11 +135,12 @@ export default function VideosPage() {
               <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
                 <div className="relative h-40 bg-muted">
                   {v.thumbnailUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={v.thumbnailUrl}
                       alt={v.title}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center">
@@ -171,33 +157,28 @@ export default function VideosPage() {
                   <div className="mb-1 flex flex-wrap items-center gap-1">
                     {v.publishStatus === "draft" && (
                       <Badge variant="secondary" className="text-[10px]">
-                        下書き
+                        {tPublish("draft")}
                       </Badge>
                     )}
                     {v.publishStatus === "unpublished" && (
                       <Badge variant="destructive" className="text-[10px]">
-                        未公開
+                        {tPublish("unpublished")}
                       </Badge>
                     )}
                     {v.isWatched && (
                       <Badge variant="default" className="gap-0.5 text-[10px]">
                         <CheckCircle className="h-3 w-3" />
-                        視聴済み
-                      </Badge>
-                    )}
-                    {v.category && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {v.category.name}
+                        {t("watchedBadge")}
                       </Badge>
                     )}
                     {v.incompleteTaskCount > 0 && (
                       <Badge variant="secondary" className="text-[10px]">
-                        未完了ワーク {v.incompleteTaskCount}件
+                        {t("incompleteTaskBadge", { count: v.incompleteTaskCount })}
                       </Badge>
                     )}
                     {v.taskCount > 0 && v.incompleteTaskCount === 0 && (
                       <Badge variant="default" className="text-[10px]">
-                        ワーク完了
+                        {t("taskCompleteBadge")}
                       </Badge>
                     )}
                   </div>
@@ -205,7 +186,7 @@ export default function VideosPage() {
                     <HighlightedText html={v.titleHighlighted} fallback={v.title} />
                   </h3>
                   <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>作成者: {v.createdBy.name}</span>
+                    <span>{t("creatorPrefix", { name: v.createdBy.name })}</span>
                     <span className="flex items-center gap-0.5">
                       <Play className="h-3 w-3" />
                       {v.viewCount}

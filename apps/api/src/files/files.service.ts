@@ -101,7 +101,14 @@ export class FilesService {
       await this.storage.upload(thumbnailStorageKey, thumbnailBuffer, "image/webp");
     }
 
-    const publicUrl = await this.storage.upload(storageKey, file.buffer, file.mimetype);
+    // originalname を渡して Content-Disposition: attachment; filename=... をストレージ側に保存。
+    // ブラウザがダウンロード時に元のファイル名（日本語含む）で保存できるようにする。
+    const publicUrl = await this.storage.upload(
+      storageKey,
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+    );
 
     const created = await this.prisma.file.create({
       data: {

@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <Header eventId={eventId} projectId={projectId} isProfile={isProfile} isShop={isShop} />
       <div className="flex flex-1">
-        <aside className="hidden w-64 shrink-0 border-r bg-sidebar md:block">
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 border-r bg-sidebar md:block">
           {renderSidebar()}
         </aside>
         <main className="flex-1 p-6">{children}</main>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useVideos } from "@/hooks/videos/use-videos";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,7 @@ function formatDuration(seconds: number | null) {
 }
 
 export function SeriesVideoList({ seriesId, seriesName, currentVideoId }: Props) {
+  const t = useTranslations("videos.seriesVideoList");
   const { data, isLoading } = useVideos({ seriesId, limit: 100 });
   const videos = data?.data ?? [];
 
@@ -30,7 +32,7 @@ export function SeriesVideoList({ seriesId, seriesName, currentVideoId }: Props)
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">シリーズ: {seriesName}</CardTitle>
+        <CardTitle className="text-base">{t("title", { name: seriesName })}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
         {videos.map((v, idx) => {
@@ -75,7 +77,7 @@ export function SeriesVideoList({ seriesId, seriesName, currentVideoId }: Props)
                   {v.isWatched && (
                     <Badge variant="secondary" className="gap-1 px-1 py-0 text-[10px]">
                       <CheckCircle className="h-2.5 w-2.5" />
-                      視聴済み
+                      {t("watchedBadge")}
                     </Badge>
                   )}
                 </div>

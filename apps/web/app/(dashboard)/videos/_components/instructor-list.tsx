@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, User } from "lucide-react";
+import { Plus, X, User, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMembers } from "@/hooks/members/use-members";
+import { usersApi } from "@/lib/api/members";
 import type { InstructorInput } from "@/lib/api/types";
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export function InstructorList({ value, onChange }: Props) {
+  const t = useTranslations("videos.instructorList");
   const { user } = useAuth();
 
   const addInstructor = () => {
@@ -40,11 +43,11 @@ export function InstructorList({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <Label>担当講師</Label>
+      <Label>{t("label")}</Label>
       <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" onClick={addSelf}>
           <User className="mr-1 h-4 w-4" />
-          自分を講師として追加
+          {t("addSelfAction")}
         </Button>
       </div>
       {value.map((instructor, idx) => (
@@ -57,7 +60,7 @@ export function InstructorList({ value, onChange }: Props) {
       ))}
       <Button type="button" variant="ghost" size="sm" onClick={addInstructor}>
         <Plus className="mr-1 h-4 w-4" />
-        講師を追加
+        {t("addAction")}
       </Button>
     </div>
   );
@@ -72,9 +75,13 @@ function InstructorRow({
   onChange: (patch: Partial<InstructorInput>) => void;
   onRemove: () => void;
 }) {
-  const [isExternal, setIsExternal] = useState(!value.userId);
+  const t = useTranslations("videos.instructorList");
+  // 「追加」直後（userId 未設定 + 名前未入力）はメンバー検索モードを既定にする。
+  // 既存データで「userId 無し + 名前あり」= 外部講師として保存済みの場合は外部モードで開く。
+  const [isExternal, setIsExternal] = useState(!value.userId && !!value.name);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [pickingId, setPickingId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const { data: membersData } = useMembers(
@@ -102,18 +109,27 @@ function InstructorRow({
     }
   };
 
-  const selectMember = (member: {
-    id: string;
-    name: string;
-    affiliations?: { organizationName: string; title: string | null }[];
-  }) => {
-    const first = member.affiliations?.[0];
-    const affiliation = first
-      ? [first.organizationName, first.title].filter(Boolean).join(" / ")
-      : "";
-    onChange({ userId: member.id, name: member.name, affiliation });
-    setSearch("");
-    setIsOpen(false);
+  const selectMember = async (member: { id: string; name: string }) => {
+    setPickingId(member.id);
+    try {
+      const detail = await usersApi.getUser(member.id);
+      const primary = detail.affiliations[0];
+      const affiliation = primary
+        ? primary.title
+          ? `${primary.organizationName} ${primary.title}`
+          : primary.organizationName
+        : "";
+      onChange({ userId: member.id, name: member.name, affiliation });
+    } catch (err) {
+      // 詳細取得失敗時は基本情報のみで確定（フォールバック）。原因を握り潰さず警告を残す。
+      // グローバル QueryCache.onError 経路を通らない手動 fetch なのでここで明示的に log。
+      console.warn(`Failed to fetch user detail for instructor picker (userId=${member.id})`, err);
+      onChange({ userId: member.id, name: member.name, affiliation: "" });
+    } finally {
+      setPickingId(null);
+      setSearch("");
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -126,7 +142,7 @@ function InstructorRow({
             id={`ext-${value.userId ?? "new"}`}
           />
           <Label htmlFor={`ext-${value.userId ?? "new"}`} className="text-sm font-normal">
-            外部講師
+            {t("externalLabel")}
           </Label>
         </div>
         <Button type="button" variant="ghost" size="icon-xs" onClick={onRemove}>
@@ -136,9 +152,9 @@ function InstructorRow({
 
       {!isExternal && (
         <div className="relative" ref={wrapperRef}>
-          <Label className="text-xs text-muted-foreground">ユーザー検索</Label>
+          <Label className="text-xs text-muted-foreground">{t("userSearchLabel")}</Label>
           <Input
-            placeholder="名前で検索..."
+            placeholder={t("userSearchPlaceholder")}
             value={value.userId ? value.name : search}
             onChange={(e) => {
               if (value.userId) {
@@ -155,10 +171,12 @@ function InstructorRow({
                 <button
                   key={m.id}
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                  disabled={pickingId !== null}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent disabled:opacity-50"
                   onClick={() => selectMember(m)}
                 >
-                  {m.name}
+                  <span className="flex-1">{m.name}</span>
+                  {pickingId === m.id && <Loader2 className="h-3 w-3 animate-spin" />}
                 </button>
               ))}
             </div>
@@ -168,21 +186,21 @@ function InstructorRow({
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-xs text-muted-foreground">名前</Label>
+          <Label className="text-xs text-muted-foreground">{t("nameLabel")}</Label>
           <Input
             value={value.name}
             onChange={(e) => onChange({ name: e.target.value })}
-            placeholder="講師名"
+            placeholder={t("namePlaceholder")}
             required={isExternal}
             readOnly={!isExternal && !!value.userId}
           />
         </div>
         <div>
-          <Label className="text-xs text-muted-foreground">所属</Label>
+          <Label className="text-xs text-muted-foreground">{t("affiliationLabel")}</Label>
           <Input
             value={value.affiliation ?? ""}
             onChange={(e) => onChange({ affiliation: e.target.value })}
-            placeholder="所属・肩書"
+            placeholder={t("affiliationPlaceholder")}
           />
         </div>
       </div>

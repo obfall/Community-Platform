@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function TaskListEditor({ value, onChange }: Props) {
+  const t = useTranslations("videos.taskListEditor");
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const addTask = () => {
@@ -51,7 +53,7 @@ export function TaskListEditor({ value, onChange }: Props) {
   const duplicateTask = (index: number) => {
     const src = value[index]!;
     const copy: TaskInput = {
-      title: `${src.title}（コピー）`,
+      title: `${src.title}${t("duplicateSuffix")}`,
       description: src.description,
       sortOrder: value.length,
       fileIds: src.fileIds ? [...src.fileIds] : undefined,
@@ -88,7 +90,7 @@ export function TaskListEditor({ value, onChange }: Props) {
         uploadedFileNames: { ...existingNames, ...newNames },
       } as Partial<TaskEditorState>);
     } catch {
-      toast.error("ファイルのアップロードに失敗しました");
+      toast.error(t("uploadErrorToast"));
     } finally {
       e.target.value = "";
     }
@@ -106,7 +108,7 @@ export function TaskListEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <Label>タスク（視聴後に行う作業）</Label>
+      <Label>{t("label")}</Label>
       {value.map((task, idx) => {
         const state = task as TaskEditorState;
         const fileNames = state.uploadedFileNames ?? {};
@@ -115,7 +117,7 @@ export function TaskListEditor({ value, onChange }: Props) {
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <Input
-                  placeholder="タスクタイトル"
+                  placeholder={t("titlePlaceholder")}
                   value={task.title}
                   onChange={(e) => updateTask(idx, { title: e.target.value })}
                   required
@@ -149,28 +151,28 @@ export function TaskListEditor({ value, onChange }: Props) {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => duplicateTask(idx)}>
                       <Copy className="mr-2 h-3.5 w-3.5" />
-                      複製
+                      {t("duplicateAction")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onClick={() => removeTask(idx)}
                     >
                       <X className="mr-2 h-3.5 w-3.5" />
-                      削除
+                      {t("removeAction")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
             <Input
-              placeholder="説明（任意）"
+              placeholder={t("descriptionPlaceholder")}
               value={task.description ?? ""}
               onChange={(e) => updateTask(idx, { description: e.target.value || undefined })}
             />
             <div>
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs transition-colors hover:bg-accent">
                 <Paperclip className="h-3 w-3" />
-                ファイル添付
+                {t("fileAttachAction")}
                 <input
                   type="file"
                   multiple
@@ -203,7 +205,7 @@ export function TaskListEditor({ value, onChange }: Props) {
       })}
       <Button type="button" variant="ghost" size="sm" onClick={addTask}>
         <Plus className="mr-1 h-4 w-4" />
-        タスクを追加
+        {t("addAction")}
       </Button>
     </div>
   );

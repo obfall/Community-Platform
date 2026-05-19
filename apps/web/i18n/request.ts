@@ -16,6 +16,7 @@ const NAMESPACES = [
   "chat",
   "dashboard",
   "events",
+  "videos",
   "errors",
   "albums",
   "contents",
