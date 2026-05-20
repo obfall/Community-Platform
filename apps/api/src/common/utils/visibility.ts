@@ -36,11 +36,6 @@ export const VISIBILITY = {
     publishStatus: "published",
   } satisfies Prisma.VideoWhereInput,
 
-  project: {
-    deletedAt: null,
-    publishStatus: "published",
-  } satisfies Prisma.ProjectWhereInput,
-
   user: {
     deletedAt: null,
     status: "active",

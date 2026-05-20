@@ -1058,9 +1058,9 @@ export interface ProjectListItem {
   description: string | null;
   coverImageUrl: string | null;
   status: string;
-  publishStatus: string;
   memberCount: number;
   category: { id: string; name: string } | null;
+  tags: { id: string; name: string; slug: string }[];
   startDate: string | null;
   endDate: string | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
@@ -1087,7 +1087,6 @@ export interface ProjectDetail extends ProjectListItem {
   taskCount: number;
   event: { id: string; title: string } | null;
   members: ProjectMember[];
-  tags: { id: string; name: string; slug: string }[];
   updatedAt: string;
 }
 
@@ -1128,7 +1127,7 @@ export interface ProjectQuery {
   page?: number;
   limit?: number;
   status?: string;
-  publishStatus?: string;
+  tagId?: string;
   search?: string;
 }
 
@@ -1141,7 +1140,7 @@ export interface CreateProjectInput {
   startDate?: string;
   endDate?: string;
   status?: string;
-  publishStatus?: string;
+  tags?: string[];
   inviteLinkEnabled?: boolean;
 }
 

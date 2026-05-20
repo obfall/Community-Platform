@@ -24,15 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Users,
-  MessageSquare,
-  CheckSquare,
-  CalendarDays,
-  MoreVertical,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { CalendarDays, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "開始前",
@@ -41,20 +33,18 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "中止",
 };
 
-const PUBLISH_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  published: "公開",
-  unpublished: "非公開",
-};
-
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { data: project, isLoading } = useProject(id);
   const { user } = useAuth();
   const deleteProject = useDeleteProject();
-  const isAdmin = user?.role === "owner" || user?.role === "admin";
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // システム admin/owner、もしくは自分がこのプロジェクトの admin（ホスト）なら編集・削除可能
+  const isSystemAdmin = user?.role === "owner" || user?.role === "admin";
+  const myMembership = project?.members.find((m) => m.userId === user?.id);
+  const canManageProject = isSystemAdmin || myMembership?.role === "admin";
 
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
@@ -70,9 +60,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex-1">
           <div className="mb-2 flex items-center gap-2">
             <Badge>{STATUS_LABELS[project.status] ?? project.status}</Badge>
-            <Badge variant="outline">
-              {PUBLISH_STATUS_LABELS[project.publishStatus] ?? project.publishStatus}
-            </Badge>
             {project.category && <Badge variant="secondary">{project.category.name}</Badge>}
             {project.tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
@@ -83,7 +70,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <h1 className="text-2xl font-bold">{project.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">作成者: {project.createdBy.name}</p>
         </div>
-        {isAdmin && (
+        {canManageProject && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -108,46 +95,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      {project.coverImageUrl && (
-        <div className="h-48 overflow-hidden rounded-lg bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={project.coverImageUrl}
-            alt={project.name}
-            className="h-full w-full object-cover"
-          />
-        </div>
-      )}
-
-      {/* 統計 */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{project.memberCount}</p>
-              <p className="text-xs text-muted-foreground">メンバー</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <MessageSquare className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{project.threadCount}</p>
-              <p className="text-xs text-muted-foreground">メッセージ</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 pt-6">
-            <CheckSquare className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{project.taskCount}</p>
-              <p className="text-xs text-muted-foreground">タスク</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* カバー画像 */}
+      <div className="h-80 overflow-hidden rounded-lg bg-muted md:h-96">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={project.coverImageUrl ?? "/images/project-placeholder.svg"}
+          alt={project.name}
+          className="h-full w-full object-cover"
+        />
       </div>
 
       {/* 詳細情報 */}

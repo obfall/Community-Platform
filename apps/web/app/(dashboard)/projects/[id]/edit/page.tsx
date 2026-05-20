@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { ImageUpload } from "@/components/image-upload";
-import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { TagInput } from "@/components/tag-input";
+import { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "@community-platform/shared";
+import { ArrowLeft } from "lucide-react";
 
 const STATUS_OPTIONS = [
   { value: "not_started", label: "開始前" },
@@ -58,8 +59,8 @@ function ProjectEditForm({
     project.endDate ? String(project.endDate).slice(0, 10) : "",
   );
   const [status, setStatus] = useState(project.status);
-  const [publishStatus, setPublishStatus] = useState(project.publishStatus);
   const [eventId, setEventId] = useState(project.event?.id ?? NONE_VALUE);
+  const [tags, setTags] = useState<string[]>(project.tags?.map((t) => t.name) ?? []);
 
   const handleSubmit = () => {
     updateProject.mutate(
@@ -72,8 +73,8 @@ function ProjectEditForm({
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           status,
-          publishStatus,
           eventId: eventId === NONE_VALUE ? undefined : eventId,
+          tags,
         },
       },
       { onSuccess: () => router.push(`/projects/${id}`) },
@@ -81,7 +82,7 @@ function ProjectEditForm({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href={`/projects/${id}`}>
           <Button variant="ghost" size="icon">
@@ -91,7 +92,6 @@ function ProjectEditForm({
         <h1 className="text-2xl font-bold">プロジェクト編集</h1>
       </div>
 
-      {/* 基本情報 */}
       <Card>
         <CardHeader>
           <CardTitle>基本情報</CardTitle>
@@ -118,6 +118,10 @@ function ProjectEditForm({
             <Label>カバー画像</Label>
             <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} />
           </div>
+          <div>
+            <Label>状況</Label>
+            <SelectField value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>開始日</Label>
@@ -138,40 +142,25 @@ function ProjectEditForm({
               placeholder="イベントを選択"
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* ステータス・公開設定 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ステータス・公開設定</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div>
-            <Label>状況</Label>
-            <SelectField value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-          </div>
-          <div>
-            <Label>公開状態</Label>
-            <SelectField
-              value={publishStatus}
-              onChange={setPublishStatus}
-              options={PUBLISH_STATUS_OPTIONS}
+            <Label>タグ（任意・最大 {MAX_PROJECT_TAGS} 件）</Label>
+            <TagInput
+              value={tags}
+              onChange={setTags}
+              maxTags={MAX_PROJECT_TAGS}
+              maxLength={MAX_PROJECT_TAG_LENGTH}
+              placeholder="タグを入力して Enter"
             />
           </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name || updateProject.isPending}
+            className="w-full"
+          >
+            保存
+          </Button>
         </CardContent>
       </Card>
-
-      {/* 保存ボタン */}
-      <div className="flex justify-end gap-2">
-        <Link href={`/projects/${id}`}>
-          <Button variant="outline">キャンセル</Button>
-        </Link>
-        <Button onClick={handleSubmit} disabled={!name || updateProject.isPending}>
-          {updateProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          保存
-        </Button>
-      </div>
     </div>
   );
 }

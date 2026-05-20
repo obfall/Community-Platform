@@ -54,7 +54,13 @@ export function SelectField({
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      {/*
+       * position="popper" によりトリガー直下にポップオーバー展開され、内部の
+       * overflow-y-auto によるネイティブスクロールが効く。デフォルトの
+       * item-aligned だと選択中の項目が中央に揃うため最初に全項目が見えず、
+       * Radix 独自のステップ式スクロール（マウスホイールが重くなる）が走る。
+       */}
+      <SelectContent position="popper">
         {items.map((opt) => (
           <SelectItem key={opt.value} value={opt.value}>
             {opt.label}

@@ -23,10 +23,6 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
       expect(VISIBILITY.video).toEqual(expectedShape);
     });
 
-    it("project", () => {
-      expect(VISIBILITY.project).toEqual(expectedShape);
-    });
-
     it("album", () => {
       expect(VISIBILITY.album).toEqual(expectedShape);
     });
@@ -77,7 +73,7 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
     });
   });
 
-  it("12 ドメインすべてが定義されている", () => {
+  it("11 ドメインすべてが定義されている", () => {
     expect(Object.keys(VISIBILITY).sort()).toEqual(
       [
         "album",
@@ -86,7 +82,6 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
         "event",
         "faqArticle",
         "product",
-        "project",
         "skillListing",
         "survey",
         "user",

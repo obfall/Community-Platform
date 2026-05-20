@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { ImageUpload } from "@/components/image-upload";
+import { TagInput } from "@/components/tag-input";
+import { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "@community-platform/shared";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -34,6 +36,7 @@ export default function NewProjectPage() {
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("not_started");
   const [eventId, setEventId] = useState(NONE_VALUE);
+  const [tags, setTags] = useState<string[]>([]);
 
   const handleSubmit = () => {
     createProject.mutate(
@@ -45,6 +48,7 @@ export default function NewProjectPage() {
         endDate: endDate || undefined,
         status,
         eventId: eventId === NONE_VALUE ? undefined : eventId,
+        tags: tags.length > 0 ? tags : undefined,
       },
       { onSuccess: (project) => router.push(`/projects/${project.id}`) },
     );
@@ -109,6 +113,16 @@ export default function NewProjectPage() {
               options={events.map((e) => ({ value: e.id, label: e.title }))}
               includeNone
               placeholder="イベントを選択"
+            />
+          </div>
+          <div>
+            <Label>タグ（任意・最大 {MAX_PROJECT_TAGS} 件）</Label>
+            <TagInput
+              value={tags}
+              onChange={setTags}
+              maxTags={MAX_PROJECT_TAGS}
+              maxLength={MAX_PROJECT_TAG_LENGTH}
+              placeholder="タグを入力して Enter"
             />
           </div>
           <Button

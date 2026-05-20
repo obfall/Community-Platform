@@ -1,11 +1,16 @@
 "use client";
 
 import { use, useState } from "react";
-import { useProject, useRemoveProjectMember } from "@/hooks/projects/use-projects";
+import {
+  useProject,
+  useRemoveProjectMember,
+  useUpdateProjectMemberRole,
+} from "@/hooks/projects/use-projects";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SelectField } from "@/components/select-field";
 import {
   Table,
   TableBody,
@@ -28,36 +33,42 @@ import { Trash2, UserPlus } from "lucide-react";
 import type { ProjectMember } from "@/lib/api/types";
 import { AddMemberDialog } from "./_components/add-member-dialog";
 
+// プロジェクト内ロール（ProjectMemberRole）に対応するラベル
 const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  admin: "管理者",
-  moderator: "モデレーター",
+  admin: "ホスト",
   member: "メンバー",
 };
 
 const ROLE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
-  owner: "default",
   admin: "default",
-  moderator: "secondary",
   member: "outline",
 };
+
+const ROLE_OPTIONS = [
+  { value: "member", label: "メンバー" },
+  { value: "admin", label: "ホスト" },
+];
 
 export default function ProjectMembersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: project } = useProject(id);
   const { user } = useAuth();
   const removeMember = useRemoveProjectMember(id);
+  const updateRole = useUpdateProjectMemberRole(id);
   const [target, setTarget] = useState<ProjectMember | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   if (!project) return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
 
-  const canManage = user?.role === "owner" || user?.role === "admin";
+  // システム admin/owner、もしくは自分がこのプロジェクトの admin（ホスト）なら管理可能
+  const isSystemAdmin = user?.role === "owner" || user?.role === "admin";
+  const myMembership = project.members.find((m) => m.userId === user?.id);
+  const canManage = isSystemAdmin || myMembership?.role === "admin";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">メンバー ({project.memberCount})</h2>
+        <h2 className="text-xl font-bold">メンバー {project.memberCount} 人</h2>
         {canManage && (
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
@@ -92,9 +103,20 @@ export default function ProjectMembersPage({ params }: { params: Promise<{ id: s
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={ROLE_VARIANTS[m.role] ?? "outline"} className="text-[10px]">
-                      {ROLE_LABELS[m.role] ?? m.role}
-                    </Badge>
+                    {canManage && !isCreator ? (
+                      <SelectField
+                        value={m.role}
+                        onChange={(v) =>
+                          updateRole.mutate({ userId: m.userId, role: v as "admin" | "member" })
+                        }
+                        options={ROLE_OPTIONS}
+                        className="h-8 w-28 text-xs"
+                      />
+                    ) : (
+                      <Badge variant={ROLE_VARIANTS[m.role] ?? "outline"} className="text-[10px]">
+                        {ROLE_LABELS[m.role] ?? m.role}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {new Date(m.joinedAt).toLocaleDateString("ja-JP")}

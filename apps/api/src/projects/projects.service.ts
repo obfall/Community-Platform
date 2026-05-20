@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import {
   AUTHOR_SELECT,
@@ -8,29 +13,54 @@ import {
   formatAuthor,
   pgroongaSearchAndFetch,
 } from "@/common/utils";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProjectStatus } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import { randomBytes } from "crypto";
 import type { CreateProjectDto } from "./dto/create-project.dto";
 import type { ProjectQueryDto } from "./dto/project-query.dto";
+
+/** admin / owner は全ステータス参照可。それ以外は cancelled / completed を一覧から除外。 */
+const canViewAllProjectStatuses = (role: UserRole): boolean => role === "admin" || role === "owner";
+
+/** 非管理者の一覧から隠すステータス（中止・終了は閲覧不要のため非表示）。 */
+const HIDDEN_STATUSES_FOR_MEMBER: ProjectStatus[] = [
+  ProjectStatus.cancelled,
+  ProjectStatus.completed,
+];
 
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: ProjectQueryDto) {
+  async findAll(query: ProjectQueryDto, role: UserRole, userId: string) {
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
-      return this.searchByPgroonga(query, escaped);
+      return this.searchByPgroonga(query, escaped, role, userId);
     }
-    return this.findAllStandard(query);
+    return this.findAllStandard(query, role, userId);
   }
 
-  private async findAllStandard(query: ProjectQueryDto) {
+  private async findAllStandard(query: ProjectQueryDto, role: UserRole, userId: string) {
     const { page, limit, skip } = extractPagination(query);
 
     const where: Prisma.ProjectWhereInput = { deletedAt: null };
-    if (query.status) where.status = query.status;
-    if (query.publishStatus) where.publishStatus = query.publishStatus;
+    if (canViewAllProjectStatuses(role)) {
+      if (query.status) where.status = query.status;
+    } else if (query.status && HIDDEN_STATUSES_FOR_MEMBER.includes(query.status)) {
+      // 非管理者: cancelled / completed を指定したときは「自分が参加中のもの」に限定
+      where.status = query.status;
+      where.members = { some: { userId, status: "active" } };
+    } else if (query.status) {
+      // 非管理者: それ以外のステータス指定は尊重する
+      where.status = query.status;
+    } else {
+      // 非管理者: 未指定なら「自分が参加中」 OR 「終了/中止以外」
+      where.OR = [
+        { members: { some: { userId, status: "active" } } },
+        { status: { notIn: HIDDEN_STATUSES_FOR_MEMBER } },
+      ];
+    }
+    if (query.tagId) where.tags = { some: { tagId: query.tagId } };
 
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
@@ -46,19 +76,50 @@ export class ProjectsService {
     return this.formatProjectList(projects, total, page, limit);
   }
 
-  /** pgroonga による全文検索版。検索条件は通常一覧と一致させる（下書き含む）。 */
-  private async searchByPgroonga(query: ProjectQueryDto, escaped: string) {
+  /**
+   * pgroonga による全文検索版。検索条件は通常一覧と一致させる。
+   * 非管理者は cancelled/completed を除外するが、自分が参加中のプロジェクトは表示する。
+   */
+  private async searchByPgroonga(
+    query: ProjectQueryDto,
+    escaped: string,
+    role: UserRole,
+    userId: string,
+  ) {
     const { page, limit, offset } = extractPagination(query);
+
+    const canViewAll = canViewAllProjectStatuses(role);
+    const isHiddenStatus = !!query.status && HIDDEN_STATUSES_FOR_MEMBER.includes(query.status);
+
+    // 自分が参加中のプロジェクトを示す EXISTS 句（非管理者の閲覧解除に使う）
+    const memberExists = Prisma.sql`EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = projects.id AND pm.user_id = ${userId}::uuid AND pm.status = 'active')`;
+
+    // status 条件の組み立て
+    let statusClause: Prisma.Sql = Prisma.empty;
+    if (canViewAll) {
+      if (query.status) {
+        statusClause = Prisma.sql`AND status = ${query.status}::"ProjectStatus"`;
+      }
+    } else if (isHiddenStatus) {
+      // cancelled / completed 指定: 自分が参加中のもの限定
+      statusClause = Prisma.sql`AND status = ${query.status}::"ProjectStatus" AND ${memberExists}`;
+    } else if (query.status) {
+      statusClause = Prisma.sql`AND status = ${query.status}::"ProjectStatus"`;
+    } else {
+      // 未指定: 「自分が参加中」 OR 「終了/中止以外」
+      statusClause = Prisma.sql`AND (${memberExists} OR status NOT IN ('cancelled'::"ProjectStatus", 'completed'::"ProjectStatus"))`;
+    }
 
     const where = Prisma.sql`
       deleted_at IS NULL
-      ${query.status ? Prisma.sql`AND status = ${query.status}::"ProjectStatus"` : Prisma.empty}
+      ${statusClause}
+      ${query.tagId ? Prisma.sql`AND EXISTS (SELECT 1 FROM project_tags pt WHERE pt.project_id = projects.id AND pt.tag_id = ${query.tagId}::uuid)` : Prisma.empty}
     `;
 
     const { records, hitsById, total } = await pgroongaSearchAndFetch({
       prisma: this.prisma,
       table: "projects",
-      searchColumns: ["name", "description"],
+      searchColumns: ["name", "description", "tags_text"],
       titleColumn: "name",
       snippetColumn: "description",
       escaped,
@@ -79,6 +140,7 @@ export class ProjectsService {
     return {
       createdByUser: { select: AUTHOR_SELECT },
       category: { select: { id: true, name: true } },
+      tags: { include: { tag: true } },
       _count: { select: { members: true } },
     } satisfies Prisma.ProjectInclude;
   }
@@ -89,6 +151,7 @@ export class ProjectsService {
         include: {
           createdByUser: { select: typeof AUTHOR_SELECT };
           category: { select: { id: true; name: true } };
+          tags: { include: { tag: true } };
           _count: { select: { members: true } };
         };
       }>
@@ -109,9 +172,9 @@ export class ProjectsService {
           snippetHighlighted: h?.snippetHighlighted,
           coverImageUrl: p.coverImageUrl,
           status: p.status,
-          publishStatus: p.publishStatus,
           memberCount: p._count.members,
           category: p.category,
+          tags: p.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
           startDate: p.startDate,
           endDate: p.endDate,
           createdBy: formatAuthor(p.createdByUser),
@@ -135,14 +198,14 @@ export class ProjectsService {
             user: {
               select: {
                 ...AUTHOR_SELECT,
-                role: true,
                 profile: {
                   select: { avatarUrl: true, occupation: true },
                 },
               },
             },
           },
-          orderBy: { joinedAt: "asc" },
+          // ProjectMemberRole enum は admin → member の順。role asc でホスト→メンバーの順に並ぶ
+          orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
         },
         tags: { include: { tag: true } },
         _count: { select: { members: true, threads: true, tasks: true } },
@@ -157,7 +220,6 @@ export class ProjectsService {
       description: project.description,
       coverImageUrl: project.coverImageUrl,
       status: project.status,
-      publishStatus: project.publishStatus,
       inviteToken: project.inviteToken,
       inviteLinkEnabled: project.inviteLinkEnabled,
       startDate: project.startDate,
@@ -173,7 +235,7 @@ export class ProjectsService {
         name: m.user.name,
         avatarUrl: m.user.profile?.avatarUrl ?? null,
         occupation: m.user.profile?.occupation ?? null,
-        role: m.user.role,
+        role: m.role,
         joinedAt: m.joinedAt,
       })),
       tags: project.tags.map((t) => ({ id: t.tag.id, name: t.tag.name, slug: t.tag.slug })),
@@ -186,22 +248,30 @@ export class ProjectsService {
   async create(userId: string, dto: CreateProjectDto) {
     const inviteToken = randomBytes(32).toString("hex");
 
-    const project = await this.prisma.project.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        coverImageUrl: dto.coverImageUrl,
-        categoryId: dto.categoryId,
-        eventId: dto.eventId,
-        startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-        status: dto.status,
-        inviteToken,
-        createdByUserId: userId,
-        members: {
-          create: { userId, role: "admin" },
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name: dto.name,
+          description: dto.description,
+          coverImageUrl: dto.coverImageUrl,
+          categoryId: dto.categoryId,
+          eventId: dto.eventId,
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+          status: dto.status,
+          inviteToken,
+          createdByUserId: userId,
+          members: {
+            create: { userId, role: "admin" },
+          },
         },
-      },
+      });
+
+      if (dto.tags && dto.tags.length > 0) {
+        await this.syncProjectTags(tx, created.id, dto.tags);
+      }
+
+      return created;
     });
 
     return this.findOne(project.id);
@@ -209,37 +279,49 @@ export class ProjectsService {
 
   async update(
     id: string,
-    dto: Partial<CreateProjectDto> & { publishStatus?: string; inviteLinkEnabled?: boolean },
+    dto: Partial<CreateProjectDto> & { inviteLinkEnabled?: boolean },
+    actorId: string,
+    actorRole: UserRole,
   ) {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing || existing.deletedAt)
       throw new NotFoundException("プロジェクトが見つかりません");
 
-    await this.prisma.project.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
-        ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-        ...(dto.eventId !== undefined && { eventId: dto.eventId }),
-        ...(dto.startDate !== undefined && {
-          startDate: dto.startDate ? new Date(dto.startDate) : null,
-        }),
-        ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
-        ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus as any }),
-        ...(dto.inviteLinkEnabled !== undefined && { inviteLinkEnabled: dto.inviteLinkEnabled }),
-      },
+    await this.assertCanManageProjectMembers(id, actorId, actorRole);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id },
+        data: {
+          ...(dto.name !== undefined && { name: dto.name }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.coverImageUrl !== undefined && { coverImageUrl: dto.coverImageUrl }),
+          ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+          ...(dto.eventId !== undefined && { eventId: dto.eventId }),
+          ...(dto.startDate !== undefined && {
+            startDate: dto.startDate ? new Date(dto.startDate) : null,
+          }),
+          ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
+          ...(dto.status !== undefined && { status: dto.status }),
+          ...(dto.inviteLinkEnabled !== undefined && { inviteLinkEnabled: dto.inviteLinkEnabled }),
+        },
+      });
+
+      // tags: undefined なら変更なし、配列なら全件置換（空配列は全削除 + tags_text='' に同期）
+      if (dto.tags !== undefined) {
+        await this.syncProjectTags(tx, id, dto.tags);
+      }
     });
 
     return this.findOne(id);
   }
 
-  async remove(id: string) {
+  async remove(id: string, actorId: string, actorRole: UserRole) {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing || existing.deletedAt)
       throw new NotFoundException("プロジェクトが見つかりません");
+
+    await this.assertCanManageProjectMembers(id, actorId, actorRole);
 
     await this.prisma.project.update({ where: { id }, data: { deletedAt: new Date() } });
   }
@@ -264,13 +346,43 @@ export class ProjectsService {
     return this.findOne(project.id);
   }
 
-  async addMember(projectId: string, userId: string) {
+  async addMember(
+    projectId: string,
+    userId: string,
+    role: "admin" | "member" = "member",
+    actorId: string,
+    actorRole: UserRole,
+  ) {
+    await this.assertCanManageProjectMembers(projectId, actorId, actorRole);
     await this.prisma.projectMember.create({
-      data: { projectId, userId, role: "member" },
+      data: { projectId, userId, role },
     });
   }
 
-  async removeMember(projectId: string, userId: string, reason?: string) {
+  async updateMemberRole(
+    projectId: string,
+    userId: string,
+    role: "admin" | "member",
+    actorId: string,
+    actorRole: UserRole,
+  ) {
+    await this.assertCanManageProjectMembers(projectId, actorId, actorRole);
+    const member = await this.prisma.projectMember.findFirst({
+      where: { projectId, userId, status: "active" },
+    });
+    if (!member) throw new NotFoundException("メンバーが見つかりません");
+
+    await this.prisma.projectMember.update({ where: { id: member.id }, data: { role } });
+  }
+
+  async removeMember(
+    projectId: string,
+    userId: string,
+    reason: string | undefined,
+    actorId: string,
+    actorRole: UserRole,
+  ) {
+    await this.assertCanManageProjectMembers(projectId, actorId, actorRole);
     const member = await this.prisma.projectMember.findFirst({
       where: { projectId, userId, status: "active" },
     });
@@ -280,6 +392,27 @@ export class ProjectsService {
       where: { id: member.id },
       data: { status: "removed", removedAt: new Date(), removedReason: reason },
     });
+  }
+
+  /**
+   * メンバー管理（追加・ロール変更・削除）の権限チェック。
+   * - システムロール admin / owner: 常に許可
+   * - それ以外: 対象プロジェクトの active な ProjectMember で role=admin（ホスト）なら許可
+   */
+  private async assertCanManageProjectMembers(
+    projectId: string,
+    actorId: string,
+    actorRole: UserRole,
+  ): Promise<void> {
+    if (actorRole === "admin" || actorRole === "owner") return;
+
+    const membership = await this.prisma.projectMember.findFirst({
+      where: { projectId, userId: actorId, status: "active", role: "admin" },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new ForbiddenException("このプロジェクトのメンバー管理権限がありません");
+    }
   }
 
   // ========== Threads ==========
@@ -633,5 +766,67 @@ export class ProjectsService {
 
   async deleteSchedule(scheduleId: string) {
     await this.prisma.projectSchedule.delete({ where: { id: scheduleId } });
+  }
+
+  // ========== Helpers ==========
+
+  /**
+   * タグ名の配列から、対応する Tag レコードを upsert（find by name → 既存再利用、なければ新規作成）し、
+   * `ProjectTag` リンクと `projects.tags_text` を一括で更新する。
+   *
+   * トランザクション内で呼ぶ前提。tags が空配列なら ProjectTag 全削除 + tags_text='' に同期。
+   * slug は name をそのまま使う。VARCHAR(50) を超える場合は truncate、衝突時は `-2` `-3` ... を付与。
+   */
+  private async syncProjectTags(
+    tx: Prisma.TransactionClient,
+    projectId: string,
+    tagNames: string[],
+  ): Promise<void> {
+    const uniqueNames = Array.from(
+      new Set(tagNames.map((n) => n.trim()).filter((n) => n.length > 0)),
+    );
+
+    const tagIds: string[] = [];
+    for (const name of uniqueNames) {
+      const existing = await tx.tag.findFirst({ where: { name }, select: { id: true } });
+      if (existing) {
+        tagIds.push(existing.id);
+        continue;
+      }
+      const created = await this.createTagWithUniqueSlug(tx, name);
+      tagIds.push(created.id);
+    }
+
+    await tx.projectTag.deleteMany({ where: { projectId } });
+    if (tagIds.length > 0) {
+      await tx.projectTag.createMany({
+        data: tagIds.map((tagId) => ({ projectId, tagId })),
+        skipDuplicates: true,
+      });
+    }
+
+    // tags_text を同期（スペース区切り、name ソートで安定化）
+    const tagsText = [...uniqueNames].sort().join(" ");
+    await tx.project.update({ where: { id: projectId }, data: { tagsText } });
+  }
+
+  /**
+   * 名前から slug を生成して Tag を作成する。slug 衝突時は -2, -3 ... と suffix を付与。
+   * VARCHAR(50) を超える slug は base を truncate して suffix の余地を確保。
+   */
+  private async createTagWithUniqueSlug(
+    tx: Prisma.TransactionClient,
+    name: string,
+  ): Promise<{ id: string }> {
+    const SLUG_MAX = 50;
+    const baseSlug = name.slice(0, SLUG_MAX);
+    for (let suffix = 1; suffix <= 100; suffix++) {
+      const slug = suffix === 1 ? baseSlug : `${baseSlug.slice(0, SLUG_MAX - 4)}-${suffix}`;
+      const conflict = await tx.tag.findUnique({ where: { slug }, select: { id: true } });
+      if (!conflict) {
+        return tx.tag.create({ data: { name, slug }, select: { id: true } });
+      }
+    }
+    throw new BadRequestException("タグの slug 衝突上限を超えました");
   }
 }

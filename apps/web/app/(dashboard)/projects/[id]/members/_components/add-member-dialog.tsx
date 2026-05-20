@@ -11,10 +11,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { SelectField } from "@/components/select-field";
 import { Loader2, UserPlus } from "lucide-react";
+
+const ROLE_OPTIONS = [
+  { value: "member", label: "メンバー" },
+  { value: "admin", label: "ホスト" },
+];
 
 interface AddMemberDialogProps {
   projectId: string;
@@ -30,6 +37,7 @@ export function AddMemberDialog({
   onOpenChange,
 }: AddMemberDialogProps) {
   const [search, setSearch] = useState("");
+  const [role, setRole] = useState<"admin" | "member">("member");
   const { data, isLoading } = useMembers({
     search: search || undefined,
     status: "active",
@@ -45,7 +53,10 @@ export function AddMemberDialog({
   }, [data, existingUserIds]);
 
   const handleClose = (next: boolean) => {
-    if (!next) setSearch("");
+    if (!next) {
+      setSearch("");
+      setRole("member");
+    }
     onOpenChange(next);
   };
 
@@ -56,6 +67,16 @@ export function AddMemberDialog({
           <DialogTitle>メンバーを追加</DialogTitle>
           <DialogDescription>プロジェクトに参加させるユーザーを選択してください</DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-1">
+          <Label className="text-xs">追加時のロール</Label>
+          <SelectField
+            value={role}
+            onChange={(v) => setRole(v as "admin" | "member")}
+            options={ROLE_OPTIONS}
+            className="w-full"
+          />
+        </div>
 
         <Input
           value={search}
@@ -89,7 +110,12 @@ export function AddMemberDialog({
                     size="sm"
                     variant="outline"
                     disabled={addMember.isPending}
-                    onClick={() => addMember.mutate(u.id, { onSuccess: () => handleClose(false) })}
+                    onClick={() =>
+                      addMember.mutate(
+                        { userId: u.id, role },
+                        { onSuccess: () => handleClose(false) },
+                      )
+                    }
                   >
                     <UserPlus className="mr-1 h-3.5 w-3.5" />
                     追加

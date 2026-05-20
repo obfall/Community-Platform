@@ -78,12 +78,26 @@ export function useDeleteProject() {
 export function useAddProjectMember(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => projectsApi.addMember(projectId, userId),
+    mutationFn: ({ userId, role }: { userId: string; role?: "admin" | "member" }) =>
+      projectsApi.addMember(projectId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
       toast.success("メンバーを追加しました");
     },
     onError: () => toast.error("メンバーの追加に失敗しました"),
+  });
+}
+
+export function useUpdateProjectMemberRole(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: "admin" | "member" }) =>
+      projectsApi.updateMemberRole(projectId, userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      toast.success("ロールを変更しました");
+    },
+    onError: () => toast.error("ロールの変更に失敗しました"),
   });
 }
 
