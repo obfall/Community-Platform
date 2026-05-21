@@ -70,26 +70,28 @@ export default function VenuesPage() {
             return (
               <Link key={v.id} href={`/venues/${v.id}`}>
                 <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
-                  <div className="flex aspect-video items-center justify-center bg-muted">
+                  <div className="aspect-video overflow-hidden bg-muted">
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={imageUrl} alt={v.name} className="h-full w-full object-cover" />
                     ) : (
-                      <Building2 className="h-12 w-12 text-muted-foreground" />
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Building2 className="h-12 w-12 text-muted-foreground" />
+                      </div>
                     )}
                   </div>
                   <CardContent className="p-4">
                     <div className="mb-2 flex flex-wrap items-center gap-1">
-                      {v.venueTypes.map((typ) => (
-                        <Badge key={typ} variant="outline" className="text-xs">
-                          {VENUE_TYPE_LABELS[typ] ?? typ}
-                        </Badge>
-                      ))}
                       {v.publishStatus !== "published" && (
                         <Badge variant="secondary" className="text-xs">
                           {PUBLISH_STATUS_LABELS[v.publishStatus] ?? v.publishStatus}
                         </Badge>
                       )}
+                      {v.venueTypes.map((typ) => (
+                        <Badge key={typ} variant="outline" className="text-xs">
+                          {VENUE_TYPE_LABELS[typ] ?? typ}
+                        </Badge>
+                      ))}
                     </div>
                     <h3 className="line-clamp-1 font-semibold">
                       <HighlightedText html={v.titleHighlighted} fallback={v.name} />

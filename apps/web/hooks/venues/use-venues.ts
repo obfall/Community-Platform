@@ -33,6 +33,20 @@ export function useCreateVenue() {
   });
 }
 
+export function useUpdateVenue() {
+  const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof venuesApi.update>[1] }) =>
+      venuesApi.update(id, data),
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["venues"] });
+      queryClient.invalidateQueries({ queryKey: ["venues", vars.id] });
+      toast.success(t("venueUpdated"));
+    },
+  });
+}
+
 export function useCreateSpace() {
   const queryClient = useQueryClient();
   const t = useTranslations("venues.toast");

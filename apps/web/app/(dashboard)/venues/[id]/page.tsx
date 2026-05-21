@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, Loader2, Pencil, Plus } from "lucide-react";
 import { PUBLISH_STATUS_LABELS } from "@/lib/constants/publish-status";
 import { VENUE_TYPE_LABELS, VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
 
@@ -88,21 +88,33 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           </Button>
         </Link>
         <div className="flex-1">
-          <div className="mb-1 flex items-center gap-2">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">
+              {PUBLISH_STATUS_LABELS[venue.publishStatus] ?? venue.publishStatus}
+            </Badge>
             {venue.venueTypes.map((typ) => (
               <Badge key={typ} variant="outline">
                 {VENUE_TYPE_LABELS[typ] ?? typ}
               </Badge>
             ))}
-            <Badge variant="secondary">
-              {PUBLISH_STATUS_LABELS[venue.publishStatus] ?? venue.publishStatus}
-            </Badge>
           </div>
           <h1 className="text-2xl font-bold">{venue.name}</h1>
         </div>
+        {isAdmin && (
+          <Link href={`/venues/${id}/edit`}>
+            <Button variant="outline" size="sm">
+              <Pencil className="mr-1 h-3 w-3" />
+              {t("detailActions.edit")}
+            </Button>
+          </Link>
+        )}
       </div>
 
-      {venueImages.length > 0 && (
+      {venueImages.length === 0 ? (
+        <div className="flex aspect-video items-center justify-center rounded-lg bg-muted">
+          <Building2 className="h-16 w-16 text-muted-foreground" />
+        </div>
+      ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {venueImages.map((img) => (
             <div key={img.id} className="aspect-video overflow-hidden rounded-lg bg-muted">

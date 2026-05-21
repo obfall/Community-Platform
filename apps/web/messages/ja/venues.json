@@ -2,10 +2,14 @@
   "heading": {
     "title": "施設・スペース",
     "new": "施設登録",
+    "edit": "施設編集",
     "spaceAdd": "スペース追加",
     "reservation": "予約",
     "spaces": "スペース一覧",
     "eventUsage": "イベント活用状況 ({count}件)"
+  },
+  "detailActions": {
+    "edit": "編集"
   },
   "search": {
     "placeholder": "施設を検索...",
@@ -58,7 +62,8 @@
     "publishStatusLabel": "公開ステータス",
     "basicInfo": "基本情報",
     "cancel": "キャンセル",
-    "submit": "登録"
+    "submit": "登録",
+    "submitEdit": "保存"
   },
   "space": {
     "dialogTitle": "スペース追加",
@@ -115,6 +120,8 @@
   "toast": {
     "venueCreated": "施設を登録しました",
     "venueCreateFailed": "施設登録に失敗しました",
+    "venueUpdated": "施設を更新しました",
+    "venueUpdateFailed": "施設更新に失敗しました",
     "venueDeleted": "施設を削除しました",
     "venueDeleteFailed": "施設削除に失敗しました",
     "spaceCreated": "スペースを登録しました",
