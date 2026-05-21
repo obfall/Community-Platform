@@ -1,0 +1,127 @@
+{
+  "heading": {
+    "title": "施設・スペース",
+    "new": "施設登録",
+    "spaceAdd": "スペース追加",
+    "reservation": "予約",
+    "spaces": "スペース一覧",
+    "eventUsage": "イベント活用状況 ({count}件)"
+  },
+  "search": {
+    "placeholder": "施設を検索...",
+    "statusPlaceholder": "ステータス"
+  },
+  "list": {
+    "loading": "読み込み中...",
+    "empty": "施設がありません",
+    "capacity": "{count}人",
+    "spaceCount": "{count}スペース"
+  },
+  "detail": {
+    "loading": "読み込み中...",
+    "notFound": "施設が見つかりません",
+    "address": "住所",
+    "capacity": "定員",
+    "capacityValue": "{count}人",
+    "accessInfo": "アクセス情報",
+    "noValue": "-",
+    "spacesEmpty": "スペースがありません",
+    "noEvents": "この施設を使用しているイベントはありません",
+    "table": {
+      "name": "名前",
+      "type": "タイプ",
+      "capacity": "定員",
+      "reservable": "予約可否",
+      "reservableYes": "可",
+      "reservableNo": "不可"
+    },
+    "events": {
+      "title": "イベント名",
+      "startAt": "開催日",
+      "participants": "参加者数",
+      "participantsValue": "{count}人"
+    }
+  },
+  "form": {
+    "imagesLabel": "施設画像",
+    "nameLabel": "施設名",
+    "namePlaceholder": "施設名を入力",
+    "addressLabel": "住所",
+    "addressPlaceholder": "住所（任意）",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "施設の説明（任意）",
+    "accessLabel": "アクセス",
+    "accessPlaceholder": "最寄駅・交通アクセス等（任意）",
+    "venueTypesLabel": "種別（複数選択可）",
+    "capacityLabel": "定員",
+    "capacityPlaceholder": "定員（任意）",
+    "publishStatusLabel": "公開ステータス",
+    "basicInfo": "基本情報",
+    "cancel": "キャンセル",
+    "submit": "登録"
+  },
+  "space": {
+    "dialogTitle": "スペース追加",
+    "nameLabel": "スペース名",
+    "namePlaceholder": "例: 会議室A",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "説明（任意）",
+    "typesLabel": "種別（複数選択可）",
+    "capacityLabel": "定員",
+    "capacityPlaceholder": "任意",
+    "submit": "登録"
+  },
+  "reservation": {
+    "dialogTitle": "予約する",
+    "spaceLabel": "スペース",
+    "spacePlaceholder": "スペースを選択",
+    "titleLabel": "タイトル（任意）",
+    "titlePlaceholder": "予約のタイトル",
+    "startAtLabel": "開始日時",
+    "endAtLabel": "終了日時",
+    "submit": "予約する",
+    "tableHeader": {
+      "space": "スペース",
+      "title": "タイトル",
+      "startAt": "開始",
+      "endAt": "終了",
+      "user": "予約者",
+      "status": "ステータス"
+    },
+    "cancel": "キャンセル",
+    "empty": "予約はありません",
+    "loading": "読み込み中..."
+  },
+  "venueType": {
+    "theater": "劇場",
+    "concert_hall": "コンサート（音楽）ホール",
+    "lecture_hall": "講演ホール",
+    "plaza": "広場",
+    "classroom_large": "教室(大)",
+    "exhibition_hall": "展示ホール",
+    "reception_hall": "レセプションホール",
+    "dining_space": "飲食スペース",
+    "conference_room_large": "会議室(大)",
+    "live_house": "ライブハウス",
+    "gymnasium": "体育館",
+    "other": "その他"
+  },
+  "reservationStatus": {
+    "confirmed": "確定",
+    "cancelled": "キャンセル",
+    "canceled": "キャンセル",
+    "pending": "未確定"
+  },
+  "toast": {
+    "venueCreated": "施設を登録しました",
+    "venueCreateFailed": "施設登録に失敗しました",
+    "venueDeleted": "施設を削除しました",
+    "venueDeleteFailed": "施設削除に失敗しました",
+    "spaceCreated": "スペースを登録しました",
+    "spaceCreateFailed": "スペース登録に失敗しました",
+    "reservationCreated": "予約を登録しました",
+    "reservationCreateFailed": "予約登録に失敗しました",
+    "reservationCanceled": "予約をキャンセルしました",
+    "reservationCancelFailed": "予約キャンセルに失敗しました"
+  }
+}

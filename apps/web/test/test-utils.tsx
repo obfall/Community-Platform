@@ -13,6 +13,7 @@ import albumsMessages from "@/messages/ja/albums.json";
 import contentsMessages from "@/messages/ja/contents.json";
 import projectsMessages from "@/messages/ja/projects.json";
 import skillsMessages from "@/messages/ja/skills.json";
+import venuesMessages from "@/messages/ja/venues.json";
 
 const messages = {
   common: commonMessages,
@@ -26,6 +27,7 @@ const messages = {
   contents: contentsMessages,
   projects: projectsMessages,
   skills: skillsMessages,
+  venues: venuesMessages,
 };
 
 /**

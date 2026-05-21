@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useCreateReservation } from "@/hooks/venues/use-venues";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface ReservationDialogProps {
 }
 
 export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDialogProps) {
+  const t = useTranslations("venues.reservation");
   const createReservation = useCreateReservation();
   const [spaceId, setSpaceId] = useState("");
   const [title, setTitle] = useState("");
@@ -59,14 +61,14 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>予約する</DialogTitle>
+          <DialogTitle>{t("dialogTitle")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>スペース</Label>
+            <Label>{t("spaceLabel")}</Label>
             <Select value={effectiveSpaceId} onValueChange={setSpaceId}>
               <SelectTrigger>
-                <SelectValue placeholder="スペースを選択" />
+                <SelectValue placeholder={t("spacePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {spaces.map((s) => (
@@ -78,16 +80,16 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
             </Select>
           </div>
           <div>
-            <Label>タイトル（任意）</Label>
+            <Label>{t("titleLabel")}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="予約のタイトル"
+              placeholder={t("titlePlaceholder")}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>開始日時</Label>
+              <Label>{t("startAtLabel")}</Label>
               <Input
                 type="datetime-local"
                 value={startAt}
@@ -95,7 +97,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
               />
             </div>
             <div>
-              <Label>終了日時</Label>
+              <Label>{t("endAtLabel")}</Label>
               <Input
                 type="datetime-local"
                 value={endAt}
@@ -109,7 +111,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
             disabled={!effectiveSpaceId || !startAt || !endAt || createReservation.isPending}
           >
             {createReservation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            予約する
+            {t("submit")}
           </Button>
         </div>
       </DialogContent>

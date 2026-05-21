@@ -14,10 +14,14 @@
     "chat_room": "ルームが見つかりません",
     "album": "アルバムが見つかりません",
     "album_photo": "写真が見つかりません",
-    "content": "コンテンツが見つかりません"
+    "content": "コンテンツが見つかりません",
+    "venue": "施設が見つかりません",
+    "space": "スペースが見つかりません",
+    "reservation": "予約が見つかりません"
   },
   "conflict": {
-    "default": "競合が発生しました"
+    "default": "競合が発生しました",
+    "reservation_overlap": "指定した時間帯は既に予約があります"
   },
   "forbidden_resource": {
     "board_topic": "このトピックを操作する権限がありません",
@@ -30,7 +34,8 @@
     "album_update": "自分のアルバムのみ更新できます",
     "album_delete": "自分のアルバムのみ削除できます",
     "content_update": "自分のコンテンツのみ更新できます",
-    "content_delete": "自分のコンテンツのみ削除できます"
+    "content_delete": "自分のコンテンツのみ削除できます",
+    "reservation_cancel": "この予約をキャンセルする権限がありません"
   },
   "unauthorized_resource": {
     "video_password": "パスワードが正しくありません"

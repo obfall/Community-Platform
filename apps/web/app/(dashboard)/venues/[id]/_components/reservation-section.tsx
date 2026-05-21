@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useVenueReservations, useCancelReservation } from "@/hooks/venues/use-venues";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,26 +14,28 @@ import {
 } from "@/components/ui/table";
 
 export function ReservationSection({ venueId }: { venueId: string }) {
+  const t = useTranslations("venues.reservation");
+  const tStatus = useTranslations("venues.reservationStatus");
   const { data: reservations, isLoading } = useVenueReservations(venueId);
   const cancelReservation = useCancelReservation();
 
   return (
     <div>
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">読み込み中...</p>
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
       ) : !reservations || reservations.length === 0 ? (
-        <p className="text-sm text-muted-foreground">予約はありません</p>
+        <p className="text-sm text-muted-foreground">{t("empty")}</p>
       ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>スペース</TableHead>
-                <TableHead>タイトル</TableHead>
-                <TableHead>開始</TableHead>
-                <TableHead>終了</TableHead>
-                <TableHead>予約者</TableHead>
-                <TableHead>ステータス</TableHead>
+                <TableHead>{t("tableHeader.space")}</TableHead>
+                <TableHead>{t("tableHeader.title")}</TableHead>
+                <TableHead>{t("tableHeader.startAt")}</TableHead>
+                <TableHead>{t("tableHeader.endAt")}</TableHead>
+                <TableHead>{t("tableHeader.user")}</TableHead>
+                <TableHead>{t("tableHeader.status")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -58,7 +61,7 @@ export function ReservationSection({ venueId }: { venueId: string }) {
                             : "secondary"
                       }
                     >
-                      {r.status}
+                      {tStatus.has(r.status) ? tStatus(r.status) : r.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -69,7 +72,7 @@ export function ReservationSection({ venueId }: { venueId: string }) {
                         onClick={() => cancelReservation.mutate(r.id)}
                         disabled={cancelReservation.isPending}
                       >
-                        キャンセル
+                        {t("cancel")}
                       </Button>
                     )}
                   </TableCell>

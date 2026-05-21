@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { venuesApi } from "@/lib/api/venues";
+
+// onError は providers.tsx の MutationCache.onError に集約しているため、
+// 各 mutation には onError を書かない（Phase 11.3 エラーハンドリング規約）。
 
 export function useVenues(params?: { publishStatus?: string; search?: string }) {
   return useQuery({
@@ -19,18 +23,19 @@ export function useVenue(id: string | undefined) {
 
 export function useCreateVenue() {
   const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
   return useMutation({
-    mutationFn: venuesApi.create,
+    mutationFn: (data: Parameters<typeof venuesApi.create>[0]) => venuesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      toast.success("施設を登録しました");
+      toast.success(t("venueCreated"));
     },
-    onError: () => toast.error("施設登録に失敗しました"),
   });
 }
 
 export function useCreateSpace() {
   const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
   return useMutation({
     mutationFn: ({
       venueId,
@@ -42,21 +47,20 @@ export function useCreateSpace() {
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
       queryClient.invalidateQueries({ queryKey: ["venues", vars.venueId] });
-      toast.success("スペースを登録しました");
+      toast.success(t("spaceCreated"));
     },
-    onError: () => toast.error("スペース登録に失敗しました"),
   });
 }
 
 export function useDeleteVenue() {
   const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
   return useMutation({
     mutationFn: (id: string) => venuesApi.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["venues"] });
-      toast.success("施設を削除しました");
+      toast.success(t("venueDeleted"));
     },
-    onError: () => toast.error("施設削除に失敗しました"),
   });
 }
 
@@ -78,6 +82,7 @@ export function useVenueReservations(venueId: string | undefined) {
 
 export function useCreateReservation() {
   const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
   return useMutation({
     mutationFn: ({
       spaceId,
@@ -89,21 +94,20 @@ export function useCreateReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
       queryClient.invalidateQueries({ queryKey: ["venue-reservations"] });
-      toast.success("予約を登録しました");
+      toast.success(t("reservationCreated"));
     },
-    onError: () => toast.error("予約登録に失敗しました"),
   });
 }
 
 export function useCancelReservation() {
   const queryClient = useQueryClient();
+  const t = useTranslations("venues.toast");
   return useMutation({
     mutationFn: (reservationId: string) => venuesApi.cancelReservation(reservationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
       queryClient.invalidateQueries({ queryKey: ["venue-reservations"] });
-      toast.success("予約をキャンセルしました");
+      toast.success(t("reservationCanceled"));
     },
-    onError: () => toast.error("予約キャンセルに失敗しました"),
   });
 }
