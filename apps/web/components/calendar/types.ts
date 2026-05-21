@@ -4,7 +4,7 @@ export interface CalendarItem {
   startAt: string;
   endAt: string;
   isAllDay?: boolean;
-  color: "blue" | "orange" | "green" | "gray";
+  color: "blue" | "orange" | "green" | "gray" | "purple";
   onClick?: () => void;
 }
 

@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from "class-validator";
 import { ProjectStatus } from "@prisma/client";
+import { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "@community-platform/shared";
 
 export class CreateProjectDto {
   @ApiProperty({ description: "プロジェクト名", maxLength: 200 })
@@ -42,4 +52,15 @@ export class CreateProjectDto {
   @IsOptional()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
+
+  @ApiPropertyOptional({
+    description: `タグ名の配列（最大 ${MAX_PROJECT_TAGS} 件、各 ${MAX_PROJECT_TAG_LENGTH} 文字以内）`,
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_PROJECT_TAGS)
+  @IsString({ each: true })
+  @MaxLength(MAX_PROJECT_TAG_LENGTH, { each: true })
+  tags?: string[];
 }

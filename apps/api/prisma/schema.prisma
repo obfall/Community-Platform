@@ -622,7 +622,6 @@ model BoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")
@@ -1316,7 +1315,6 @@ model EventBoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")
@@ -1516,7 +1514,8 @@ model Project {
   startDate         DateTime?     @map("start_date") @db.Date
   endDate           DateTime?     @map("end_date") @db.Date
   status            ProjectStatus @default(not_started)
-  publishStatus     PublishStatus @default(draft) @map("publish_status")
+  /// 検索用のタグ名連結。サービス層でタグ変更時に同期更新する非正規化カラム。pgroonga インデックス対象。
+  tagsText          String        @default("") @map("tags_text") @db.Text
   inviteToken       String        @unique @map("invite_token") @db.VarChar(100)
   inviteLinkEnabled Boolean       @default(false) @map("invite_link_enabled")
   memberCount       Int           @default(0) @map("member_count")
@@ -1539,7 +1538,7 @@ model Project {
   boardCategories ProjectBoardCategory[]
   boardTopics     ProjectBoardTopic[]
 
-  @@index([publishStatus, status])
+  @@index([status])
   @@index([createdByUserId])
   @@index([eventId])
   @@index([categoryId])
@@ -1784,7 +1783,6 @@ model ProjectBoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")

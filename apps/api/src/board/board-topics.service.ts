@@ -39,7 +39,6 @@ export class BoardTopicsService {
     // categoryId は DTO 側で @IsUUID() 済みだが多重防御として ::uuid キャストも残す。
     const where = Prisma.sql`
       deleted_at IS NULL
-      AND publish_status = 'published'::"PublishStatus"
       ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
     `;
 

@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useProject, useUpdateProject } from "@/hooks/projects/use-projects";
 import { useEvents } from "@/hooks/events/use-events";
 import { Button } from "@/components/ui/button";
@@ -12,26 +13,20 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SelectField, NONE_VALUE } from "@/components/select-field";
 import { ImageUpload } from "@/components/image-upload";
-import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-import { ArrowLeft, Loader2 } from "lucide-react";
-
-const STATUS_OPTIONS = [
-  { value: "not_started", label: "開始前" },
-  { value: "in_progress", label: "進行中" },
-  { value: "completed", label: "終了" },
-  { value: "cancelled", label: "中止" },
-];
+import { TagInput } from "@/components/tag-input";
+import { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "@community-platform/shared";
+import { PROJECT_STATUS_VALUES } from "@/lib/projects/project-status";
+import { ArrowLeft } from "lucide-react";
 
 export default function ProjectEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations("projects");
   const { data: project, isLoading } = useProject(id);
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.loading")}</div>;
   if (!project)
-    return (
-      <div className="py-12 text-center text-muted-foreground">プロジェクトが見つかりません</div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
   return <ProjectEditForm id={id} project={project} />;
 }
@@ -44,6 +39,8 @@ function ProjectEditForm({
   project: NonNullable<ReturnType<typeof useProject>["data"]>;
 }) {
   const router = useRouter();
+  const t = useTranslations("projects");
+  const tStatus = useTranslations("enums.projectStatus");
   const updateProject = useUpdateProject();
   const { data: eventsData } = useEvents({ limit: 100, page: 1 });
   const events = eventsData?.data ?? [];
@@ -58,8 +55,10 @@ function ProjectEditForm({
     project.endDate ? String(project.endDate).slice(0, 10) : "",
   );
   const [status, setStatus] = useState(project.status);
-  const [publishStatus, setPublishStatus] = useState(project.publishStatus);
   const [eventId, setEventId] = useState(project.event?.id ?? NONE_VALUE);
+  const [tags, setTags] = useState<string[]>(project.tags?.map((tg) => tg.name) ?? []);
+
+  const statusOptions = PROJECT_STATUS_VALUES.map((value) => ({ value, label: tStatus(value) }));
 
   const handleSubmit = () => {
     updateProject.mutate(
@@ -72,8 +71,8 @@ function ProjectEditForm({
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           status,
-          publishStatus,
           eventId: eventId === NONE_VALUE ? undefined : eventId,
+          tags,
         },
       },
       { onSuccess: () => router.push(`/projects/${id}`) },
@@ -81,97 +80,85 @@ function ProjectEditForm({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href={`/projects/${id}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">プロジェクト編集</h1>
+        <h1 className="text-2xl font-bold">{t("heading.editTitle")}</h1>
       </div>
 
-      {/* 基本情報 */}
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle>{t("heading.basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>プロジェクト名</Label>
+            <Label>{t("form.nameLabel")}</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="プロジェクト名を入力"
+              placeholder={t("form.namePlaceholder")}
             />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>{t("form.descriptionLabel")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
-              placeholder="プロジェクトの説明"
+              placeholder={t("form.descriptionPlaceholder")}
             />
           </div>
           <div>
-            <Label>カバー画像</Label>
+            <Label>{t("form.coverImageLabel")}</Label>
             <ImageUpload value={coverImageUrl} onChange={setCoverImageUrl} />
+          </div>
+          <div>
+            <Label>{t("form.statusLabel")}</Label>
+            <SelectField value={status} onChange={setStatus} options={statusOptions} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>開始日</Label>
+              <Label>{t("form.startDateLabel")}</Label>
               <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <Label>終了日</Label>
+              <Label>{t("form.endDateLabel")}</Label>
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label>関連イベント（任意）</Label>
+            <Label>{t("form.relatedEventLabel")}</Label>
             <SelectField
               value={eventId}
               onChange={setEventId}
               options={events.map((e) => ({ value: e.id, label: e.title }))}
               includeNone
-              placeholder="イベントを選択"
+              placeholder={t("form.relatedEventPlaceholder")}
             />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* ステータス・公開設定 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>ステータス・公開設定</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div>
-            <Label>状況</Label>
-            <SelectField value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-          </div>
-          <div>
-            <Label>公開状態</Label>
-            <SelectField
-              value={publishStatus}
-              onChange={setPublishStatus}
-              options={PUBLISH_STATUS_OPTIONS}
+            <Label>{t("form.tagsLabel", { max: MAX_PROJECT_TAGS })}</Label>
+            <TagInput
+              value={tags}
+              onChange={setTags}
+              maxTags={MAX_PROJECT_TAGS}
+              maxLength={MAX_PROJECT_TAG_LENGTH}
+              placeholder={t("form.tagsPlaceholder")}
             />
           </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name || updateProject.isPending}
+            className="w-full"
+          >
+            {t("form.saveSubmit")}
+          </Button>
         </CardContent>
       </Card>
-
-      {/* 保存ボタン */}
-      <div className="flex justify-end gap-2">
-        <Link href={`/projects/${id}`}>
-          <Button variant="outline">キャンセル</Button>
-        </Link>
-        <Button onClick={handleSubmit} disabled={!name || updateProject.isPending}>
-          {updateProject.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          保存
-        </Button>
-      </div>
     </div>
   );
 }

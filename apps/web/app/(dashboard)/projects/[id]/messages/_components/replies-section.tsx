@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   useThreadReplies,
   useCreateReply,
@@ -12,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Heart } from "lucide-react";
 
 export function RepliesSection({ threadId }: { threadId: string }) {
+  const t = useTranslations("projects.messages");
   const { data: replies } = useThreadReplies(threadId);
   const createReply = useCreateReply();
   const toggleLike = useToggleReplyLike();
@@ -24,6 +26,7 @@ export function RepliesSection({ threadId }: { threadId: string }) {
           id: string;
           body: string;
           likeCount: number;
+          isLiked: boolean;
           author: { id: string; name: string; avatarUrl: string | null };
           createdAt: string;
         }>
@@ -48,9 +51,9 @@ export function RepliesSection({ threadId }: { threadId: string }) {
             <button
               type="button"
               onClick={() => toggleLike.mutate(r.id)}
-              className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className={`mt-1 flex items-center gap-1 text-xs ${r.isLiked ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
             >
-              <Heart className="h-3 w-3" />
+              <Heart className={`h-3.5 w-3.5 ${r.isLiked ? "fill-current" : ""}`} />
               {r.likeCount > 0 && r.likeCount}
             </button>
           </div>
@@ -65,7 +68,7 @@ export function RepliesSection({ threadId }: { threadId: string }) {
               createReply.mutate({ threadId, body: body.trim() }, { onSuccess: () => setBody("") });
             }
           }}
-          placeholder="返信を入力..."
+          placeholder={t("replyPlaceholder")}
           className="h-8 text-sm"
         />
         <Button
@@ -78,7 +81,7 @@ export function RepliesSection({ threadId }: { threadId: string }) {
           disabled={!body.trim() || createReply.isPending}
           className="h-8"
         >
-          返信
+          {t("replySubmit")}
         </Button>
       </div>
     </div>

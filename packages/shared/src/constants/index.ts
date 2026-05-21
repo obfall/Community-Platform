@@ -35,6 +35,7 @@ export {
   MAX_SPEAKER_NAME_LENGTH,
   MAX_SPEAKER_TITLE_LENGTH,
 } from "./events";
+export { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "./projects";
 export {
   MAX_VIDEO_TITLE_LENGTH,
   MAX_VIDEO_TASK_TITLE_LENGTH,

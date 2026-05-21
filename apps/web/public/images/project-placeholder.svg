@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice">
+  <rect width="400" height="240" fill="#f1f5f9" />
+  <!-- Lucide FolderKanban icon, scaled 4x and centered. viewBox 0 0 24 24, stroke-width 2 → 効果 stroke 0.5 相当に見える -->
+  <g
+    transform="translate(152 72) scale(4)"
+    fill="none"
+    stroke="#94a3b8"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    <path d="M8 10v4" />
+    <path d="M12 10v2" />
+    <path d="M16 10v6" />
+  </g>
+</svg>

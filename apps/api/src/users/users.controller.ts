@@ -71,6 +71,12 @@ export class UsersController {
     return this.usersService.findUserLibrary(userId);
   }
 
+  @Get("me/project-schedules")
+  @ApiOperation({ summary: "自分が参加中プロジェクトのスケジュール一覧" })
+  getMyProjectSchedules(@CurrentUser("id") userId: string) {
+    return this.usersService.findUserProjectSchedules(userId);
+  }
+
   // ※ `:id` ルートより必ず前に置く。後ろに置くと NestJS が "interest-categories" を
   //    UUID パラメータとして解釈し、ParseUUIDPipe で 400 エラーになる。
   @Get("interest-categories")

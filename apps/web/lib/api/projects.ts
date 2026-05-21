@@ -21,7 +21,7 @@ export const projectsApi = {
 
   updateProject: (
     id: string,
-    data: Partial<CreateProjectInput> & { publishStatus?: string; inviteLinkEnabled?: boolean },
+    data: Partial<CreateProjectInput> & { inviteLinkEnabled?: boolean },
   ) => apiClient.patch<ProjectDetail>(`/projects/${id}`, data).then((r) => r.data),
 
   deleteProject: (id: string) => apiClient.delete(`/projects/${id}`),
@@ -29,8 +29,11 @@ export const projectsApi = {
   joinByToken: (token: string) =>
     apiClient.post<ProjectDetail>(`/projects/join/${token}`).then((r) => r.data),
 
-  addMember: (projectId: string, userId: string) =>
-    apiClient.post(`/projects/${projectId}/members/${userId}`),
+  addMember: (projectId: string, userId: string, role?: "admin" | "member") =>
+    apiClient.post(`/projects/${projectId}/members/${userId}`, role ? { role } : {}),
+
+  updateMemberRole: (projectId: string, userId: string, role: "admin" | "member") =>
+    apiClient.patch(`/projects/${projectId}/members/${userId}/role`, { role }),
 
   removeMember: (projectId: string, userId: string) =>
     apiClient.delete(`/projects/${projectId}/members/${userId}`),

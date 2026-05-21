@@ -645,6 +645,28 @@ export class UsersService {
     return assignments.map((a) => a.task);
   }
 
+  async findUserProjectSchedules(userId: string) {
+    return this.prisma.projectSchedule.findMany({
+      where: {
+        project: {
+          deletedAt: null,
+          members: { some: { userId, status: "active" } },
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        startAt: true,
+        endAt: true,
+        isAllDay: true,
+        location: true,
+        project: { select: { id: true, name: true } },
+      },
+      orderBy: { startAt: "asc" },
+    });
+  }
+
   async findUserLibrary(userId: string) {
     const [watchProgress, orders] = await Promise.all([
       this.prisma.videoWatchProgress.findMany({

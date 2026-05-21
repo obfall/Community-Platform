@@ -237,7 +237,6 @@ export interface BoardTopic {
   id: string;
   title: string;
   body: string;
-  publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
   postCount: number;
@@ -285,14 +284,12 @@ export interface CreateTopicInput {
   title: string;
   body: string;
   categoryId: string;
-  publishStatus?: "draft" | "published";
 }
 
 export interface UpdateTopicInput {
   title?: string;
   body?: string;
   categoryId?: string;
-  publishStatus?: "draft" | "published";
 }
 
 export interface CreateTopicPostInput {
@@ -653,6 +650,17 @@ export interface MyTaskItem {
   status: VideoTaskStatus;
   dueDate: string | null;
   requestedDate: string | null;
+  project: { id: string; name: string };
+}
+
+export interface MyProjectScheduleItem {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  isAllDay: boolean;
+  location: string | null;
   project: { id: string; name: string };
 }
 
@@ -1058,9 +1066,9 @@ export interface ProjectListItem {
   description: string | null;
   coverImageUrl: string | null;
   status: string;
-  publishStatus: string;
   memberCount: number;
   category: { id: string; name: string } | null;
+  tags: { id: string; name: string; slug: string }[];
   startDate: string | null;
   endDate: string | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
@@ -1087,7 +1095,6 @@ export interface ProjectDetail extends ProjectListItem {
   taskCount: number;
   event: { id: string; title: string } | null;
   members: ProjectMember[];
-  tags: { id: string; name: string; slug: string }[];
   updatedAt: string;
 }
 
@@ -1097,6 +1104,7 @@ export interface ProjectThread {
   isPinned: boolean;
   replyCount: number;
   likeCount: number;
+  isLiked: boolean;
   lastReplyAt: string | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   createdAt: string;
@@ -1128,7 +1136,7 @@ export interface ProjectQuery {
   page?: number;
   limit?: number;
   status?: string;
-  publishStatus?: string;
+  tagId?: string;
   search?: string;
 }
 
@@ -1141,7 +1149,7 @@ export interface CreateProjectInput {
   startDate?: string;
   endDate?: string;
   status?: string;
-  publishStatus?: string;
+  tags?: string[];
   inviteLinkEnabled?: boolean;
 }
 

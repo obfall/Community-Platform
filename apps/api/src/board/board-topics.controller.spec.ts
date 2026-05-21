@@ -88,7 +88,6 @@ describe("BoardTopicsController", () => {
       title: "テスト",
       body: "本文",
       categoryId: TEST_CATEGORY_ID,
-      publishStatus: "published",
     };
     const res = await request(app.getHttpServer()).post("/board/topics").send(dto);
     expect(res.status).toBe(201);

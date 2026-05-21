@@ -9,20 +9,31 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/** i18n キー（messages/ja/projects.json の sidebar.nav 配下） */
+export type ProjectDetailNavKey =
+  | "info"
+  | "members"
+  | "messages"
+  | "tasks"
+  | "schedule"
+  | "board"
+  | "files";
+
 export interface ProjectDetailNavItem {
-  label: string;
+  /** projects.sidebar.nav.<labelKey> で参照する翻訳キー */
+  labelKey: ProjectDetailNavKey;
   segment: string;
   icon: LucideIcon;
 }
 
 export const PROJECT_DETAIL_NAV_ITEMS: ProjectDetailNavItem[] = [
-  { label: "基本情報", segment: "", icon: Info },
-  { label: "メンバー", segment: "members", icon: Users },
-  { label: "メッセージ", segment: "messages", icon: MessageSquare },
-  { label: "タスク", segment: "tasks", icon: CheckSquare },
-  { label: "スケジュール", segment: "schedule", icon: CalendarDays },
-  { label: "掲示板", segment: "board", icon: Newspaper },
-  { label: "ファイル", segment: "files", icon: FolderOpen },
+  { labelKey: "info", segment: "", icon: Info },
+  { labelKey: "members", segment: "members", icon: Users },
+  { labelKey: "messages", segment: "messages", icon: MessageSquare },
+  { labelKey: "tasks", segment: "tasks", icon: CheckSquare },
+  { labelKey: "schedule", segment: "schedule", icon: CalendarDays },
+  { labelKey: "board", segment: "board", icon: Newspaper },
+  { labelKey: "files", segment: "files", icon: FolderOpen },
 ];
 
 export function extractProjectIdFromPath(pathname: string): string | null {

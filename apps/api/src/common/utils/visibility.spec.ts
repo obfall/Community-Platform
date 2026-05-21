@@ -11,20 +11,12 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
   describe("publishStatus 系（deletedAt + publishStatus=published）", () => {
     const expectedShape = { deletedAt: null, publishStatus: "published" };
 
-    it("boardTopic", () => {
-      expect(VISIBILITY.boardTopic).toEqual(expectedShape);
-    });
-
     it("product", () => {
       expect(VISIBILITY.product).toEqual(expectedShape);
     });
 
     it("video", () => {
       expect(VISIBILITY.video).toEqual(expectedShape);
-    });
-
-    it("project", () => {
-      expect(VISIBILITY.project).toEqual(expectedShape);
     });
 
     it("album", () => {
@@ -37,6 +29,12 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
 
     it("content", () => {
       expect(VISIBILITY.content).toEqual(expectedShape);
+    });
+  });
+
+  describe("deletedAt のみ（公開状態なし）", () => {
+    it("boardTopic は deletedAt=null のみ", () => {
+      expect(VISIBILITY.boardTopic).toEqual({ deletedAt: null });
     });
   });
 
@@ -77,7 +75,7 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
     });
   });
 
-  it("12 ドメインすべてが定義されている", () => {
+  it("11 ドメインすべてが定義されている", () => {
     expect(Object.keys(VISIBILITY).sort()).toEqual(
       [
         "album",
@@ -86,7 +84,6 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
         "event",
         "faqArticle",
         "product",
-        "project",
         "skillListing",
         "survey",
         "user",

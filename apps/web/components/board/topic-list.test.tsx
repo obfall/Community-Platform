@@ -29,7 +29,6 @@ const baseTopic: BoardTopic = {
   id: "t-1",
   title: "テスト",
   body: "本文",
-  publishStatus: "published",
   isPinned: false,
   sortOrder: 0,
   postCount: 2,

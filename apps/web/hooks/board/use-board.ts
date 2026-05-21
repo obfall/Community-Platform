@@ -159,6 +159,8 @@ export function useCreateTopic() {
     mutationFn: (data: CreateTopicInput) => api.createTopic(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
+      // カテゴリ一覧の topicCount が変動するため再取得する
+      queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
       toast.success(t("toast.topicCreated"));
     },
   });
@@ -172,6 +174,8 @@ export function useUpdateTopic() {
     mutationFn: ({ id, data }: { id: string; data: UpdateTopicInput }) => api.updateTopic(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
+      // カテゴリ変更で旧/新カテゴリの topicCount が変動するため再取得する
+      queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
       toast.success(t("toast.topicUpdated"));
     },
   });
@@ -185,6 +189,8 @@ export function useDeleteTopic() {
     mutationFn: (id: string) => api.deleteTopic(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keyOf(scope, "topics") });
+      // カテゴリ一覧の topicCount が変動するため再取得する
+      queryClient.invalidateQueries({ queryKey: keyOf(scope, "categories") });
       toast.success(t("toast.topicDeleted"));
     },
   });

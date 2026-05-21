@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
+import type { UserRole } from "@prisma/client";
 import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
@@ -31,8 +32,12 @@ export class ProjectsController {
 
   @Get()
   @ApiOperation({ summary: "プロジェクト一覧" })
-  findAll(@Query() query: ProjectQueryDto) {
-    return this.service.findAll(query);
+  findAll(
+    @Query() query: ProjectQueryDto,
+    @CurrentUser("role") role: UserRole,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.findAll(query, role, userId);
   }
 
   @Get(":id")
@@ -43,23 +48,32 @@ export class ProjectsController {
 
   @Post()
   @ApiOperation({ summary: "プロジェクト作成" })
+  @UseGuards(RolesGuard)
+  @Roles("admin", "owner")
   create(@CurrentUser("id") userId: string, @Body() dto: CreateProjectDto) {
     return this.service.create(userId, dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "プロジェクト更新" })
-  update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: CreateProjectDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: CreateProjectDto,
+    @CurrentUser("id") actorId: string,
+    @CurrentUser("role") actorRole: UserRole,
+  ) {
+    return this.service.update(id, dto, actorId, actorRole);
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "プロジェクト削除" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.remove(id);
+  remove(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser("id") actorId: string,
+    @CurrentUser("role") actorRole: UserRole,
+  ) {
+    return this.service.remove(id, actorId, actorRole);
   }
 
   // ========== Members ==========
@@ -72,33 +86,50 @@ export class ProjectsController {
 
   @Post(":id/members/:userId")
   @ApiOperation({ summary: "メンバー追加" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   addMember(
     @Param("id", ParseUUIDPipe) projectId: string,
     @Param("userId", ParseUUIDPipe) userId: string,
+    @CurrentUser("id") actorId: string,
+    @CurrentUser("role") actorRole: UserRole,
+    @Body() body: { role?: "admin" | "member" } = {},
   ) {
-    return this.service.addMember(projectId, userId);
+    return this.service.addMember(projectId, userId, body.role, actorId, actorRole);
+  }
+
+  @Patch(":id/members/:userId/role")
+  @ApiOperation({ summary: "メンバーのロール変更" })
+  updateMemberRole(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Param("userId", ParseUUIDPipe) userId: string,
+    @CurrentUser("id") actorId: string,
+    @CurrentUser("role") actorRole: UserRole,
+    @Body() body: { role: "admin" | "member" },
+  ) {
+    return this.service.updateMemberRole(projectId, userId, body.role, actorId, actorRole);
   }
 
   @Delete(":id/members/:userId")
   @ApiOperation({ summary: "メンバー削除" })
-  @UseGuards(RolesGuard)
-  @Roles("admin", "owner")
   @HttpCode(HttpStatus.NO_CONTENT)
   removeMember(
     @Param("id", ParseUUIDPipe) projectId: string,
     @Param("userId", ParseUUIDPipe) userId: string,
+    @CurrentUser("id") actorId: string,
+    @CurrentUser("role") actorRole: UserRole,
   ) {
-    return this.service.removeMember(projectId, userId);
+    return this.service.removeMember(projectId, userId, undefined, actorId, actorRole);
   }
 
   // ========== Messages (Threads) ==========
 
   @Get(":id/threads")
   @ApiOperation({ summary: "メッセージ一覧" })
-  getThreads(@Param("id", ParseUUIDPipe) projectId: string, @Query() query: PaginationQueryDto) {
-    return this.service.getThreads(projectId, query);
+  getThreads(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Query() query: PaginationQueryDto,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.getThreads(projectId, query, userId);
   }
 
   @Post(":id/threads")
@@ -115,8 +146,11 @@ export class ProjectsController {
 
   @Get("threads/:threadId/replies")
   @ApiOperation({ summary: "返信一覧" })
-  getReplies(@Param("threadId", ParseUUIDPipe) threadId: string) {
-    return this.service.getReplies(threadId);
+  getReplies(
+    @Param("threadId", ParseUUIDPipe) threadId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.getReplies(threadId, userId);
   }
 
   @Post("threads/:threadId/replies")

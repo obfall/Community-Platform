@@ -10,6 +10,7 @@ import type {
   MyTicketItem,
   MyReservationItem,
   MyTaskItem,
+  MyProjectScheduleItem,
   LibraryItem,
   CreateLibraryItemInput,
   UpdateLibraryItemInput,
@@ -54,6 +55,9 @@ export const profileApi = {
     apiClient.get<MyReservationItem[]>("/users/me/reservations").then((r) => r.data),
 
   getMyTasks: () => apiClient.get<MyTaskItem[]>("/users/me/tasks").then((r) => r.data),
+
+  getMyProjectSchedules: () =>
+    apiClient.get<MyProjectScheduleItem[]>("/users/me/project-schedules").then((r) => r.data),
 
   getLibrary: () => apiClient.get<LibraryItem[]>("/user-library").then((r) => r.data),
 

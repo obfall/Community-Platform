@@ -18,7 +18,6 @@ import type { Prisma } from "@prisma/client";
 export const VISIBILITY = {
   boardTopic: {
     deletedAt: null,
-    publishStatus: "published",
   } satisfies Prisma.BoardTopicWhereInput,
 
   product: {
@@ -35,11 +34,6 @@ export const VISIBILITY = {
     deletedAt: null,
     publishStatus: "published",
   } satisfies Prisma.VideoWhereInput,
-
-  project: {
-    deletedAt: null,
-    publishStatus: "published",
-  } satisfies Prisma.ProjectWhereInput,
 
   user: {
     deletedAt: null,
