@@ -17,7 +17,12 @@ import { CurrentUser } from "@/common/decorators/current-user.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { FeatureEnabledGuard } from "@/common/guards";
 import { SkillsService } from "./skills.service";
-import { CreateSkillListingDto, CreateBookingDto, SkillQueryDto } from "./dto";
+import {
+  CreateSkillListingDto,
+  CreateBookingDto,
+  SkillQueryDto,
+  UpdateBookingStatusDto,
+} from "./dto";
 
 @Controller("skills")
 @ApiTags("Skills")
@@ -31,8 +36,8 @@ export class SkillsController {
 
   @Get()
   @ApiOperation({ summary: "スキル一覧" })
-  findAll(@Query() query: SkillQueryDto) {
-    return this.service.findAll(query);
+  findAll(@Query() query: SkillQueryDto, @CurrentUser("id") userId: string) {
+    return this.service.findAll(query, userId);
   }
 
   @Get("bookings")
@@ -41,10 +46,19 @@ export class SkillsController {
     return this.service.getBookings(userId);
   }
 
+  @Get("bookings/:bookingId")
+  @ApiOperation({ summary: "予約詳細" })
+  findBooking(
+    @Param("bookingId", ParseUUIDPipe) bookingId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.findBooking(bookingId, userId);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "スキル詳細" })
-  findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.findOne(id);
+  findOne(@Param("id", ParseUUIDPipe) id: string, @CurrentUser("id") userId: string) {
+    return this.service.findOne(id, userId);
   }
 
   @Post()
@@ -96,9 +110,9 @@ export class SkillsController {
   updateBookingStatus(
     @Param("bookingId", ParseUUIDPipe) bookingId: string,
     @CurrentUser("id") userId: string,
-    @Body("status") status: "approved" | "rejected" | "completed" | "canceled",
+    @Body() dto: UpdateBookingStatusDto,
   ) {
-    return this.service.updateBookingStatus(bookingId, userId, status);
+    return this.service.updateBookingStatus(bookingId, userId, dto.status, dto.comment);
   }
 
   // --- メッセージ ---

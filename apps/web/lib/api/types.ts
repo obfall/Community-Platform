@@ -1595,12 +1595,14 @@ export interface SkillListItem {
   snippetHighlighted?: string;
 }
 
+export type SkillBookingStatus = "requested" | "approved" | "rejected" | "completed" | "canceled";
+
 export interface SkillBooking {
   id: string;
   skillListingId: string;
   requesterUserId: string;
   providerUserId: string;
-  status: string;
+  status: SkillBookingStatus;
   scheduledAt: string | null;
   message: string | null;
   completedAt: string | null;
@@ -1609,6 +1611,16 @@ export interface SkillBooking {
   skillListing: { id: string; title: string; price: number };
   requester: { id: string; name: string };
   provider: { id: string; name: string };
+}
+
+export interface SkillBookingDetail extends Omit<SkillBooking, "skillListing"> {
+  skillListing: {
+    id: string;
+    title: string;
+    price: number;
+    durationMinutes: number;
+    format: string;
+  };
 }
 
 export interface SkillMessage {

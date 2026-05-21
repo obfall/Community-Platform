@@ -15,7 +15,7 @@ const FORMAT_OPTIONS = [
   { value: "offline", label: "オフライン" },
   { value: "both", label: "両方" },
 ];
-import { Plus, Share2, Clock, Users } from "lucide-react";
+import { Plus, Share2, Clock, Users, CalendarClock } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HighlightedText } from "@/components/highlighted-text";
 import type { SkillQuery } from "@/lib/api/types";
@@ -35,14 +35,22 @@ export default function SkillsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">スキルシェア</h1>
-        <Link href="/skills/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            出品
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/skills/bookings">
+            <Button variant="outline">
+              <CalendarClock className="mr-2 h-4 w-4" />
+              予約一覧
+            </Button>
+          </Link>
+          <Link href="/skills/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              出品
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

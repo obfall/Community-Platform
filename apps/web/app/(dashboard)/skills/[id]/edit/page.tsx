@@ -28,7 +28,7 @@ const STATUS_OPTIONS = [
 
 export default function SkillEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { user } = useAuth();
+  const { canEditAuthor } = useAuth();
   const { data: skill, isLoading } = useSkill(id);
 
   if (isLoading) {
@@ -37,7 +37,7 @@ export default function SkillEditPage({ params }: { params: Promise<{ id: string
   if (!skill) {
     return <div className="py-12 text-center text-muted-foreground">スキルが見つかりません</div>;
   }
-  if (user?.id !== skill.provider.id) {
+  if (!canEditAuthor(skill.provider.id)) {
     return (
       <div className="py-12 text-center text-muted-foreground">
         このスキルを編集する権限がありません

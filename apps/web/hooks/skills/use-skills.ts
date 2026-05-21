@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { skillsApi } from "@/lib/api/skills";
-import type { SkillQuery } from "@/lib/api/types";
+import type { SkillBookingStatus, SkillQuery } from "@/lib/api/types";
 
 export function useSkills(query?: SkillQuery) {
   return useQuery({
@@ -75,6 +75,14 @@ export function useSkillBookings() {
   });
 }
 
+export function useSkillBooking(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ["skills", "bookings", bookingId],
+    queryFn: () => skillsApi.getBooking(bookingId!),
+    enabled: !!bookingId,
+  });
+}
+
 export function useCreateBooking() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -86,8 +94,7 @@ export function useCreateBooking() {
       data: { scheduledAt?: string; message?: string };
     }) => skillsApi.createBooking(listingId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["skills"] });
-      toast.success("予約リクエストを送信しました");
+      queryClient.invalidateQueries({ queryKey: ["skills", "bookings"] });
     },
     onError: () => toast.error("予約リクエストに失敗しました"),
   });
@@ -96,11 +103,21 @@ export function useCreateBooking() {
 export function useUpdateBookingStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ bookingId, status }: { bookingId: string; status: string }) =>
-      skillsApi.updateBookingStatus(bookingId, status),
-    onSuccess: () => {
+    mutationFn: ({
+      bookingId,
+      status,
+      comment,
+    }: {
+      bookingId: string;
+      status: SkillBookingStatus;
+      comment?: string;
+    }) => skillsApi.updateBookingStatus(bookingId, status, comment),
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["skills", "bookings"] });
-      toast.success("ステータスを更新しました");
+      queryClient.invalidateQueries({ queryKey: ["skills", "bookings", variables.bookingId] });
+      queryClient.invalidateQueries({
+        queryKey: ["skills", "messages", variables.bookingId],
+      });
     },
     onError: () => toast.error("ステータス更新に失敗しました"),
   });

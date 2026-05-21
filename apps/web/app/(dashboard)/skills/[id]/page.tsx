@@ -12,7 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Clock, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Clock, Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CommentSection } from "./_components/comment-section";
 
@@ -25,7 +32,7 @@ const FORMAT_LABELS: Record<string, string> = {
 export default function SkillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, canEditAuthor, isAdmin } = useAuth();
   const { data: skill, isLoading } = useSkill(id);
   const createBooking = useCreateBooking();
   const deleteSkill = useDeleteSkill();
@@ -39,10 +46,11 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         data: { message: message || undefined, scheduledAt: scheduledAt || undefined },
       },
       {
-        onSuccess: () => {
+        onSuccess: (booking) => {
           setMessage("");
           setScheduledAt("");
           toast.success("予約リクエストを送信しました");
+          router.push(`/skills/bookings/${booking.id}`);
         },
       },
     );
@@ -60,6 +68,9 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
     return <div className="py-12 text-center text-muted-foreground">スキルが見つかりません</div>;
 
   const isOwner = user?.id === skill.provider.id;
+  const canEdit = canEditAuthor(skill.provider.id);
+  // 予約フォームは出品者本人と管理者には表示しない
+  const canBook = !isOwner && !isAdmin;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -72,24 +83,29 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           </Link>
           <h1 className="text-2xl font-bold">{skill.title}</h1>
         </div>
-        {isOwner && (
-          <div className="flex items-center gap-2">
-            <Link href={`/skills/${id}/edit`}>
-              <Button variant="outline" size="sm">
+        {canEdit && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/skills/${id}/edit`)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 編集
-              </Button>
-            </Link>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleteSkill.isPending}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              削除
-            </Button>
-          </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={handleDelete}
+                disabled={deleteSkill.isPending}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                削除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -130,7 +146,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         </CardContent>
       </Card>
 
-      {!isOwner && (
+      {canBook && (
         <Card>
           <CardHeader>
             <CardTitle>予約リクエスト</CardTitle>

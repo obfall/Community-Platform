@@ -15,7 +15,8 @@ describe("SkillsService", () => {
       },
       $queryRaw: jest.fn().mockResolvedValue([]),
     };
-    service = new SkillsService(prismaMock as never);
+    const notificationsMock = { create: jest.fn().mockResolvedValue(undefined) };
+    service = new SkillsService(prismaMock as never, notificationsMock as never);
   });
 
   describe("findAll: search の有無で経路が分岐する", () => {
