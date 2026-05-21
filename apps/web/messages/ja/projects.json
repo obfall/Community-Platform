@@ -1,0 +1,216 @@
+{
+  "heading": {
+    "title": "プロジェクト",
+    "newButton": "新規作成",
+    "createTitle": "プロジェクト作成",
+    "editTitle": "プロジェクト編集",
+    "basicInfo": "基本情報"
+  },
+  "search": {
+    "placeholder": "プロジェクトを検索...",
+    "statusPlaceholder": "ステータス",
+    "tagFilterLabel": "タグで絞り込み中:",
+    "tagFilterClear": "タグ絞り込みを解除"
+  },
+  "list": {
+    "loading": "読み込み中...",
+    "empty": "プロジェクトがありません",
+    "memberCount": "{count}人",
+    "creator": "作成者: {name}",
+    "period": "期間: {range}"
+  },
+  "form": {
+    "nameLabel": "プロジェクト名",
+    "namePlaceholder": "プロジェクト名を入力",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "プロジェクトの説明",
+    "coverImageLabel": "カバー画像",
+    "statusLabel": "状況",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "relatedEventLabel": "関連イベント（任意）",
+    "relatedEventPlaceholder": "イベントを選択",
+    "tagsLabel": "タグ（任意・最大 {max} 件）",
+    "tagsPlaceholder": "タグを入力して Enter",
+    "createSubmit": "作成",
+    "saveSubmit": "保存"
+  },
+  "detail": {
+    "loading": "読み込み中...",
+    "notFound": "プロジェクトが見つかりません",
+    "relatedEvent": "関連イベント:",
+    "menu": {
+      "edit": "編集",
+      "delete": "削除"
+    }
+  },
+  "members": {
+    "title": "メンバー {count} 人",
+    "addButton": "メンバーを追加",
+    "addDialog": {
+      "title": "メンバーを追加",
+      "description": "プロジェクトに参加させるユーザーを選択してください",
+      "roleLabel": "追加時のロール",
+      "searchPlaceholder": "名前・メールで検索...",
+      "loading": "読み込み中...",
+      "noResults": "該当するユーザーが見つかりません",
+      "noCandidates": "追加できるユーザーがいません",
+      "addSubmit": "追加"
+    },
+    "table": {
+      "name": "名前",
+      "role": "ロール",
+      "joinedAt": "参加日",
+      "actions": "操作"
+    },
+    "roles": {
+      "admin": "ホスト",
+      "member": "メンバー"
+    },
+    "loading": "読み込み中...",
+    "removeAriaLabel": "{name} を削除"
+  },
+  "messages": {
+    "title": "メッセージ",
+    "newButton": "新規メッセージ",
+    "createTitle": "メッセージ作成",
+    "inputLabel": "メッセージ",
+    "inputPlaceholder": "メッセージを入力",
+    "submit": "投稿",
+    "empty": "メッセージがありません",
+    "pinned": "固定",
+    "replyButton": "返信",
+    "replyPlaceholder": "返信を入力...",
+    "replySubmit": "返信"
+  },
+  "tasks": {
+    "title": "タスク",
+    "addButton": "タスク追加",
+    "createDialogTitle": "タスク追加",
+    "editDialogTitle": "タスク編集",
+    "createSubmit": "追加",
+    "saveSubmit": "保存",
+    "duplicate": "複製",
+    "duplicatedTitleSuffix": "（コピー）",
+    "empty": "タスクがありません",
+    "summary": {
+      "title": "タスク一覧",
+      "completion": "{done}/{total} 完了（{percent}%）",
+      "completed": "完了 {count}",
+      "inProgress": "進行中 {count}",
+      "notStarted": "未着手 {count}",
+      "allDone": "すべてのタスクを完了しました！"
+    },
+    "table": {
+      "index": "#",
+      "title": "タイトル",
+      "assignees": "担当者",
+      "requestedDate": "依頼日",
+      "dueDate": "締切日",
+      "status": "ステータス変更"
+    },
+    "form": {
+      "titleLabel": "タイトル",
+      "titlePlaceholder": "タスク名",
+      "descriptionLabel": "概要",
+      "descriptionPlaceholder": "タスクの詳細を入力",
+      "assigneesLabel": "担当者",
+      "noMembers": "メンバーがいません",
+      "requestedDateLabel": "依頼日",
+      "dueDateLabel": "締切日",
+      "fileLabel": "ファイル添付",
+      "fileUploading": "アップロード中...",
+      "fileSelect": "ファイルを選択",
+      "fileUploadFailed": "ファイルのアップロードに失敗しました"
+    },
+    "detail": {
+      "back": "一覧に戻る",
+      "notFound": "タスクが見つかりません",
+      "descriptionLabel": "概要",
+      "assigneesLabel": "担当者",
+      "requestedDateLabel": "依頼日",
+      "dueDateLabel": "締切日",
+      "attachmentsLabel": "添付ファイル",
+      "createdBy": "作成者: {name}",
+      "createdAt": "作成: {date}",
+      "updatedAt": "更新: {date}"
+    },
+    "menu": {
+      "edit": "編集",
+      "delete": "削除"
+    }
+  },
+  "schedule": {
+    "title": "スケジュール",
+    "filter": {
+      "schedules": "予定",
+      "myTasks": "マイタスク",
+      "tasks": "タスク",
+      "event": "イベント"
+    },
+    "dayDialog": {
+      "dateLabel": "{year}年{month}月{day}日",
+      "empty": "予定はありません",
+      "allDay": "終日",
+      "addButton": "予定を追加"
+    },
+    "form": {
+      "titleLabel": "タイトル",
+      "descriptionLabel": "説明",
+      "startLabel": "開始",
+      "endLabel": "終了",
+      "locationLabel": "場所",
+      "cancel": "キャンセル",
+      "save": "保存",
+      "edit": "編集"
+    }
+  },
+  "sidebar": {
+    "backToList": "プロジェクト一覧に戻る",
+    "nav": {
+      "info": "基本情報",
+      "members": "メンバー",
+      "messages": "メッセージ",
+      "tasks": "タスク",
+      "schedule": "スケジュール",
+      "board": "掲示板",
+      "files": "ファイル"
+    }
+  },
+  "breadcrumb": {
+    "root": "プロジェクト"
+  },
+  "board": {
+    "title": "掲示板"
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "delete": "削除"
+  },
+  "confirm": {
+    "deleteProjectTitle": "プロジェクトを削除しますか？",
+    "deleteProjectDescription": "「{name}」を削除します。この操作は取り消せません。",
+    "deleteMemberTitle": "メンバーを削除しますか？",
+    "deleteMemberDescription": "「{name}」をプロジェクトから削除します。この操作は取り消せません。",
+    "deleteTaskTitle": "タスクを削除しますか？",
+    "deleteTaskDescription": "「{title}」を削除します。この操作は取り消せません。",
+    "deleteScheduleTitle": "予定を削除しますか？",
+    "deleteScheduleDescription": "「{title}」を削除します。"
+  },
+  "toast": {
+    "projectCreated": "プロジェクトを作成しました",
+    "projectUpdated": "プロジェクトを更新しました",
+    "projectDeleted": "プロジェクトを削除しました",
+    "memberAdded": "メンバーを追加しました",
+    "memberRoleUpdated": "ロールを変更しました",
+    "memberRemoved": "メンバーを削除しました",
+    "messageCreated": "メッセージを作成しました",
+    "replyCreated": "返信しました",
+    "taskCreated": "タスクを追加しました",
+    "taskUpdated": "タスクを更新しました",
+    "taskDeleted": "タスクを削除しました",
+    "scheduleCreated": "予定を追加しました",
+    "scheduleUpdated": "予定を更新しました",
+    "scheduleDeleted": "予定を削除しました"
+  }
+}

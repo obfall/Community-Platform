@@ -18,7 +18,6 @@ import type { Prisma } from "@prisma/client";
 export const VISIBILITY = {
   boardTopic: {
     deletedAt: null,
-    publishStatus: "published",
   } satisfies Prisma.BoardTopicWhereInput,
 
   product: {

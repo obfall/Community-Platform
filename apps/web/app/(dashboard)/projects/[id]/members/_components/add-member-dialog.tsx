@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useMembers } from "@/hooks/members/use-members";
 import { useAddProjectMember } from "@/hooks/projects/use-projects";
 import {
@@ -18,11 +19,6 @@ import { Button } from "@/components/ui/button";
 import { SelectField } from "@/components/select-field";
 import { Loader2, UserPlus } from "lucide-react";
 
-const ROLE_OPTIONS = [
-  { value: "member", label: "メンバー" },
-  { value: "admin", label: "ホスト" },
-];
-
 interface AddMemberDialogProps {
   projectId: string;
   existingUserIds: string[];
@@ -36,6 +32,7 @@ export function AddMemberDialog({
   open,
   onOpenChange,
 }: AddMemberDialogProps) {
+  const t = useTranslations("projects.members");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<"admin" | "member">("member");
   const { data, isLoading } = useMembers({
@@ -45,6 +42,11 @@ export function AddMemberDialog({
     page: 1,
   });
   const addMember = useAddProjectMember(projectId);
+
+  const roleOptions = [
+    { value: "member", label: t("roles.member") },
+    { value: "admin", label: t("roles.admin") },
+  ];
 
   const candidates = useMemo(() => {
     const users = data?.data ?? [];
@@ -64,16 +66,16 @@ export function AddMemberDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>メンバーを追加</DialogTitle>
-          <DialogDescription>プロジェクトに参加させるユーザーを選択してください</DialogDescription>
+          <DialogTitle>{t("addDialog.title")}</DialogTitle>
+          <DialogDescription>{t("addDialog.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1">
-          <Label className="text-xs">追加時のロール</Label>
+          <Label className="text-xs">{t("addDialog.roleLabel")}</Label>
           <SelectField
             value={role}
             onChange={(v) => setRole(v as "admin" | "member")}
-            options={ROLE_OPTIONS}
+            options={roleOptions}
             className="w-full"
           />
         </div>
@@ -81,7 +83,7 @@ export function AddMemberDialog({
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="名前・メールで検索..."
+          placeholder={t("addDialog.searchPlaceholder")}
           autoFocus
         />
 
@@ -89,11 +91,11 @@ export function AddMemberDialog({
           {isLoading ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              読み込み中...
+              {t("addDialog.loading")}
             </div>
           ) : candidates.length === 0 ? (
             <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
-              {search ? "該当するユーザーが見つかりません" : "追加できるユーザーがいません"}
+              {search ? t("addDialog.noResults") : t("addDialog.noCandidates")}
             </div>
           ) : (
             <ul className="divide-y">
@@ -118,7 +120,7 @@ export function AddMemberDialog({
                     }
                   >
                     <UserPlus className="mr-1 h-3.5 w-3.5" />
-                    追加
+                    {t("addDialog.addSubmit")}
                   </Button>
                 </li>
               ))}

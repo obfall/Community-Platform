@@ -16,7 +16,6 @@ const TOPIC_DATA = {
   id: "t-1",
   title: "既存タイトル",
   body: "既存本文",
-  publishStatus: "published",
   category: { id: "cat-1", name: "お知らせ" },
 };
 const CATEGORIES_DATA = [{ id: "cat-1", name: "お知らせ" }];

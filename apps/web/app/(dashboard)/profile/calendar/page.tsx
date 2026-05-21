@@ -11,6 +11,7 @@ import {
 import { useMyReservations } from "@/hooks/profile/use-reservations";
 import { useMyTasks } from "@/hooks/profile/use-tasks";
 import { useMyTickets } from "@/hooks/profile/use-tickets";
+import { useMyProjectSchedules } from "@/hooks/profile/use-project-calendar";
 import { Calendar, type CalendarItem } from "@/components/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export default function ProfileCalendarPage() {
   const { data: reservations } = useMyReservations();
   const { data: tasks } = useMyTasks();
   const { data: tickets } = useMyTickets();
+  const { data: projectSchedules } = useMyProjectSchedules();
   const createSchedule = useCreateSchedule();
   const updateSchedule = useUpdateSchedule();
   const deleteSchedule = useDeleteSchedule();
@@ -51,6 +53,7 @@ export default function ProfileCalendarPage() {
   const [showReservations, setShowReservations] = useState(true);
   const [showTasks, setShowTasks] = useState(true);
   const [showTickets, setShowTickets] = useState(true);
+  const [showProjectSchedules, setShowProjectSchedules] = useState(true);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedDayItems, setSelectedDayItems] = useState<CalendarItem[]>([]);
@@ -132,17 +135,37 @@ export default function ProfileCalendarPage() {
           }))
       : [];
 
-    return [...scheduleItems, ...reservationItems, ...taskItems, ...ticketItems];
+    const projectScheduleItems: CalendarItem[] = showProjectSchedules
+      ? (projectSchedules ?? []).map((s) => ({
+          id: `project-schedule-${s.id}`,
+          title: `【${s.project.name}】${s.title}`,
+          startAt: s.startAt,
+          endAt: s.endAt,
+          isAllDay: s.isAllDay,
+          color: "purple" as const,
+          onClick: () => router.push(`/projects/${s.project.id}/schedule`),
+        }))
+      : [];
+
+    return [
+      ...scheduleItems,
+      ...reservationItems,
+      ...taskItems,
+      ...ticketItems,
+      ...projectScheduleItems,
+    ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     schedules,
     reservations,
     tasks,
     tickets,
+    projectSchedules,
     showSchedules,
     showReservations,
     showTasks,
     showTickets,
+    showProjectSchedules,
   ]);
 
   const handleDayClick = useCallback((date: Date, items: CalendarItem[]) => {
@@ -229,6 +252,14 @@ export default function ProfileCalendarPage() {
               className="border-gray-400 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
             />
             マイチケット
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox
+              checked={showProjectSchedules}
+              onCheckedChange={(v) => setShowProjectSchedules(!!v)}
+              className="border-purple-400 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+            />
+            プロジェクトの予定
           </label>
         </div>
       </div>

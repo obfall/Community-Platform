@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   useProject,
   useProjectTasks,
@@ -50,6 +51,7 @@ function fmtDate(d: Date) {
 
 export default function ProjectSchedulePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
+  const t = useTranslations("projects");
   const { user } = useAuth();
   const { data: project } = useProject(projectId);
   const { data: tasks } = useProjectTasks(projectId);
@@ -108,15 +110,15 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
     : [];
 
   const taskCalendarItems: CalendarItem[] = (tasks ?? [])
-    .filter((t): t is ProjectTask & { dueDate: string } => !!t.dueDate)
-    .map((t) => {
-      const dateStr = new Date(t.dueDate).toISOString().slice(0, 10);
-      const isMine = t.assignees.some((a) => a.userId === user?.id);
+    .filter((tk): tk is ProjectTask & { dueDate: string } => !!tk.dueDate)
+    .map((tk) => {
+      const dateStr = new Date(tk.dueDate).toISOString().slice(0, 10);
+      const isMine = tk.assignees.some((a) => a.userId === user?.id);
       if (isMine && !showMyTasks) return null;
       if (!isMine && !showOtherTasks) return null;
       return {
-        id: `task-${t.id}`,
-        title: isMine ? `★ ${t.title}` : t.title,
+        id: `task-${tk.id}`,
+        title: isMine ? `★ ${tk.title}` : tk.title,
         startAt: `${dateStr}T00:00:00`,
         endAt: `${dateStr}T23:59:59`,
         isAllDay: true,
@@ -124,7 +126,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
         onClick: () => router.push(`/projects/${projectId}/tasks`),
       };
     })
-    .filter((t) => t !== null) as CalendarItem[];
+    .filter((tk) => tk !== null) as CalendarItem[];
 
   const eventCalendarItems: CalendarItem[] =
     showEvent && relatedEvent
@@ -214,7 +216,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">スケジュール</h2>
+        <h2 className="text-xl font-bold">{t("schedule.title")}</h2>
         <div className="flex items-center gap-4 text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -222,7 +224,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
               onCheckedChange={(v) => setShowSchedules(!!v)}
               className="border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
             />
-            予定
+            {t("schedule.filter.schedules")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -230,7 +232,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
               onCheckedChange={(v) => setShowMyTasks(!!v)}
               className="border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
             />
-            マイタスク
+            {t("schedule.filter.myTasks")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -238,7 +240,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
               onCheckedChange={(v) => setShowOtherTasks(!!v)}
               className="border-gray-400 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
             />
-            タスク
+            {t("schedule.filter.tasks")}
           </label>
           {relatedEvent && (
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -247,7 +249,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                 onCheckedChange={(v) => setShowEvent(!!v)}
                 className="border-green-400 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
               />
-              イベント
+              {t("schedule.filter.event")}
             </label>
           )}
         </div>
@@ -269,7 +271,11 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
           <DialogHeader>
             <DialogTitle>
               {selectedDay &&
-                `${selectedDay.getFullYear()}年${selectedDay.getMonth() + 1}月${selectedDay.getDate()}日`}
+                t("schedule.dayDialog.dateLabel", {
+                  year: selectedDay.getFullYear(),
+                  month: selectedDay.getMonth() + 1,
+                  day: selectedDay.getDate(),
+                })}
             </DialogTitle>
           </DialogHeader>
 
@@ -277,7 +283,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
             <>
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {selectedDayItems.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">予定はありません</p>
+                  <p className="text-sm text-muted-foreground">{t("schedule.dayDialog.empty")}</p>
                 ) : (
                   selectedDayItems.map((item) => {
                     const schedule = !item.id.startsWith("task-") ? scheduleMap.get(item.id) : null;
@@ -295,7 +301,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                               <>
                                 <div className="text-xs text-muted-foreground">
                                   {schedule.isAllDay
-                                    ? "終日"
+                                    ? t("schedule.dayDialog.allDay")
                                     : `${new Date(schedule.startAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} - ${new Date(schedule.endAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}`}
                                 </div>
                                 {schedule.location && (
@@ -314,7 +320,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                                 size="icon-xs"
                                 onClick={() => openEditForm(schedule)}
                               >
-                                <span className="text-xs">編集</span>
+                                <span className="text-xs">{t("schedule.form.edit")}</span>
                               </Button>
                               <Button
                                 variant="ghost"
@@ -335,7 +341,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                 <DialogFooter>
                   <Button onClick={openCreateForm}>
                     <Plus className="mr-2 h-4 w-4" />
-                    予定を追加
+                    {t("schedule.dayDialog.addButton")}
                   </Button>
                 </DialogFooter>
               )}
@@ -344,11 +350,11 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
             <>
               <div className="space-y-3">
                 <div>
-                  <Label>タイトル</Label>
+                  <Label>{t("schedule.form.titleLabel")}</Label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
                 <div>
-                  <Label>説明</Label>
+                  <Label>{t("schedule.form.descriptionLabel")}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -357,7 +363,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label>開始</Label>
+                    <Label>{t("schedule.form.startLabel")}</Label>
                     <Input
                       type="datetime-local"
                       value={startAtStr}
@@ -365,7 +371,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                     />
                   </div>
                   <div>
-                    <Label>終了</Label>
+                    <Label>{t("schedule.form.endLabel")}</Label>
                     <Input
                       type="datetime-local"
                       value={endAtStr}
@@ -374,13 +380,13 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                   </div>
                 </div>
                 <div>
-                  <Label>場所</Label>
+                  <Label>{t("schedule.form.locationLabel")}</Label>
                   <Input value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={resetForm}>
-                  キャンセル
+                  {t("schedule.form.cancel")}
                 </Button>
                 <Button
                   onClick={handleSave}
@@ -392,7 +398,7 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
                     updateSchedule.isPending
                   }
                 >
-                  保存
+                  {t("schedule.form.save")}
                 </Button>
               </DialogFooter>
             </>
@@ -409,16 +415,18 @@ export default function ProjectSchedulePage({ params }: { params: Promise<{ id: 
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>予定を削除しますか？</AlertDialogTitle>
-            <AlertDialogDescription>「{deleteTarget?.title}」を削除します。</AlertDialogDescription>
+            <AlertDialogTitle>{t("confirm.deleteScheduleTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("confirm.deleteScheduleDescription", { title: deleteTarget?.title ?? "" })}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              削除
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

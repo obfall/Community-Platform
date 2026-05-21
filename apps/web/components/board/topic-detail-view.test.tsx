@@ -30,7 +30,6 @@ const baseTopic = {
   id: "t-1",
   title: "テストタイトル",
   body: "本文内容",
-  publishStatus: "published",
   isPinned: false,
   sortOrder: 0,
   postCount: 2,

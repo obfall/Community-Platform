@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_VARIANTS } from "@/lib/projects/project-status";
 
 const EVENT_STATUS_LABELS: Record<string, string> = {
   draft: "下書き",
@@ -22,13 +23,6 @@ const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructi
   canceled: "destructive",
   ended: "outline",
   draft: "secondary",
-};
-
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  active: "進行中",
-  completed: "完了",
-  unpublished: "未公開",
-  draft: "下書き",
 };
 
 export default function ProfileActivityPage() {
@@ -141,7 +135,10 @@ export default function ProfileActivityPage() {
                     <Users className="h-3 w-3" />
                     {project.memberCount}
                   </span>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge
+                    variant={PROJECT_STATUS_VARIANTS[project.status] ?? "secondary"}
+                    className="text-xs"
+                  >
                     {PROJECT_STATUS_LABELS[project.status] ?? project.status}
                   </Badge>
                 </Link>

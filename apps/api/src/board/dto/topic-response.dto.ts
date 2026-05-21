@@ -30,9 +30,6 @@ export class TopicResponseDto {
   body!: string;
 
   @ApiProperty()
-  publishStatus!: string;
-
-  @ApiProperty()
   isPinned!: boolean;
 
   @ApiProperty()

@@ -11,10 +11,6 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
   describe("publishStatus 系（deletedAt + publishStatus=published）", () => {
     const expectedShape = { deletedAt: null, publishStatus: "published" };
 
-    it("boardTopic", () => {
-      expect(VISIBILITY.boardTopic).toEqual(expectedShape);
-    });
-
     it("product", () => {
       expect(VISIBILITY.product).toEqual(expectedShape);
     });
@@ -33,6 +29,12 @@ describe("VISIBILITY: 各ドメインの公開条件（Prisma 版）", () => {
 
     it("content", () => {
       expect(VISIBILITY.content).toEqual(expectedShape);
+    });
+  });
+
+  describe("deletedAt のみ（公開状態なし）", () => {
+    it("boardTopic は deletedAt=null のみ", () => {
+      expect(VISIBILITY.boardTopic).toEqual({ deletedAt: null });
     });
   });
 

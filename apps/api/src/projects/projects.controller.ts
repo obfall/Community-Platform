@@ -124,8 +124,12 @@ export class ProjectsController {
 
   @Get(":id/threads")
   @ApiOperation({ summary: "メッセージ一覧" })
-  getThreads(@Param("id", ParseUUIDPipe) projectId: string, @Query() query: PaginationQueryDto) {
-    return this.service.getThreads(projectId, query);
+  getThreads(
+    @Param("id", ParseUUIDPipe) projectId: string,
+    @Query() query: PaginationQueryDto,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.getThreads(projectId, query, userId);
   }
 
   @Post(":id/threads")
@@ -142,8 +146,11 @@ export class ProjectsController {
 
   @Get("threads/:threadId/replies")
   @ApiOperation({ summary: "返信一覧" })
-  getReplies(@Param("threadId", ParseUUIDPipe) threadId: string) {
-    return this.service.getReplies(threadId);
+  getReplies(
+    @Param("threadId", ParseUUIDPipe) threadId: string,
+    @CurrentUser("id") userId: string,
+  ) {
+    return this.service.getReplies(threadId, userId);
   }
 
   @Post("threads/:threadId/replies")

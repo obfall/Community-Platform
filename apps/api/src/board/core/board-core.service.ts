@@ -34,7 +34,6 @@ type TopicRaw = {
   id: string;
   title: string;
   body: string;
-  publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
   postCount: number;
@@ -133,7 +132,7 @@ export class BoardCoreService {
       include: {
         _count: {
           select: {
-            topics: { where: { publishStatus: "published", deletedAt: null } },
+            topics: { where: { deletedAt: null } },
           },
         },
       },
@@ -243,7 +242,7 @@ export class BoardCoreService {
     const skip = (page - 1) * limit;
 
     // 公開条件は BoardTopicsService.searchByPgroonga と揃える（VISIBILITY.boardTopic）。
-    // project / event スコープの BoardTopic 派生モデルも deletedAt / publishStatus を共通で持つため、
+    // project / event スコープの BoardTopic 派生モデルも deletedAt を共通で持つため、
     // 同じ条件をそのまま転用できる。
     const where = this.buildScopeWhere(cfg, scopeId, {
       ...VISIBILITY.boardTopic,
@@ -293,10 +292,6 @@ export class BoardCoreService {
     })) as (TopicRaw & { authorUserId: string }) | null;
     if (!topic) throw notFound("board_topic");
 
-    if (topic.publishStatus === "draft" && topic.authorUserId !== userId) {
-      throw notFound("board_topic");
-    }
-
     const like = await this.delegate(cfg.likeDelegate).findUnique({
       where: { userId_targetType_targetId: { userId, targetType: "topic", targetId: topicId } },
     });
@@ -312,7 +307,6 @@ export class BoardCoreService {
       body: dto.body,
       categoryId: dto.categoryId,
       authorUserId: userId,
-      publishStatus: dto.publishStatus ?? "published",
     };
     if (cfg.scopeField && scopeId) data[cfg.scopeField] = scopeId;
 
@@ -333,7 +327,6 @@ export class BoardCoreService {
         ...(dto.title !== undefined && { title: dto.title }),
         ...(dto.body !== undefined && { body: dto.body }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
-        ...(dto.publishStatus !== undefined && { publishStatus: dto.publishStatus }),
       },
       include: TOPIC_INCLUDE,
     })) as TopicRaw;
@@ -439,7 +432,7 @@ export class BoardCoreService {
     dto: CreateTopicPostDto,
   ) {
     const topic = await this.delegate(cfg.topicDelegate).findUnique({
-      where: { id: topicId, deletedAt: null, publishStatus: "published" },
+      where: { id: topicId, deletedAt: null },
     });
     if (!topic) throw notFound("board_topic");
 
@@ -703,7 +696,6 @@ export class BoardCoreService {
       id: t.id,
       title: t.title,
       body: t.body,
-      publishStatus: t.publishStatus,
       isPinned: t.isPinned,
       sortOrder: t.sortOrder,
       postCount: t.postCount,

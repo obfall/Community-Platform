@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, MessageCircle, MapPin, CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
+import { PROJECT_STATUS_VARIANTS } from "@/lib/projects/project-status";
 
 const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   recruiting: "default",
@@ -379,7 +380,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
                             {project.category.name}
                           </Badge>
                         )}
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge
+                          variant={PROJECT_STATUS_VARIANTS[project.status] ?? "secondary"}
+                          className="text-xs"
+                        >
                           {tProjectStatus.has(project.status)
                             ? tProjectStatus(project.status)
                             : project.status}

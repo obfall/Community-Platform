@@ -119,7 +119,6 @@ describe("BoardCoreService", () => {
       id: "t-1",
       title: "テスト",
       body: "本文",
-      publishStatus: "published",
       isPinned: false,
       sortOrder: 0,
       postCount: 0,
@@ -131,25 +130,13 @@ describe("BoardCoreService", () => {
       updatedAt: new Date("2026-01-01"),
     };
 
-    it("公開トピックは isLiked を判定して返す", async () => {
+    it("トピックは isLiked を判定して返す", async () => {
       prismaMock.boardTopic.findUnique.mockResolvedValue(baseTopic);
       prismaMock.boardLike.findUnique.mockResolvedValue({ id: "like-1" });
 
       const result = await service.findOneTopic(GLOBAL_BOARD_SCOPE, "u-1", "t-1");
 
       expect(result.isLiked).toBe(true);
-    });
-
-    it("draft トピックを非作者が引くと BusinessException(NOT_FOUND)", async () => {
-      prismaMock.boardTopic.findUnique.mockResolvedValue({
-        ...baseTopic,
-        publishStatus: "draft",
-        authorUserId: "u-1",
-      });
-
-      await expect(
-        service.findOneTopic(GLOBAL_BOARD_SCOPE, "other-user", "t-1"),
-      ).rejects.toMatchObject({ code: ErrorCode.NOT_FOUND });
     });
 
     it("見つからなければ NOT_FOUND", async () => {
@@ -427,7 +414,6 @@ describe("BoardCoreService", () => {
         id: "t-1",
         title: "X",
         body: "Y",
-        publishStatus: "published",
         isPinned: false,
         sortOrder: 0,
         postCount: 0,
@@ -441,7 +427,6 @@ describe("BoardCoreService", () => {
         title: "X",
         body: "Y",
         categoryId: "cat-1",
-        publishStatus: "draft",
       });
       expect(prismaMock.boardTopic.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -450,7 +435,6 @@ describe("BoardCoreService", () => {
             body: "Y",
             categoryId: "cat-1",
             authorUserId: "u-1",
-            publishStatus: "draft",
           }),
         }),
       );

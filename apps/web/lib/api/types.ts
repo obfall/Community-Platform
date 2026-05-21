@@ -237,7 +237,6 @@ export interface BoardTopic {
   id: string;
   title: string;
   body: string;
-  publishStatus: string;
   isPinned: boolean;
   sortOrder: number;
   postCount: number;
@@ -285,14 +284,12 @@ export interface CreateTopicInput {
   title: string;
   body: string;
   categoryId: string;
-  publishStatus?: "draft" | "published";
 }
 
 export interface UpdateTopicInput {
   title?: string;
   body?: string;
   categoryId?: string;
-  publishStatus?: "draft" | "published";
 }
 
 export interface CreateTopicPostInput {
@@ -653,6 +650,17 @@ export interface MyTaskItem {
   status: VideoTaskStatus;
   dueDate: string | null;
   requestedDate: string | null;
+  project: { id: string; name: string };
+}
+
+export interface MyProjectScheduleItem {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  isAllDay: boolean;
+  location: string | null;
   project: { id: string; name: string };
 }
 
@@ -1096,6 +1104,7 @@ export interface ProjectThread {
   isPinned: boolean;
   replyCount: number;
   likeCount: number;
+  isLiked: boolean;
   lastReplyAt: string | null;
   createdBy: { id: string; name: string; avatarUrl: string | null };
   createdAt: string;

@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { projectsApi } from "@/lib/api/projects";
 import type { ProjectQuery, CreateProjectInput } from "@/lib/api/types";
+
+// onError は providers.tsx の MutationCache.onError に集約しているため、
+// 各 mutation には onError を書かない（Phase 11.3 エラーハンドリング規約）。
 
 export function useProjects(query?: ProjectQuery) {
   return useQuery({
@@ -39,90 +43,90 @@ export function useProjectTasks(projectId: string | undefined) {
 }
 
 export function useCreateProject() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateProjectInput) => projectsApi.createProject(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("プロジェクトを作成しました");
+      toast.success(t("projectCreated"));
     },
-    onError: () => toast.error("プロジェクトの作成に失敗しました"),
   });
 }
 
 export function useUpdateProject() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateProjectInput> }) =>
       projectsApi.updateProject(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("プロジェクトを更新しました");
+      toast.success(t("projectUpdated"));
     },
-    onError: () => toast.error("プロジェクトの更新に失敗しました"),
   });
 }
 
 export function useDeleteProject() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => projectsApi.deleteProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("プロジェクトを削除しました");
+      toast.success(t("projectDeleted"));
     },
-    onError: () => toast.error("プロジェクトの削除に失敗しました"),
   });
 }
 
 export function useAddProjectMember(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role?: "admin" | "member" }) =>
       projectsApi.addMember(projectId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
-      toast.success("メンバーを追加しました");
+      toast.success(t("memberAdded"));
     },
-    onError: () => toast.error("メンバーの追加に失敗しました"),
   });
 }
 
 export function useUpdateProjectMemberRole(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: "admin" | "member" }) =>
       projectsApi.updateMemberRole(projectId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
-      toast.success("ロールを変更しました");
+      toast.success(t("memberRoleUpdated"));
     },
-    onError: () => toast.error("ロールの変更に失敗しました"),
   });
 }
 
 export function useRemoveProjectMember(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => projectsApi.removeMember(projectId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
-      toast.success("メンバーを削除しました");
+      toast.success(t("memberRemoved"));
     },
-    onError: () => toast.error("メンバーの削除に失敗しました"),
   });
 }
 
 export function useCreateThread() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ projectId, title }: { projectId: string; title: string }) =>
       projectsApi.createThread(projectId, title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("メッセージを作成しました");
+      toast.success(t("messageCreated"));
     },
-    onError: () => toast.error("メッセージの作成に失敗しました"),
   });
 }
 
@@ -135,15 +139,15 @@ export function useThreadReplies(threadId: string | undefined) {
 }
 
 export function useCreateReply() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ threadId, body }: { threadId: string; body: string }) =>
       projectsApi.createReply(threadId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("返信しました");
+      toast.success(t("replyCreated"));
     },
-    onError: () => toast.error("返信に失敗しました"),
   });
 }
 
@@ -168,6 +172,7 @@ export function useToggleReplyLike() {
 }
 
 export function useCreateTask() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -186,13 +191,13 @@ export function useCreateTask() {
     }) => projectsApi.createTask(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("タスクを追加しました");
+      toast.success(t("taskCreated"));
     },
-    onError: () => toast.error("タスクの追加に失敗しました"),
   });
 }
 
 export function useUpdateTask() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -212,21 +217,20 @@ export function useUpdateTask() {
     }) => projectsApi.updateTask(taskId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("タスクを更新しました");
+      toast.success(t("taskUpdated"));
     },
-    onError: () => toast.error("タスクの更新に失敗しました"),
   });
 }
 
 export function useDeleteTask() {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) => projectsApi.deleteTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("タスクを削除しました");
+      toast.success(t("taskDeleted"));
     },
-    onError: () => toast.error("タスクの削除に失敗しました"),
   });
 }
 
@@ -242,6 +246,7 @@ export function useProjectSchedules(
 }
 
 export function useCreateProjectSchedule(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: {
@@ -254,13 +259,13 @@ export function useCreateProjectSchedule(projectId: string) {
     }) => projectsApi.createSchedule(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
-      toast.success("予定を追加しました");
+      toast.success(t("scheduleCreated"));
     },
-    onError: () => toast.error("予定の追加に失敗しました"),
   });
 }
 
 export function useUpdateProjectSchedule(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -279,20 +284,19 @@ export function useUpdateProjectSchedule(projectId: string) {
     }) => projectsApi.updateSchedule(projectId, scheduleId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
-      toast.success("予定を更新しました");
+      toast.success(t("scheduleUpdated"));
     },
-    onError: () => toast.error("予定の更新に失敗しました"),
   });
 }
 
 export function useDeleteProjectSchedule(projectId: string) {
+  const t = useTranslations("projects.toast");
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (scheduleId: string) => projectsApi.deleteSchedule(projectId, scheduleId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "schedules"] });
-      toast.success("予定を削除しました");
+      toast.success(t("scheduleDeleted"));
     },
-    onError: () => toast.error("予定の削除に失敗しました"),
   });
 }

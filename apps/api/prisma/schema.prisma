@@ -622,7 +622,6 @@ model BoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")
@@ -1316,7 +1315,6 @@ model EventBoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")
@@ -1785,7 +1783,6 @@ model ProjectBoardTopic {
   authorUserId  String        @map("author_user_id") @db.Uuid
   title         String        @db.VarChar(200)
   body          String        @db.Text
-  publishStatus PublishStatus @default(published) @map("publish_status")
   isPinned      Boolean       @default(false) @map("is_pinned")
   sortOrder     Int           @default(0) @map("sort_order")
   postCount     Int           @default(0) @map("post_count")

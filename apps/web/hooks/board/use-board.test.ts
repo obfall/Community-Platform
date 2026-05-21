@@ -123,7 +123,6 @@ describe("board hooks", () => {
           title: "新規",
           body: "本文",
           categoryId: "cat-1",
-          publishStatus: "published",
         });
       });
 
@@ -131,7 +130,6 @@ describe("board hooks", () => {
         title: "新規",
         body: "本文",
         categoryId: "cat-1",
-        publishStatus: "published",
       });
     });
   });

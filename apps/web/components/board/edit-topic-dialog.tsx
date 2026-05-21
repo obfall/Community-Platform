@@ -37,7 +37,6 @@ type TopicFormValues = {
   title: string;
   body: string;
   categoryId: string;
-  publishStatus: "draft" | "published";
 };
 
 interface EditTopicDialogProps {
@@ -58,14 +57,13 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
         title: z.string().min(1, t("validation.titleRequired")).max(200),
         body: z.string().min(1, t("validation.bodyRequired")),
         categoryId: z.string().min(1, t("validation.categoryRequired")),
-        publishStatus: z.enum(["draft", "published"]),
       }),
     [t],
   );
 
   const form = useForm<TopicFormValues>({
     resolver: zodResolver(topicSchema),
-    defaultValues: { title: "", body: "", categoryId: "", publishStatus: "published" },
+    defaultValues: { title: "", body: "", categoryId: "" },
   });
 
   useEffect(() => {
@@ -74,7 +72,6 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
         title: topic.title,
         body: topic.body,
         categoryId: topic.category.id,
-        publishStatus: topic.publishStatus as "draft" | "published",
       });
     }
   }, [open, topic, form]);
@@ -149,28 +146,6 @@ export function EditTopicDialog({ open, onOpenChange, topicId }: EditTopicDialog
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="publishStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("topic.publishStatusLabel")}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="published">{t("topic.publishStatusPublished")}</SelectItem>
-                      <SelectItem value="draft">{t("topic.publishStatusDraft")}</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

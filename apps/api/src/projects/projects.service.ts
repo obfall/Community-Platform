@@ -417,7 +417,7 @@ export class ProjectsService {
 
   // ========== Threads ==========
 
-  async getThreads(projectId: string, query: { page?: number; limit?: number }) {
+  async getThreads(projectId: string, query: { page?: number; limit?: number }, userId: string) {
     const { page, limit, skip } = extractPagination(query);
 
     const [threads, total] = await Promise.all([
@@ -431,6 +431,17 @@ export class ProjectsService {
       this.prisma.projectThread.count({ where: { projectId, deletedAt: null } }),
     ]);
 
+    // 取得した thread の中で、自分が like しているものの集合を作る
+    const threadIds = threads.map((t) => t.id);
+    const likedThreads =
+      threadIds.length > 0
+        ? await this.prisma.projectThreadLike.findMany({
+            where: { userId, threadId: { in: threadIds } },
+            select: { threadId: true },
+          })
+        : [];
+    const likedSet = new Set(likedThreads.map((l) => l.threadId));
+
     return {
       data: threads.map((t) => ({
         id: t.id,
@@ -438,6 +449,7 @@ export class ProjectsService {
         isPinned: t.isPinned,
         replyCount: t.replyCount,
         likeCount: t.likeCount,
+        isLiked: likedSet.has(t.id),
         lastReplyAt: t.lastReplyAt,
         createdBy: formatAuthor(t.createdBy),
         createdAt: t.createdAt,
@@ -459,17 +471,29 @@ export class ProjectsService {
 
   // ========== Replies ==========
 
-  async getReplies(threadId: string) {
+  async getReplies(threadId: string, userId: string) {
     const replies = await this.prisma.projectThreadReply.findMany({
       where: { threadId, deletedAt: null },
       orderBy: { createdAt: "asc" },
       include: { author: { select: AUTHOR_SELECT } },
     });
+
+    const replyIds = replies.map((r) => r.id);
+    const likedReplies =
+      replyIds.length > 0
+        ? await this.prisma.projectThreadLike.findMany({
+            where: { userId, replyId: { in: replyIds } },
+            select: { replyId: true },
+          })
+        : [];
+    const likedSet = new Set(likedReplies.map((l) => l.replyId));
+
     return replies.map((r) => ({
       id: r.id,
       threadId: r.threadId,
       body: r.body,
       likeCount: r.likeCount,
+      isLiked: likedSet.has(r.id),
       author: formatAuthor(r.author),
       createdAt: r.createdAt,
     }));
