@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useVenue, useCreateSpace } from "@/hooks/venues/use-venues";
 import { ReservationSection } from "./_components/reservation-section";
@@ -22,9 +23,9 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Building2, Calendar, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, Loader2, Pencil, Plus } from "lucide-react";
 import { PUBLISH_STATUS_LABELS } from "@/lib/constants/publish-status";
-import { VENUE_TYPE_LABELS, VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
+import { VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
 
 interface VenueImageItem {
   id: string;
@@ -33,6 +34,8 @@ interface VenueImageItem {
 
 export default function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations("venues");
+  const tType = useTranslations("venues.venueType");
   const { user } = useAuth();
   const isAdmin = user?.role === "owner" || user?.role === "admin";
   const { data: venue, isLoading } = useVenue(id);
@@ -68,9 +71,9 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
   };
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.loading")}</div>;
   if (!venue)
-    return <div className="py-12 text-center text-muted-foreground">施設が見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
 
   const venueImages =
     (venue as unknown as { images?: VenueImageItem[] }).images?.filter(
@@ -86,21 +89,33 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           </Button>
         </Link>
         <div className="flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            {venue.venueTypes.map((t) => (
-              <Badge key={t} variant="outline">
-                {VENUE_TYPE_LABELS[t] ?? t}
-              </Badge>
-            ))}
+          <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">
               {PUBLISH_STATUS_LABELS[venue.publishStatus] ?? venue.publishStatus}
             </Badge>
+            {venue.venueTypes.map((typ) => (
+              <Badge key={typ} variant="outline">
+                {tType.has(typ) ? tType(typ) : typ}
+              </Badge>
+            ))}
           </div>
           <h1 className="text-2xl font-bold">{venue.name}</h1>
         </div>
+        {isAdmin && (
+          <Link href={`/venues/${id}/edit`}>
+            <Button variant="outline" size="sm">
+              <Pencil className="mr-1 h-3 w-3" />
+              {t("detailActions.edit")}
+            </Button>
+          </Link>
+        )}
       </div>
 
-      {venueImages.length > 0 && (
+      {venueImages.length === 0 ? (
+        <div className="flex aspect-video items-center justify-center rounded-lg bg-muted">
+          <Building2 className="h-16 w-16 text-muted-foreground" />
+        </div>
+      ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {venueImages.map((img) => (
             <div key={img.id} className="aspect-video overflow-hidden rounded-lg bg-muted">
@@ -119,13 +134,15 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         <CardContent className="p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <div className="text-sm text-muted-foreground">住所</div>
-              <div className="font-medium">{venue.address ?? "-"}</div>
+              <div className="text-sm text-muted-foreground">{t("detail.address")}</div>
+              <div className="font-medium">{venue.address ?? t("detail.noValue")}</div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">定員</div>
+              <div className="text-sm text-muted-foreground">{t("detail.capacity")}</div>
               <div className="font-medium">
-                {venue.capacity != null ? `${venue.capacity}人` : "-"}
+                {venue.capacity != null
+                  ? t("detail.capacityValue", { count: venue.capacity })
+                  : t("detail.noValue")}
               </div>
             </div>
           </div>
@@ -134,7 +151,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           )}
           {venue.accessInfo && (
             <div className="mt-4">
-              <div className="text-sm text-muted-foreground">アクセス情報</div>
+              <div className="text-sm text-muted-foreground">{t("detail.accessInfo")}</div>
               <div className="mt-1 whitespace-pre-wrap text-sm">{venue.accessInfo}</div>
             </div>
           )}
@@ -145,27 +162,29 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            スペース一覧
+            {t("heading.spaces")}
           </CardTitle>
           {isAdmin && (
             <Button size="sm" onClick={() => setSpaceDialogOpen(true)}>
               <Plus className="mr-1 h-3 w-3" />
-              スペース追加
+              {t("heading.spaceAdd")}
             </Button>
           )}
         </CardHeader>
         <CardContent>
           {venue.spaces.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">スペースがありません</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              {t("detail.spacesEmpty")}
+            </p>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>名前</TableHead>
-                    <TableHead>タイプ</TableHead>
-                    <TableHead className="text-right">定員</TableHead>
-                    <TableHead>予約可否</TableHead>
+                    <TableHead>{t("detail.table.name")}</TableHead>
+                    <TableHead>{t("detail.table.type")}</TableHead>
+                    <TableHead className="text-right">{t("detail.table.capacity")}</TableHead>
+                    <TableHead>{t("detail.table.reservable")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,23 +193,29 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                       <TableCell className="font-medium">{s.name}</TableCell>
                       <TableCell>
                         {s.spaceTypes.length === 0 ? (
-                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="text-sm text-muted-foreground">
+                            {t("detail.noValue")}
+                          </span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
-                            {s.spaceTypes.map((t) => (
-                              <Badge key={t} variant="outline" className="text-xs">
-                                {VENUE_TYPE_LABELS[t] ?? t}
+                            {s.spaceTypes.map((typ) => (
+                              <Badge key={typ} variant="outline" className="text-xs">
+                                {tType.has(typ) ? tType(typ) : typ}
                               </Badge>
                             ))}
                           </div>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {s.capacity != null ? `${s.capacity}人` : "-"}
+                        {s.capacity != null
+                          ? t("detail.capacityValue", { count: s.capacity })
+                          : t("detail.noValue")}
                       </TableCell>
                       <TableCell>
                         <Badge variant={s.isReservable ? "default" : "secondary"}>
-                          {s.isReservable ? "可" : "不可"}
+                          {s.isReservable
+                            ? t("detail.table.reservableYes")
+                            : t("detail.table.reservableNo")}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -207,11 +232,11 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              予約
+              {t("heading.reservation")}
             </CardTitle>
             <Button size="sm" onClick={() => setReservationDialogOpen(true)}>
               <Plus className="mr-1 h-3 w-3" />
-              予約する
+              {t("reservation.submit")}
             </Button>
           </CardHeader>
           <CardContent>
@@ -230,22 +255,20 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            イベント活用状況 ({venue.events.length}件)
+            {t("heading.eventUsage", { count: venue.events.length })}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {venue.events.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              この施設を使用しているイベントはありません
-            </p>
+            <p className="py-4 text-center text-sm text-muted-foreground">{t("detail.noEvents")}</p>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>イベント名</TableHead>
-                    <TableHead>開催日</TableHead>
-                    <TableHead className="text-right">参加者数</TableHead>
+                    <TableHead>{t("detail.events.title")}</TableHead>
+                    <TableHead>{t("detail.events.startAt")}</TableHead>
+                    <TableHead className="text-right">{t("detail.events.participants")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -263,7 +286,9 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                           day: "numeric",
                         })}
                       </TableCell>
-                      <TableCell className="text-right">{e.participantCount}人</TableCell>
+                      <TableCell className="text-right">
+                        {t("detail.events.participantsValue", { count: e.participantCount })}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -276,29 +301,29 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
       <Dialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>スペース追加</DialogTitle>
+            <DialogTitle>{t("space.dialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>スペース名</Label>
+              <Label>{t("space.nameLabel")}</Label>
               <Input
                 value={spaceName}
                 onChange={(e) => setSpaceName(e.target.value)}
-                placeholder="例: 会議室A"
+                placeholder={t("space.namePlaceholder")}
                 maxLength={200}
               />
             </div>
             <div>
-              <Label>説明</Label>
+              <Label>{t("space.descriptionLabel")}</Label>
               <Textarea
                 value={spaceDescription}
                 onChange={(e) => setSpaceDescription(e.target.value)}
-                placeholder="説明（任意）"
+                placeholder={t("space.descriptionPlaceholder")}
                 rows={3}
               />
             </div>
             <div>
-              <Label>種別（複数選択可）</Label>
+              <Label>{t("space.typesLabel")}</Label>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {VENUE_TYPE_OPTIONS.map((opt) => (
                   <label key={opt.value} className="flex items-center gap-2 text-sm">
@@ -310,18 +335,18 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                         );
                       }}
                     />
-                    {opt.label}
+                    {tType(opt.value)}
                   </label>
                 ))}
               </div>
             </div>
             <div>
-              <Label>定員</Label>
+              <Label>{t("space.capacityLabel")}</Label>
               <Input
                 type="number"
                 value={spaceCapacity}
                 onChange={(e) => setSpaceCapacity(e.target.value)}
-                placeholder="任意"
+                placeholder={t("space.capacityPlaceholder")}
                 min="1"
               />
             </div>
@@ -331,7 +356,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
               disabled={!spaceName || createSpace.isPending}
             >
               {createSpace.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              登録
+              {t("space.submit")}
             </Button>
           </div>
         </DialogContent>

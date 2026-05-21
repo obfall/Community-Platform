@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import { escapePgroongaQuery, pgroongaSearchAndFetch, PGROONGA_MAX_LIMIT } from "@/common/utils";
 import type { CreateVenueDto } from "./dto/create-venue.dto";
+import type { UpdateVenueDto } from "./dto/update-venue.dto";
 import type { CreateSpaceDto } from "./dto/create-space.dto";
 import type { CreateReservationDto } from "./dto/create-reservation.dto";
 import type { VenueQueryDto } from "./dto/venue-query.dto";
@@ -15,6 +19,56 @@ const VENUE_LIST_INCLUDE = {
     include: { file: { select: { publicUrl: true } } },
   },
 } satisfies Prisma.VenueInclude;
+
+function notFoundVenue() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.venue,
+    undefined,
+    "errors.not_found.venue",
+  );
+}
+
+function notFoundSpace() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.space,
+    undefined,
+    "errors.not_found.space",
+  );
+}
+
+function notFoundReservation() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.reservation,
+    undefined,
+    "errors.not_found.reservation",
+  );
+}
+
+function reservationOverlap() {
+  return new BusinessException(
+    ErrorCode.CONFLICT,
+    HttpStatus.CONFLICT,
+    errorMessages.conflict.reservation_overlap,
+    undefined,
+    "errors.conflict.reservation_overlap",
+  );
+}
+
+function forbiddenReservationCancel() {
+  return new BusinessException(
+    ErrorCode.FORBIDDEN,
+    HttpStatus.FORBIDDEN,
+    errorMessages.forbidden_resource.reservation_cancel,
+    undefined,
+    "errors.forbidden_resource.reservation_cancel",
+  );
+}
 
 @Injectable()
 export class VenuesService {
@@ -95,7 +149,7 @@ export class VenuesService {
         },
       },
     });
-    if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
+    if (!venue || venue.deletedAt) throw notFoundVenue();
     return venue;
   }
 
@@ -124,16 +178,9 @@ export class VenuesService {
     });
   }
 
-  async updateVenue(
-    id: string,
-    data: Partial<CreateVenueDto> & {
-      publishStatus?: string;
-      imageFileIds?: string[];
-      venueTypes?: string[];
-    },
-  ) {
+  async updateVenue(id: string, data: UpdateVenueDto) {
     const venue = await this.prisma.venue.findUnique({ where: { id } });
-    if (!venue || venue.deletedAt) throw new NotFoundException("施設が見つかりません");
+    if (!venue || venue.deletedAt) throw notFoundVenue();
 
     if (data.imageFileIds !== undefined) {
       await this.prisma.venueImage.deleteMany({ where: { venueId: id } });
@@ -209,33 +256,38 @@ export class VenuesService {
   async createReservation(spaceId: string, userId: string, dto: CreateReservationDto) {
     const space = await this.prisma.space.findUnique({ where: { id: spaceId } });
     if (!space || space.deletedAt || !space.isReservable) {
-      throw new NotFoundException("スペースが見つかりません");
+      throw notFoundSpace();
     }
 
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
 
-    // 重複チェック
-    const overlap = await this.prisma.reservation.findFirst({
-      where: {
-        spaceId,
-        status: { not: "canceled" },
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
-      },
-    });
-    if (overlap) throw new BadRequestException("指定した時間帯は既に予約があります");
+    // 重複チェック → 作成を Serializable トランザクションでアトミック化し、
+    // 同一スペース・同時刻への並行リクエストで両方が成立するのを防ぐ
+    return this.prisma.$transaction(
+      async (tx) => {
+        const overlap = await tx.reservation.findFirst({
+          where: {
+            spaceId,
+            status: { not: "canceled" },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+          },
+        });
+        if (overlap) throw reservationOverlap();
 
-    return this.prisma.reservation.create({
-      data: { spaceId, userId, title: dto.title, startAt, endAt, note: dto.note },
-    });
+        return tx.reservation.create({
+          data: { spaceId, userId, title: dto.title, startAt, endAt, note: dto.note },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   async cancelReservation(reservationId: string, userId: string) {
     const reservation = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
-    if (!reservation) throw new NotFoundException("予約が見つかりません");
-    if (reservation.userId !== userId)
-      throw new BadRequestException("この予約をキャンセルする権限がありません");
+    if (!reservation) throw notFoundReservation();
+    if (reservation.userId !== userId) throw forbiddenReservationCancel();
 
     return this.prisma.reservation.update({
       where: { id: reservationId },

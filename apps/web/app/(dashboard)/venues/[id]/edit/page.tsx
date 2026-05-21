@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useCreateVenue } from "@/hooks/venues/use-venues";
+import { useVenue, useUpdateVenue } from "@/hooks/venues/use-venues";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,66 +17,83 @@ import { ProductImageUpload, type ProductImage } from "@/components/product-imag
 import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 import { VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
+import type { VenueDetail } from "@/lib/api/types";
 
-export default function VenueNewPage() {
+type VenueWithImageFileIds = Omit<VenueDetail, "images"> & {
+  images?: Array<{ id: string; fileId: string; file: { publicUrl: string | null } }>;
+};
+
+export default function VenueEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const t = useTranslations("venues");
   const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.role === "owner" || user?.role === "admin";
+  const { data: venue, isLoading } = useVenue(id);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
-      router.replace("/venues");
+      router.replace(`/venues/${id}`);
     }
-  }, [authLoading, isAdmin, router]);
+  }, [authLoading, isAdmin, id, router]);
 
-  if (authLoading || !isAdmin) {
-    return <div className="py-12 text-center text-muted-foreground">{t("list.loading")}</div>;
+  if (authLoading || isLoading || !isAdmin) {
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.loading")}</div>;
+  }
+  if (!venue) {
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
   }
 
-  return <VenueNewForm />;
+  return <VenueEditForm id={id} venue={venue as VenueWithImageFileIds} />;
 }
 
-function VenueNewForm() {
+function VenueEditForm({ id, venue }: { id: string; venue: VenueWithImageFileIds }) {
   const router = useRouter();
   const t = useTranslations("venues");
   const tType = useTranslations("venues.venueType");
-  const createVenue = useCreateVenue();
+  const updateVenue = useUpdateVenue();
 
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [description, setDescription] = useState("");
-  const [accessInfo, setAccessInfo] = useState("");
-  const [venueTypes, setVenueTypes] = useState<string[]>([]);
-  const [capacity, setCapacity] = useState("");
-  const [publishStatus, setPublishStatus] = useState("draft");
-  const [images, setImages] = useState<ProductImage[]>([]);
+  const [name, setName] = useState(venue.name);
+  const [address, setAddress] = useState(venue.address ?? "");
+  const [description, setDescription] = useState(venue.description ?? "");
+  const [accessInfo, setAccessInfo] = useState(venue.accessInfo ?? "");
+  const [venueTypes, setVenueTypes] = useState<string[]>(venue.venueTypes);
+  const [capacity, setCapacity] = useState(venue.capacity != null ? String(venue.capacity) : "");
+  const [publishStatus, setPublishStatus] = useState(venue.publishStatus);
+  const [images, setImages] = useState<ProductImage[]>(
+    (venue.images ?? [])
+      .filter((img) => img.file.publicUrl)
+      .map((img) => ({ fileId: img.fileId, url: img.file.publicUrl! })),
+  );
 
   const handleSubmit = () => {
-    createVenue.mutate(
+    updateVenue.mutate(
       {
-        name,
-        address: address || undefined,
-        description: description || undefined,
-        accessInfo: accessInfo || undefined,
-        venueTypes,
-        capacity: capacity ? Number(capacity) : undefined,
-        publishStatus,
-        imageFileIds: images.map((i) => i.fileId),
+        id,
+        data: {
+          name,
+          address: address || null,
+          description: description || null,
+          accessInfo: accessInfo || null,
+          venueTypes,
+          capacity: capacity ? Number(capacity) : null,
+          publishStatus,
+          imageFileIds: images.map((i) => i.fileId),
+        },
       },
-      { onSuccess: () => router.push("/venues") },
+      { onSuccess: () => router.push(`/venues/${id}`) },
     );
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/venues">
+        <Link href={`/venues/${id}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">{t("heading.new")}</h1>
+        <h1 className="text-2xl font-bold">{t("heading.edit")}</h1>
       </div>
 
       <Card>
@@ -160,12 +177,12 @@ function VenueNewForm() {
             />
           </div>
           <div className="flex justify-end gap-2 pt-4">
-            <Link href="/venues">
+            <Link href={`/venues/${id}`}>
               <Button variant="outline">{t("form.cancel")}</Button>
             </Link>
-            <Button onClick={handleSubmit} disabled={!name || createVenue.isPending}>
-              {createVenue.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("form.submit")}
+            <Button onClick={handleSubmit} disabled={!name || updateVenue.isPending}>
+              {updateVenue.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("form.submitEdit")}
             </Button>
           </div>
         </CardContent>
