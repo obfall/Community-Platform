@@ -25,7 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Building2, Calendar, Loader2, Pencil, Plus } from "lucide-react";
 import { PUBLISH_STATUS_LABELS } from "@/lib/constants/publish-status";
-import { VENUE_TYPE_LABELS, VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
+import { VENUE_TYPE_OPTIONS } from "@/lib/constants/venue-types";
 
 interface VenueImageItem {
   id: string;
@@ -35,6 +35,7 @@ interface VenueImageItem {
 export default function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations("venues");
+  const tType = useTranslations("venues.venueType");
   const { user } = useAuth();
   const isAdmin = user?.role === "owner" || user?.role === "admin";
   const { data: venue, isLoading } = useVenue(id);
@@ -94,7 +95,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
             </Badge>
             {venue.venueTypes.map((typ) => (
               <Badge key={typ} variant="outline">
-                {VENUE_TYPE_LABELS[typ] ?? typ}
+                {tType.has(typ) ? tType(typ) : typ}
               </Badge>
             ))}
           </div>
@@ -199,7 +200,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                           <div className="flex flex-wrap gap-1">
                             {s.spaceTypes.map((typ) => (
                               <Badge key={typ} variant="outline" className="text-xs">
-                                {VENUE_TYPE_LABELS[typ] ?? typ}
+                                {tType.has(typ) ? tType(typ) : typ}
                               </Badge>
                             ))}
                           </div>
@@ -334,7 +335,7 @@ export default function VenueDetailPage({ params }: { params: Promise<{ id: stri
                         );
                       }}
                     />
-                    {opt.label}
+                    {tType(opt.value)}
                   </label>
                 ))}
               </div>

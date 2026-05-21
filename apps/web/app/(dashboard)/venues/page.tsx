@@ -13,10 +13,10 @@ import { Plus, Building2, Users, MapPin } from "lucide-react";
 import { SelectField } from "@/components/select-field";
 import { HighlightedText } from "@/components/highlighted-text";
 import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-import { VENUE_TYPE_LABELS } from "@/lib/constants/venue-types";
 
 export default function VenuesPage() {
   const t = useTranslations("venues");
+  const tType = useTranslations("venues.venueType");
   const [publishStatus, setPublishStatus] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState<string | undefined>(undefined);
@@ -89,7 +89,7 @@ export default function VenuesPage() {
                       )}
                       {v.venueTypes.map((typ) => (
                         <Badge key={typ} variant="outline" className="text-xs">
-                          {VENUE_TYPE_LABELS[typ] ?? typ}
+                          {tType.has(typ) ? tType(typ) : typ}
                         </Badge>
                       ))}
                     </div>

@@ -24,6 +24,7 @@ describe("VenuesService", () => {
       Record<"findMany" | "findUnique" | "findFirst" | "create" | "update", unknown>
     >;
     $queryRaw: jest.Mock;
+    $transaction: jest.Mock;
   };
   let service: VenuesService;
 
@@ -34,6 +35,7 @@ describe("VenuesService", () => {
       space: makeDelegate(),
       reservation: makeDelegate(),
       $queryRaw: jest.fn().mockResolvedValue([]),
+      $transaction: jest.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(prismaMock)),
     };
     prismaMock.venue.findMany.mockResolvedValue([]);
     prismaMock.venueImage.deleteMany.mockResolvedValue({ count: 0 });

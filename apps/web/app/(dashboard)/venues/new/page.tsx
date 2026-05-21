@@ -40,6 +40,7 @@ export default function VenueNewPage() {
 function VenueNewForm() {
   const router = useRouter();
   const t = useTranslations("venues");
+  const tType = useTranslations("venues.venueType");
   const createVenue = useCreateVenue();
 
   const [name, setName] = useState("");
@@ -135,7 +136,7 @@ function VenueNewForm() {
                       );
                     }}
                   />
-                  {opt.label}
+                  {tType(opt.value)}
                 </label>
               ))}
             </div>

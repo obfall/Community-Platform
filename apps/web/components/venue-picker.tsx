@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useVenues, useCreateVenue } from "@/hooks/venues/use-venues";
 import {
   Select,
@@ -26,6 +27,7 @@ interface VenuePickerProps {
 }
 
 export function VenuePicker({ value, onChange, disabled }: VenuePickerProps) {
+  const tType = useTranslations("venues.venueType");
   const { data: venues, isLoading } = useVenues();
   const createVenue = useCreateVenue();
 
@@ -132,7 +134,7 @@ export function VenuePicker({ value, onChange, disabled }: VenuePickerProps) {
                         );
                       }}
                     />
-                    {opt.label}
+                    {tType(opt.value)}
                   </label>
                 ))}
               </div>

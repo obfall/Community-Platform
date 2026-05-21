@@ -12,6 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function ReservationSection({ venueId }: { venueId: string }) {
   const t = useTranslations("venues.reservation");
@@ -56,7 +67,7 @@ export function ReservationSection({ venueId }: { venueId: string }) {
                       variant={
                         r.status === "confirmed"
                           ? "default"
-                          : r.status === "cancelled"
+                          : r.status === "canceled"
                             ? "destructive"
                             : "secondary"
                       }
@@ -65,15 +76,28 @@ export function ReservationSection({ venueId }: { venueId: string }) {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {r.status !== "cancelled" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => cancelReservation.mutate(r.id)}
-                        disabled={cancelReservation.isPending}
-                      >
-                        {t("cancel")}
-                      </Button>
+                    {r.status !== "canceled" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={cancelReservation.isPending}>
+                            {t("cancel")}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t("cancelConfirm.title")}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t("cancelConfirm.description")}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("cancelConfirm.cancel")}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => cancelReservation.mutate(r.id)}>
+                              {t("cancelConfirm.confirm")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </TableCell>
                 </TableRow>

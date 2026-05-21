@@ -6,6 +6,7 @@ import { BusinessException } from "@/common/exceptions";
 import errorMessages from "@/i18n/messages/ja/errors.json";
 import { escapePgroongaQuery, pgroongaSearchAndFetch, PGROONGA_MAX_LIMIT } from "@/common/utils";
 import type { CreateVenueDto } from "./dto/create-venue.dto";
+import type { UpdateVenueDto } from "./dto/update-venue.dto";
 import type { CreateSpaceDto } from "./dto/create-space.dto";
 import type { CreateReservationDto } from "./dto/create-reservation.dto";
 import type { VenueQueryDto } from "./dto/venue-query.dto";
@@ -177,14 +178,7 @@ export class VenuesService {
     });
   }
 
-  async updateVenue(
-    id: string,
-    data: Partial<CreateVenueDto> & {
-      publishStatus?: string;
-      imageFileIds?: string[];
-      venueTypes?: string[];
-    },
-  ) {
+  async updateVenue(id: string, data: UpdateVenueDto) {
     const venue = await this.prisma.venue.findUnique({ where: { id } });
     if (!venue || venue.deletedAt) throw notFoundVenue();
 
@@ -268,20 +262,26 @@ export class VenuesService {
     const startAt = new Date(dto.startAt);
     const endAt = new Date(dto.endAt);
 
-    // 重複チェック
-    const overlap = await this.prisma.reservation.findFirst({
-      where: {
-        spaceId,
-        status: { not: "canceled" },
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
-      },
-    });
-    if (overlap) throw reservationOverlap();
+    // 重複チェック → 作成を Serializable トランザクションでアトミック化し、
+    // 同一スペース・同時刻への並行リクエストで両方が成立するのを防ぐ
+    return this.prisma.$transaction(
+      async (tx) => {
+        const overlap = await tx.reservation.findFirst({
+          where: {
+            spaceId,
+            status: { not: "canceled" },
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+          },
+        });
+        if (overlap) throw reservationOverlap();
 
-    return this.prisma.reservation.create({
-      data: { spaceId, userId, title: dto.title, startAt, endAt, note: dto.note },
-    });
+        return tx.reservation.create({
+          data: { spaceId, userId, title: dto.title, startAt, endAt, note: dto.note },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   }
 
   async cancelReservation(reservationId: string, userId: string) {

@@ -50,6 +50,7 @@ export default function VenueEditPage({ params }: { params: Promise<{ id: string
 function VenueEditForm({ id, venue }: { id: string; venue: VenueWithImageFileIds }) {
   const router = useRouter();
   const t = useTranslations("venues");
+  const tType = useTranslations("venues.venueType");
   const updateVenue = useUpdateVenue();
 
   const [name, setName] = useState(venue.name);
@@ -152,7 +153,7 @@ function VenueEditForm({ id, venue }: { id: string; venue: VenueWithImageFileIds
                       );
                     }}
                   />
-                  {opt.label}
+                  {tType(opt.value)}
                 </label>
               ))}
             </div>

@@ -29,6 +29,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
   const [title, setTitle] = useState("");
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const effectiveSpaceId = spaceId || spaces[0]?.id || "";
 
@@ -37,11 +38,30 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
     setTitle("");
     setStartAt("");
     setEndAt("");
+    setError(null);
   };
 
   const handleSubmit = () => {
+    const startDate = new Date(startAt);
+    const endDate = new Date(endAt);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setError(t("error.invalidDate"));
+      return;
+    }
+    if (endDate <= startDate) {
+      setError(t("error.endBeforeStart"));
+      return;
+    }
+    setError(null);
     createReservation.mutate(
-      { spaceId: effectiveSpaceId, data: { title: title || undefined, startAt, endAt } },
+      {
+        spaceId: effectiveSpaceId,
+        data: {
+          title: title || undefined,
+          startAt: startDate.toISOString(),
+          endAt: endDate.toISOString(),
+        },
+      },
       {
         onSuccess: () => {
           reset();
@@ -105,6 +125,7 @@ export function ReservationDialog({ spaces, open, onOpenChange }: ReservationDia
               />
             </div>
           </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             className="w-full"
             onClick={handleSubmit}

@@ -84,6 +84,10 @@
     "titlePlaceholder": "予約のタイトル",
     "startAtLabel": "開始日時",
     "endAtLabel": "終了日時",
+    "error": {
+      "invalidDate": "日時の形式が不正です",
+      "endBeforeStart": "終了日時は開始日時より後に設定してください"
+    },
     "submit": "予約する",
     "tableHeader": {
       "space": "スペース",
@@ -94,6 +98,12 @@
       "status": "ステータス"
     },
     "cancel": "キャンセル",
+    "cancelConfirm": {
+      "title": "予約を取り消しますか？",
+      "description": "この予約を取り消します。元に戻すことはできません。",
+      "cancel": "戻る",
+      "confirm": "予約を取り消す"
+    },
     "empty": "予約はありません",
     "loading": "読み込み中..."
   },
@@ -113,7 +123,6 @@
   },
   "reservationStatus": {
     "confirmed": "確定",
-    "cancelled": "キャンセル",
     "canceled": "キャンセル",
     "pending": "未確定"
   },

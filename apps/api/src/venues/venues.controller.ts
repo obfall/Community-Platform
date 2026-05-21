@@ -18,7 +18,13 @@ import { Roles } from "@/common/decorators/roles.decorator";
 import { FeatureEnabled } from "@/common/decorators/feature-enabled.decorator";
 import { RolesGuard, FeatureEnabledGuard } from "@/common/guards";
 import { VenuesService } from "./venues.service";
-import { CreateVenueDto, CreateSpaceDto, CreateReservationDto, VenueQueryDto } from "./dto";
+import {
+  CreateVenueDto,
+  UpdateVenueDto,
+  CreateSpaceDto,
+  CreateReservationDto,
+  VenueQueryDto,
+} from "./dto";
 
 @Controller("venues")
 @ApiTags("Venues")
@@ -52,10 +58,7 @@ export class VenuesController {
   @ApiOperation({ summary: "施設更新" })
   @UseGuards(RolesGuard)
   @Roles("admin", "owner")
-  update(
-    @Param("id", ParseUUIDPipe) id: string,
-    @Body() data: Partial<CreateVenueDto> & { publishStatus?: string },
-  ) {
+  update(@Param("id", ParseUUIDPipe) id: string, @Body() data: UpdateVenueDto) {
     return this.service.updateVenue(id, data);
   }
 
