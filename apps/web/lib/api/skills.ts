@@ -3,6 +3,8 @@ import type {
   PaginatedResponse,
   SkillListItem,
   SkillBooking,
+  SkillBookingDetail,
+  SkillBookingStatus,
   SkillMessage,
   SkillComment,
   SkillQuery,
@@ -40,11 +42,16 @@ export const skillsApi = {
   // Bookings
   getBookings: () => apiClient.get<SkillBooking[]>("/skills/bookings").then((r) => r.data),
 
+  getBooking: (bookingId: string) =>
+    apiClient.get<SkillBookingDetail>(`/skills/bookings/${bookingId}`).then((r) => r.data),
+
   createBooking: (listingId: string, data: { scheduledAt?: string; message?: string }) =>
     apiClient.post<SkillBooking>(`/skills/${listingId}/bookings`, data).then((r) => r.data),
 
-  updateBookingStatus: (bookingId: string, status: string) =>
-    apiClient.patch(`/skills/bookings/${bookingId}/status`, { status }).then((r) => r.data),
+  updateBookingStatus: (bookingId: string, status: SkillBookingStatus, comment?: string) =>
+    apiClient
+      .patch(`/skills/bookings/${bookingId}/status`, { status, comment })
+      .then((r) => r.data),
 
   // Messages
   getMessages: (bookingId: string) =>

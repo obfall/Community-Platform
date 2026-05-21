@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsOptional, IsInt, Min, IsEnum, IsString, IsUUID, MaxLength } from "class-validator";
 import { Type } from "class-transformer";
-import { SkillFormat } from "@prisma/client";
+import { SkillFormat, SkillListingStatus } from "@prisma/client";
 
 export class SkillQueryDto {
   @ApiPropertyOptional()
@@ -27,6 +27,14 @@ export class SkillQueryDto {
   @IsOptional()
   @IsEnum(SkillFormat)
   format?: SkillFormat;
+
+  @ApiPropertyOptional({
+    enum: SkillListingStatus,
+    description: "管理者 (admin/owner) のみ active 以外の指定が反映される",
+  })
+  @IsOptional()
+  @IsEnum(SkillListingStatus)
+  status?: SkillListingStatus;
 
   @ApiPropertyOptional({ description: "検索キーワード（pgroonga 全文検索）" })
   @IsOptional()

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   useSkillComments,
   useAddSkillComment,
@@ -20,6 +21,7 @@ export function CommentSection({
   listingId: string;
   providerId: string;
 }) {
+  const t = useTranslations("skills.comments");
   const { user } = useAuth();
   const { data: comments, isLoading } = useSkillComments(listingId);
   const addComment = useAddSkillComment();
@@ -35,14 +37,14 @@ export function CommentSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>コメント</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="質問やコメントを入力..."
+            placeholder={t("placeholder")}
             rows={2}
             className="flex-1"
           />
@@ -57,25 +59,29 @@ export function CommentSection({
         </div>
 
         {isLoading ? (
-          <div className="py-4 text-center text-muted-foreground">読み込み中...</div>
+          <div className="py-4 text-center text-muted-foreground">{t("loading")}</div>
         ) : !comments?.length ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">
-            コメントはまだありません
-          </div>
+          <div className="py-4 text-center text-sm text-muted-foreground">{t("empty")}</div>
         ) : (
           <div className="space-y-3">
             {comments.map((c) => (
-              <div key={c.id} className="flex gap-3">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="text-xs">{c.author.name.charAt(0)}</AvatarFallback>
+              <div key={c.id} className="flex gap-2">
+                <Avatar className="shrink-0">
+                  <AvatarFallback className="text-xs font-medium">
+                    {c.author.name.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{c.author.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleDateString("ja-JP")}
-                      </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      {c.author.name} ・{" "}
+                      {new Date(c.createdAt).toLocaleString("ja-JP", {
+                        year: "numeric",
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                     {(isProvider || user?.id === c.author.id) && (
                       <Button
@@ -88,7 +94,9 @@ export function CommentSection({
                       </Button>
                     )}
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm">{c.body}</p>
+                  <div className="mt-1 rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap">
+                    {c.body}
+                  </div>
                 </div>
               </div>
             ))}

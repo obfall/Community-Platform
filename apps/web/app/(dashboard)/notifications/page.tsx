@@ -30,6 +30,8 @@ export default function NotificationsPage() {
       router.push(`/surveys/${notification.referenceId}/respond`);
     } else if (notification.referenceType === "shop_order" && notification.referenceId) {
       router.push(`/shop/orders/${notification.referenceId}`);
+    } else if (notification.referenceType === "skill_booking" && notification.referenceId) {
+      router.push(`/skills/bookings/${notification.referenceId}`);
     }
   };
 

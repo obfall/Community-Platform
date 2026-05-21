@@ -1,10 +1,12 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
+import { NotificationsService } from "@/notifications/notifications.service";
 import {
   AUTHOR_SELECT,
   buildPaginationMeta,
@@ -18,27 +20,56 @@ import { Prisma } from "@prisma/client";
 import type { CreateSkillListingDto } from "./dto/create-skill-listing.dto";
 import type { CreateBookingDto } from "./dto/create-booking.dto";
 import type { SkillQueryDto } from "./dto/skill-query.dto";
+import type { BookingStatusInput } from "./dto/update-booking-status.dto";
+
+const NOTIFICATION_TITLES: Record<string, string> = {
+  skill_booking_requested: "新しい予約リクエスト",
+  skill_booking_approved: "予約が承認されました",
+  skill_booking_rejected: "予約が拒否されました",
+  skill_booking_canceled: "予約がキャンセルされました",
+  skill_booking_completed: "予約が完了しました",
+  skill_message: "スキル取引に新着メッセージ",
+};
+
+const STATUS_TO_NOTIFICATION_TYPE: Record<BookingStatusInput, string> = {
+  approved: "skill_booking_approved",
+  rejected: "skill_booking_rejected",
+  canceled: "skill_booking_canceled",
+  completed: "skill_booking_completed",
+};
 
 @Injectable()
 export class SkillsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SkillsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // --- スキル出品 ---
 
-  async findAll(query: SkillQueryDto) {
+  async findAll(query: SkillQueryDto, userId?: string) {
+    const isPrivileged = await this.isPrivilegedUser(userId);
     const escaped = query.search ? escapePgroongaQuery(query.search) : "";
     if (escaped) {
-      return this.searchByPgroonga(query, escaped);
+      return this.searchByPgroonga(query, escaped, isPrivileged);
     }
-    return this.findAllStandard(query);
+    return this.findAllStandard(query, isPrivileged);
   }
 
-  private async findAllStandard(query: SkillQueryDto) {
+  private async findAllStandard(query: SkillQueryDto, isPrivileged: boolean) {
     const { page, limit, skip } = extractPagination(query);
 
-    const where: Prisma.SkillListingWhereInput = { deletedAt: null, status: "active" };
+    const where: Prisma.SkillListingWhereInput = { deletedAt: null };
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.format) where.format = query.format;
+    // 一般ユーザーは active 固定。admin/owner は query.status があればそれで絞る（無指定なら全 status）
+    if (isPrivileged) {
+      if (query.status) where.status = query.status;
+    } else {
+      where.status = "active";
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.skillListing.findMany({
@@ -54,13 +85,19 @@ export class SkillsService {
     return this.formatSkillList(data, total, page, limit);
   }
 
-  /** pgroonga による全文検索版（VISIBILITY.skillListing 強制）。 */
-  private async searchByPgroonga(query: SkillQueryDto, escaped: string) {
+  /** pgroonga による全文検索版（一般ユーザーは active のみ、admin/owner は query.status で絞り込み可）。 */
+  private async searchByPgroonga(query: SkillQueryDto, escaped: string, isPrivileged: boolean) {
     const { page, limit, offset } = extractPagination(query);
+
+    const statusFilter = isPrivileged
+      ? query.status
+        ? Prisma.sql`AND status = ${query.status}::"SkillListingStatus"`
+        : Prisma.empty
+      : Prisma.sql`AND status = 'active'::"SkillListingStatus"`;
 
     const where = Prisma.sql`
       deleted_at IS NULL
-      AND status = 'active'::"SkillListingStatus"
+      ${statusFilter}
       ${query.categoryId ? Prisma.sql`AND category_id = ${query.categoryId}::uuid` : Prisma.empty}
       ${query.format ? Prisma.sql`AND format = ${query.format}::"SkillFormat"` : Prisma.empty}
     `;
@@ -77,7 +114,13 @@ export class SkillsService {
       offset,
       fetchByIds: (ids) =>
         this.prisma.skillListing.findMany({
-          where: { id: { in: ids }, ...VISIBILITY.skillListing },
+          where: isPrivileged
+            ? {
+                id: { in: ids },
+                deletedAt: null,
+                ...(query.status && { status: query.status }),
+              }
+            : { id: { in: ids }, ...VISIBILITY.skillListing },
           include: this.skillListInclude(),
         }),
     });
@@ -129,7 +172,7 @@ export class SkillsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string) {
     const listing = await this.prisma.skillListing.findUnique({
       where: { id },
       include: {
@@ -138,6 +181,14 @@ export class SkillsService {
       },
     });
     if (!listing || listing.deletedAt) throw new NotFoundException("スキルが見つかりません");
+
+    if (listing.status !== "active") {
+      const isOwner = !!userId && listing.providerUserId === userId;
+      const isPrivileged = await this.isPrivilegedUser(userId);
+      if (!isOwner && !isPrivileged) {
+        throw new NotFoundException("スキルが見つかりません");
+      }
+    }
 
     return {
       ...listing,
@@ -174,7 +225,9 @@ export class SkillsService {
   ) {
     const listing = await this.prisma.skillListing.findUnique({ where: { id } });
     if (!listing || listing.deletedAt) throw new NotFoundException("スキルが見つかりません");
-    if (listing.providerUserId !== userId) throw new ForbiddenException();
+    if (listing.providerUserId !== userId && !(await this.isPrivilegedUser(userId))) {
+      throw new ForbiddenException();
+    }
 
     return this.prisma.skillListing.update({
       where: { id },
@@ -195,7 +248,9 @@ export class SkillsService {
   async remove(id: string, userId: string) {
     const listing = await this.prisma.skillListing.findUnique({ where: { id } });
     if (!listing || listing.deletedAt) throw new NotFoundException("スキルが見つかりません");
-    if (listing.providerUserId !== userId) throw new ForbiddenException();
+    if (listing.providerUserId !== userId && !(await this.isPrivilegedUser(userId))) {
+      throw new ForbiddenException();
+    }
 
     await this.prisma.skillListing.update({ where: { id }, data: { deletedAt: new Date() } });
   }
@@ -226,47 +281,81 @@ export class SkillsService {
       data: { bookingCount: { increment: 1 } },
     });
 
+    this.notify({
+      userId: listing.providerUserId,
+      type: "skill_booking_requested",
+      bookingId: booking.id,
+      actorUserId: requesterId,
+      body: `「${listing.title}」に予約リクエストが届きました`,
+    });
+
     return booking;
   }
 
   async getBookings(userId: string) {
+    const isPrivileged = await this.isPrivilegedUser(userId);
     return this.prisma.skillBooking.findMany({
-      where: {
-        OR: [{ requesterUserId: userId }, { providerUserId: userId }],
-      },
+      where: isPrivileged ? {} : { OR: [{ requesterUserId: userId }, { providerUserId: userId }] },
       orderBy: { createdAt: "desc" },
       include: {
-        skillListing: { select: { id: true, title: true, price: true } },
+        skillListing: { select: { id: true, title: true, price: true, durationMinutes: true } },
         requester: { select: { id: true, name: true } },
         provider: { select: { id: true, name: true } },
       },
     });
   }
 
+  async findBooking(bookingId: string, userId: string) {
+    const booking = await this.prisma.skillBooking.findUnique({
+      where: { id: bookingId },
+      include: {
+        skillListing: {
+          select: { id: true, title: true, price: true, durationMinutes: true, format: true },
+        },
+        requester: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
+      },
+    });
+    if (!booking) throw new NotFoundException("予約が見つかりません");
+    if (
+      booking.requesterUserId !== userId &&
+      booking.providerUserId !== userId &&
+      !(await this.isPrivilegedUser(userId))
+    ) {
+      throw new ForbiddenException();
+    }
+    return booking;
+  }
+
   async updateBookingStatus(
     bookingId: string,
     userId: string,
-    status: "approved" | "rejected" | "completed" | "canceled",
+    status: BookingStatusInput,
+    comment?: string,
   ) {
     const booking = await this.prisma.skillBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("予約が見つかりません");
 
+    // admin/owner は全ステータス操作可能、それ以外は role ベース判定
+    const isPrivileged = await this.isPrivilegedUser(userId);
     // 提供者のみ承認/拒否/完了可能、リクエスターはキャンセルのみ
     if (
       status === "canceled" &&
       booking.requesterUserId !== userId &&
-      booking.providerUserId !== userId
+      booking.providerUserId !== userId &&
+      !isPrivileged
     ) {
       throw new ForbiddenException();
     }
     if (
       (status === "approved" || status === "rejected" || status === "completed") &&
-      booking.providerUserId !== userId
+      booking.providerUserId !== userId &&
+      !isPrivileged
     ) {
       throw new ForbiddenException();
     }
 
-    return this.prisma.skillBooking.update({
+    const updated = await this.prisma.skillBooking.update({
       where: { id: bookingId },
       data: {
         status,
@@ -274,6 +363,29 @@ export class SkillsService {
         ...(status === "canceled" && { canceledAt: new Date() }),
       },
     });
+
+    const trimmedComment = comment?.trim();
+    if (trimmedComment) {
+      await this.prisma.skillMessage.create({
+        data: {
+          bookingId,
+          senderUserId: userId,
+          body: trimmedComment,
+        },
+      });
+    }
+
+    const recipientId =
+      userId === booking.providerUserId ? booking.requesterUserId : booking.providerUserId;
+    this.notify({
+      userId: recipientId,
+      type: STATUS_TO_NOTIFICATION_TYPE[status],
+      bookingId,
+      actorUserId: userId,
+      body: trimmedComment,
+    });
+
+    return updated;
   }
 
   // --- メッセージ ---
@@ -281,7 +393,11 @@ export class SkillsService {
   async getMessages(bookingId: string, userId: string) {
     const booking = await this.prisma.skillBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("予約が見つかりません");
-    if (booking.requesterUserId !== userId && booking.providerUserId !== userId) {
+    if (
+      booking.requesterUserId !== userId &&
+      booking.providerUserId !== userId &&
+      !(await this.isPrivilegedUser(userId))
+    ) {
       throw new ForbiddenException();
     }
 
@@ -297,17 +413,32 @@ export class SkillsService {
   async sendMessage(bookingId: string, userId: string, body: string) {
     const booking = await this.prisma.skillBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException("予約が見つかりません");
-    if (booking.requesterUserId !== userId && booking.providerUserId !== userId) {
+    if (
+      booking.requesterUserId !== userId &&
+      booking.providerUserId !== userId &&
+      !(await this.isPrivilegedUser(userId))
+    ) {
       throw new ForbiddenException();
     }
 
-    return this.prisma.skillMessage.create({
+    const message = await this.prisma.skillMessage.create({
       data: {
         bookingId,
         senderUserId: userId,
         body,
       },
     });
+
+    const recipientId =
+      userId === booking.providerUserId ? booking.requesterUserId : booking.providerUserId;
+    this.notify({
+      userId: recipientId,
+      type: "skill_message",
+      bookingId,
+      actorUserId: userId,
+    });
+
+    return message;
   }
 
   // --- コメント ---
@@ -327,6 +458,14 @@ export class SkillsService {
   async addComment(skillListingId: string, userId: string, body: string) {
     const listing = await this.prisma.skillListing.findUnique({ where: { id: skillListingId } });
     if (!listing || listing.deletedAt) throw new NotFoundException("スキルが見つかりません");
+
+    if (listing.status !== "active") {
+      const isOwner = listing.providerUserId === userId;
+      const isPrivileged = await this.isPrivilegedUser(userId);
+      if (!isOwner && !isPrivileged) {
+        throw new NotFoundException("スキルが見つかりません");
+      }
+    }
 
     return this.prisma.skillComment.create({
       data: {
@@ -348,7 +487,11 @@ export class SkillsService {
       include: { skillListing: { select: { providerUserId: true } } },
     });
     if (!comment || comment.deletedAt) throw new NotFoundException("コメントが見つかりません");
-    if (comment.authorUserId !== userId && comment.skillListing.providerUserId !== userId) {
+    if (
+      comment.authorUserId !== userId &&
+      comment.skillListing.providerUserId !== userId &&
+      !(await this.isPrivilegedUser(userId))
+    ) {
       throw new ForbiddenException();
     }
 
@@ -356,5 +499,43 @@ export class SkillsService {
       where: { id: commentId },
       data: { deletedAt: new Date() },
     });
+  }
+
+  // --- 内部ヘルパ ---
+
+  /**
+   * userId が admin/owner ロールなら true。未認証や member 以下なら false。
+   * 全権限バイパスの判定に使う。
+   */
+  private async isPrivilegedUser(userId?: string): Promise<boolean> {
+    if (!userId) return false;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    return user?.role === "admin" || user?.role === "owner";
+  }
+
+  /** 通知作成（非同期・失敗してもメイン処理をブロックしない） */
+  private notify(params: {
+    userId: string;
+    type: string;
+    bookingId: string;
+    actorUserId: string;
+    body?: string;
+  }) {
+    this.notificationsService
+      .create({
+        userId: params.userId,
+        type: params.type,
+        title: NOTIFICATION_TITLES[params.type] ?? params.type,
+        body: params.body,
+        referenceType: "skill_booking",
+        referenceId: params.bookingId,
+        actorUserId: params.actorUserId,
+      })
+      .catch((err) => {
+        this.logger.error(`スキル通知の作成に失敗しました (type=${params.type})`, err);
+      });
   }
 }

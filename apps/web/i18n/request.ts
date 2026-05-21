@@ -21,6 +21,7 @@ const NAMESPACES = [
   "albums",
   "contents",
   "projects",
+  "skills",
 ] as const;
 
 export default getRequestConfig(async () => {
