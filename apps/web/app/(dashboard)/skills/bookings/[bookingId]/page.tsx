@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -38,8 +39,8 @@ const STATUS_VARIANT: Record<
   canceled: "outline",
 };
 
-type DialogKind = "rejected" | "canceled" | "approved" | "completed";
-type DialogState = { kind: DialogKind } | null;
+type StatusDialogKind = "rejected" | "canceled" | "approved" | "completed";
+type DialogState = { kind: StatusDialogKind } | null;
 
 const FORMAT_VALUES = ["online", "offline", "both"] as const;
 type FormatKey = (typeof FORMAT_VALUES)[number];
@@ -75,7 +76,7 @@ export default function SkillBookingDetailPage({
     sendMessage.mutate({ bookingId, body: body.trim() }, { onSuccess: () => setBody("") });
   };
 
-  const openDialog = (kind: DialogKind) => {
+  const openDialog = (kind: StatusDialogKind) => {
     setComment("");
     setDialog({ kind });
   };
@@ -112,18 +113,26 @@ export default function SkillBookingDetailPage({
   const counterpart = showAsProvider ? booking.requester : booking.provider;
   const status = booking.status;
 
-  // ステータスごとの操作可否（provider 権限は admin/owner も持つ）
-  const hasProviderPower = isProvider || isAdmin;
-  const canApprove = hasProviderPower && status === "requested";
-  const canReject = hasProviderPower && status === "requested";
-  const canComplete = hasProviderPower && status === "approved";
-  const canCancel =
-    (isProvider || isRequester || isAdmin) && (status === "requested" || status === "approved");
+  // ボタン表示の可否
+  // 提供者視点: 承認/拒否 (requested) + キャンセル/完了 (approved)
+  // リクエスター視点: キャンセル (requested or approved)
+  const isActive = status === "requested" || status === "approved";
+  const canApprove = showAsProvider && status === "requested";
+  const canReject = showAsProvider && status === "requested";
+  const canComplete = showAsProvider && status === "approved";
+  const canProviderCancel = showAsProvider && status === "approved";
+  const canRequesterCancel = !showAsProvider && isActive;
 
   const dialogText = dialog
     ? {
         title: tBookingDetail(
-          `dialog.${dialog.kind === "rejected" ? "rejectTitle" : dialog.kind === "canceled" ? "cancelTitle" : dialog.kind === "approved" ? "approveTitle" : "completeTitle"}`,
+          dialog.kind === "rejected"
+            ? "dialog.rejectTitle"
+            : dialog.kind === "canceled"
+              ? "dialog.cancelTitle"
+              : dialog.kind === "approved"
+                ? "dialog.approveTitle"
+                : "dialog.completeTitle",
         ),
         description: tBookingDetail(
           dialog.kind === "rejected"
@@ -145,6 +154,8 @@ export default function SkillBookingDetailPage({
         ),
       }
     : null;
+
+  const isMutating = updateStatus.isPending;
 
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col space-y-4">
@@ -205,14 +216,10 @@ export default function SkillBookingDetailPage({
             </div>
           )}
 
-          {(canApprove || canReject || canComplete || canCancel) && (
+          {(canApprove || canReject || canComplete || canProviderCancel || canRequesterCancel) && (
             <div className="flex flex-wrap gap-2 border-t pt-3">
               {canApprove && (
-                <Button
-                  size="sm"
-                  onClick={() => openDialog("approved")}
-                  disabled={updateStatus.isPending}
-                >
+                <Button size="sm" onClick={() => openDialog("approved")} disabled={isMutating}>
                   {tBookingDetail("actions.approve")}
                 </Button>
               )}
@@ -221,26 +228,22 @@ export default function SkillBookingDetailPage({
                   size="sm"
                   variant="destructive"
                   onClick={() => openDialog("rejected")}
-                  disabled={updateStatus.isPending}
+                  disabled={isMutating}
                 >
                   {tBookingDetail("actions.reject")}
                 </Button>
               )}
               {canComplete && (
-                <Button
-                  size="sm"
-                  onClick={() => openDialog("completed")}
-                  disabled={updateStatus.isPending}
-                >
+                <Button size="sm" onClick={() => openDialog("completed")} disabled={isMutating}>
                   {tBookingDetail("actions.complete")}
                 </Button>
               )}
-              {canCancel && (
+              {(canProviderCancel || canRequesterCancel) && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => openDialog("canceled")}
-                  disabled={updateStatus.isPending}
+                  disabled={isMutating}
                 >
                   {tBookingDetail("actions.cancel")}
                 </Button>
@@ -267,12 +270,21 @@ export default function SkillBookingDetailPage({
             <div className="space-y-3">
               {messages.map((m) => (
                 <div key={m.id} className="flex gap-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                    {m.sender.name.charAt(0)}
-                  </div>
-                  <div>
+                  <Avatar className="shrink-0">
+                    <AvatarFallback className="text-xs font-medium">
+                      {m.sender.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
                     <div className="text-xs text-muted-foreground">
-                      {m.sender.name} ・ {new Date(m.createdAt).toLocaleString("ja-JP")}
+                      {m.sender.name} ・{" "}
+                      {new Date(m.createdAt).toLocaleString("ja-JP", {
+                        year: "numeric",
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                     <div className="mt-1 rounded-lg bg-muted p-3 text-sm whitespace-pre-wrap">
                       {m.body}
@@ -312,11 +324,7 @@ export default function SkillBookingDetailPage({
             />
           )}
           <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setDialog(null)}
-              disabled={updateStatus.isPending}
-            >
+            <Button variant="ghost" onClick={() => setDialog(null)} disabled={isMutating}>
               {tBookingDetail("dialog.close")}
             </Button>
             <Button
@@ -326,7 +334,7 @@ export default function SkillBookingDetailPage({
                   : "default"
               }
               onClick={handleConfirm}
-              disabled={updateStatus.isPending}
+              disabled={isMutating}
             >
               {dialogText?.confirm}
             </Button>

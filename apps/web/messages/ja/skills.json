@@ -74,13 +74,13 @@
     "tabs": {
       "received": "受信した予約",
       "sent": "送った予約",
-      "all": "すべて"
+      "history": "予約履歴"
     },
     "statusPlaceholder": "ステータス",
     "empty": {
-      "received": "受信した予約はまだありません",
-      "sent": "送った予約はまだありません",
-      "all": "予約はまだありません"
+      "received": "受付中の予約はありません",
+      "sent": "受付中の予約はありません",
+      "history": "予約はまだありません"
     },
     "loading": "読み込み中...",
     "provider": "提供者",

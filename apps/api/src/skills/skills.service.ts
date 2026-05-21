@@ -298,7 +298,7 @@ export class SkillsService {
       where: isPrivileged ? {} : { OR: [{ requesterUserId: userId }, { providerUserId: userId }] },
       orderBy: { createdAt: "desc" },
       include: {
-        skillListing: { select: { id: true, title: true, price: true } },
+        skillListing: { select: { id: true, title: true, price: true, durationMinutes: true } },
         requester: { select: { id: true, name: true } },
         provider: { select: { id: true, name: true } },
       },

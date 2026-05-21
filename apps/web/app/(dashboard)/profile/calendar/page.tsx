@@ -12,6 +12,8 @@ import { useMyReservations } from "@/hooks/profile/use-reservations";
 import { useMyTasks } from "@/hooks/profile/use-tasks";
 import { useMyTickets } from "@/hooks/profile/use-tickets";
 import { useMyProjectSchedules } from "@/hooks/profile/use-project-calendar";
+import { useSkillBookings } from "@/hooks/skills/use-skills";
+import { useAuth } from "@/hooks/auth/use-auth";
 import { Calendar, type CalendarItem } from "@/components/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,11 +42,13 @@ function fmtDate(d: Date) {
 
 export default function ProfileCalendarPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { data: schedules } = useSchedules();
   const { data: reservations } = useMyReservations();
   const { data: tasks } = useMyTasks();
   const { data: tickets } = useMyTickets();
   const { data: projectSchedules } = useMyProjectSchedules();
+  const { data: skillBookings } = useSkillBookings();
   const createSchedule = useCreateSchedule();
   const updateSchedule = useUpdateSchedule();
   const deleteSchedule = useDeleteSchedule();
@@ -104,6 +108,29 @@ export default function ProfileCalendarPage() {
         }))
       : [];
 
+    const skillBookingItems: CalendarItem[] = showReservations
+      ? (skillBookings ?? [])
+          .filter(
+            (b) =>
+              b.status === "approved" &&
+              !!b.scheduledAt &&
+              (b.providerUserId === user?.id || b.requesterUserId === user?.id),
+          )
+          .map((b) => {
+            const start = new Date(b.scheduledAt!);
+            const end = new Date(start.getTime() + b.skillListing.durationMinutes * 60_000);
+            return {
+              id: `skill-booking-${b.id}`,
+              title: b.skillListing.title,
+              startAt: start.toISOString(),
+              endAt: end.toISOString(),
+              isAllDay: false,
+              color: "green" as const,
+              onClick: () => router.push(`/skills/bookings/${b.id}`),
+            };
+          })
+      : [];
+
     const taskItems: CalendarItem[] = showTasks
       ? (tasks ?? [])
           .filter((t) => !!t.dueDate)
@@ -150,6 +177,7 @@ export default function ProfileCalendarPage() {
     return [
       ...scheduleItems,
       ...reservationItems,
+      ...skillBookingItems,
       ...taskItems,
       ...ticketItems,
       ...projectScheduleItems,
@@ -158,6 +186,8 @@ export default function ProfileCalendarPage() {
   }, [
     schedules,
     reservations,
+    skillBookings,
+    user?.id,
     tasks,
     tickets,
     projectSchedules,
