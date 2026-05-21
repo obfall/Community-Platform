@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { skillsApi } from "@/lib/api/skills";
 import type { SkillBookingStatus, SkillQuery } from "@/lib/api/types";
+
+// onError は providers.tsx の MutationCache.onError に集約しているため、
+// 各 mutation には onError を書かない（Phase 11.3 エラーハンドリング規約）。
 
 export function useSkills(query?: SkillQuery) {
   return useQuery({
@@ -20,18 +24,19 @@ export function useSkill(id: string | undefined) {
 
 export function useCreateSkill() {
   const queryClient = useQueryClient();
+  const t = useTranslations("skills.toast");
   return useMutation({
-    mutationFn: skillsApi.create,
+    mutationFn: (data: Parameters<typeof skillsApi.create>[0]) => skillsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["skills"] });
-      toast.success("スキルを出品しました");
+      toast.success(t("skillCreated"));
     },
-    onError: () => toast.error("スキル出品に失敗しました"),
   });
 }
 
 export function useUpdateSkill() {
   const queryClient = useQueryClient();
+  const t = useTranslations("skills.toast");
   return useMutation({
     mutationFn: ({
       id,
@@ -50,21 +55,20 @@ export function useUpdateSkill() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["skills"] });
       queryClient.invalidateQueries({ queryKey: ["skills", variables.id] });
-      toast.success("スキルを更新しました");
+      toast.success(t("skillUpdated"));
     },
-    onError: () => toast.error("スキル更新に失敗しました"),
   });
 }
 
 export function useDeleteSkill() {
   const queryClient = useQueryClient();
+  const t = useTranslations("skills.toast");
   return useMutation({
     mutationFn: (id: string) => skillsApi.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["skills"] });
-      toast.success("スキルを削除しました");
+      toast.success(t("skillDeleted"));
     },
-    onError: () => toast.error("スキル削除に失敗しました"),
   });
 }
 
@@ -96,7 +100,6 @@ export function useCreateBooking() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["skills", "bookings"] });
     },
-    onError: () => toast.error("予約リクエストに失敗しました"),
   });
 }
 
@@ -119,7 +122,6 @@ export function useUpdateBookingStatus() {
         queryKey: ["skills", "messages", variables.bookingId],
       });
     },
-    onError: () => toast.error("ステータス更新に失敗しました"),
   });
 }
 
@@ -140,7 +142,6 @@ export function useSendSkillMessage() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["skills", "messages", variables.bookingId] });
     },
-    onError: () => toast.error("メッセージ送信に失敗しました"),
   });
 }
 
@@ -154,25 +155,25 @@ export function useSkillComments(listingId: string | undefined) {
 
 export function useAddSkillComment() {
   const queryClient = useQueryClient();
+  const t = useTranslations("skills.toast");
   return useMutation({
     mutationFn: ({ listingId, body }: { listingId: string; body: string }) =>
       skillsApi.addComment(listingId, body),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["skills", variables.listingId, "comments"] });
-      toast.success("コメントを投稿しました");
+      toast.success(t("commentCreated"));
     },
-    onError: () => toast.error("コメント投稿に失敗しました"),
   });
 }
 
 export function useDeleteSkillComment() {
   const queryClient = useQueryClient();
+  const t = useTranslations("skills.toast");
   return useMutation({
     mutationFn: (commentId: string) => skillsApi.deleteComment(commentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["skills"] });
-      toast.success("コメントを削除しました");
+      toast.success(t("commentDeleted"));
     },
-    onError: () => toast.error("コメント削除に失敗しました"),
   });
 }

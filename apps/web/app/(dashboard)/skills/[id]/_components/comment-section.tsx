@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   useSkillComments,
   useAddSkillComment,
@@ -20,6 +21,7 @@ export function CommentSection({
   listingId: string;
   providerId: string;
 }) {
+  const t = useTranslations("skills.comments");
   const { user } = useAuth();
   const { data: comments, isLoading } = useSkillComments(listingId);
   const addComment = useAddSkillComment();
@@ -35,14 +37,14 @@ export function CommentSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>コメント</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="質問やコメントを入力..."
+            placeholder={t("placeholder")}
             rows={2}
             className="flex-1"
           />
@@ -57,11 +59,9 @@ export function CommentSection({
         </div>
 
         {isLoading ? (
-          <div className="py-4 text-center text-muted-foreground">読み込み中...</div>
+          <div className="py-4 text-center text-muted-foreground">{t("loading")}</div>
         ) : !comments?.length ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">
-            コメントはまだありません
-          </div>
+          <div className="py-4 text-center text-sm text-muted-foreground">{t("empty")}</div>
         ) : (
           <div className="space-y-3">
             {comments.map((c) => (

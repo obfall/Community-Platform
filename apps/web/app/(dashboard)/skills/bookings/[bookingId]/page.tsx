@@ -2,6 +2,7 @@
 
 import { use, useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   useSkillBooking,
   useSkillMessages,
@@ -26,14 +27,6 @@ import { ArrowLeft, CalendarClock, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { SkillBookingStatus } from "@/lib/api/types";
 
-const STATUS_LABEL: Record<SkillBookingStatus, string> = {
-  requested: "リクエスト中",
-  approved: "承認済み",
-  rejected: "拒否",
-  completed: "完了",
-  canceled: "キャンセル",
-};
-
 const STATUS_VARIANT: Record<
   SkillBookingStatus,
   "default" | "secondary" | "outline" | "destructive"
@@ -45,18 +38,11 @@ const STATUS_VARIANT: Record<
   canceled: "outline",
 };
 
-const FORMAT_LABEL: Record<string, string> = {
-  online: "オンライン",
-  offline: "オフライン",
-  both: "両方",
-};
+type DialogKind = "rejected" | "canceled" | "approved" | "completed";
+type DialogState = { kind: DialogKind } | null;
 
-type DialogState =
-  | { kind: "rejected"; title: string; description: string; confirmLabel: string }
-  | { kind: "canceled"; title: string; description: string; confirmLabel: string }
-  | { kind: "approved"; title: string; description: string; confirmLabel: string }
-  | { kind: "completed"; title: string; description: string; confirmLabel: string }
-  | null;
+const FORMAT_VALUES = ["online", "offline", "both"] as const;
+type FormatKey = (typeof FORMAT_VALUES)[number];
 
 export default function SkillBookingDetailPage({
   params,
@@ -64,6 +50,11 @@ export default function SkillBookingDetailPage({
   params: Promise<{ bookingId: string }>;
 }) {
   const { bookingId } = use(params);
+  const t = useTranslations("skills");
+  const tBookingDetail = useTranslations("skills.bookingDetail");
+  const tStatus = useTranslations("skills.bookingStatus");
+  const tFormat = useTranslations("skills.format");
+  const tBookings = useTranslations("skills.bookings");
   const { user, isAdmin } = useAuth();
   const { data: booking, isLoading: isBookingLoading } = useSkillBooking(bookingId);
   const { data: messages, isLoading: isMessagesLoading } = useSkillMessages(bookingId);
@@ -84,9 +75,9 @@ export default function SkillBookingDetailPage({
     sendMessage.mutate({ bookingId, body: body.trim() }, { onSuccess: () => setBody("") });
   };
 
-  const openDialog = (state: NonNullable<DialogState>) => {
+  const openDialog = (kind: DialogKind) => {
     setComment("");
-    setDialog(state);
+    setDialog({ kind });
   };
 
   const handleConfirm = () => {
@@ -97,17 +88,21 @@ export default function SkillBookingDetailPage({
         onSuccess: () => {
           setDialog(null);
           setComment("");
-          toast.success(`予約を${STATUS_LABEL[dialog.kind]}にしました`);
+          toast.success(t("toast.bookingStatusUpdated", { label: tStatus(dialog.kind) }));
         },
       },
     );
   };
 
   if (isBookingLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">{tBookingDetail("loading")}</div>
+    );
   }
   if (!booking) {
-    return <div className="py-12 text-center text-muted-foreground">予約が見つかりません</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">{tBookingDetail("notFound")}</div>
+    );
   }
 
   const isProvider = user?.id === booking.providerUserId;
@@ -125,6 +120,32 @@ export default function SkillBookingDetailPage({
   const canCancel =
     (isProvider || isRequester || isAdmin) && (status === "requested" || status === "approved");
 
+  const dialogText = dialog
+    ? {
+        title: tBookingDetail(
+          `dialog.${dialog.kind === "rejected" ? "rejectTitle" : dialog.kind === "canceled" ? "cancelTitle" : dialog.kind === "approved" ? "approveTitle" : "completeTitle"}`,
+        ),
+        description: tBookingDetail(
+          dialog.kind === "rejected"
+            ? "dialog.rejectDescription"
+            : dialog.kind === "canceled"
+              ? "dialog.cancelDescription"
+              : dialog.kind === "approved"
+                ? "dialog.approveDescription"
+                : "dialog.completeDescription",
+        ),
+        confirm: tBookingDetail(
+          dialog.kind === "rejected"
+            ? "dialog.rejectConfirm"
+            : dialog.kind === "canceled"
+              ? "dialog.cancelConfirm"
+              : dialog.kind === "approved"
+                ? "dialog.approveConfirm"
+                : "dialog.completeConfirm",
+        ),
+      }
+    : null;
+
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col space-y-4">
       <div className="flex items-center gap-4">
@@ -133,7 +154,7 @@ export default function SkillBookingDetailPage({
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-lg font-bold">予約詳細</h1>
+        <h1 className="text-lg font-bold">{t("heading.bookingDetail")}</h1>
       </div>
 
       <Card>
@@ -147,25 +168,34 @@ export default function SkillBookingDetailPage({
                 {booking.skillListing.title}
               </Link>
               <div className="text-xs text-muted-foreground">
-                {showAsProvider ? "リクエスター" : "提供者"}: {counterpart.name}
+                {tBookings("counterpart", {
+                  role: showAsProvider ? tBookings("requester") : tBookings("provider"),
+                  name: counterpart.name,
+                })}
               </div>
             </div>
-            <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
+            <Badge variant={STATUS_VARIANT[status]}>{tStatus(status)}</Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span>¥{booking.skillListing.price.toLocaleString()}</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {booking.skillListing.durationMinutes}分
+              {t("list.duration", { minutes: booking.skillListing.durationMinutes })}
             </span>
-            <span>{FORMAT_LABEL[booking.skillListing.format] ?? booking.skillListing.format}</span>
+            <span>
+              {isFormatKey(booking.skillListing.format)
+                ? tFormat(booking.skillListing.format)
+                : booking.skillListing.format}
+            </span>
           </div>
 
           {booking.scheduledAt && (
             <div className="flex items-center gap-1 text-sm">
               <CalendarClock className="h-4 w-4 text-muted-foreground" />
-              希望日時: {new Date(booking.scheduledAt).toLocaleString("ja-JP")}
+              {tBookingDetail("scheduledAt", {
+                datetime: new Date(booking.scheduledAt).toLocaleString("ja-JP"),
+              })}
             </div>
           )}
 
@@ -180,69 +210,39 @@ export default function SkillBookingDetailPage({
               {canApprove && (
                 <Button
                   size="sm"
-                  onClick={() =>
-                    openDialog({
-                      kind: "approved",
-                      title: "予約を承認しますか?",
-                      description: "リクエスターに通知が送られます。",
-                      confirmLabel: "承認する",
-                    })
-                  }
+                  onClick={() => openDialog("approved")}
                   disabled={updateStatus.isPending}
                 >
-                  承認
+                  {tBookingDetail("actions.approve")}
                 </Button>
               )}
               {canReject && (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() =>
-                    openDialog({
-                      kind: "rejected",
-                      title: "予約を拒否しますか?",
-                      description:
-                        "リクエスターに通知が送られます。理由を入力するとメッセージとして共有されます（任意）。",
-                      confirmLabel: "拒否する",
-                    })
-                  }
+                  onClick={() => openDialog("rejected")}
                   disabled={updateStatus.isPending}
                 >
-                  拒否
+                  {tBookingDetail("actions.reject")}
                 </Button>
               )}
               {canComplete && (
                 <Button
                   size="sm"
-                  onClick={() =>
-                    openDialog({
-                      kind: "completed",
-                      title: "予約を完了にしますか?",
-                      description: "完了にするとステータスを戻せません。",
-                      confirmLabel: "完了にする",
-                    })
-                  }
+                  onClick={() => openDialog("completed")}
                   disabled={updateStatus.isPending}
                 >
-                  完了
+                  {tBookingDetail("actions.complete")}
                 </Button>
               )}
               {canCancel && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    openDialog({
-                      kind: "canceled",
-                      title: "予約をキャンセルしますか?",
-                      description:
-                        "相手に通知が送られます。理由を入力するとメッセージとして共有されます（任意）。",
-                      confirmLabel: "キャンセルする",
-                    })
-                  }
+                  onClick={() => openDialog("canceled")}
                   disabled={updateStatus.isPending}
                 >
-                  キャンセル
+                  {tBookingDetail("actions.cancel")}
                 </Button>
               )}
             </div>
@@ -251,12 +251,18 @@ export default function SkillBookingDetailPage({
       </Card>
 
       <div className="flex flex-1 flex-col overflow-hidden rounded-md border">
-        <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">取引メッセージ</div>
+        <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">
+          {tBookingDetail("messages")}
+        </div>
         <div className="flex-1 overflow-y-auto p-4">
           {isMessagesLoading ? (
-            <div className="py-8 text-center text-muted-foreground">読み込み中...</div>
+            <div className="py-8 text-center text-muted-foreground">
+              {tBookingDetail("messagesLoading")}
+            </div>
           ) : !messages?.length ? (
-            <div className="py-8 text-center text-muted-foreground">メッセージがありません</div>
+            <div className="py-8 text-center text-muted-foreground">
+              {tBookingDetail("messagesEmpty")}
+            </div>
           ) : (
             <div className="space-y-3">
               {messages.map((m) => (
@@ -283,7 +289,7 @@ export default function SkillBookingDetailPage({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="メッセージを入力..."
+            placeholder={tBookingDetail("messageInputPlaceholder")}
           />
           <Button onClick={handleSend} disabled={!body.trim() || sendMessage.isPending} size="icon">
             <Send className="h-4 w-4" />
@@ -294,14 +300,14 @@ export default function SkillBookingDetailPage({
       <Dialog open={!!dialog} onOpenChange={(open) => !open && setDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{dialog?.title}</DialogTitle>
-            <DialogDescription>{dialog?.description}</DialogDescription>
+            <DialogTitle>{dialogText?.title}</DialogTitle>
+            <DialogDescription>{dialogText?.description}</DialogDescription>
           </DialogHeader>
           {(dialog?.kind === "rejected" || dialog?.kind === "canceled") && (
             <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="理由（任意）"
+              placeholder={tBookingDetail("dialog.reasonPlaceholder")}
               rows={3}
             />
           )}
@@ -311,7 +317,7 @@ export default function SkillBookingDetailPage({
               onClick={() => setDialog(null)}
               disabled={updateStatus.isPending}
             >
-              閉じる
+              {tBookingDetail("dialog.close")}
             </Button>
             <Button
               variant={
@@ -322,11 +328,15 @@ export default function SkillBookingDetailPage({
               onClick={handleConfirm}
               disabled={updateStatus.isPending}
             >
-              {dialog?.confirmLabel}
+              {dialogText?.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+function isFormatKey(v: string): v is FormatKey {
+  return (FORMAT_VALUES as readonly string[]).includes(v);
 }

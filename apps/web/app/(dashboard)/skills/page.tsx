@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useSkills } from "@/hooks/skills/use-skills";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/search-input";
@@ -9,45 +10,39 @@ import { PaginationBar } from "@/components/pagination-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SelectField } from "@/components/select-field";
-
-const FORMAT_OPTIONS = [
-  { value: "online", label: "オンライン" },
-  { value: "offline", label: "オフライン" },
-  { value: "both", label: "両方" },
-];
 import { Plus, Share2, Clock, Users, CalendarClock } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HighlightedText } from "@/components/highlighted-text";
 import type { SkillQuery } from "@/lib/api/types";
 
-const FORMAT_LABELS: Record<string, string> = {
-  online: "オンライン",
-  offline: "オフライン",
-  both: "両方",
-};
+const FORMAT_VALUES = ["online", "offline", "both"] as const;
 
 export default function SkillsPage() {
+  const t = useTranslations("skills");
+  const tFormat = useTranslations("skills.format");
   const [query, setQuery] = useState<SkillQuery>({ page: 1, limit: 12 });
   const [search, setSearch] = useState("");
   const { data, isLoading } = useSkills(query);
   const skills = data?.data ?? [];
   const meta = data?.meta;
 
+  const formatOptions = FORMAT_VALUES.map((value) => ({ value, label: tFormat(value) }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">スキルシェア</h1>
+        <h1 className="text-2xl font-bold">{t("heading.title")}</h1>
         <div className="flex items-center gap-2">
           <Link href="/skills/bookings">
             <Button variant="outline">
               <CalendarClock className="mr-2 h-4 w-4" />
-              予約一覧
+              {t("heading.bookings")}
             </Button>
           </Link>
           <Link href="/skills/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              出品
+              {t("heading.new")}
             </Button>
           </Link>
         </div>
@@ -58,7 +53,7 @@ export default function SkillsPage() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="スキルを検索..."
+          placeholder={t("search.placeholder")}
           className="max-w-xs"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -67,20 +62,20 @@ export default function SkillsPage() {
             onChange={(v) =>
               setQuery((p) => ({ ...p, format: v === "all" ? undefined : v, page: 1 }))
             }
-            options={FORMAT_OPTIONS}
+            options={formatOptions}
             includeAll
-            placeholder="形式"
+            placeholder={t("search.formatPlaceholder")}
             className="w-36"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("list.loading")}</div>
       ) : skills.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Share2 className="mx-auto mb-4 h-12 w-12" />
-          <p>スキルがありません</p>
+          <p>{t("list.empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -90,7 +85,7 @@ export default function SkillsPage() {
                 <CardContent className="p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {FORMAT_LABELS[s.format] ?? s.format}
+                      {isFormatKey(s.format) ? tFormat(s.format) : s.format}
                     </Badge>
                     {s.category && (
                       <Badge variant="secondary" className="text-xs">
@@ -110,7 +105,7 @@ export default function SkillsPage() {
                     <span className="text-lg font-bold">¥{s.price.toLocaleString()}</span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      {s.durationMinutes}分
+                      {t("list.duration", { minutes: s.durationMinutes })}
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t pt-3">
@@ -139,4 +134,8 @@ export default function SkillsPage() {
       )}
     </div>
   );
+}
+
+function isFormatKey(v: string): v is (typeof FORMAT_VALUES)[number] {
+  return (FORMAT_VALUES as readonly string[]).includes(v);
 }

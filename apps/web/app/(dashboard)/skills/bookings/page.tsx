@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useSkillBookings } from "@/hooks/skills/use-skills";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,17 +13,13 @@ import { ArrowLeft, CalendarClock, Inbox, ListTodo, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SkillBooking, SkillBookingStatus } from "@/lib/api/types";
 
-const STATUS_OPTIONS: { value: SkillBookingStatus; label: string }[] = [
-  { value: "requested", label: "リクエスト中" },
-  { value: "approved", label: "承認済み" },
-  { value: "rejected", label: "拒否" },
-  { value: "completed", label: "完了" },
-  { value: "canceled", label: "キャンセル" },
+const STATUS_VALUES: SkillBookingStatus[] = [
+  "requested",
+  "approved",
+  "rejected",
+  "completed",
+  "canceled",
 ];
-
-const STATUS_LABEL: Record<SkillBookingStatus, string> = Object.fromEntries(
-  STATUS_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<SkillBookingStatus, string>;
 
 const STATUS_VARIANT: Record<
   SkillBookingStatus,
@@ -36,10 +33,15 @@ const STATUS_VARIANT: Record<
 };
 
 export default function SkillBookingsPage() {
+  const t = useTranslations("skills");
+  const tBookings = useTranslations("skills.bookings");
+  const tStatus = useTranslations("skills.bookingStatus");
   const { user, isAdmin } = useAuth();
   const { data: bookings, isLoading } = useSkillBookings();
   const [tab, setTab] = useState<"received" | "sent" | "all">("received");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: tStatus(value) }));
 
   const { received, sent, all } = useMemo(() => {
     const list = bookings ?? [];
@@ -61,7 +63,7 @@ export default function SkillBookingsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">予約一覧</h1>
+        <h1 className="text-2xl font-bold">{t("heading.bookings")}</h1>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "received" | "sent" | "all")}>
@@ -69,7 +71,7 @@ export default function SkillBookingsPage() {
           <TabsList>
             <TabsTrigger value="received" className="gap-1.5">
               <Inbox className="h-4 w-4" />
-              受信した予約
+              {tBookings("tabs.received")}
               {received.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
                   {received.length}
@@ -78,7 +80,7 @@ export default function SkillBookingsPage() {
             </TabsTrigger>
             <TabsTrigger value="sent" className="gap-1.5">
               <Send className="h-4 w-4" />
-              送った予約
+              {tBookings("tabs.sent")}
               {sent.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
                   {sent.length}
@@ -88,7 +90,7 @@ export default function SkillBookingsPage() {
             {isAdmin && (
               <TabsTrigger value="all" className="gap-1.5">
                 <ListTodo className="h-4 w-4" />
-                すべて
+                {tBookings("tabs.all")}
                 {all.length > 0 && (
                   <Badge variant="secondary" className="ml-1">
                     {all.length}
@@ -101,9 +103,9 @@ export default function SkillBookingsPage() {
           <SelectField
             value={statusFilter}
             onChange={setStatusFilter}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             includeAll
-            placeholder="ステータス"
+            placeholder={tBookings("statusPlaceholder")}
             className="w-40"
           />
         </div>
@@ -113,7 +115,7 @@ export default function SkillBookingsPage() {
             list={filterByStatus(received)}
             isLoading={isLoading}
             role="provider"
-            emptyText="受信した予約はまだありません"
+            emptyText={tBookings("empty.received")}
           />
         </TabsContent>
         <TabsContent value="sent" className="mt-4">
@@ -121,7 +123,7 @@ export default function SkillBookingsPage() {
             list={filterByStatus(sent)}
             isLoading={isLoading}
             role="requester"
-            emptyText="送った予約はまだありません"
+            emptyText={tBookings("empty.sent")}
           />
         </TabsContent>
         {isAdmin && (
@@ -130,7 +132,7 @@ export default function SkillBookingsPage() {
               list={filterByStatus(all)}
               isLoading={isLoading}
               role="admin"
-              emptyText="予約はまだありません"
+              emptyText={tBookings("empty.all")}
             />
           </TabsContent>
         )}
@@ -150,8 +152,11 @@ function BookingList({
   role: "provider" | "requester" | "admin";
   emptyText: string;
 }) {
+  const tBookings = useTranslations("skills.bookings");
+  const tStatus = useTranslations("skills.bookingStatus");
+
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tBookings("loading")}</div>;
   }
   if (list.length === 0) {
     return <div className="py-12 text-center text-muted-foreground">{emptyText}</div>;
@@ -165,24 +170,25 @@ function BookingList({
               <CardContent className="p-4">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{b.skillListing.title}</h3>
-                  <Badge variant={STATUS_VARIANT[b.status]}>{STATUS_LABEL[b.status]}</Badge>
+                  <Badge variant={STATUS_VARIANT[b.status]}>{tStatus(b.status)}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {role === "admin" ? (
-                    <>
-                      提供者: {b.provider.name} / リクエスター: {b.requester.name}
-                    </>
-                  ) : (
-                    <>
-                      {role === "provider" ? "リクエスター" : "提供者"}:{" "}
-                      {(role === "provider" ? b.requester : b.provider).name}
-                    </>
-                  )}
+                  {role === "admin"
+                    ? tBookings("providerRequester", {
+                        provider: b.provider.name,
+                        requester: b.requester.name,
+                      })
+                    : tBookings("counterpart", {
+                        role: role === "provider" ? tBookings("requester") : tBookings("provider"),
+                        name: (role === "provider" ? b.requester : b.provider).name,
+                      })}
                 </div>
                 {b.scheduledAt && (
                   <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                     <CalendarClock className="h-3 w-3" />
-                    希望日時: {new Date(b.scheduledAt).toLocaleString("ja-JP")}
+                    {tBookings("scheduledAt", {
+                      datetime: new Date(b.scheduledAt).toLocaleString("ja-JP"),
+                    })}
                   </div>
                 )}
                 {b.message && (
@@ -191,7 +197,9 @@ function BookingList({
                   </div>
                 )}
                 <div className="mt-2 text-xs text-muted-foreground">
-                  作成: {new Date(b.createdAt).toLocaleString("ja-JP")}
+                  {tBookings("createdAt", {
+                    datetime: new Date(b.createdAt).toLocaleString("ja-JP"),
+                  })}
                 </div>
               </CardContent>
             </Card>

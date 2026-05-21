@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useSkill, useUpdateSkill } from "@/hooks/skills/use-skills";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -14,41 +15,32 @@ import { SelectField } from "@/components/select-field";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import type { SkillListItem } from "@/lib/api/types";
 
-const FORMAT_OPTIONS = [
-  { value: "online", label: "オンライン" },
-  { value: "offline", label: "オフライン" },
-  { value: "both", label: "両方" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "公開" },
-  { value: "inactive", label: "非公開" },
-  { value: "draft", label: "下書き" },
-];
+const FORMAT_VALUES = ["online", "offline", "both"] as const;
+const STATUS_VALUES = ["active", "inactive", "draft"] as const;
 
 export default function SkillEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations("skills");
   const { canEditAuthor } = useAuth();
   const { data: skill, isLoading } = useSkill(id);
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.loading")}</div>;
   }
   if (!skill) {
-    return <div className="py-12 text-center text-muted-foreground">スキルが見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("detail.notFound")}</div>;
   }
   if (!canEditAuthor(skill.provider.id)) {
-    return (
-      <div className="py-12 text-center text-muted-foreground">
-        このスキルを編集する権限がありません
-      </div>
-    );
+    return <div className="py-12 text-center text-muted-foreground">{t("edit.noPermission")}</div>;
   }
   return <Form id={id} initial={skill} />;
 }
 
 function Form({ id, initial }: { id: string; initial: SkillListItem }) {
   const router = useRouter();
+  const t = useTranslations("skills");
+  const tFormat = useTranslations("skills.format");
+  const tStatus = useTranslations("skills.status");
   const updateSkill = useUpdateSkill();
 
   const [title, setTitle] = useState(initial.title);
@@ -57,6 +49,9 @@ function Form({ id, initial }: { id: string; initial: SkillListItem }) {
   const [durationMinutes, setDurationMinutes] = useState(String(initial.durationMinutes));
   const [format, setFormat] = useState(initial.format);
   const [status, setStatus] = useState(initial.status);
+
+  const formatOptions = FORMAT_VALUES.map((value) => ({ value, label: tFormat(value) }));
+  const statusOptions = STATUS_VALUES.map((value) => ({ value, label: tStatus(value) }));
 
   const handleSubmit = () => {
     updateSkill.mutate(
@@ -83,72 +78,72 @@ function Form({ id, initial }: { id: string; initial: SkillListItem }) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">スキル編集</h1>
+        <h1 className="text-2xl font-bold">{t("heading.edit")}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle>{t("heading.basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>タイトル</Label>
+            <Label>{t("form.titleLabel")}</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="スキルのタイトル"
+              placeholder={t("form.titlePlaceholder")}
               maxLength={200}
             />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>{t("form.descriptionLabel")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="スキルの説明（任意）"
+              placeholder={t("form.descriptionPlaceholder")}
               rows={4}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <Label>料金（円）</Label>
+              <Label>{t("form.priceLabel")}</Label>
               <Input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="1000"
+                placeholder={t("form.pricePlaceholder")}
                 min="0"
               />
             </div>
             <div>
-              <Label>所要時間（分）</Label>
+              <Label>{t("form.durationLabel")}</Label>
               <Input
                 type="number"
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value)}
-                placeholder="60"
+                placeholder={t("form.durationPlaceholder")}
                 min="1"
               />
             </div>
             <div>
-              <Label>形式</Label>
-              <SelectField value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
+              <Label>{t("form.formatLabel")}</Label>
+              <SelectField value={format} onChange={setFormat} options={formatOptions} />
             </div>
           </div>
           <div>
-            <Label>公開状態</Label>
-            <SelectField value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+            <Label>{t("form.statusLabel")}</Label>
+            <SelectField value={status} onChange={setStatus} options={statusOptions} />
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href={`/skills/${id}`}>
-              <Button variant="outline">キャンセル</Button>
+              <Button variant="outline">{t("form.cancel")}</Button>
             </Link>
             <Button
               onClick={handleSubmit}
               disabled={!title || !price || !durationMinutes || updateSkill.isPending}
             >
               {updateSkill.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              更新
+              {t("form.update")}
             </Button>
           </div>
         </CardContent>
