@@ -1,31 +1,41 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useFaqArticle, useUpdateFaq } from "@/hooks/faq/use-faq";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import type { FaqArticle } from "@/lib/api/types";
+// import { use, useState } from "react";
+// import { useRouter } from "next/navigation";
+// import Link from "next/link";
+// import { useFaqArticle, useUpdateFaq } from "@/hooks/faq/use-faq";
+// import { Button } from "@/components/ui/button";
+// import { Input } from "@/components/ui/input";
+// import { Label } from "@/components/ui/label";
+// import { Textarea } from "@/components/ui/textarea";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// import { Switch } from "@/components/ui/switch";
+// import { ArrowLeft, Loader2 } from "lucide-react";
+// import type { FaqArticle } from "@/lib/api/types";
 
-export default function FaqEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const { data, isLoading } = useFaqArticle(id);
+export default function FaqEditPage() {
+  // const { id } = use(params);
+  // const { data, isLoading } = useFaqArticle(id);
+  //
+  // if (isLoading) {
+  //   return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+  // }
+  // if (!data) {
+  //   return <div className="py-12 text-center text-muted-foreground">FAQが見つかりません</div>;
+  // }
+  // return <Form id={id} initial={data} />;
 
-  if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
-  }
-  if (!data) {
-    return <div className="py-12 text-center text-muted-foreground">FAQが見つかりません</div>;
-  }
-  return <Form id={id} initial={data} />;
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="flex items-center gap-4">
+        <h1 className="text-2xl font-bold">FAQ編集</h1>
+      </div>
+      <div className="py-12 text-center text-muted-foreground">準備中</div>
+    </div>
+  );
 }
 
+/*
 function Form({ id, initial }: { id: string; initial: FaqArticle }) {
   const router = useRouter();
   const updateFaq = useUpdateFaq();
@@ -99,3 +109,4 @@ function Form({ id, initial }: { id: string; initial: FaqArticle }) {
     </div>
   );
 }
+*/
