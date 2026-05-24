@@ -111,7 +111,6 @@ async function seedBoard(prisma: PrismaClient, users: UserSummary[]): Promise<vo
         authorUserId: author.id,
         title: isPinned ? `【重要】${title}` : title,
         body: pick(BOARD_POST_BODIES),
-        publishStatus: isDraft ? "draft" : "published",
         isPinned,
         sortOrder: isPinned ? -(i + 1) : 0,
         createdAt,
