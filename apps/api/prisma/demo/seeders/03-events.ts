@@ -257,7 +257,7 @@ const SPEAKER_NAMES = [
   { name: "外部講師 鈴木 博士", title: "大学研究員", role: "speaker" },
   { name: "外部講師 佐々木 氏", title: "フリーランス", role: "guest" },
   { name: "外部講師 田島 氏", title: "IT コンサルタント", role: "moderator" },
-];
+] as const;
 
 const ORGANIZATIONS = [
   { name: "株式会社パートナーA", role: "sponsor" },
@@ -606,7 +606,6 @@ export async function seedEvents(prisma: PrismaClient): Promise<void> {
             authorUserId: author.id,
             title: pick(BOARD_TOPIC_TITLES),
             body: pick(BOARD_POST_BODIES),
-            publishStatus: "published",
           },
           select: { id: true },
         });

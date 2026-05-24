@@ -1,3 +1,24 @@
+-- ============================================================
+-- Community Platform 統合 baseline
+--
+-- このマイグレーションは元々 30 個に分かれていたマイグレ履歴を
+-- デプロイ前に squash した単一 baseline。
+-- - Phase 1-10 の全テーブル定義 (3,184 行の DDL)
+-- - pgroonga 拡張 + 15 個の全文検索インデックス
+-- - 全 public テーブルへの ENABLE ROW LEVEL SECURITY
+--
+-- 統合元マイグレ一覧:
+--   00_baseline + 28 個の追加マイグレ (詳細は git history を参照)
+-- ============================================================
+
+-- Phase 11.1: pgroonga 拡張を有効化
+-- pgroonga = Groonga ベースの PostgreSQL 拡張。日本語形態素解析（MeCab）と
+-- 関連度スコア・ハイライトに対応した全文検索を提供する。
+CREATE EXTENSION IF NOT EXISTS pgroonga;
+
+COMMENT ON EXTENSION pgroonga IS
+  'Groonga based PostgreSQL extension for full-text search (Phase 11.1)';
+
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -74,7 +95,13 @@ CREATE TYPE "EventLocationType" AS ENUM ('venue', 'online', 'hybrid');
 CREATE TYPE "EventStatus" AS ENUM ('draft', 'recruiting', 'closed', 'canceled', 'ended');
 
 -- CreateEnum
-CREATE TYPE "ParticipantStatus" AS ENUM ('applied', 'confirmed', 'canceled', 'attended', 'no_show');
+CREATE TYPE "EventOrganizationRole" AS ENUM ('organizer', 'co_organizer', 'cooperation', 'sponsor', 'support');
+
+-- CreateEnum
+CREATE TYPE "EventSpeakerRole" AS ENUM ('speaker', 'co_speaker', 'guest', 'moderator', 'panelist');
+
+-- CreateEnum
+CREATE TYPE "ParticipantStatus" AS ENUM ('applied', 'canceled', 'attended', 'no_show');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('pending', 'paid', 'canceled');
@@ -105,9 +132,6 @@ CREATE TYPE "VideoProvider" AS ENUM ('cloudflare_stream', 'r2_hls');
 
 -- CreateEnum
 CREATE TYPE "StreamStatus" AS ENUM ('uploading', 'processing', 'ready', 'error');
-
--- CreateEnum
-CREATE TYPE "VideoViewPermission" AS ENUM ('all', 'rank_restricted', 'role_restricted');
 
 -- CreateEnum
 CREATE TYPE "VideoTaskStatus" AS ENUM ('not_started', 'in_progress', 'completed');
@@ -370,16 +394,13 @@ CREATE TABLE "user_profiles" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "user_id" UUID NOT NULL,
     "avatar_url" VARCHAR(500),
-    "bio" TEXT,
     "phone" VARCHAR(20),
     "birthday" DATE,
-    "website" VARCHAR(500),
     "member_card_barcode" VARCHAR(100),
     "name_kana" VARCHAR(100),
     "gender" "Gender",
     "occupation" VARCHAR(100),
     "country_of_origin" VARCHAR(100),
-    "allow_direct_messages" BOOLEAN NOT NULL DEFAULT true,
     "header_image_url" VARCHAR(500),
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
@@ -507,10 +528,8 @@ CREATE TABLE "board_topics" (
     "author_user_id" UUID NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "body" TEXT NOT NULL,
-    "publish_status" "PublishStatus" NOT NULL DEFAULT 'published',
     "is_pinned" BOOLEAN NOT NULL DEFAULT false,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
-    "view_count" INTEGER NOT NULL DEFAULT 0,
     "post_count" INTEGER NOT NULL DEFAULT 0,
     "like_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -719,8 +738,7 @@ CREATE TABLE "events" (
     "allow_multi_ticket_purchase" BOOLEAN NOT NULL DEFAULT false,
     "accepted_payment_methods" JSONB,
     "planning_role" VARCHAR(30) NOT NULL DEFAULT '主催',
-    "event_type" VARCHAR(30),
-    "category_id" UUID,
+    "event_types" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "access_info" TEXT,
     "participation_method" TEXT,
     "contact_info" TEXT,
@@ -733,6 +751,7 @@ CREATE TABLE "events" (
     "required_rank_id" UUID,
     "participant_count" INTEGER NOT NULL DEFAULT 0,
     "is_calendar_visible" BOOLEAN NOT NULL DEFAULT true,
+    "tags_text" TEXT NOT NULL DEFAULT '',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
     "deleted_at" TIMESTAMPTZ,
@@ -844,7 +863,7 @@ CREATE TABLE "event_speakers" (
     "user_id" UUID,
     "name" VARCHAR(100) NOT NULL,
     "title" VARCHAR(100),
-    "role" VARCHAR(30) NOT NULL,
+    "role" "EventSpeakerRole" NOT NULL,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
@@ -857,7 +876,7 @@ CREATE TABLE "event_organizations" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "event_id" UUID NOT NULL,
     "organization_name" VARCHAR(200) NOT NULL,
-    "role" VARCHAR(30) NOT NULL,
+    "role" "EventOrganizationRole" NOT NULL,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
@@ -897,10 +916,8 @@ CREATE TABLE "event_board_topics" (
     "author_user_id" UUID NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "body" TEXT NOT NULL,
-    "publish_status" "PublishStatus" NOT NULL DEFAULT 'published',
     "is_pinned" BOOLEAN NOT NULL DEFAULT false,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
-    "view_count" INTEGER NOT NULL DEFAULT 0,
     "post_count" INTEGER NOT NULL DEFAULT 0,
     "like_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1024,7 +1041,7 @@ CREATE TABLE "projects" (
     "start_date" DATE,
     "end_date" DATE,
     "status" "ProjectStatus" NOT NULL DEFAULT 'not_started',
-    "publish_status" "PublishStatus" NOT NULL DEFAULT 'draft',
+    "tags_text" TEXT NOT NULL DEFAULT '',
     "invite_token" VARCHAR(100) NOT NULL,
     "invite_link_enabled" BOOLEAN NOT NULL DEFAULT false,
     "member_count" INTEGER NOT NULL DEFAULT 0,
@@ -1211,10 +1228,8 @@ CREATE TABLE "project_board_topics" (
     "author_user_id" UUID NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "body" TEXT NOT NULL,
-    "publish_status" "PublishStatus" NOT NULL DEFAULT 'published',
     "is_pinned" BOOLEAN NOT NULL DEFAULT false,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
-    "view_count" INTEGER NOT NULL DEFAULT 0,
     "post_count" INTEGER NOT NULL DEFAULT 0,
     "like_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1280,7 +1295,6 @@ CREATE TABLE "video_series" (
 -- CreateTable
 CREATE TABLE "videos" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "category_id" UUID,
     "series_id" UUID,
     "title" VARCHAR(200) NOT NULL,
     "description" TEXT,
@@ -1290,9 +1304,6 @@ CREATE TABLE "videos" (
     "stream_status" "StreamStatus" NOT NULL DEFAULT 'uploading',
     "thumbnail_url" VARCHAR(500),
     "duration_seconds" INTEGER,
-    "view_permission" "VideoViewPermission" NOT NULL DEFAULT 'all',
-    "required_rank_id" UUID,
-    "allowed_roles" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "available_until" TIMESTAMPTZ,
     "password_hash" VARCHAR(255),
     "publish_status" "PublishStatus" NOT NULL DEFAULT 'draft',
@@ -1833,7 +1844,6 @@ CREATE TABLE "contents" (
     "description" TEXT,
     "price" INTEGER,
     "cover_image_url" VARCHAR(500),
-    "invite_token" VARCHAR(100) NOT NULL,
     "publish_status" "PublishStatus" NOT NULL DEFAULT 'draft',
     "created_by_user_id" UUID NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1851,7 +1861,6 @@ CREATE TABLE "faq_articles" (
     "body" TEXT NOT NULL,
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "is_published" BOOLEAN NOT NULL DEFAULT true,
-    "view_count" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 
@@ -2196,9 +2205,6 @@ CREATE INDEX "events_start_at_idx" ON "events"("start_at");
 CREATE INDEX "events_created_by_user_id_idx" ON "events"("created_by_user_id");
 
 -- CreateIndex
-CREATE INDEX "events_category_id_idx" ON "events"("category_id");
-
--- CreateIndex
 CREATE INDEX "events_venue_id_idx" ON "events"("venue_id");
 
 -- CreateIndex
@@ -2292,7 +2298,7 @@ CREATE UNIQUE INDEX "event_discount_codes_ticket_id_code_key" ON "event_discount
 CREATE UNIQUE INDEX "projects_invite_token_key" ON "projects"("invite_token");
 
 -- CreateIndex
-CREATE INDEX "projects_publish_status_status_idx" ON "projects"("publish_status", "status");
+CREATE INDEX "projects_status_idx" ON "projects"("status");
 
 -- CreateIndex
 CREATE INDEX "projects_created_by_user_id_idx" ON "projects"("created_by_user_id");
@@ -2386,9 +2392,6 @@ CREATE INDEX "video_series_sort_order_idx" ON "video_series"("sort_order");
 
 -- CreateIndex
 CREATE INDEX "videos_publish_status_sort_order_idx" ON "videos"("publish_status", "sort_order");
-
--- CreateIndex
-CREATE INDEX "videos_category_id_idx" ON "videos"("category_id");
 
 -- CreateIndex
 CREATE INDEX "videos_series_id_idx" ON "videos"("series_id");
@@ -2566,9 +2569,6 @@ CREATE INDEX "reservations_user_id_created_at_idx" ON "reservations"("user_id", 
 
 -- CreateIndex
 CREATE INDEX "reservations_status_idx" ON "reservations"("status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "contents_invite_token_key" ON "contents"("invite_token");
 
 -- CreateIndex
 CREATE INDEX "contents_publish_status_content_type_idx" ON "contents"("publish_status", "content_type");
@@ -2757,9 +2757,6 @@ ALTER TABLE "member_attribute_values" ADD CONSTRAINT "member_attribute_values_at
 ALTER TABLE "events" ADD CONSTRAINT "events_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "events" ADD CONSTRAINT "events_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "events" ADD CONSTRAINT "events_required_rank_id_fkey" FOREIGN KEY ("required_rank_id") REFERENCES "member_ranks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -2790,7 +2787,7 @@ ALTER TABLE "event_application_questions" ADD CONSTRAINT "event_application_ques
 ALTER TABLE "event_participant_answers" ADD CONSTRAINT "event_participant_answers_participant_id_fkey" FOREIGN KEY ("participant_id") REFERENCES "event_participants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "event_participant_answers" ADD CONSTRAINT "event_participant_answers_question_id_fkey" FOREIGN KEY ("question_id") REFERENCES "event_application_questions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "event_participant_answers" ADD CONSTRAINT "event_participant_answers_question_id_fkey" FOREIGN KEY ("question_id") REFERENCES "event_application_questions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "event_speakers" ADD CONSTRAINT "event_speakers_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -2985,13 +2982,7 @@ ALTER TABLE "project_board_topic_post_comments" ADD CONSTRAINT "project_board_to
 ALTER TABLE "project_board_likes" ADD CONSTRAINT "project_board_likes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "videos" ADD CONSTRAINT "videos_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "videos" ADD CONSTRAINT "videos_series_id_fkey" FOREIGN KEY ("series_id") REFERENCES "video_series"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "videos" ADD CONSTRAINT "videos_required_rank_id_fkey" FOREIGN KEY ("required_rank_id") REFERENCES "member_ranks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "videos" ADD CONSTRAINT "videos_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -3210,10 +3201,86 @@ ALTER TABLE "user_library_items" ADD CONSTRAINT "user_library_items_user_id_fkey
 ALTER TABLE "user_library_items" ADD CONSTRAINT "user_library_items_file_id_fkey" FOREIGN KEY ("file_id") REFERENCES "files"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 
+-- ============================================================
+-- Phase 11.1: pgroonga 全文検索インデックス（15 個）
+-- ============================================================
+-- 演算子クラスは pgroonga_text_full_text_search_ops_v2（デフォルト）。
+-- 検索演算子は &@~（クエリ構文 + 形態素解析）を使用。
+-- 配列カラムを対象にする場合は ARRAY[col1, col2, ...] でラップ。
+--
+-- 注: events/products/videos/projects/board_topics/surveys/skill_listings/
+--    albums/venues/spaces/contents の partial index (WHERE deleted_at IS NULL)
+--    は外してある（プランナーが通常 SELECT で誤って Index Scan する事故対策）。
+--    users.idx_users_pgroonga は単一カラム index なので partial のままで問題ない。
+
+-- イベント (title + tags_text + venue_name)
+CREATE INDEX idx_events_pgroonga
+  ON events USING pgroonga ((ARRAY[title, tags_text, venue_name]));
+
+-- 商品
+CREATE INDEX idx_products_pgroonga
+  ON products USING pgroonga ((ARRAY[name, description]));
+
+-- 動画
+CREATE INDEX idx_videos_pgroonga
+  ON videos USING pgroonga ((ARRAY[title, description]));
+
+-- プロジェクト (name + description + tags_text)
+CREATE INDEX idx_projects_pgroonga
+  ON projects USING pgroonga ((ARRAY[name, description, tags_text]));
+
+-- ユーザー（partial: deleted_at IS NULL）
+CREATE INDEX idx_users_pgroonga
+  ON users USING pgroonga (name)
+  WHERE deleted_at IS NULL;
+
+-- 掲示板 (title のみ、本文は対象外)
+CREATE INDEX idx_board_topics_pgroonga
+  ON board_topics USING pgroonga ((ARRAY[title]));
+
+-- アンケート
+CREATE INDEX idx_surveys_pgroonga
+  ON surveys USING pgroonga ((ARRAY[title, description]));
+
+-- スキル
+CREATE INDEX idx_skill_listings_pgroonga
+  ON skill_listings USING pgroonga ((ARRAY[title, description]));
+
+-- アルバム
+CREATE INDEX idx_albums_pgroonga
+  ON albums USING pgroonga ((ARRAY[title, description]));
+
+-- 会場
+CREATE INDEX idx_venues_pgroonga
+  ON venues USING pgroonga ((ARRAY[name, description, address, access_info]));
+
+-- スペース
+CREATE INDEX idx_spaces_pgroonga
+  ON spaces USING pgroonga ((ARRAY[name, description]));
+
+-- コンテンツ
+CREATE INDEX idx_contents_pgroonga
+  ON contents USING pgroonga ((ARRAY[name, description]));
+
+-- FAQ（deleted_at 無し）
+CREATE INDEX idx_faq_articles_pgroonga
+  ON faq_articles USING pgroonga ((ARRAY[title, body]));
+
+-- ユーザー公開情報（deleted_at 無し）
+CREATE INDEX idx_user_public_info_pgroonga
+  ON user_public_info USING pgroonga ((ARRAY[nickname, introduction, specialty, prefecture]));
+
+-- ユーザー所属（deleted_at 無し）
+CREATE INDEX idx_user_affiliations_pgroonga
+  ON user_affiliations USING pgroonga ((ARRAY[organization_name, title, role_description]));
+
+-- ============================================================
 -- Row-Level Security: public スキーマの全テーブルで RLS 有効化
--- 元マイグレ 20260409002206_enable_rls_all_tables および 20260417235959_enable_rls_remaining_tables を統合
--- NestJS API は DB 直接接続 (DATABASE_URL/DIRECT_URL, postgres ロール = BYPASSRLS) で動作するためバイパスされる
--- anon key 経由の Supabase REST アクセスは全テーブルに対してポリシー未定義 = deny all になる
+-- ============================================================
+-- Supabase は anon key 経由で public スキーマのテーブルを REST 公開するため、
+-- RLS が無効だと Security Advisor から警告を受ける。
+-- NestJS API は postgres ロール直接接続で RLS をバイパスするので、
+-- ポリシー未定義（deny all）で問題ない。
 DO $$
 DECLARE
   r RECORD;

@@ -1,4 +1,4 @@
-import type { PrismaClient, ProjectStatus, PublishStatus, VideoTaskStatus } from "@prisma/client";
+import type { PrismaClient, ProjectStatus, VideoTaskStatus } from "@prisma/client";
 import { pick, pickMany, randInt, rand } from "../helpers/random";
 import { daysAgo, daysAhead } from "../helpers/dates";
 import {
@@ -18,7 +18,7 @@ interface ProjectDef {
   name: string;
   description: string;
   status: ProjectStatus;
-  publishStatus: PublishStatus;
+  inviteLinkEnabled: boolean;
   memberCount: number;
   threadCount: number;
   taskCount: number;
@@ -29,7 +29,7 @@ const PROJECTS: ProjectDef[] = [
     name: "新機能開発プロジェクト",
     description: "コミュニティ新機能の企画・検討・実装を進めるプロジェクト。",
     status: "in_progress",
-    publishStatus: "published",
+    inviteLinkEnabled: true,
     memberCount: 7,
     threadCount: 8,
     taskCount: 12,
@@ -38,7 +38,7 @@ const PROJECTS: ProjectDef[] = [
     name: "春イベント企画チーム",
     description: "春のコミュニティ大型イベントを企画運営するチーム。",
     status: "in_progress",
-    publishStatus: "published",
+    inviteLinkEnabled: true,
     memberCount: 6,
     threadCount: 6,
     taskCount: 10,
@@ -47,7 +47,7 @@ const PROJECTS: ProjectDef[] = [
     name: "読書サークル",
     description: "月1回の読書会を運営するサークル。",
     status: "in_progress",
-    publishStatus: "published",
+    inviteLinkEnabled: true,
     memberCount: 5,
     threadCount: 3,
     taskCount: 4,
@@ -56,7 +56,7 @@ const PROJECTS: ProjectDef[] = [
     name: "年末パーティー準備",
     description: "2025年末パーティーの準備。実施済み。",
     status: "completed",
-    publishStatus: "published",
+    inviteLinkEnabled: true,
     memberCount: 8,
     threadCount: 5,
     taskCount: 8,
@@ -65,7 +65,7 @@ const PROJECTS: ProjectDef[] = [
     name: "旧サイトリニューアル",
     description: "過去に実施したサイトリニューアル。記録として保持。",
     status: "completed",
-    publishStatus: "unpublished",
+    inviteLinkEnabled: false,
     memberCount: 4,
     threadCount: 2,
     taskCount: 3,
@@ -130,9 +130,8 @@ export async function seedProjects(prisma: PrismaClient): Promise<void> {
         name: def.name,
         description: def.description,
         status: def.status,
-        publishStatus: def.publishStatus,
         inviteToken: generateInviteToken(pIdx),
-        inviteLinkEnabled: def.publishStatus === "published",
+        inviteLinkEnabled: def.inviteLinkEnabled,
         startDate,
         endDate,
         createdByUserId: creator.id,
@@ -307,7 +306,6 @@ export async function seedProjects(prisma: PrismaClient): Promise<void> {
             authorUserId: pick(memberPool).id,
             title: pick(BOARD_TOPIC_TITLES),
             body: pick(BOARD_POST_BODIES),
-            publishStatus: "published",
           },
           select: { id: true },
         });
