@@ -19,19 +19,20 @@ describe("notifications hooks", () => {
   });
 
   describe("useNotifications: 通知一覧取得", () => {
+    const emptyResult = {
+      data: [],
+      meta: {
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+
     it("query を渡して getNotifications が呼ばれ、データが返る", async () => {
-      const mockData = {
-        data: [],
-        meta: {
-          total: 0,
-          page: 1,
-          limit: 20,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPreviousPage: false,
-        },
-      };
-      vi.mocked(notificationsApi.getNotifications).mockResolvedValue(mockData);
+      vi.mocked(notificationsApi.getNotifications).mockResolvedValue(emptyResult);
 
       const query = {
         page: 1,
@@ -44,7 +45,34 @@ describe("notifications hooks", () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(notificationsApi.getNotifications).toHaveBeenCalledWith(query);
-      expect(result.current.data).toEqual(mockData);
+      expect(result.current.data).toEqual(emptyResult);
+    });
+
+    it("query 未指定なら undefined を引数に getNotifications が呼ばれる", async () => {
+      vi.mocked(notificationsApi.getNotifications).mockResolvedValue(emptyResult);
+
+      const { wrapper } = createHookWrapper();
+      const { result } = renderHook(() => useNotifications(), { wrapper });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(notificationsApi.getNotifications).toHaveBeenCalledWith(undefined);
+    });
+
+    it("unreadOnly: false（既読を含む全件取得）も query としてそのまま渡る", async () => {
+      vi.mocked(notificationsApi.getNotifications).mockResolvedValue(emptyResult);
+
+      const { wrapper } = createHookWrapper();
+      const { result } = renderHook(
+        () => useNotifications({ page: 1, limit: 20, unreadOnly: false }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(notificationsApi.getNotifications).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        unreadOnly: false,
+      });
     });
   });
 
@@ -73,7 +101,22 @@ describe("notifications hooks", () => {
       });
 
       expect(notificationsApi.markAsRead).toHaveBeenCalledWith("notif-1");
+      // 前方一致で notifications / notifications,unread-count 双方を含む
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["notifications"] });
+    });
+
+    it("markAsRead が失敗した場合、invalidate は呼ばれない", async () => {
+      vi.mocked(notificationsApi.markAsRead).mockRejectedValue(new Error("boom"));
+
+      const { wrapper, queryClient } = createHookWrapper();
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+      const { result } = renderHook(() => useMarkAsRead(), { wrapper });
+
+      await act(async () => {
+        await expect(result.current.mutateAsync("notif-1")).rejects.toThrow("boom");
+      });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
     });
   });
 });

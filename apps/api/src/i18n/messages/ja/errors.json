@@ -17,7 +17,8 @@
     "content": "コンテンツが見つかりません",
     "venue": "施設が見つかりません",
     "space": "スペースが見つかりません",
-    "reservation": "予約が見つかりません"
+    "reservation": "予約が見つかりません",
+    "notification": "通知が見つかりません"
   },
   "conflict": {
     "default": "競合が発生しました",

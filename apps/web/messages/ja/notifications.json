@@ -1,0 +1,12 @@
+{
+  "heading": {
+    "title": "通知",
+    "description": "あなたへの通知一覧"
+  },
+  "filter": {
+    "unreadOnly": "未読のみ表示"
+  },
+  "list": {
+    "empty": "通知はありません"
+  }
+}

@@ -1,32 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useFaqArticles, useFaqCategories } from "@/hooks/faq/use-faq";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { SearchInput } from "@/components/search-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, HelpCircle } from "lucide-react";
-import { HighlightedText } from "@/components/highlighted-text";
+// import { useState } from "react";
+// import Link from "next/link";
+// import { useFaqArticles, useFaqCategories } from "@/hooks/faq/use-faq";
+// import { Button } from "@/components/ui/button";
+// import { Card, CardContent } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
+// import { SearchInput } from "@/components/search-input";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
+// import { Plus, HelpCircle } from "lucide-react";
+// import { HighlightedText } from "@/components/highlighted-text";
 
 export default function FaqPage() {
-  const [category, setCategory] = useState<string | undefined>(undefined);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState<string | undefined>(undefined);
-  const { data, isLoading } = useFaqArticles({ category, search });
-  const { data: categories } = useFaqCategories();
-  const items = data ?? [];
+  // const [category, setCategory] = useState<string | undefined>(undefined);
+  // const [searchInput, setSearchInput] = useState("");
+  // const [search, setSearch] = useState<string | undefined>(undefined);
+  // const { data, isLoading } = useFaqArticles({ category, search });
+  // const { data: categories } = useFaqCategories();
+  // const items = data ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">FAQ</h1>
+      </div>
+      <div className="py-12 text-center text-muted-foreground">準備中</div>
+
+      {/*
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">FAQ</h1>
         <Link href="/faq/new">
@@ -98,6 +104,7 @@ export default function FaqPage() {
           ))}
         </div>
       )}
+      */}
     </div>
   );
 }

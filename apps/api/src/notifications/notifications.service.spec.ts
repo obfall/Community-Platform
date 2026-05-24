@@ -1,8 +1,21 @@
+import { BusinessException } from "@/common/exceptions";
 import { NotificationsService } from "./notifications.service";
 
 describe("NotificationsService", () => {
   let prismaMock: {
-    notification: { findMany: jest.Mock; count: jest.Mock };
+    notification: {
+      findMany: jest.Mock;
+      count: jest.Mock;
+      create: jest.Mock;
+      createMany: jest.Mock;
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+    };
+    notificationPreference: {
+      findMany: jest.Mock;
+      upsert: jest.Mock;
+    };
   };
   let service: NotificationsService;
 
@@ -11,6 +24,17 @@ describe("NotificationsService", () => {
       notification: {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
+        create: jest.fn().mockResolvedValue({ id: "n-1" }),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest
+          .fn()
+          .mockResolvedValue({ id: "n-1", isRead: true, readAt: new Date("2026-01-01") }),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      notificationPreference: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert: jest.fn(),
       },
     };
     service = new NotificationsService(prismaMock as never);
@@ -134,6 +158,170 @@ describe("NotificationsService", () => {
 
       const result = await service.findAll("user-1", {});
       expect(result.data[0]!.actor).toBeNull();
+    });
+  });
+
+  describe("create: 通知作成", () => {
+    it("prisma.notification.create に data がそのまま渡る", async () => {
+      const data = {
+        userId: "user-1",
+        type: "announcement",
+        title: "新着のお知らせ",
+        body: "本文",
+        referenceType: "broadcast",
+        referenceId: "ref-1",
+        actorUserId: "actor-1",
+      };
+
+      await service.create(data);
+
+      expect(prismaMock.notification.create).toHaveBeenCalledWith({ data });
+    });
+  });
+
+  describe("createMany: 通知一括作成", () => {
+    it("prisma.notification.createMany に data 配列がそのまま渡る", async () => {
+      const items = [
+        { userId: "user-1", type: "announcement", title: "1件目" },
+        { userId: "user-2", type: "announcement", title: "2件目" },
+      ];
+
+      await service.createMany(items);
+
+      expect(prismaMock.notification.createMany).toHaveBeenCalledWith({ data: items });
+    });
+  });
+
+  describe("getUnreadCount: 未読数取得", () => {
+    it("userId + isRead: false で count し、{ count } 形式で返す", async () => {
+      prismaMock.notification.count.mockResolvedValueOnce(7);
+
+      const result = await service.getUnreadCount("user-1");
+
+      expect(prismaMock.notification.count).toHaveBeenCalledWith({
+        where: { userId: "user-1", isRead: false },
+      });
+      expect(result).toEqual({ count: 7 });
+    });
+  });
+
+  describe("markAsRead: 通知の既読化", () => {
+    it("自分の通知なら isRead: true / readAt を更新して返す", async () => {
+      prismaMock.notification.findUnique.mockResolvedValueOnce({
+        id: "n-1",
+        userId: "user-1",
+      });
+
+      const result = await service.markAsRead("user-1", "n-1");
+
+      expect(prismaMock.notification.update).toHaveBeenCalledWith({
+        where: { id: "n-1" },
+        data: expect.objectContaining({ isRead: true, readAt: expect.any(Date) }),
+        select: { id: true, isRead: true, readAt: true },
+      });
+      expect(result.isRead).toBe(true);
+    });
+
+    it("該当通知が存在しない場合は BusinessException(NOT_FOUND) を投げる", async () => {
+      prismaMock.notification.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.markAsRead("user-1", "n-missing")).rejects.toBeInstanceOf(
+        BusinessException,
+      );
+      expect(prismaMock.notification.update).not.toHaveBeenCalled();
+    });
+
+    it("他ユーザーの通知に対しては BusinessException(NOT_FOUND) を投げる（情報漏洩防止）", async () => {
+      prismaMock.notification.findUnique.mockResolvedValueOnce({
+        id: "n-1",
+        userId: "other-user",
+      });
+
+      await expect(service.markAsRead("user-1", "n-1")).rejects.toBeInstanceOf(BusinessException);
+      expect(prismaMock.notification.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("markAllAsRead: 全通知の既読化", () => {
+    it("自ユーザーの未読のみを一括更新し、件数を返す", async () => {
+      prismaMock.notification.updateMany.mockResolvedValueOnce({ count: 5 });
+
+      const result = await service.markAllAsRead("user-1");
+
+      expect(prismaMock.notification.updateMany).toHaveBeenCalledWith({
+        where: { userId: "user-1", isRead: false },
+        data: expect.objectContaining({ isRead: true, readAt: expect.any(Date) }),
+      });
+      expect(result).toEqual({ updatedCount: 5 });
+    });
+  });
+
+  describe("getPreferences: 通知設定一覧の取得", () => {
+    it("userId で絞り込み、設定項目を返す", async () => {
+      const prefs = [
+        {
+          id: "p-1",
+          notificationType: "board_comment",
+          emailEnabled: true,
+          inAppEnabled: true,
+          lineEnabled: false,
+        },
+      ];
+      prismaMock.notificationPreference.findMany.mockResolvedValueOnce(prefs);
+
+      const result = await service.getPreferences("user-1");
+
+      expect(prismaMock.notificationPreference.findMany).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        select: {
+          id: true,
+          notificationType: true,
+          emailEnabled: true,
+          inAppEnabled: true,
+          lineEnabled: true,
+        },
+      });
+      expect(result).toEqual(prefs);
+    });
+  });
+
+  describe("updatePreferences: 通知設定の一括更新", () => {
+    it("各 preference を upsert（複合ユニーク keys）で更新し、配列で返す", async () => {
+      const dto = {
+        preferences: [
+          {
+            notificationType: "board_comment",
+            emailEnabled: true,
+            inAppEnabled: false,
+            lineEnabled: false,
+          },
+          {
+            notificationType: "announcement",
+            emailEnabled: false,
+            inAppEnabled: true,
+            lineEnabled: true,
+          },
+        ],
+      };
+      prismaMock.notificationPreference.upsert
+        .mockResolvedValueOnce({ id: "p-1", ...dto.preferences[0] })
+        .mockResolvedValueOnce({ id: "p-2", ...dto.preferences[1] });
+
+      const result = await service.updatePreferences("user-1", dto);
+
+      expect(prismaMock.notificationPreference.upsert).toHaveBeenCalledTimes(2);
+      expect(prismaMock.notificationPreference.upsert).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: {
+            userId_notificationType: {
+              userId: "user-1",
+              notificationType: "board_comment",
+            },
+          },
+        }),
+      );
+      expect(result).toHaveLength(2);
     });
   });
 });

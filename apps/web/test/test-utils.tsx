@@ -14,6 +14,7 @@ import contentsMessages from "@/messages/ja/contents.json";
 import projectsMessages from "@/messages/ja/projects.json";
 import skillsMessages from "@/messages/ja/skills.json";
 import venuesMessages from "@/messages/ja/venues.json";
+import notificationsMessages from "@/messages/ja/notifications.json";
 
 const messages = {
   common: commonMessages,
@@ -28,6 +29,7 @@ const messages = {
   projects: projectsMessages,
   skills: skillsMessages,
   venues: venuesMessages,
+  notifications: notificationsMessages,
 };
 
 /**

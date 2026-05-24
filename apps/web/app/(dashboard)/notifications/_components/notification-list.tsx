@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { NotificationItemCard } from "./notification-item";
 import type { NotificationItem } from "@/lib/api/types";
 
@@ -14,6 +15,8 @@ export function NotificationList({
   isLoading,
   onClickNotification,
 }: NotificationListProps) {
+  const t = useTranslations("notifications");
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -27,7 +30,7 @@ export function NotificationList({
   if (notifications.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center text-muted-foreground">
-        通知はありません
+        {t("list.empty")}
       </div>
     );
   }

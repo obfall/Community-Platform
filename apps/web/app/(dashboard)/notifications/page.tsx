@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { NotificationList } from "./_components/notification-list";
@@ -12,8 +13,9 @@ import type { PaginationMeta } from "@/lib/api/types";
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const t = useTranslations("notifications");
   const [query, setQuery] = useState<NotificationQuery>({ page: 1, limit: 20 });
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [unreadOnly, setUnreadOnly] = useState(true);
   const { data, isLoading } = useNotifications({ ...query, unreadOnly });
   const markAsRead = useMarkAsRead();
 
@@ -40,8 +42,8 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">通知</h1>
-        <p className="mt-1 text-muted-foreground">あなたへの通知一覧</p>
+        <h1 className="text-2xl font-bold">{t("heading.title")}</h1>
+        <p className="mt-1 text-muted-foreground">{t("heading.description")}</p>
       </div>
 
       <div className="flex items-center gap-2">
@@ -53,7 +55,7 @@ export default function NotificationsPage() {
             setQuery((prev) => ({ ...prev, page: 1 }));
           }}
         />
-        <Label htmlFor="unread-filter">未読のみ表示</Label>
+        <Label htmlFor="unread-filter">{t("filter.unreadOnly")}</Label>
       </div>
 
       <NotificationList
