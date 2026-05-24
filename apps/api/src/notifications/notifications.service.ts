@@ -1,7 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { HttpStatus, Injectable } from "@nestjs/common";
+import { ErrorCode } from "@community-platform/shared";
 import { PrismaService } from "@/prisma/prisma.service";
+import { BusinessException } from "@/common/exceptions";
+import errorMessages from "@/i18n/messages/ja/errors.json";
 import type { NotificationQueryDto } from "./dto/notification-query.dto";
 import type { UpdatePreferencesDto } from "./dto/update-preferences.dto";
+
+function notFoundNotification() {
+  return new BusinessException(
+    ErrorCode.NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    errorMessages.not_found.notification,
+    undefined,
+    "errors.not_found.notification",
+  );
+}
 
 @Injectable()
 export class NotificationsService {
@@ -42,7 +55,7 @@ export class NotificationsService {
 
     const where = {
       userId,
-      ...(query.unreadOnly && { isRead: false }),
+      ...(query.unreadOnly === true && { isRead: false }),
       ...(query.type && query.type.length > 0 && { type: { in: query.type } }),
     };
 
@@ -108,7 +121,7 @@ export class NotificationsService {
     });
 
     if (!notification || notification.userId !== userId) {
-      throw new NotFoundException("通知が見つかりません");
+      throw notFoundNotification();
     }
 
     return this.prisma.notification.update({

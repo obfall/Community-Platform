@@ -16,6 +16,11 @@ export class UploadFileDto {
   @ApiPropertyOptional({ description: "公開ファイルとしてアップロード" })
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }) => value === "true" || value === true)
+  // ValidationPipe の enableImplicitConversion が boolean 型に対し Boolean(value) を呼ぶため
+  // value 経由だと文字列 "false" も true 化してしまう。obj から生クエリ値を読んで判定する。
+  @Transform(({ obj, key }) => {
+    const v = (obj as Record<string, unknown>)[key];
+    return v === "true" || v === true;
+  })
   isPublic?: boolean;
 }
