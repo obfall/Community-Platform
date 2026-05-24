@@ -35,6 +35,8 @@ function buildCsp(): string {
     "font-src": ["'self'", "data:"],
     "connect-src": [
       "'self'",
+      "https://*.up.railway.app",
+      "wss://*.up.railway.app",
       "https://*.supabase.co",
       "wss://*.supabase.co",
       "https://*.sentry.io",
