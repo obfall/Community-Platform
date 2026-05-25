@@ -14,7 +14,7 @@ import {
   StreamableFile,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags, ApiOperation } from "@nestjs/swagger";
-import { Response } from "express";
+import type { Response } from "express";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { CurrentUser } from "@/common/decorators";
 import { RolesGuard } from "@/common/guards";

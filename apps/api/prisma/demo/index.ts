@@ -3,7 +3,6 @@ import { seedFoundation } from "./seeders/01-foundation";
 import { seedCommunication } from "./seeders/02-communication";
 import { seedEvents } from "./seeders/03-events";
 import { seedProjects } from "./seeders/04-projects";
-import { seedVideos } from "./seeders/05-videos";
 import { seedEngagement } from "./seeders/06-engagement";
 import { seedCommerce } from "./seeders/07-commerce";
 import { seedMisc } from "./seeders/08-misc";
@@ -27,8 +26,10 @@ async function truncateDemoData(prisma: PrismaClient): Promise<void> {
   // Albums cascade to photos/tags
   await prisma.album.deleteMany({});
 
-  // Reservations + spaces + venues (venue cascade to spaces/images)
+  // Reservations + spaces + venues
+  // venue→images は cascade だが venue→spaces は RESTRICT なので spaces を先に消す
   await prisma.reservation.deleteMany({});
+  await prisma.space.deleteMany({});
   await prisma.venue.deleteMany({});
 
   // Contents
@@ -156,7 +157,6 @@ export async function runDemoSeed(prisma: PrismaClient): Promise<void> {
   await seedCommunication(prisma);
   await seedEvents(prisma);
   await seedProjects(prisma);
-  await seedVideos(prisma);
   await seedEngagement(prisma);
   await seedCommerce(prisma);
   await seedMisc(prisma);
