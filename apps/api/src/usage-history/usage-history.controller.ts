@@ -1,6 +1,6 @@
 import { Controller, Get, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Response } from "express";
+import type { Response } from "express";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { RolesGuard } from "@/common/guards";
 import { ListActivityLogDto } from "./dto/list-activity-log.dto";

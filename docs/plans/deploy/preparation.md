@@ -27,7 +27,7 @@
 | Node.js バージョン   | `>=22.0.0` (`package.json:engines`)                        | OK                         |
 | パッケージマネージャ | `pnpm@9.15.9`                                              | OK                         |
 | ビルドコマンド (api) | `pnpm build` = `nest build`                                | OK                         |
-| 起動コマンド (api)   | `node dist/main`（`start:prod`）                           | OK                         |
+| 起動コマンド (api)   | `node dist/src/main`（`start:prod`）                       | 要修正→修正済\*            |
 | 起動ポート (api)     | `process.env.PORT \|\| 4000`（`apps/api/src/main.ts:108`） | Railway 互換 OK            |
 | ビルドコマンド (web) | `pnpm build` = `next build`                                | OK                         |
 | 起動コマンド (web)   | `next start`                                               | Vercel は不要              |
@@ -35,9 +35,14 @@
 | postinstall hook     | `prisma generate` (`apps/api/package.json:17`)             | Railway ビルド OK          |
 | Workspace transpile  | `transpilePackages: ["@community-platform/shared"]`        | OK                         |
 
-### コード修正なし
+### 本番ビルド検証で判明した修正（対応済み）
 
-すべてプラットフォーム互換。設定のみで進められる。
+ローカルで `next build` / `start:prod` を実走させて以下を修正済み:
+
+- \*`start` / `start:prod` のパスを `node dist/main` → `node dist/src/main` に修正（nest build は `dist/src/` に出力する）
+- `member-attributes.controller.ts` / `usage-history.controller.ts` の `import { Response } from "express"` を `import type` に修正（値 import だと pnpm strict node_modules で `Cannot find module 'express'` になる）
+
+`apps/web` の `next build` は修正不要で通過。
 
 ---
 
