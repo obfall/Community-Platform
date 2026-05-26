@@ -65,7 +65,7 @@ export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
   { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
   { label: "メンバー管理", href: "/settings/members", icon: UserCog, featureKey: "member" },
   { label: "動画管理", href: "/videos/manage", icon: Video, featureKey: "video" },
-  { label: "商品管理", href: "/shop/manage", icon: ShoppingBag, featureKey: "ec_shop" },
+  { label: "EC管理", href: "/shop/manage", icon: ShoppingBag, featureKey: "ec_shop" },
   { label: "ポイント管理", href: "/points", icon: Star, featureKey: "point" },
   { label: "アンケート管理", href: "/surveys", icon: ClipboardList, featureKey: "survey" },
   { label: "配信", href: "/broadcasts", icon: Mail, featureKey: "mail_campaign" },

@@ -20,7 +20,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const backHref = from === "seller" ? "/shop/seller" : "/shop/orders";
+  const backHref = from === "manage" ? "/shop/manage?tab=orders" : "/shop/orders";
   const { user } = useAuth();
   const { data: order, isLoading } = useOrder(id);
   const updateStatus = useUpdateOrderStatus();

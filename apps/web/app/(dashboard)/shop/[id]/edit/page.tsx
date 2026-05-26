@@ -90,7 +90,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
           imageFileIds: images.map((i) => i.fileId),
         },
       },
-      { onSuccess: () => router.push("/shop") },
+      { onSuccess: () => router.push("/shop/manage") },
     );
   };
 

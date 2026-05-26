@@ -6,18 +6,14 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SHOP_NAV_ITEMS } from "@/lib/shop-navigation";
-import { useShopCapabilities } from "@/hooks/shop/use-shop";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 
 function isActiveHref(pathname: string, href: string): boolean {
   if (href === "/shop") {
-    // /shop のみアクティブ（/shop/orders や /shop/seller は別）
+    // /shop のみアクティブ（/shop/orders は別）
     return (
       pathname === "/shop" ||
-      (pathname.startsWith("/shop/") &&
-        !pathname.startsWith("/shop/orders") &&
-        !pathname.startsWith("/shop/seller") &&
-        !pathname.startsWith("/shop/manage"))
+      (pathname.startsWith("/shop/") && !pathname.startsWith("/shop/orders"))
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -25,11 +21,8 @@ function isActiveHref(pathname: string, href: string): boolean {
 
 export function ShopSidebar() {
   const pathname = usePathname();
-  const { data: capabilities } = useShopCapabilities();
 
-  const items = SHOP_NAV_ITEMS.filter(
-    (item) => !item.requiresSeller || capabilities?.canCreateProduct,
-  );
+  const items = SHOP_NAV_ITEMS;
 
   return (
     <ScrollArea className="h-full">
