@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronLeft, ChevronRight, Package } from "lucide-react";
 
 interface ProductImageCarouselProps {
@@ -9,6 +10,7 @@ interface ProductImageCarouselProps {
 }
 
 export function ProductImageCarousel({ images, productName }: ProductImageCarouselProps) {
+  const t = useTranslations("shop.carousel");
   const validImages = images.filter((img) => img.file.publicUrl);
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
@@ -63,7 +65,7 @@ export function ProductImageCarousel({ images, productName }: ProductImageCarous
               type="button"
               onClick={() => go(index - 1)}
               className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
-              aria-label="前の画像"
+              aria-label={t("prev")}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -71,7 +73,7 @@ export function ProductImageCarousel({ images, productName }: ProductImageCarous
               type="button"
               onClick={() => go(index + 1)}
               className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
-              aria-label="次の画像"
+              aria-label={t("next")}
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -84,7 +86,7 @@ export function ProductImageCarousel({ images, productName }: ProductImageCarous
                   className={`h-2 rounded-full transition-all ${
                     i === index ? "w-6 bg-white" : "w-2 bg-white/50"
                   }`}
-                  aria-label={`画像 ${i + 1}`}
+                  aria-label={t("goToImage", { index: i + 1 })}
                 />
               ))}
             </div>

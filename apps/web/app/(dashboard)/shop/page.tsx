@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useProducts, useProductCategories, useProductSeries } from "@/hooks/shop/use-shop";
 import { SearchInput } from "@/components/search-input";
 import { PaginationBar } from "@/components/pagination-bar";
@@ -16,6 +17,7 @@ import type { ProductQuery } from "@/lib/api/types";
 import { ProductCard } from "./_components/product-card";
 
 export default function ShopPage() {
+  const t = useTranslations("shop.list");
   const [query, setQuery] = useState<ProductQuery>({
     page: 1,
     limit: 24,
@@ -31,14 +33,14 @@ export default function ShopPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">ショップ</h1>
+      <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="商品を検索..."
+          placeholder={t("searchPlaceholder")}
           className="max-w-xs"
         />
         <Select
@@ -48,10 +50,10 @@ export default function ShopPage() {
           }
         >
           <SelectTrigger className="ml-auto w-40">
-            <SelectValue placeholder="カテゴリ" />
+            <SelectValue placeholder={t("categoryPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">すべてのカテゴリ</SelectItem>
+            <SelectItem value="all">{t("categoryAll")}</SelectItem>
             {categories?.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name}
@@ -66,10 +68,10 @@ export default function ShopPage() {
           }
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="シリーズ" />
+            <SelectValue placeholder={t("seriesPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">すべてのシリーズ</SelectItem>
+            <SelectItem value="all">{t("seriesAll")}</SelectItem>
             {seriesList?.map((s) => (
               <SelectItem key={s.id} value={s.id}>
                 {s.name}
@@ -80,11 +82,11 @@ export default function ShopPage() {
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : products.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <ShoppingBag className="mx-auto mb-4 h-12 w-12" />
-          <p>商品がありません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

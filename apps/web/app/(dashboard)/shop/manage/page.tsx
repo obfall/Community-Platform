@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   useProducts,
   useDeleteProduct,
@@ -61,18 +62,19 @@ import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/p
 import { OrderStatusBadge } from "../_components/order-status-badge";
 
 export default function ShopManagePage() {
+  const t = useTranslations("shop.manage");
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "products";
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">EC管理</h1>
+      <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       <Tabs defaultValue={initialTab}>
         <TabsList>
-          <TabsTrigger value="products">商品</TabsTrigger>
-          <TabsTrigger value="orders">注文</TabsTrigger>
-          <TabsTrigger value="summary">サマリー</TabsTrigger>
+          <TabsTrigger value="products">{t("tabProducts")}</TabsTrigger>
+          <TabsTrigger value="orders">{t("tabOrders")}</TabsTrigger>
+          <TabsTrigger value="summary">{t("tabSummary")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products" className="mt-6">
@@ -90,6 +92,7 @@ export default function ShopManagePage() {
 }
 
 function ProductsTab() {
+  const t = useTranslations("shop.manage");
   const router = useRouter();
   const [query, setQuery] = useState<ProductQuery>({ page: 1, limit: 20, publishStatus: "all" });
   const [search, setSearch] = useState("");
@@ -115,17 +118,17 @@ function ProductsTab() {
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
           <Plus className="mr-1 h-3 w-3" />
-          カテゴリ追加
+          {t("addCategory")}
         </Button>
         <Button variant="outline" size="sm" onClick={() => setSeriesDialogOpen(true)}>
           <Plus className="mr-1 h-3 w-3" />
-          シリーズ追加
+          {t("addSeries")}
         </Button>
         {capabilities?.canCreateProduct && (
           <Link href="/shop/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              商品登録
+              {t("newProduct")}
             </Button>
           </Link>
         )}
@@ -136,7 +139,7 @@ function ProductsTab() {
           value={search}
           onChange={setSearch}
           onSubmit={(v) => setQuery((p) => ({ ...p, search: v || undefined, page: 1 }))}
-          placeholder="商品を検索..."
+          placeholder={t("searchPlaceholder")}
           className="max-w-xs"
         />
         <SelectField
@@ -144,7 +147,7 @@ function ProductsTab() {
           onChange={(v) => setQuery((p) => ({ ...p, publishStatus: v, page: 1 }))}
           options={PUBLISH_STATUS_OPTIONS}
           includeAll
-          placeholder="ステータス"
+          placeholder={t("statusPlaceholder")}
           className="w-36"
         />
         <Select
@@ -154,10 +157,10 @@ function ProductsTab() {
           }
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="カテゴリ" />
+            <SelectValue placeholder={t("categoryPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">すべてのカテゴリ</SelectItem>
+            <SelectItem value="all">{t("categoryAll")}</SelectItem>
             {categories?.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.name}
@@ -172,10 +175,10 @@ function ProductsTab() {
           }
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="シリーズ" />
+            <SelectValue placeholder={t("seriesPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">すべてのシリーズ</SelectItem>
+            <SelectItem value="all">{t("seriesAll")}</SelectItem>
             {seriesList?.map((s) => (
               <SelectItem key={s.id} value={s.id}>
                 {s.name}
@@ -186,25 +189,25 @@ function ProductsTab() {
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : products.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <ShoppingBag className="mx-auto mb-4 h-12 w-12" />
-          <p>商品がありません</p>
+          <p>{t("emptyProducts")}</p>
         </div>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>商品名</TableHead>
-              <TableHead>カテゴリ</TableHead>
-              <TableHead>シリーズ</TableHead>
-              <TableHead>価格</TableHead>
-              <TableHead>在庫</TableHead>
-              <TableHead>公開状態</TableHead>
-              <TableHead>販売数</TableHead>
-              <TableHead>作成日</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("colName")}</TableHead>
+              <TableHead>{t("colCategory")}</TableHead>
+              <TableHead>{t("colSeries")}</TableHead>
+              <TableHead>{t("colPrice")}</TableHead>
+              <TableHead>{t("colStock")}</TableHead>
+              <TableHead>{t("colPublish")}</TableHead>
+              <TableHead>{t("colSales")}</TableHead>
+              <TableHead>{t("colCreated")}</TableHead>
+              <TableHead className="text-right">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -218,7 +221,7 @@ function ProductsTab() {
                 <TableCell>{p.category?.name ?? "-"}</TableCell>
                 <TableCell>{p.series?.name ?? "-"}</TableCell>
                 <TableCell>¥{p.price.toLocaleString()}</TableCell>
-                <TableCell>{p.stock != null ? p.stock : "無制限"}</TableCell>
+                <TableCell>{p.stock != null ? p.stock : t("stockUnlimited")}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-[10px]">
                     {PUBLISH_STATUS_LABELS[p.publishStatus] ?? p.publishStatus}
@@ -236,14 +239,14 @@ function ProductsTab() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => router.push(`/shop/${p.id}/edit`)}>
                         <Pencil className="mr-2 h-3.5 w-3.5" />
-                        編集
+                        {t("edit")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
                         onClick={() => setDeleteTarget(p)}
                       >
                         <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        削除
+                        {t("delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -261,15 +264,15 @@ function ProductsTab() {
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>カテゴリ追加</DialogTitle>
+            <DialogTitle>{t("catDialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>カテゴリ名</Label>
+              <Label>{t("catNameLabel")}</Label>
               <Input
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                placeholder="カテゴリ名"
+                placeholder={t("catNamePlaceholder")}
               />
             </div>
             <Button
@@ -284,7 +287,7 @@ function ProductsTab() {
                 });
               }}
             >
-              作成
+              {t("create")}
             </Button>
           </div>
         </DialogContent>
@@ -293,15 +296,15 @@ function ProductsTab() {
       <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>シリーズ追加</DialogTitle>
+            <DialogTitle>{t("seriesDialogTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>シリーズ名</Label>
+              <Label>{t("seriesNameLabel")}</Label>
               <Input
                 value={newSeriesName}
                 onChange={(e) => setNewSeriesName(e.target.value)}
-                placeholder="シリーズ名"
+                placeholder={t("seriesNamePlaceholder")}
               />
             </div>
             <Button
@@ -316,7 +319,7 @@ function ProductsTab() {
                 });
               }}
             >
-              作成
+              {t("create")}
             </Button>
           </div>
         </DialogContent>
@@ -325,13 +328,13 @@ function ProductsTab() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>商品を削除しますか？</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              「{deleteTarget?.name}」を削除します。この操作は取り消せません。
+              {t("deleteConfirmDescription", { name: deleteTarget?.name ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogCancel>{t("deleteCancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -342,7 +345,7 @@ function ProductsTab() {
                 }
               }}
             >
-              削除
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -352,6 +355,8 @@ function ProductsTab() {
 }
 
 function OrdersTab() {
+  const t = useTranslations("shop.manage");
+  const tStatus = useTranslations("shop.orderStatus");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { data: orders, isLoading } = useSellerOrders(
     statusFilter === "all" ? undefined : statusFilter,
@@ -361,20 +366,20 @@ function OrdersTab() {
     <div className="space-y-4">
       <Tabs value={statusFilter} onValueChange={setStatusFilter}>
         <TabsList>
-          <TabsTrigger value="all">すべて</TabsTrigger>
-          <TabsTrigger value="in_progress">申込中</TabsTrigger>
-          <TabsTrigger value="in_negotiation">取引中</TabsTrigger>
-          <TabsTrigger value="completed">完了</TabsTrigger>
-          <TabsTrigger value="canceled">キャンセル</TabsTrigger>
+          <TabsTrigger value="all">{t("orderTabAll")}</TabsTrigger>
+          <TabsTrigger value="in_progress">{tStatus("in_progress")}</TabsTrigger>
+          <TabsTrigger value="in_negotiation">{tStatus("in_negotiation")}</TabsTrigger>
+          <TabsTrigger value="completed">{tStatus("completed")}</TabsTrigger>
+          <TabsTrigger value="canceled">{tStatus("canceled")}</TabsTrigger>
         </TabsList>
       </Tabs>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : !orders || orders.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Receipt className="mx-auto mb-4 h-12 w-12" />
-          <p>注文がありません</p>
+          <p>{t("emptyOrders")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -394,7 +399,9 @@ function OrdersTab() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">買い手: {order.buyer.name}</span>
+                    <span className="text-muted-foreground">
+                      {t("orderBuyer", { name: order.buyer.name })}
+                    </span>
                     <span className="font-bold">¥{order.totalAmount.toLocaleString()}</span>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
@@ -411,6 +418,8 @@ function OrdersTab() {
 }
 
 function SummaryTab() {
+  const t = useTranslations("shop.manage");
+  const tStatus = useTranslations("shop.orderStatus");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const { data: summary, isLoading } = useSellerSummary({
@@ -422,11 +431,11 @@ function SummaryTab() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <Label>開始日</Label>
+          <Label>{t("summaryFrom")}</Label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div>
-          <Label>終了日</Label>
+          <Label>{t("summaryTo")}</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         {(from || to) && (
@@ -438,18 +447,18 @@ function SummaryTab() {
               setTo("");
             }}
           >
-            クリア
+            {t("summaryClear")}
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">売上合計（完了分）</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">{t("summaryRevenue")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -459,7 +468,9 @@ function SummaryTab() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">総注文数</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">
+                {t("summaryOrderCount")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary?.orderCount ?? 0}</div>
@@ -467,23 +478,25 @@ function SummaryTab() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">ステータス別</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground">
+                {t("summaryByStatus")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span>申込中</span>
+                <span>{tStatus("in_progress")}</span>
                 <span className="font-semibold">{summary?.inProgressCount ?? 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>取引中</span>
+                <span>{tStatus("in_negotiation")}</span>
                 <span className="font-semibold">{summary?.inNegotiationCount ?? 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>完了</span>
+                <span>{tStatus("completed")}</span>
                 <span className="font-semibold">{summary?.completedCount ?? 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>キャンセル</span>
+                <span>{tStatus("canceled")}</span>
                 <span className="font-semibold">{summary?.canceledCount ?? 0}</span>
               </div>
             </CardContent>

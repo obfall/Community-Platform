@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useProduct, useCreateOrder } from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { ProductImageCarousel } from "./_components/product-image-carousel";
 import { SoldOverlay } from "../_components/sold-overlay";
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("shop.detail");
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,9 +46,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   };
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
   if (!product)
-    return <div className="py-12 text-center text-muted-foreground">商品が見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
 
   const outOfStock = product.stock !== null && product.stock <= 0;
   const now = new Date();
@@ -56,12 +58,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const afterSale = saleEnd !== null && saleEnd < now;
   const cannotOrder = outOfStock || beforeSale || afterSale;
   const orderButtonLabel = outOfStock
-    ? "売り切れ"
+    ? t("soldOutButton")
     : beforeSale
-      ? "販売開始前"
+      ? t("beforeSale")
       : afterSale
-        ? "販売終了"
-        : "購入を申し込む";
+        ? t("afterSale")
+        : t("orderButton");
   const images =
     (product as unknown as { images?: Array<{ id: string; file: { publicUrl: string | null } }> })
       .images ?? [];
@@ -88,7 +90,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           {fromManage && (
             <Link href={`/shop/${product.id}/edit`} className="ml-auto">
               <Button variant="outline" size="sm">
-                編集
+                {t("edit")}
               </Button>
             </Link>
           )}
@@ -112,27 +114,27 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex flex-wrap items-center gap-2">
             {product.category && <Badge variant="secondary">{product.category.name}</Badge>}
             {product.series && <Badge variant="outline">{product.series.name}</Badge>}
-            {outOfStock && <Badge variant="destructive">売切</Badge>}
-            {beforeSale && <Badge variant="outline">販売開始前</Badge>}
-            {afterSale && <Badge variant="outline">販売終了</Badge>}
+            {outOfStock && <Badge variant="destructive">{t("soldOut")}</Badge>}
+            {beforeSale && <Badge variant="outline">{t("beforeSale")}</Badge>}
+            {afterSale && <Badge variant="outline">{t("afterSale")}</Badge>}
           </div>
           {salePeriod && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarRange className="h-3.5 w-3.5" />
-              <span>販売期間: {salePeriod}</span>
+              <span>{t("salePeriod", { period: salePeriod })}</span>
             </div>
           )}
         </div>
 
         {product.description && (
           <div className="space-y-2 border-t pt-4">
-            <h2 className="text-sm font-semibold">商品説明</h2>
+            <h2 className="text-sm font-semibold">{t("descriptionTitle")}</h2>
             <div className="whitespace-pre-wrap text-sm">{product.description}</div>
           </div>
         )}
 
         <div className="border-t pt-4 text-sm text-muted-foreground">
-          販売者: {product.seller.name}
+          {t("seller", { name: product.seller.name })}
         </div>
       </div>
 
@@ -141,7 +143,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
             <div className="flex items-center gap-1">
               <Label htmlFor="quantity" className="text-xs">
-                数量
+                {t("quantityLabel")}
               </Label>
               <Input
                 id="quantity"
@@ -169,22 +171,20 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>購入を申し込みますか？</DialogTitle>
-            <DialogDescription>
-              申込後、販売者から支払い・受け渡しの連絡が来るまでお待ちください。
-            </DialogDescription>
+            <DialogTitle>{t("confirmTitle")}</DialogTitle>
+            <DialogDescription>{t("confirmDescription")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 rounded-md border p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">商品</span>
+              <span className="text-muted-foreground">{t("confirmProduct")}</span>
               <span className="font-medium">{product.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">数量</span>
+              <span className="text-muted-foreground">{t("confirmQuantity")}</span>
               <span>{Number(quantity) || 0}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
-              <span className="text-muted-foreground">合計</span>
+              <span className="text-muted-foreground">{t("confirmTotal")}</span>
               <span className="text-lg font-bold">
                 &yen;{(product.price * (Number(quantity) || 0)).toLocaleString()}
               </span>
@@ -196,11 +196,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               onClick={() => setConfirmOpen(false)}
               disabled={createOrder.isPending}
             >
-              キャンセル
+              {t("confirmCancel")}
             </Button>
             <Button onClick={handleConfirmOrder} disabled={createOrder.isPending}>
               {createOrder.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              申し込む
+              {t("confirmSubmit")}
             </Button>
           </DialogFooter>
         </DialogContent>

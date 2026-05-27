@@ -3,6 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useOrder, useUpdateOrderStatus } from "@/hooks/shop/use-shop";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { OrderStatusBadge } from "../../_components/order-status-badge";
-import {
-  ORDER_STATUS_LABELS,
-  ORDER_STATUS_NEXT_TRANSITIONS,
-  type OrderStatus,
-} from "@/lib/constants/order-status";
+import { ORDER_STATUS_NEXT_TRANSITIONS, type OrderStatus } from "@/lib/constants/order-status";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("shop.orderDetail");
+  const tStatus = useTranslations("shop.orderStatus");
   const { id } = use(params);
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
@@ -26,9 +25,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const updateStatus = useUpdateOrderStatus();
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
-  if (!order)
-    return <div className="py-12 text-center text-muted-foreground">注文が見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
+  if (!order) return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
 
   const isBuyer = order.buyer.id === user?.id;
   const isSeller = order.seller.id === user?.id;
@@ -52,7 +50,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="flex-1 text-xl font-bold">注文詳細</h1>
+        <h1 className="flex-1 text-xl font-bold">{t("title")}</h1>
         <OrderStatusBadge status={order.status} />
       </div>
 
@@ -62,7 +60,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <div className="mb-1 text-xs text-muted-foreground">商品</div>
+            <div className="mb-1 text-xs text-muted-foreground">{t("items")}</div>
             {order.items.map((item) => (
               <div key={item.id} className="flex items-center justify-between py-1 text-sm">
                 <div>
@@ -79,7 +77,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <Separator />
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">合計</span>
+            <span className="text-sm text-muted-foreground">{t("total")}</span>
             <span className="text-xl font-bold">&yen;{order.totalAmount.toLocaleString()}</span>
           </div>
 
@@ -87,22 +85,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <div className="text-xs text-muted-foreground">買い手</div>
+              <div className="text-xs text-muted-foreground">{t("buyer")}</div>
               <div>{order.buyer.name}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">販売者</div>
+              <div className="text-xs text-muted-foreground">{t("seller")}</div>
               <div>{order.seller.name}</div>
             </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
-            申込日: {new Date(order.createdAt).toLocaleString("ja-JP")}
+            {t("orderedAt", { date: new Date(order.createdAt).toLocaleString("ja-JP") })}
             {order.completedAt && (
-              <> / 完了日: {new Date(order.completedAt).toLocaleString("ja-JP")}</>
+              <>
+                {" / "}
+                {t("completedAt", { date: new Date(order.completedAt).toLocaleString("ja-JP") })}
+              </>
             )}
             {order.canceledAt && (
-              <> / キャンセル日: {new Date(order.canceledAt).toLocaleString("ja-JP")}</>
+              <>
+                {" / "}
+                {t("canceledAt", { date: new Date(order.canceledAt).toLocaleString("ja-JP") })}
+              </>
             )}
           </div>
         </CardContent>
@@ -115,14 +119,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             disabled={updateStatus.isPending}
             onClick={() => updateStatus.mutate({ id: order.id, status: "canceled" })}
           >
-            キャンセルする
+            {t("cancelButton")}
           </Button>
         </div>
       ) : (
         availableTransitions.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">ステータス変更</CardTitle>
+              <CardTitle className="text-sm">{t("statusChange")}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               {availableTransitions.map((next) => (
@@ -133,7 +137,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   disabled={updateStatus.isPending}
                   onClick={() => updateStatus.mutate({ id: order.id, status: next })}
                 >
-                  {ORDER_STATUS_LABELS[next]}にする
+                  {t("transitionTo", { status: tStatus(next) })}
                 </Button>
               ))}
             </CardContent>

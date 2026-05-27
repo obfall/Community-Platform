@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +21,7 @@ function isActiveHref(pathname: string, href: string): boolean {
 }
 
 export function ShopSidebar() {
+  const t = useTranslations("shop.sidebar");
   const pathname = usePathname();
 
   const items = SHOP_NAV_ITEMS;
@@ -32,7 +34,7 @@ export function ShopSidebar() {
           className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          メインメニュー
+          {t("backToMain")}
         </Link>
 
         <div className="mb-3 flex items-center gap-3 px-3">
@@ -40,7 +42,7 @@ export function ShopSidebar() {
             <ShoppingBag className="h-5 w-5 text-sidebar-foreground" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-sidebar-foreground">EC・ショップ</p>
+            <p className="truncate text-sm font-semibold text-sidebar-foreground">{t("title")}</p>
           </div>
         </div>
 
@@ -60,7 +62,7 @@ export function ShopSidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}

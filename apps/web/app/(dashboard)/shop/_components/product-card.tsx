@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Package, CalendarRange } from "lucide-react";
 import type { ProductListItem } from "@/lib/api/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +16,7 @@ interface Props {
 }
 
 export function ProductCard({ product, href }: Props) {
+  const t = useTranslations("shop.card");
   const outOfStock = product.stock !== null && product.stock <= 0;
   const linkHref = href ?? `/shop/${product.id}`;
 
@@ -59,7 +63,7 @@ export function ProductCard({ product, href }: Props) {
             )}
             {outOfStock && (
               <Badge variant="destructive" className="text-xs">
-                売切
+                {t("soldOut")}
               </Badge>
             )}
           </div>

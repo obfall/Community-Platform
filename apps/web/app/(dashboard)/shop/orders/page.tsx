@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useOrders } from "@/hooks/shop/use-shop";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Receipt } from "lucide-react";
 import { OrderStatusBadge } from "../_components/order-status-badge";
 
 export default function MyOrdersPage() {
+  const t = useTranslations("shop.orders");
   const { user } = useAuth();
   const { data: orders, isLoading } = useOrders();
 
@@ -15,14 +17,14 @@ export default function MyOrdersPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <h1 className="text-2xl font-bold">注文履歴</h1>
+      <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>
       ) : buyerOrders.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Receipt className="mx-auto mb-4 h-12 w-12" />
-          <p>注文がありません</p>
+          <p>{t("empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -42,7 +44,9 @@ export default function MyOrdersPage() {
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">販売者: {order.seller.name}</span>
+                    <span className="text-muted-foreground">
+                      {t("seller", { name: order.seller.name })}
+                    </span>
                     <span className="font-bold">&yen;{order.totalAmount.toLocaleString()}</span>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">

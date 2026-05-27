@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   useProduct,
   useUpdateProduct,
@@ -30,13 +31,14 @@ import { PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
 const NONE_VALUE = "__none__";
 
 export default function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations("shop.edit");
   const { id } = use(params);
   const { data: product, isLoading } = useProduct(id);
 
   if (isLoading)
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
   if (!product)
-    return <div className="py-12 text-center text-muted-foreground">商品が見つかりません</div>;
+    return <div className="py-12 text-center text-muted-foreground">{t("notFound")}</div>;
 
   return <ProductEditForm id={id} product={product as unknown as ProductWithImages} />;
 }
@@ -53,6 +55,7 @@ function toLocalDatetime(iso: string | null) {
 }
 
 function ProductEditForm({ id, product }: { id: string; product: ProductWithImages }) {
+  const t = useTranslations("shop.edit");
   const router = useRouter();
   const updateProduct = useUpdateProduct();
   const { data: categories } = useProductCategories();
@@ -102,24 +105,24 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">商品編集</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle>{t("basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>商品画像</Label>
+            <Label>{t("imageLabel")}</Label>
             <ProductImageUpload value={images} onChange={setImages} />
           </div>
           <div>
-            <Label>商品名</Label>
+            <Label>{t("nameLabel")}</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
           </div>
           <div>
-            <Label>説明</Label>
+            <Label>{t("descriptionLabel")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -128,7 +131,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>価格（円）</Label>
+              <Label>{t("priceLabel")}</Label>
               <Input
                 type="number"
                 value={price}
@@ -137,25 +140,25 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
               />
             </div>
             <div>
-              <Label>在庫数</Label>
+              <Label>{t("stockLabel")}</Label>
               <Input
                 type="number"
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
-                placeholder="無制限の場合は空欄"
+                placeholder={t("stockPlaceholder")}
                 min="0"
               />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>カテゴリ</Label>
+              <Label>{t("categoryLabel")}</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE_VALUE}>なし</SelectItem>
+                  <SelectItem value={NONE_VALUE}>{t("categoryNone")}</SelectItem>
                   {categories?.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
@@ -165,13 +168,13 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
               </Select>
             </div>
             <div>
-              <Label>シリーズ</Label>
+              <Label>{t("seriesLabel")}</Label>
               <Select value={seriesId} onValueChange={setSeriesId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE_VALUE}>なし</SelectItem>
+                  <SelectItem value={NONE_VALUE}>{t("seriesNone")}</SelectItem>
                   {seriesList?.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
@@ -182,7 +185,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
             </div>
           </div>
           <div>
-            <Label>公開ステータス</Label>
+            <Label>{t("publishStatusLabel")}</Label>
             <SelectField
               value={publishStatus}
               onChange={setPublishStatus}
@@ -191,7 +194,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>販売開始日</Label>
+              <Label>{t("saleStartLabel")}</Label>
               <Input
                 type="datetime-local"
                 value={saleStartAt}
@@ -199,7 +202,7 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
               />
             </div>
             <div>
-              <Label>販売終了日</Label>
+              <Label>{t("saleEndLabel")}</Label>
               <Input
                 type="datetime-local"
                 value={saleEndAt}
@@ -209,11 +212,11 @@ function ProductEditForm({ id, product }: { id: string; product: ProductWithImag
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/shop/manage">
-              <Button variant="outline">キャンセル</Button>
+              <Button variant="outline">{t("cancel")}</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!name || !price || updateProduct.isPending}>
               {updateProduct.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              保存
+              {t("submit")}
             </Button>
           </div>
         </CardContent>

@@ -1,14 +1,15 @@
 import { ShoppingBag, Receipt, type LucideIcon } from "lucide-react";
 
 export interface ShopNavItem {
-  label: string;
+  /** messages/ja/shop.json の sidebar 名前空間のキー */
+  labelKey: string;
   href: string;
   icon: LucideIcon;
 }
 
 export const SHOP_NAV_ITEMS: ShopNavItem[] = [
-  { label: "ショップ", href: "/shop", icon: ShoppingBag },
-  { label: "注文履歴", href: "/shop/orders", icon: Receipt },
+  { labelKey: "navShop", href: "/shop", icon: ShoppingBag },
+  { labelKey: "navOrders", href: "/shop/orders", icon: Receipt },
 ];
 
 export function isShopPath(pathname: string): boolean {
