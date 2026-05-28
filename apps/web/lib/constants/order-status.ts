@@ -1,11 +1,7 @@
 export type OrderStatus = "in_progress" | "in_negotiation" | "completed" | "canceled";
 
-export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  in_progress: "申込中",
-  in_negotiation: "取引中",
-  completed: "完了",
-  canceled: "キャンセル",
-};
+// ステータスの表示ラベルは i18n（messages/ja/shop.json の orderStatus）で管理する。
+// この定数ファイルは遷移ルール・バッジ配色などロジック面のみを担う。
 
 export const ORDER_STATUS_BADGE_VARIANT: Record<
   OrderStatus,

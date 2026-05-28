@@ -136,6 +136,27 @@ export class ShopController {
     );
   }
 
+  @Get("admin/orders")
+  @ApiOperation({ summary: "全注文一覧（manage_all_products 権限保持者）" })
+  @UseGuards(PermissionGuard)
+  @RequiresPermission("ec_shop", "manage_all_products")
+  getAllOrders(
+    @Query("status") status?: "in_progress" | "in_negotiation" | "completed" | "canceled",
+  ) {
+    return this.service.getAllOrders(status);
+  }
+
+  @Get("admin/summary")
+  @ApiOperation({ summary: "全体売上サマリー（manage_all_products 権限保持者）" })
+  @UseGuards(PermissionGuard)
+  @RequiresPermission("ec_shop", "manage_all_products")
+  getSystemSummary(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.service.getSystemSummary(
+      from ? new Date(from) : undefined,
+      to ? new Date(to) : undefined,
+    );
+  }
+
   @Get("categories")
   @ApiOperation({ summary: "商品カテゴリ一覧" })
   getCategories() {

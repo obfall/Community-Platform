@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { shopApi } from "@/lib/api/shop";
 import type { ProductQuery } from "@/lib/api/types";
+
+// エラートーストはグローバルの MutationCache.onError 任せ（Phase 11.3 規約）。
+// 個別フックでは成功時の toast.success のみ扱う。
 
 export function useShopCapabilities() {
   return useQuery({
@@ -28,38 +32,41 @@ export function useProduct(id: string | undefined) {
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: shopApi.createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("商品を登録しました");
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
+      toast.success(t("productCreated"));
     },
-    onError: () => toast.error("商品登録に失敗しました"),
   });
 }
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: (id: string) => shopApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("商品を削除しました");
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
+      toast.success(t("productDeleted"));
     },
-    onError: () => toast.error("商品削除に失敗しました"),
   });
 }
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       shopApi.updateProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("商品を更新しました");
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
+      toast.success(t("productUpdated"));
     },
-    onError: () => toast.error("商品更新に失敗しました"),
   });
 }
 
@@ -73,13 +80,13 @@ export function useProductCategories() {
 
 export function useCreateProductCategory() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: (name: string) => shopApi.createCategory(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products", "categories"] });
-      toast.success("カテゴリを作成しました");
+      toast.success(t("categoryCreated"));
     },
-    onError: () => toast.error("カテゴリ作成に失敗しました"),
   });
 }
 
@@ -93,13 +100,13 @@ export function useProductSeries() {
 
 export function useCreateProductSeries() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: (name: string) => shopApi.createSeries(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products", "series"] });
-      toast.success("シリーズを作成しました");
+      toast.success(t("seriesCreated"));
     },
-    onError: () => toast.error("シリーズ作成に失敗しました"),
   });
 }
 
@@ -120,14 +127,18 @@ export function useOrder(id: string | undefined) {
 
 export function useCreateOrder() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: shopApi.createOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast.success("注文を申し込みました");
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "summary"] });
+      toast.success(t("orderCreated"));
     },
-    onError: () => toast.error("注文に失敗しました"),
   });
 }
 
@@ -152,21 +163,34 @@ export function useSellerSummary(params?: { from?: string; to?: string }) {
   });
 }
 
+export function useAdminOrders(status?: string) {
+  return useQuery({
+    queryKey: ["shop", "admin", "orders", status ?? "all"],
+    queryFn: () => shopApi.getAdminOrders(status),
+  });
+}
+
+export function useAdminSummary(params?: { from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ["shop", "admin", "summary", params?.from ?? "", params?.to ?? ""],
+    queryFn: () => shopApi.getAdminSummary(params),
+  });
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
+  const t = useTranslations("shop.toast");
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       shopApi.updateOrderStatus(id, status),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders", variables.id] });
-      toast.success("注文ステータスを更新しました");
-    },
-    onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "ステータス更新に失敗しました";
-      toast.error(message);
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "summary"] });
+      toast.success(t("statusUpdated"));
     },
   });
 }

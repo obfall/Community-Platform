@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useFeatures } from "@/hooks/settings/use-features";
+import { useChatRooms } from "@/hooks/chat/use-chat";
 import { NAV_ITEMS, COMMUNITY_ADMIN_ITEMS, SYSTEM_ADMIN_ITEMS } from "@/lib/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -75,7 +77,8 @@ export function Sidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.featureKey === "chat" && <ChatUnreadBadge />}
             </Link>
           );
         })}
@@ -84,5 +87,17 @@ export function Sidebar() {
         {isSystemAdmin && renderNavGroup("システム管理", SYSTEM_ADMIN_ITEMS)}
       </div>
     </ScrollArea>
+  );
+}
+
+// チャットの未読合計バッジ。chat 機能の useChatRooms に乗っかって 60 秒 polling される。
+function ChatUnreadBadge() {
+  const { data: rooms } = useChatRooms();
+  const total = rooms?.reduce((sum, r) => sum + (r.unreadCount ?? 0), 0) ?? 0;
+  if (total === 0) return null;
+  return (
+    <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs">
+      {total > 99 ? "99+" : total}
+    </Badge>
   );
 }

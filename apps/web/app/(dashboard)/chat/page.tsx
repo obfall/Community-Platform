@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { io, type Socket } from "socket.io-client";
 import { toast } from "sonner";
@@ -43,7 +44,12 @@ export default function ChatPage() {
   const tCommon = useTranslations("common");
   const { user } = useAuth();
   const { data: rooms, isLoading } = useChatRooms();
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  // /chat?room=<id> でディープリンク（例: 注文詳細から「販売者とチャット」）。
+  // 初期マウント時に URL から拾い、以降は内部状態として独立に管理する。
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
+    () => searchParams.get("room") ?? null,
+  );
   const [messageText, setMessageText] = useState("");
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newRoomType, setNewRoomType] = useState<"dm" | "group">("dm");
@@ -480,6 +486,11 @@ export default function ChatPage() {
               </form>
             </div>
           </>
+        ) : selectedRoomId ? (
+          // ディープリンク直後など、対象ルームがまだ rooms に乗っていない場合の中間表示
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-sm text-muted-foreground">{tCommon("loading")}</p>
+          </div>
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center text-muted-foreground">

@@ -60,6 +60,15 @@ export const shopApi = {
   getSellerSummary: (params?: { from?: string; to?: string }) =>
     apiClient.get<SellerSummary>("/shop/seller/summary", { params }).then((r) => r.data),
 
+  // 管理者向け（manage_all_products 権限）: 全注文・全体売上
+  getAdminOrders: (status?: string) =>
+    apiClient
+      .get<Order[]>("/shop/admin/orders", { params: status ? { status } : undefined })
+      .then((r) => r.data),
+
+  getAdminSummary: (params?: { from?: string; to?: string }) =>
+    apiClient.get<SellerSummary>("/shop/admin/summary", { params }).then((r) => r.data),
+
   // カテゴリ・シリーズ
   getCategories: () =>
     apiClient.get<Array<{ id: string; name: string }>>("/shop/categories").then((r) => r.data),

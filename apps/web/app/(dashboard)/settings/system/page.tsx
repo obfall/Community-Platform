@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useOptions, useToggleOption } from "@/hooks/settings/use-options";
+import { usePermissions, useUpdatePermission } from "@/hooks/settings/use-permissions";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,6 +52,60 @@ export default function SystemSettingsPage() {
       </div>
 
       <OptionsTab />
+
+      <ShopSellPermissionSection />
+    </div>
+  );
+}
+
+// EC・ショップの create_product 許可ロール。member を含めるか否かで出品可否を切り替える。
+const SHOP_SELL_ROLES_WITH_MEMBER = ["owner", "admin", "member"];
+const SHOP_SELL_ROLES_STAFF_ONLY = ["owner", "admin"];
+
+function ShopSellPermissionSection() {
+  const { data: permissions, isLoading } = usePermissions("ec_shop");
+  const update = useUpdatePermission();
+  const createPerm = permissions?.find((p) => p.action === "create_product");
+  const memberAllowed = createPerm?.allowedRoles.includes("member") ?? false;
+
+  const handleToggle = (next: boolean) => {
+    if (!createPerm) return;
+    update.mutate({
+      id: createPerm.id,
+      allowedRoles: next ? SHOP_SELL_ROLES_WITH_MEMBER : SHOP_SELL_ROLES_STAFF_ONLY,
+    });
+  };
+
+  return (
+    <div className="space-y-4 border-t pt-6">
+      <div>
+        <h2 className="text-lg font-semibold">EC・ショップの出品権限</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          メンバーが商品を出品できるかを切り替えます。OFF にすると owner / admin のみ出品できます。
+        </p>
+      </div>
+
+      {isLoading ? (
+        <p className="py-6 text-center text-muted-foreground">読み込み中...</p>
+      ) : !createPerm ? (
+        <p className="py-6 text-center text-muted-foreground">出品権限の設定が見つかりません</p>
+      ) : (
+        <div className="flex items-center justify-between rounded-md border p-4">
+          <div className="space-y-0.5">
+            <p className="font-medium">メンバーも出品可能にする</p>
+            <p className="text-sm text-muted-foreground">
+              {memberAllowed
+                ? "現在: すべてのメンバーが出品できます"
+                : "現在: owner / admin のみ出品できます"}
+            </p>
+          </div>
+          <Switch
+            checked={memberAllowed}
+            disabled={update.isPending}
+            onCheckedChange={handleToggle}
+          />
+        </div>
+      )}
     </div>
   );
 }

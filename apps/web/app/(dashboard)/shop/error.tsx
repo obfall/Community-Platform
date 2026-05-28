@@ -1,17 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { ErrorFallback } from "@/components/error-boundary";
 
 export default function ShopError(props: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("shop.error");
   return (
-    <ErrorFallback
-      {...props}
-      title="ショップ情報の読み込みに失敗しました"
-      description="一時的な問題の可能性があります。再試行して解決しない場合はサポートまでご連絡ください。"
-      showReportDialog
-    />
+    <ErrorFallback {...props} title={t("title")} description={t("description")} showReportDialog />
   );
 }

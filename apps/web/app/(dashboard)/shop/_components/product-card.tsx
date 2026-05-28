@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Package, CalendarRange } from "lucide-react";
 import type { ProductListItem } from "@/lib/api/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +16,11 @@ interface Props {
 }
 
 export function ProductCard({ product, href }: Props) {
+  const t = useTranslations("shop.card");
   const outOfStock = product.stock !== null && product.stock <= 0;
+  const now = new Date();
+  const beforeSale = product.saleStartAt !== null && new Date(product.saleStartAt) > now;
+  const afterSale = product.saleEndAt !== null && new Date(product.saleEndAt) < now;
   const linkHref = href ?? `/shop/${product.id}`;
 
   const formatSalePeriod = () => {
@@ -47,19 +54,27 @@ export function ProductCard({ product, href }: Props) {
         </div>
         <CardContent className="p-4">
           <div className="mb-2 flex flex-wrap items-center gap-1">
-            {product.category && (
+            {outOfStock ? (
+              <Badge variant="destructive" className="text-xs">
+                {t("soldOut")}
+              </Badge>
+            ) : afterSale ? (
               <Badge variant="secondary" className="text-xs">
+                {t("afterSale")}
+              </Badge>
+            ) : beforeSale ? (
+              <Badge variant="default" className="text-xs">
+                {t("beforeSale")}
+              </Badge>
+            ) : null}
+            {product.category && (
+              <Badge variant="outline" className="text-xs">
                 {product.category.name}
               </Badge>
             )}
             {product.series && (
               <Badge variant="outline" className="text-xs">
                 {product.series.name}
-              </Badge>
-            )}
-            {outOfStock && (
-              <Badge variant="destructive" className="text-xs">
-                売切
               </Badge>
             )}
           </div>
