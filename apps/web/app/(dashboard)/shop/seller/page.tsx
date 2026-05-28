@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useShopCapabilities } from "@/hooks/shop/use-shop";
@@ -9,7 +9,21 @@ import { SellerProductsTab } from "../_components/seller-products-tab";
 import { SellerOrdersTab } from "../_components/seller-orders-tab";
 import { SellerSummaryTab } from "../_components/seller-summary-tab";
 
+// useSearchParams を使うため、Next.js 15 の SSG bail-out 回避として Suspense 境界が必要
 export default function ShopSellerPage() {
+  return (
+    <Suspense fallback={<SellerPageFallback />}>
+      <ShopSellerPageContent />
+    </Suspense>
+  );
+}
+
+function SellerPageFallback() {
+  const t = useTranslations("shop.seller");
+  return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
+}
+
+function ShopSellerPageContent() {
   const t = useTranslations("shop.seller");
   const router = useRouter();
   const searchParams = useSearchParams();

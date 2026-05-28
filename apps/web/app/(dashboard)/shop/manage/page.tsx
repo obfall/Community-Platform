@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -58,7 +58,21 @@ import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/p
 import { AdminOrdersTab } from "../_components/admin-orders-tab";
 import { AdminSummaryTab } from "../_components/admin-summary-tab";
 
+// useSearchParams を使うため、Next.js 15 の SSG bail-out 回避として Suspense 境界が必要
 export default function ShopManagePage() {
+  return (
+    <Suspense fallback={<ManagePageFallback />}>
+      <ShopManagePageContent />
+    </Suspense>
+  );
+}
+
+function ManagePageFallback() {
+  const t = useTranslations("shop.manage");
+  return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
+}
+
+function ShopManagePageContent() {
   const t = useTranslations("shop.manage");
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "products";

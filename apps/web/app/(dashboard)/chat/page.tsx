@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useRef, useEffect, useCallback } from "react";
+import { Suspense, memo, useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { io, type Socket } from "socket.io-client";
@@ -39,7 +39,22 @@ import { MessageCircle, Send, Plus, Users, X } from "lucide-react";
 import type { ChatRoom, ChatMessage, UserListItem } from "@/lib/api/types";
 import { useQueryClient } from "@tanstack/react-query";
 
+// useSearchParams を使うため、Next.js 15 の SSG bail-out 回避として Suspense 境界が必要
 export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+          <p className="text-sm text-muted-foreground">読み込み中...</p>
+        </div>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
+  );
+}
+
+function ChatPageContent() {
   const t = useTranslations("chat");
   const tCommon = useTranslations("common");
   const { user } = useAuth();
