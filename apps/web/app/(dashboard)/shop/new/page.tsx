@@ -79,14 +79,14 @@ function ProductNewForm() {
         publishStatus,
         imageFileIds: images.map((i) => i.fileId),
       },
-      { onSuccess: () => router.push("/shop/manage") },
+      { onSuccess: () => router.push("/shop/seller") },
     );
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/shop/manage">
+        <Link href="/shop/seller">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -204,7 +204,7 @@ function ProductNewForm() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-4">
-            <Link href="/shop/manage">
+            <Link href="/shop/seller">
               <Button variant="outline">{t("cancel")}</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!name || !price || createProduct.isPending}>

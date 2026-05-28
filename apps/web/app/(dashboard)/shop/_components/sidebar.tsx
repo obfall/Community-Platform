@@ -7,14 +7,26 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SHOP_NAV_ITEMS } from "@/lib/shop-navigation";
+import { useShopCapabilities } from "@/hooks/shop/use-shop";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 
+// 商品登録 /shop/new と商品編集 /shop/{id}/edit は「出品管理」配下のフロー扱い
+function isSellerSubFlow(pathname: string): boolean {
+  return pathname === "/shop/new" || /^\/shop\/[^/]+\/edit$/.test(pathname);
+}
+
 function isActiveHref(pathname: string, href: string): boolean {
+  if (href === "/shop/seller") {
+    return pathname === href || pathname.startsWith(`${href}/`) || isSellerSubFlow(pathname);
+  }
   if (href === "/shop") {
-    // /shop のみアクティブ（/shop/orders は別）
+    // 商品閲覧エリアのみアクティブ（/shop/orders・/shop/seller・出品管理サブフローは別項目）
     return (
       pathname === "/shop" ||
-      (pathname.startsWith("/shop/") && !pathname.startsWith("/shop/orders"))
+      (pathname.startsWith("/shop/") &&
+        !pathname.startsWith("/shop/orders") &&
+        !pathname.startsWith("/shop/seller") &&
+        !isSellerSubFlow(pathname))
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -23,8 +35,11 @@ function isActiveHref(pathname: string, href: string): boolean {
 export function ShopSidebar() {
   const t = useTranslations("shop.sidebar");
   const pathname = usePathname();
+  const { data: capabilities } = useShopCapabilities();
 
-  const items = SHOP_NAV_ITEMS;
+  const items = SHOP_NAV_ITEMS.filter(
+    (item) => !item.requiresCreate || capabilities?.canCreateProduct,
+  );
 
   return (
     <ScrollArea className="h-full">

@@ -11,6 +11,9 @@ export function useChatRooms() {
     queryKey: ["chat", "rooms"],
     queryFn: () => chatApi.getRooms(),
     staleTime: 10 * 1000,
+    // 未読バッジを画面遷移なしでも更新するため、タブ表示中だけ 60 秒ごとに refetch
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -46,6 +49,19 @@ export function useCreateChatRoom() {
       toast.success(t("roomCreated"));
     },
     onError: () => toast.error(t("roomCreateFailed"), { id: "chat-room-create-error" }),
+  });
+}
+
+// 既存の DM ルームを取得 or 新規作成して開くための静かな mutation（成功 toast 無し）。
+// バック側の POST /chat/rooms (type=dm) は既存ルームがあればそれを返す。
+export function useOpenDmRoom() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (otherUserId: string) =>
+      chatApi.createRoom({ type: "dm", memberIds: [otherUserId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chat", "rooms"] });
+    },
   });
 }
 

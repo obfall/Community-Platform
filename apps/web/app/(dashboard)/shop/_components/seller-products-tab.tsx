@@ -2,30 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import {
-  useProducts,
-  useDeleteProduct,
-  useProductCategories,
-  useCreateProductCategory,
-  useProductSeries,
-  useCreateProductSeries,
-} from "@/hooks/shop/use-shop";
+import { useSellerProducts, useDeleteProduct } from "@/hooks/shop/use-shop";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/search-input";
 import { PaginationBar } from "@/components/pagination-bar";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectField } from "@/components/select-field";
 import {
   Table,
   TableBody,
@@ -34,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,57 +36,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Pencil, Trash2, ShoppingBag, MoreHorizontal } from "lucide-react";
 import type { ProductQuery, ProductListItem } from "@/lib/api/types";
-import { SelectField } from "@/components/select-field";
 import { PUBLISH_STATUS_LABELS, PUBLISH_STATUS_OPTIONS } from "@/lib/constants/publish-status";
-import { AdminOrdersTab } from "../_components/admin-orders-tab";
-import { AdminSummaryTab } from "../_components/admin-summary-tab";
 
-export default function ShopManagePage() {
-  const t = useTranslations("shop.manage");
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") ?? "products";
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-
-      <Tabs defaultValue={initialTab}>
-        <TabsList>
-          <TabsTrigger value="products">{t("tabProducts")}</TabsTrigger>
-          <TabsTrigger value="orders">{t("tabOrders")}</TabsTrigger>
-          <TabsTrigger value="summary">{t("tabSummary")}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="products" className="mt-6">
-          <ProductsTab />
-        </TabsContent>
-        <TabsContent value="orders" className="mt-6">
-          <AdminOrdersTab />
-        </TabsContent>
-        <TabsContent value="summary" className="mt-6">
-          <AdminSummaryTab />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-function ProductsTab() {
-  const t = useTranslations("shop.manage");
+// 出品 member 用の商品一覧。自分の出品（seller/products）のみを表示し、登録・編集・削除を行う。
+export function SellerProductsTab() {
+  const t = useTranslations("shop.seller");
   const router = useRouter();
   const [query, setQuery] = useState<ProductQuery>({ page: 1, limit: 20, publishStatus: "all" });
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useProducts(query);
-  const { data: categories } = useProductCategories();
-  const { data: seriesList } = useProductSeries();
-  const createCategory = useCreateProductCategory();
-  const createSeries = useCreateProductSeries();
+  const { data, isLoading } = useSellerProducts(query);
   const deleteProduct = useDeleteProduct();
-
-  const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [seriesDialogOpen, setSeriesDialogOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState("");
-  const [newSeriesName, setNewSeriesName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProductListItem | null>(null);
 
   const products = data?.data ?? [];
@@ -111,15 +53,13 @@ function ProductsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => setCatDialogOpen(true)}>
-          <Plus className="mr-1 h-3 w-3" />
-          {t("addCategory")}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setSeriesDialogOpen(true)}>
-          <Plus className="mr-1 h-3 w-3" />
-          {t("addSeries")}
-        </Button>
+      <div className="flex items-center justify-end">
+        <Link href="/shop/new">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("newProduct")}
+          </Button>
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -138,42 +78,6 @@ function ProductsTab() {
           placeholder={t("statusPlaceholder")}
           className="w-36"
         />
-        <Select
-          value={query.categoryId ?? "all"}
-          onValueChange={(v) =>
-            setQuery((p) => ({ ...p, categoryId: v === "all" ? undefined : v, page: 1 }))
-          }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder={t("categoryPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("categoryAll")}</SelectItem>
-            {categories?.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={query.seriesId ?? "all"}
-          onValueChange={(v) =>
-            setQuery((p) => ({ ...p, seriesId: v === "all" ? undefined : v, page: 1 }))
-          }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder={t("seriesPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("seriesAll")}</SelectItem>
-            {seriesList?.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {isLoading ? (
@@ -202,7 +106,7 @@ function ProductsTab() {
             {products.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="max-w-[240px]">
-                  <Link href={`/shop/${p.id}?from=manage`} className="font-medium hover:underline">
+                  <Link href={`/shop/${p.id}?from=seller`} className="font-medium hover:underline">
                     {p.name}
                   </Link>
                 </TableCell>
@@ -248,70 +152,6 @@ function ProductsTab() {
       {meta && (
         <PaginationBar meta={meta} onPageChange={(page) => setQuery((p) => ({ ...p, page }))} />
       )}
-
-      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("catDialogTitle")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{t("catNameLabel")}</Label>
-              <Input
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                placeholder={t("catNamePlaceholder")}
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={!newCatName || createCategory.isPending}
-              onClick={() => {
-                createCategory.mutate(newCatName, {
-                  onSuccess: () => {
-                    setCatDialogOpen(false);
-                    setNewCatName("");
-                  },
-                });
-              }}
-            >
-              {t("create")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={seriesDialogOpen} onOpenChange={setSeriesDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("seriesDialogTitle")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{t("seriesNameLabel")}</Label>
-              <Input
-                value={newSeriesName}
-                onChange={(e) => setNewSeriesName(e.target.value)}
-                placeholder={t("seriesNamePlaceholder")}
-              />
-            </div>
-            <Button
-              className="w-full"
-              disabled={!newSeriesName || createSeries.isPending}
-              onClick={() => {
-                createSeries.mutate(newSeriesName, {
-                  onSuccess: () => {
-                    setSeriesDialogOpen(false);
-                    setNewSeriesName("");
-                  },
-                });
-              }}
-            >
-              {t("create")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

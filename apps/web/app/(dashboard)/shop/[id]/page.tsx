@@ -26,7 +26,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const fromManage = searchParams.get("from") === "manage";
+  const from = searchParams.get("from");
+  // manage（owner+）/ seller（出品 member）どちらも管理コンテキスト: 編集導線を出し購入バーは隠す
+  const isManageContext = from === "manage" || from === "seller";
+  const backHref =
+    from === "manage" ? "/shop/manage" : from === "seller" ? "/shop/seller" : "/shop";
   const { data: product, isLoading } = useProduct(id);
   const createOrder = useCreateOrder();
   const [quantity, setQuantity] = useState("1");
@@ -82,12 +86,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     <>
       <div className="mx-auto max-w-2xl space-y-5 pb-24">
         <div className="flex items-center gap-2">
-          <Link href={fromManage ? "/shop/manage" : "/shop"}>
+          <Link href={backHref}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          {fromManage && (
+          {isManageContext && (
             <Link href={`/shop/${product.id}/edit`} className="ml-auto">
               <Button variant="outline" size="sm">
                 {t("edit")}
@@ -112,11 +116,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {product.category && <Badge variant="secondary">{product.category.name}</Badge>}
-            {product.series && <Badge variant="outline">{product.series.name}</Badge>}
             {outOfStock && <Badge variant="destructive">{t("soldOut")}</Badge>}
-            {beforeSale && <Badge variant="outline">{t("beforeSale")}</Badge>}
-            {afterSale && <Badge variant="outline">{t("afterSale")}</Badge>}
+            {beforeSale && <Badge variant="default">{t("beforeSale")}</Badge>}
+            {afterSale && <Badge variant="secondary">{t("afterSale")}</Badge>}
+            {product.category && <Badge variant="outline">{product.category.name}</Badge>}
+            {product.series && <Badge variant="outline">{product.series.name}</Badge>}
           </div>
           {salePeriod && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -138,7 +142,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      {!fromManage && (
+      {!isManageContext && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur">
           <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
             <div className="flex items-center gap-1">
@@ -189,6 +193,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 &yen;{(product.price * (Number(quantity) || 0)).toLocaleString()}
               </span>
             </div>
+            <p className="pt-1 text-xs text-muted-foreground">{t("confirmAmountNote")}</p>
           </div>
           <DialogFooter>
             <Button

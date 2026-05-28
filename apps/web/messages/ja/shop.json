@@ -67,10 +67,11 @@
     "seller": "販売者: {name}",
     "quantityLabel": "数量",
     "confirmTitle": "購入を申し込みますか？",
-    "confirmDescription": "申込後、販売者から支払い・受け渡しの連絡が来るまでお待ちください。",
+    "confirmDescription": "申込後、チャットで販売者から連絡が届きます。支払い・受け渡しはチャット内で取り決めてください。",
     "confirmProduct": "商品",
     "confirmQuantity": "数量",
     "confirmTotal": "合計",
+    "confirmAmountNote": "送料や値引きはチャットで最終確定します。",
     "confirmCancel": "キャンセル",
     "confirmSubmit": "申し込む"
   },
@@ -115,6 +116,7 @@
     "orderTabAll": "すべて",
     "emptyOrders": "注文がありません",
     "orderBuyer": "買い手: {name}",
+    "orderParties": "販売: {seller}・買い手: {buyer}",
     "summaryFrom": "開始日",
     "summaryTo": "終了日",
     "summaryClear": "クリア",
@@ -122,10 +124,36 @@
     "summaryOrderCount": "総注文数",
     "summaryByStatus": "ステータス別"
   },
-  "orders": {
-    "title": "注文履歴",
+  "seller": {
+    "title": "出品管理",
+    "tabProducts": "出品商品",
+    "tabOrders": "注文",
+    "tabSummary": "売上",
+    "newProduct": "商品登録",
+    "searchPlaceholder": "商品を検索...",
+    "statusPlaceholder": "ステータス",
     "loading": "読み込み中...",
-    "empty": "注文がありません",
+    "emptyProducts": "まだ出品がありません",
+    "colName": "商品名",
+    "colCategory": "カテゴリ",
+    "colSeries": "シリーズ",
+    "colPrice": "価格",
+    "colStock": "在庫",
+    "colPublish": "公開状態",
+    "colSales": "販売数",
+    "colCreated": "作成日",
+    "colActions": "操作",
+    "stockUnlimited": "無制限",
+    "edit": "編集",
+    "delete": "削除",
+    "deleteConfirmTitle": "商品を削除しますか？",
+    "deleteConfirmDescription": "「{name}」を削除します。この操作は取り消せません。",
+    "deleteCancel": "キャンセル"
+  },
+  "orders": {
+    "title": "購入履歴",
+    "loading": "読み込み中...",
+    "empty": "購入履歴がありません",
     "seller": "販売者: {name}"
   },
   "orderDetail": {
@@ -134,6 +162,7 @@
     "title": "注文詳細",
     "items": "商品",
     "total": "合計",
+    "totalNote": "実際の支払額（送料・値引き含む）はチャットで確定します。",
     "buyer": "買い手",
     "seller": "販売者",
     "orderedAt": "申込日: {date}",
@@ -141,7 +170,9 @@
     "canceledAt": "キャンセル日: {date}",
     "cancelButton": "キャンセルする",
     "statusChange": "ステータス変更",
-    "transitionTo": "{status}にする"
+    "transitionTo": "{status}にする",
+    "chatWithSeller": "販売者とチャット",
+    "chatWithBuyer": "買い手とチャット"
   },
   "orderStatus": {
     "in_progress": "申込中",
@@ -150,13 +181,16 @@
     "canceled": "キャンセル"
   },
   "card": {
-    "soldOut": "売切"
+    "soldOut": "売切",
+    "beforeSale": "販売開始前",
+    "afterSale": "販売終了"
   },
   "sidebar": {
     "backToMain": "メインメニュー",
     "title": "EC・ショップ",
     "navShop": "ショップ",
-    "navOrders": "注文履歴"
+    "navSeller": "出品管理",
+    "navOrders": "購入履歴"
   },
   "carousel": {
     "prev": "前の画像",

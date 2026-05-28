@@ -547,7 +547,7 @@ async function main() {
     {
       featureKey: "ec_shop",
       action: "create_product",
-      allowedRoles: ["owner", "admin"],
+      allowedRoles: ["owner", "admin", "member"],
     },
     {
       featureKey: "ec_shop",

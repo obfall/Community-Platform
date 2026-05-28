@@ -65,6 +65,16 @@ export interface OptionFeature {
   sortOrder: number;
 }
 
+// --- Permission Settings (機能アクションごとの許可ロール) ---
+
+export interface PermissionSetting {
+  id: string;
+  featureKey: string;
+  action: string;
+  allowedRoles: string[];
+  requiredRankId: string | null;
+}
+
 export interface ToggleOptionInput {
   isAvailable: boolean;
 }

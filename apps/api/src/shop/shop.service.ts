@@ -30,8 +30,32 @@ const ALLOWED_TRANSITIONS: Record<OrderStatusValue, OrderStatusValue[]> = {
   canceled: [],
 };
 
+// ステータス遷移に伴う通知テンプレ（in_progress はターゲットにならない＝通知不要）
+const STATUS_NOTIFICATION_TEMPLATES: Partial<
+  Record<
+    OrderStatusValue,
+    { type: string; title: string; body: (actor: string, products: string) => string }
+  >
+> = {
+  in_negotiation: {
+    type: "shop_order_negotiating",
+    title: "取引が開始されました",
+    body: (actor, products) => `${actor}さんが『${products}』の取引を開始しました`,
+  },
+  completed: {
+    type: "shop_order_completed",
+    title: "取引が完了しました",
+    body: (actor, products) => `${actor}さんが『${products}』の取引を完了しました`,
+  },
+  canceled: {
+    type: "shop_order_canceled",
+    title: "注文がキャンセルされました",
+    body: (actor, products) => `${actor}さんが『${products}』の注文をキャンセルしました`,
+  },
+};
+
 const DEFAULT_SHOP_ROLES = {
-  create_product: ["owner", "admin"],
+  create_product: ["owner", "admin", "member"],
   manage_all_products: ["owner", "admin"],
 } as const satisfies Record<string, readonly string[]>;
 
@@ -460,6 +484,62 @@ export class ShopService {
     };
   }
 
+  // システム全体（manage_all_products 権限保持者向け）の注文一覧
+  async getAllOrders(status?: OrderStatusValue) {
+    return this.prisma.order.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { createdAt: "desc" },
+      include: {
+        buyer: { select: { id: true, name: true } },
+        seller: { select: { id: true, name: true } },
+        items: true,
+      },
+    });
+  }
+
+  // システム全体の売上サマリー（販売者の絞り込み無し）
+  async getSystemSummary(from?: Date, to?: Date) {
+    const dateFilter: Prisma.OrderWhereInput =
+      from || to
+        ? {
+            createdAt: {
+              ...(from && { gte: from }),
+              ...(to && { lte: to }),
+            },
+          }
+        : {};
+
+    const [byStatus, completedAgg] = await Promise.all([
+      this.prisma.order.groupBy({
+        by: ["status"],
+        where: dateFilter,
+        _count: { _all: true },
+      }),
+      this.prisma.order.aggregate({
+        where: { ...dateFilter, status: "completed" },
+        _sum: { totalAmount: true },
+      }),
+    ]);
+
+    const counts = byStatus.reduce<Record<string, number>>((acc, row) => {
+      acc[row.status] = row._count._all;
+      return acc;
+    }, {});
+
+    return {
+      totalRevenue: completedAgg._sum.totalAmount ?? 0,
+      orderCount:
+        (counts.in_progress ?? 0) +
+        (counts.in_negotiation ?? 0) +
+        (counts.completed ?? 0) +
+        (counts.canceled ?? 0),
+      inProgressCount: counts.in_progress ?? 0,
+      inNegotiationCount: counts.in_negotiation ?? 0,
+      completedCount: counts.completed ?? 0,
+      canceledCount: counts.canceled ?? 0,
+    };
+  }
+
   async getOrder(orderId: string, userId: string, userRole: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -517,8 +597,8 @@ export class ShopService {
     const completedAt = newStatus === "completed" ? new Date() : undefined;
     const canceledAt = newStatus === "canceled" ? new Date() : undefined;
 
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.order.update({
         where: { id: orderId },
         data: {
           status: newStatus,
@@ -543,8 +623,60 @@ export class ShopService {
         );
       }
 
-      return updated;
+      return result;
     });
+
+    // 通知（失敗は握りつぶす）— トランザクション外で送信
+    await this.sendOrderStatusChangeNotification(updated, userId, newStatus);
+
+    return updated;
+  }
+
+  private async sendOrderStatusChangeNotification(
+    updated: {
+      id: string;
+      buyer: { id: string; name: string };
+      seller: { id: string; name: string };
+      items: Array<{ productName: string }>;
+    },
+    actorUserId: string,
+    newStatus: OrderStatusValue,
+  ) {
+    const template = STATUS_NOTIFICATION_TEMPLATES[newStatus];
+    if (!template) return;
+
+    try {
+      // 行為者本人以外の当事者（買い手・販売者）に通知。
+      // 管理者が当事者でない場合は両者へ。
+      const recipients: string[] = [];
+      if (actorUserId !== updated.buyer.id) recipients.push(updated.buyer.id);
+      if (actorUserId !== updated.seller.id) recipients.push(updated.seller.id);
+      if (recipients.length === 0) return;
+
+      const actorName =
+        actorUserId === updated.buyer.id
+          ? updated.buyer.name
+          : actorUserId === updated.seller.id
+            ? updated.seller.name
+            : "管理者";
+      const productNames = updated.items.map((i) => i.productName).join("、");
+
+      await Promise.all(
+        recipients.map((recipientUserId) =>
+          this.notifications.create({
+            userId: recipientUserId,
+            type: template.type,
+            title: template.title,
+            body: template.body(actorName, productNames),
+            referenceType: "shop_order",
+            referenceId: updated.id,
+            actorUserId,
+          }),
+        ),
+      );
+    } catch {
+      // 通知失敗は握りつぶす（createOrder と同じ方針）
+    }
   }
 
   // --- カテゴリ ---

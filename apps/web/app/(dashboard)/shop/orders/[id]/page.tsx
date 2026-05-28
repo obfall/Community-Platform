@@ -2,14 +2,15 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useOrder, useUpdateOrderStatus } from "@/hooks/shop/use-shop";
+import { useOpenDmRoom } from "@/hooks/chat/use-chat";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { OrderStatusBadge } from "../../_components/order-status-badge";
 import { ORDER_STATUS_NEXT_TRANSITIONS, type OrderStatus } from "@/lib/constants/order-status";
 
@@ -19,10 +20,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const backHref = from === "manage" ? "/shop/manage?tab=orders" : "/shop/orders";
+  const backHref =
+    from === "manage"
+      ? "/shop/manage?tab=orders"
+      : from === "seller"
+        ? "/shop/seller?tab=orders"
+        : "/shop/orders";
+  const router = useRouter();
   const { user } = useAuth();
   const { data: order, isLoading } = useOrder(id);
   const updateStatus = useUpdateOrderStatus();
+  const openDm = useOpenDmRoom();
 
   if (isLoading)
     return <div className="py-12 text-center text-muted-foreground">{t("loading")}</div>;
@@ -42,6 +50,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   const buyerOnlyCancel = isBuyer && !isSeller && availableTransitions.length > 0;
 
+  // 決済はチャットで取り決めるため、当事者には相手とのチャット導線を最上位に出す
+  const counterpartId = isBuyer ? order.seller.id : isSeller ? order.buyer.id : null;
+  const chatLabelKey: "chatWithSeller" | "chatWithBuyer" = isBuyer
+    ? "chatWithSeller"
+    : "chatWithBuyer";
+
+  const handleOpenChat = () => {
+    if (!counterpartId) return;
+    openDm.mutate(counterpartId, {
+      onSuccess: (room) => router.push(`/chat?room=${room.id}`),
+    });
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-center gap-2">
@@ -53,6 +74,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <h1 className="flex-1 text-xl font-bold">{t("title")}</h1>
         <OrderStatusBadge status={order.status} />
       </div>
+
+      {counterpartId && (
+        <Button className="w-full" size="lg" onClick={handleOpenChat} disabled={openDm.isPending}>
+          <MessageCircle className="mr-2 h-4 w-4" />
+          {t(chatLabelKey)}
+        </Button>
+      )}
 
       <Card>
         <CardHeader>
@@ -76,9 +104,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{t("total")}</span>
-            <span className="text-xl font-bold">&yen;{order.totalAmount.toLocaleString()}</span>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{t("total")}</span>
+              <span className="text-xl font-bold">&yen;{order.totalAmount.toLocaleString()}</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{t("totalNote")}</p>
           </div>
 
           <Separator />

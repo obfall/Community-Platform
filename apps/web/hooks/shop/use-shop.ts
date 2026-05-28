@@ -37,6 +37,7 @@ export function useCreateProduct() {
     mutationFn: shopApi.createProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
       toast.success(t("productCreated"));
     },
   });
@@ -49,6 +50,7 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => shopApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
       toast.success(t("productDeleted"));
     },
   });
@@ -62,6 +64,7 @@ export function useUpdateProduct() {
       shopApi.updateProduct(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "products"] });
       toast.success(t("productUpdated"));
     },
   });
@@ -130,6 +133,10 @@ export function useCreateOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "summary"] });
       toast.success(t("orderCreated"));
     },
   });
@@ -156,6 +163,20 @@ export function useSellerSummary(params?: { from?: string; to?: string }) {
   });
 }
 
+export function useAdminOrders(status?: string) {
+  return useQuery({
+    queryKey: ["shop", "admin", "orders", status ?? "all"],
+    queryFn: () => shopApi.getAdminOrders(status),
+  });
+}
+
+export function useAdminSummary(params?: { from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ["shop", "admin", "summary", params?.from ?? "", params?.to ?? ""],
+    queryFn: () => shopApi.getAdminSummary(params),
+  });
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   const t = useTranslations("shop.toast");
@@ -165,6 +186,10 @@ export function useUpdateOrderStatus() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "seller", "summary"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shop", "admin", "summary"] });
       toast.success(t("statusUpdated"));
     },
   });

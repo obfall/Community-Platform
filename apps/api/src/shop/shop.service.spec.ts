@@ -4,7 +4,13 @@ import { ShopService } from "./shop.service";
 describe("ShopService", () => {
   let prismaMock: {
     product: { findMany: jest.Mock; count: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
-    order: { findUnique: jest.Mock; create: jest.Mock };
+    order: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      findMany: jest.Mock;
+      groupBy: jest.Mock;
+      aggregate: jest.Mock;
+    };
     user: { findUnique: jest.Mock };
     permissionSetting: { findMany: jest.Mock; findUnique: jest.Mock };
     $queryRaw: jest.Mock;
@@ -25,6 +31,9 @@ describe("ShopService", () => {
       order: {
         findUnique: jest.fn(),
         create: jest.fn().mockResolvedValue({ id: "order-1", items: [] }),
+        findMany: jest.fn().mockResolvedValue([]),
+        groupBy: jest.fn().mockResolvedValue([]),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { totalAmount: 0 } }),
       },
       user: { findUnique: jest.fn().mockResolvedValue({ name: "買い手太郎" }) },
       permissionSetting: {
@@ -66,18 +75,18 @@ describe("ShopService", () => {
       expect(caps).toEqual({ canCreateProduct: true, canManageAllProducts: true });
     });
 
-    it("member はデフォルト権限では何もできない", async () => {
+    it("member はデフォルト権限で商品作成は可能だが全体管理はできない", async () => {
       prismaMock.permissionSetting.findMany.mockResolvedValue([]);
       const caps = await service.getShopCapabilities("member");
-      expect(caps).toEqual({ canCreateProduct: false, canManageAllProducts: false });
+      expect(caps).toEqual({ canCreateProduct: true, canManageAllProducts: false });
     });
 
-    it("DB のカスタム権限設定を尊重する（member に作成権限を付与）", async () => {
+    it("DB のカスタム権限設定を尊重する（member の作成権限を剥奪し owner/admin のみに）", async () => {
       prismaMock.permissionSetting.findMany.mockResolvedValue([
-        { action: "create_product", allowedRoles: ["member"] },
+        { action: "create_product", allowedRoles: ["owner", "admin"] },
       ]);
       const caps = await service.getShopCapabilities("member");
-      expect(caps.canCreateProduct).toBe(true);
+      expect(caps.canCreateProduct).toBe(false);
       expect(caps.canManageAllProducts).toBe(false);
     });
   });
@@ -247,6 +256,95 @@ describe("ShopService", () => {
         service.updateOrderStatus("o1", "b1", "member", "canceled"),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
+
+    describe("ステータス変更時の通知", () => {
+      const fullUpdated = (status: string) => ({
+        id: "o1",
+        status,
+        buyer: { id: "b1", name: "買い手太郎" },
+        seller: { id: "s1", name: "販売者花子" },
+        items: [{ productName: "商品X" }],
+      });
+
+      it("販売者が取引を開始すると買い手に shop_order_negotiating が送られる", async () => {
+        prismaMock.order.findUnique.mockResolvedValue({
+          id: "o1",
+          status: "in_progress",
+          buyerUserId: "b1",
+          sellerUserId: "s1",
+          items: [],
+        });
+        mockTransaction(fullUpdated("in_negotiation"));
+
+        await service.updateOrderStatus("o1", "s1", "member", "in_negotiation");
+
+        expect(notificationsMock.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: "b1",
+            type: "shop_order_negotiating",
+            referenceType: "shop_order",
+            referenceId: "o1",
+            actorUserId: "s1",
+          }),
+        );
+      });
+
+      it("買い手がキャンセルすると販売者に shop_order_canceled が送られる", async () => {
+        prismaMock.order.findUnique.mockResolvedValue({
+          id: "o1",
+          status: "in_progress",
+          buyerUserId: "b1",
+          sellerUserId: "s1",
+          items: [],
+        });
+        mockTransaction(fullUpdated("canceled"));
+
+        await service.updateOrderStatus("o1", "b1", "member", "canceled");
+
+        expect(notificationsMock.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: "s1",
+            type: "shop_order_canceled",
+            actorUserId: "b1",
+          }),
+        );
+      });
+
+      it("販売者が取引を完了すると買い手に shop_order_completed が送られる", async () => {
+        prismaMock.order.findUnique.mockResolvedValue({
+          id: "o1",
+          status: "in_negotiation",
+          buyerUserId: "b1",
+          sellerUserId: "s1",
+          items: [],
+        });
+        mockTransaction(fullUpdated("completed"));
+
+        await service.updateOrderStatus("o1", "s1", "member", "completed");
+
+        expect(notificationsMock.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: "b1",
+            type: "shop_order_completed",
+          }),
+        );
+      });
+
+      it("通知に失敗してもステータス更新は成功する", async () => {
+        prismaMock.order.findUnique.mockResolvedValue({
+          id: "o1",
+          status: "in_progress",
+          buyerUserId: "b1",
+          sellerUserId: "s1",
+          items: [],
+        });
+        mockTransaction(fullUpdated("in_negotiation"));
+        notificationsMock.create.mockRejectedValue(new Error("通知エラー"));
+
+        const result = await service.updateOrderStatus("o1", "s1", "member", "in_negotiation");
+        expect(result.status).toBe("in_negotiation");
+      });
+    });
   });
 
   describe("updateProduct / removeProduct: 所有者・管理権限チェック", () => {
@@ -268,6 +366,44 @@ describe("ShopService", () => {
       await expect(service.removeProduct("intruder", "member", "p1")).rejects.toBeInstanceOf(
         ForbiddenException,
       );
+    });
+  });
+
+  describe("getAllOrders: 全注文（システム全体）", () => {
+    it("status 未指定なら where は undefined（全件取得）", async () => {
+      await service.getAllOrders();
+      const arg = prismaMock.order.findMany.mock.calls[0][0];
+      expect(arg.where).toBeUndefined();
+    });
+
+    it("status 指定でその status に絞り込まれる", async () => {
+      await service.getAllOrders("completed");
+      const arg = prismaMock.order.findMany.mock.calls[0][0];
+      expect(arg.where).toEqual({ status: "completed" });
+    });
+  });
+
+  describe("getSystemSummary: システム全体の売上サマリー", () => {
+    it("売上合計は completed のみを集計し、件数はステータス別に展開される", async () => {
+      prismaMock.order.groupBy.mockResolvedValue([
+        { status: "in_progress", _count: { _all: 2 } },
+        { status: "completed", _count: { _all: 5 } },
+        { status: "canceled", _count: { _all: 1 } },
+      ]);
+      prismaMock.order.aggregate.mockResolvedValue({ _sum: { totalAmount: 12345 } });
+
+      const summary = await service.getSystemSummary();
+      expect(summary).toEqual({
+        totalRevenue: 12345,
+        orderCount: 8,
+        inProgressCount: 2,
+        inNegotiationCount: 0,
+        completedCount: 5,
+        canceledCount: 1,
+      });
+      // aggregate は completed のみ
+      const aggArg = prismaMock.order.aggregate.mock.calls[0][0];
+      expect(aggArg.where).toEqual(expect.objectContaining({ status: "completed" }));
     });
   });
 });
