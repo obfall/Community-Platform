@@ -99,7 +99,10 @@ export class VideoProcessorService {
 
       this.logger.log(`Video ${videoId} processed successfully`);
     } catch (error) {
-      this.logger.error(`Video ${videoId} processing failed:`, error);
+      const err = error as Error;
+      this.logger.error(
+        `Video ${videoId} processing failed: ${err?.message ?? String(error)}\n${err?.stack ?? ""}`,
+      );
       await this.prisma.video.update({
         where: { id: videoId },
         data: { streamStatus: "error" },
