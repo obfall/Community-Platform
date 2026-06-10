@@ -1,3 +1,6 @@
+// TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+// playbackUrl が .mp4 の場合は hls.js を初期化せず素の <video> で直再生する。
+// 詳細: docs/動画HLS変換のOOM障害と対策.md
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -25,6 +28,12 @@ export function HlsPlayer({ playbackUrl, streamStatus, videoId, durationSeconds 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !playbackUrl) return;
+
+    // TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+    if (playbackUrl.endsWith(".mp4")) {
+      video.src = playbackUrl;
+      return;
+    }
 
     if (Hls.isSupported()) {
       const hls = new Hls();
