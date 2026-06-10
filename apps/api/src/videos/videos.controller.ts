@@ -101,7 +101,9 @@ export class VideosController {
   }
 
   @Post("upload")
-  @ApiOperation({ summary: "動画アップロード（ファイル → HLS 変換）" })
+  @ApiOperation({
+    summary: "動画アップロード（ファイル → MP4 直配信 or HLS 変換、VIDEO_OUTPUT_FORMAT で切替）",
+  })
   @ApiConsumes("multipart/form-data")
   @ApiResponse({ status: 201, description: "uploading 状態の動画レコード" })
   @ApiResponse({ status: 400, description: "ファイル未指定 / 不正 JSON フィールド" })
@@ -130,9 +132,9 @@ export class VideosController {
 
     const video = await this.service.createForUpload(userId, body);
 
-    // バックグラウンドで HLS 変換を開始（レスポンスは即返す）
+    // バックグラウンドで動画処理を開始（MP4 or HLS は VIDEO_OUTPUT_FORMAT 依存）
     this.processor.processVideo(video.id, file.buffer, file.originalname).catch((err) => {
-      this.logger.error(`Background HLS processing failed (videoId=${video.id})`, err);
+      this.logger.error(`Background video processing failed (videoId=${video.id})`, err);
     });
 
     return video;
@@ -257,7 +259,7 @@ export class VideosController {
 
     const result = await this.service.resetStreamForReplace(id);
     this.processor.processVideo(result.id, file.buffer, file.originalname).catch((err) => {
-      this.logger.error(`Background HLS processing failed (videoId=${result.id})`, err);
+      this.logger.error(`Background video processing failed (videoId=${result.id})`, err);
     });
 
     return { id: result.id, streamStatus: "processing" };

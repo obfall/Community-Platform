@@ -1,3 +1,6 @@
+// TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+// Railway 無料プランの OOM 回避のため、env で MP4 直配信に切替可能にしている。
+// 詳細: docs/動画HLS変換のOOM障害と対策.md / docs/plans/videos/mp4-temporary-distribution.md
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@/prisma/prisma.service";
@@ -7,6 +10,22 @@ const ffmpeg = require("fluent-ffmpeg");
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+
+interface VideoMetadata {
+  duration: number | null;
+  videoCodec: string | null;
+  audioCodec: string | null;
+}
+
+interface FfprobeStream {
+  codec_type?: string;
+  codec_name?: string;
+}
+
+interface FfprobeMetadata {
+  format: { duration?: number };
+  streams: FfprobeStream[];
+}
 
 @Injectable()
 export class VideoProcessorService {
@@ -23,31 +42,75 @@ export class VideoProcessorService {
   }
 
   /**
-   * 動画ファイルを HLS に変換して MinIO/R2 にアップロード
+   * 動画ファイルを MP4 (default) または HLS に変換して MinIO/R2 にアップロード。
+   * VIDEO_OUTPUT_FORMAT=hls で HLS 経路に切替（既存挙動）。
+   * VideoProvider enum は `r2_hls` のまま流用し、実体は playbackUrl の拡張子で識別する。
    */
   async processVideo(videoId: string, inputBuffer: Buffer, originalName: string): Promise<void> {
     const tmpDir = path.join(os.tmpdir(), `hls-${videoId}`);
     const inputPath = path.join(tmpDir, originalName);
     const outputDir = path.join(tmpDir, "hls");
+    // TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+    const outputFormat = this.config.get<string>("VIDEO_OUTPUT_FORMAT") ?? "mp4";
 
     try {
-      // ステータスを processing に
       await this.prisma.video.update({
         where: { id: videoId },
         data: { streamStatus: "processing" },
       });
 
-      // 一時ディレクトリ作成
       fs.mkdirSync(outputDir, { recursive: true });
       fs.writeFileSync(inputPath, inputBuffer);
 
-      // 動画の長さを取得
-      const durationSeconds = await this.getVideoDuration(inputPath);
+      const metadata = await this.getVideoMetadata(inputPath);
 
-      // HLS に変換
+      // TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+      if (outputFormat === "mp4") {
+        // -c copy は H.264/AAC を前提とするため、不適合コーデックは事前に弾く
+        if (metadata.videoCodec !== "h264" || metadata.audioCodec !== "aac") {
+          this.logger.warn(
+            `Video ${videoId} has unsupported codec for MP4 direct playback: video=${metadata.videoCodec}, audio=${metadata.audioCodec}`,
+          );
+          await this.prisma.video.update({
+            where: { id: videoId },
+            data: { streamStatus: "error" },
+          });
+          return;
+        }
+
+        const mp4StorageKey = `videos/${videoId}/source.mp4`;
+        const mp4LocalPath = path.join(tmpDir, "source.mp4");
+
+        await this.convertToMp4(inputPath, mp4LocalPath);
+        const mp4Buffer = fs.readFileSync(mp4LocalPath);
+        await this.storage.upload(mp4StorageKey, mp4Buffer, "video/mp4");
+
+        const thumbnailUrl = await this.uploadThumbnail(
+          videoId,
+          inputPath,
+          tmpDir,
+          metadata.duration,
+        );
+        const publicUrl = this.storage.getPublicUrl(mp4StorageKey);
+
+        await this.prisma.video.update({
+          where: { id: videoId },
+          data: {
+            streamStatus: "ready",
+            playbackUrl: publicUrl,
+            videoExternalId: `videos/${videoId}`,
+            durationSeconds: metadata.duration ? Math.round(metadata.duration) : null,
+            thumbnailUrl,
+          },
+        });
+
+        this.logger.log(`Video ${videoId} processed as MP4 direct distribution`);
+        return;
+      }
+
+      // 既存 HLS 経路（VIDEO_OUTPUT_FORMAT=hls 時 / Cloudflare Stream 移行時はこちらが本流）
       await this.convertToHls(inputPath, outputDir);
 
-      // HLS ファイルを MinIO/R2 にアップロード
       const storagePrefix = `videos/${videoId}/hls`;
       const hlsFiles = this.getFilesRecursive(outputDir);
 
@@ -60,39 +123,21 @@ export class VideoProcessorService {
         await this.storage.upload(storageKey, fileBuffer, contentType);
       }
 
-      // サムネイル抽出 + アップロード
-      let thumbnailUrl: string | null = null;
-      try {
-        const seekSeconds = durationSeconds
-          ? Math.max(0, Math.min(durationSeconds * 0.1, durationSeconds - 0.1))
-          : 1;
-        const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
-
-        await this.extractThumbnail(inputPath, thumbnailPath, seekSeconds);
-
-        const thumbnailKey = `videos/${videoId}/thumbnail.jpg`;
-        const thumbnailBuffer = fs.readFileSync(thumbnailPath);
-        thumbnailUrl = await this.storage.upload(thumbnailKey, thumbnailBuffer, "image/jpeg");
-
-        this.logger.log(`Thumbnail generated for video ${videoId}`);
-      } catch (thumbErr) {
-        this.logger.warn(
-          `Thumbnail extraction failed for video ${videoId}:`,
-          (thumbErr as Error).message,
-        );
-      }
-
-      // playbackUrl を設定
+      const thumbnailUrl = await this.uploadThumbnail(
+        videoId,
+        inputPath,
+        tmpDir,
+        metadata.duration,
+      );
       const publicUrl = this.storage.getPublicUrl(`${storagePrefix}/playlist.m3u8`);
 
-      // ステータスを ready に + 動画長・サムネイルを保存
       await this.prisma.video.update({
         where: { id: videoId },
         data: {
           streamStatus: "ready",
           playbackUrl: publicUrl,
           videoExternalId: storagePrefix,
-          durationSeconds: durationSeconds ? Math.round(durationSeconds) : null,
+          durationSeconds: metadata.duration ? Math.round(metadata.duration) : null,
           thumbnailUrl,
         },
       });
@@ -108,24 +153,68 @@ export class VideoProcessorService {
         data: { streamStatus: "error" },
       });
     } finally {
-      // 一時ファイル削除
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   }
 
-  private getVideoDuration(inputPath: string): Promise<number | null> {
+  private getVideoMetadata(inputPath: string): Promise<VideoMetadata> {
     return new Promise((resolve) => {
-      ffmpeg.ffprobe(
-        inputPath,
-        (err: Error | null, metadata: { format: { duration?: number } }) => {
-          if (err) {
-            this.logger.warn("Could not get video duration:", err.message);
-            resolve(null);
-            return;
-          }
-          resolve(metadata.format.duration ?? null);
-        },
+      ffmpeg.ffprobe(inputPath, (err: Error | null, metadata: FfprobeMetadata) => {
+        if (err) {
+          this.logger.warn("Could not get video metadata:", err.message);
+          resolve({ duration: null, videoCodec: null, audioCodec: null });
+          return;
+        }
+        const videoStream = metadata.streams.find((s) => s.codec_type === "video");
+        const audioStream = metadata.streams.find((s) => s.codec_type === "audio");
+        resolve({
+          duration: metadata.format.duration ?? null,
+          videoCodec: videoStream?.codec_name ?? null,
+          audioCodec: audioStream?.codec_name ?? null,
+        });
+      });
+    });
+  }
+
+  private async uploadThumbnail(
+    videoId: string,
+    inputPath: string,
+    tmpDir: string,
+    durationSeconds: number | null,
+  ): Promise<string | null> {
+    try {
+      const seekSeconds = durationSeconds
+        ? Math.max(0, Math.min(durationSeconds * 0.1, durationSeconds - 0.1))
+        : 1;
+      const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
+
+      await this.extractThumbnail(inputPath, thumbnailPath, seekSeconds);
+
+      const thumbnailKey = `videos/${videoId}/thumbnail.jpg`;
+      const thumbnailBuffer = fs.readFileSync(thumbnailPath);
+      const url = await this.storage.upload(thumbnailKey, thumbnailBuffer, "image/jpeg");
+
+      this.logger.log(`Thumbnail generated for video ${videoId}`);
+      return url;
+    } catch (thumbErr) {
+      this.logger.warn(
+        `Thumbnail extraction failed for video ${videoId}:`,
+        (thumbErr as Error).message,
       );
+      return null;
+    }
+  }
+
+  // TEMP: VIDEO_OUTPUT_FORMAT=mp4 (Cloudflare Stream 移行までの暫定)
+  private convertToMp4(inputPath: string, outputPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .setFfmpegPath(this.ffmpegPath)
+        .outputOptions(["-c", "copy", "-movflags", "+faststart"])
+        .output(outputPath)
+        .on("end", () => resolve())
+        .on("error", (err: Error) => reject(err))
+        .run();
     });
   }
 
