@@ -36,6 +36,7 @@ export {
   MAX_SPEAKER_TITLE_LENGTH,
 } from "./events";
 export { MAX_PROJECT_TAGS, MAX_PROJECT_TAG_LENGTH } from "./projects";
+export { KANA_PATTERN } from "./users";
 export {
   MAX_VIDEO_TITLE_LENGTH,
   MAX_VIDEO_TASK_TITLE_LENGTH,

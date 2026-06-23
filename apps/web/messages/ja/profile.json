@@ -1,4 +1,7 @@
 {
+  "validation": {
+    "kanaOnly": "全角カタカナで入力してください"
+  },
   "nav": {
     "profile": "プロフィール",
     "activity": "アクティビティ",

@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsEnum, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { KANA_PATTERN } from "@community-platform/shared";
 import type { PublicStatus } from "@prisma/client";
 
 export class UpdatePublicInfoDto {
@@ -13,6 +14,7 @@ export class UpdatePublicInfoDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @Matches(KANA_PATTERN, { message: "ニックネーム（カナ）は全角カタカナで入力してください" })
   nicknameKana?: string;
 
   @ApiPropertyOptional()

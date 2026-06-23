@@ -111,4 +111,29 @@ describe("PublicInfoForm（公開情報フォーム）", () => {
       expect(replaceAsync).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("ニックネーム（カナ）のバリデーション", () => {
+    it("全角カタカナ以外を入力するとエラーが表示され送信されない", async () => {
+      const mutateAsync = vi.fn().mockResolvedValue(undefined);
+      setupMocks({ profile: baseProfile, mutateAsync });
+      renderWithProviders(<PublicInfoForm />);
+
+      await userEvent.type(screen.getByPlaceholderText("ヒョウジメイ"), "taro");
+      await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+      expect(await screen.findByText("全角カタカナで入力してください")).toBeInTheDocument();
+      expect(mutateAsync).not.toHaveBeenCalled();
+    });
+
+    it("全角カタカナを入力すると送信される", async () => {
+      const mutateAsync = vi.fn().mockResolvedValue(undefined);
+      setupMocks({ profile: baseProfile, mutateAsync });
+      renderWithProviders(<PublicInfoForm />);
+
+      await userEvent.type(screen.getByPlaceholderText("ヒョウジメイ"), "タロウ");
+      await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+      expect(mutateAsync).toHaveBeenCalledTimes(1);
+    });
+  });
 });

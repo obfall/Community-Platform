@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { KANA_PATTERN } from "@community-platform/shared";
 import type { Gender } from "@prisma/client";
 
 export class UpdateProfileDto {
@@ -18,6 +19,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @Matches(KANA_PATTERN, { message: "名前（カナ）は全角カタカナで入力してください" })
   nameKana?: string;
 
   @ApiPropertyOptional({ enum: ["male", "female", "other", "prefer_not_to_say"] })

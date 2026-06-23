@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { KANA_PATTERN } from "@community-platform/shared";
 import { useTranslations } from "next-intl";
 import { useMyProfile, useUpdatePublicInfo } from "@/hooks/profile/use-profile";
 import { useInterestCategories, useReplaceInterests } from "@/hooks/profile/use-interests";
@@ -101,21 +102,28 @@ const EVENT_ROLE_VALUES = [
   "performer",
 ] as const;
 
-const publicInfoSchema = z.object({
-  nickname: z.string().max(100).optional().or(z.literal("")),
-  nicknameKana: z.string().max(100).optional().or(z.literal("")),
-  specialties: z.array(z.string()),
-  prefecture: z.string().max(50).optional().or(z.literal("")),
-  city: z.string().max(100).optional().or(z.literal("")),
-  foreignCountry: z.string().max(100).optional().or(z.literal("")),
-  foreignCity: z.string().max(100).optional().or(z.literal("")),
-  introduction: z.string().optional().or(z.literal("")),
-  eventRoles: z.array(z.string()),
-  interestCategoryIds: z.array(z.string()),
-  isPublic: z.boolean(),
-});
+function buildPublicInfoSchema(t: (key: string) => string) {
+  return z.object({
+    nickname: z.string().max(100).optional().or(z.literal("")),
+    nicknameKana: z
+      .string()
+      .max(100)
+      .regex(KANA_PATTERN, t("validation.kanaOnly"))
+      .optional()
+      .or(z.literal("")),
+    specialties: z.array(z.string()),
+    prefecture: z.string().max(50).optional().or(z.literal("")),
+    city: z.string().max(100).optional().or(z.literal("")),
+    foreignCountry: z.string().max(100).optional().or(z.literal("")),
+    foreignCity: z.string().max(100).optional().or(z.literal("")),
+    introduction: z.string().optional().or(z.literal("")),
+    eventRoles: z.array(z.string()),
+    interestCategoryIds: z.array(z.string()),
+    isPublic: z.boolean(),
+  });
+}
 
-type PublicInfoFormValues = z.infer<typeof publicInfoSchema>;
+type PublicInfoFormValues = z.infer<ReturnType<typeof buildPublicInfoSchema>>;
 
 export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   const t = useTranslations("profile");
@@ -128,6 +136,8 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   const updateMutation = useUpdatePublicInfo();
   const replaceInterestsMutation = useReplaceInterests();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const publicInfoSchema = useMemo(() => buildPublicInfoSchema((k) => t(k)), [t]);
 
   const form = useForm<PublicInfoFormValues>({
     resolver: zodResolver(publicInfoSchema),

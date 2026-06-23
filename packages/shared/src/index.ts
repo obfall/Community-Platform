@@ -48,6 +48,8 @@ export {
   // Projects
   MAX_PROJECT_TAGS,
   MAX_PROJECT_TAG_LENGTH,
+  // Users
+  KANA_PATTERN,
   // Videos
   MAX_VIDEO_TITLE_LENGTH,
   MAX_VIDEO_TASK_TITLE_LENGTH,

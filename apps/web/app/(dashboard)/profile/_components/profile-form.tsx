@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -8,6 +8,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { KANA_PATTERN } from "@community-platform/shared";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/profile/use-profile";
@@ -52,17 +53,24 @@ const affiliationSchema = z.object({
   jobTitle: z.string().max(200).optional().or(z.literal("")),
 });
 
-const profileSchema = z.object({
-  nameKana: z.string().max(100).optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
-  birthday: z.string().optional().or(z.literal("")),
-  gender: z.string().optional().or(z.literal("")),
-  occupation: z.string().optional().or(z.literal("")),
-  countryOfOrigin: z.string().max(100).optional().or(z.literal("")),
-  affiliations: z.array(affiliationSchema),
-});
+function buildProfileSchema(t: (key: string) => string) {
+  return z.object({
+    nameKana: z
+      .string()
+      .max(100)
+      .regex(KANA_PATTERN, t("validation.kanaOnly"))
+      .optional()
+      .or(z.literal("")),
+    phone: z.string().max(20).optional().or(z.literal("")),
+    birthday: z.string().optional().or(z.literal("")),
+    gender: z.string().optional().or(z.literal("")),
+    occupation: z.string().optional().or(z.literal("")),
+    countryOfOrigin: z.string().max(100).optional().or(z.literal("")),
+    affiliations: z.array(affiliationSchema),
+  });
+}
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = z.infer<ReturnType<typeof buildProfileSchema>>;
 
 export function ProfileForm({ returnTo }: { returnTo?: string }) {
   const t = useTranslations("profile");
@@ -77,6 +85,8 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
+
+  const profileSchema = useMemo(() => buildProfileSchema((k) => t(k)), [t]);
 
   const headerUpload = useMutation({
     mutationFn: async (file: File) => {
