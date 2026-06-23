@@ -194,6 +194,21 @@
       "confirmed": "確定",
       "attended": "参加済",
       "no_show": "不参加"
+    },
+    "detail": {
+      "title": "チケット詳細",
+      "ticketName": "チケット",
+      "price": "金額",
+      "quantity": "枚数",
+      "paymentStatus": "支払い状況",
+      "appliedAt": "申込日時",
+      "viewEvent": "イベントページを見る",
+      "close": "閉じる",
+      "cancel": "申込をキャンセル",
+      "confirmTitle": "申込をキャンセルしますか？",
+      "confirmDescription": "この操作は取り消せません。キャンセルすると、このチケットは一覧から削除されます。",
+      "confirmAction": "キャンセルする",
+      "confirmBack": "戻る"
     }
   },
   "tasks": {
