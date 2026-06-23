@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMemos, useMemoCategories, useCreateMemoCategory } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,8 @@ import {
 import { Plus, StickyNote, FolderPlus } from "lucide-react";
 
 export default function MemoPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const [search, setSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
@@ -51,11 +54,11 @@ export default function MemoPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">メモ</h2>
+        <h2 className="text-xl font-bold">{t("memo.list.title")}</h2>
         <Link href="/profile/memo/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            作成
+            {t("memo.list.create")}
           </Button>
         </Link>
       </div>
@@ -66,7 +69,7 @@ export default function MemoPage() {
           value={search}
           onChange={setSearch}
           onSubmit={setSearchQuery}
-          placeholder="メモを検索..."
+          placeholder={t("memo.list.searchPlaceholder")}
         />
         <div className="flex items-center gap-2">
           <Select
@@ -74,10 +77,10 @@ export default function MemoPage() {
             onValueChange={(v) => setCategoryId(v === "all" ? undefined : v)}
           >
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="カテゴリ" />
+              <SelectValue placeholder={t("memo.list.category")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">すべて</SelectItem>
+              <SelectItem value="all">{t("memo.list.allCategories")}</SelectItem>
               {(categories ?? []).map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -93,10 +96,10 @@ export default function MemoPage() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>カテゴリ追加</DialogTitle>
+                <DialogTitle>{t("memo.list.addCategory")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-2">
-                <Label>カテゴリ名</Label>
+                <Label>{t("memo.list.categoryName")}</Label>
                 <Input
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
@@ -107,7 +110,7 @@ export default function MemoPage() {
                   onClick={handleCreateCategory}
                   disabled={!newCategoryName || createCategory.isPending}
                 >
-                  追加
+                  {t("memo.list.add")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -117,11 +120,11 @@ export default function MemoPage() {
 
       {/* メモ一覧 */}
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : (memos ?? []).length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <StickyNote className="mx-auto mb-4 h-12 w-12" />
-          <p>メモがありません</p>
+          <p>{t("memo.list.empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">

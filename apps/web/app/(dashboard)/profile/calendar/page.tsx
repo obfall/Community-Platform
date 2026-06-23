@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   useSchedules,
   useCreateSchedule,
@@ -41,6 +42,8 @@ function fmtDate(d: Date) {
 }
 
 export default function ProfileCalendarPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { user } = useAuth();
   const { data: schedules } = useSchedules();
@@ -241,7 +244,7 @@ export default function ProfileCalendarPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("削除しますか?")) deleteSchedule.mutate(id);
+    if (confirm(t("calendar.deleteConfirm"))) deleteSchedule.mutate(id);
   };
 
   const scheduleMap = new Map((schedules ?? []).map((s) => [s.id, s]));
@@ -249,7 +252,7 @@ export default function ProfileCalendarPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">カレンダー</h1>
+        <h1 className="text-2xl font-bold">{t("calendar.title")}</h1>
         <div className="flex items-center gap-4 text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -257,7 +260,7 @@ export default function ProfileCalendarPage() {
               onCheckedChange={(v) => setShowSchedules(!!v)}
               className="border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
             />
-            予定
+            {t("calendar.filters.schedules")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -265,7 +268,7 @@ export default function ProfileCalendarPage() {
               onCheckedChange={(v) => setShowReservations(!!v)}
               className="border-green-400 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
             />
-            マイ予約
+            {t("calendar.filters.reservations")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -273,7 +276,7 @@ export default function ProfileCalendarPage() {
               onCheckedChange={(v) => setShowTasks(!!v)}
               className="border-orange-400 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
             />
-            マイタスク
+            {t("calendar.filters.tasks")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -281,7 +284,7 @@ export default function ProfileCalendarPage() {
               onCheckedChange={(v) => setShowTickets(!!v)}
               className="border-gray-400 data-[state=checked]:bg-gray-400 data-[state=checked]:border-gray-400"
             />
-            マイチケット
+            {t("calendar.filters.tickets")}
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox
@@ -289,7 +292,7 @@ export default function ProfileCalendarPage() {
               onCheckedChange={(v) => setShowProjectSchedules(!!v)}
               className="border-purple-400 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
             />
-            プロジェクトの予定
+            {t("calendar.filters.projectSchedules")}
           </label>
         </div>
       </div>
@@ -309,7 +312,11 @@ export default function ProfileCalendarPage() {
           <DialogHeader>
             <DialogTitle>
               {selectedDay &&
-                `${selectedDay.getFullYear()}年${selectedDay.getMonth() + 1}月${selectedDay.getDate()}日`}
+                t("calendar.dialogDate", {
+                  year: selectedDay.getFullYear(),
+                  month: selectedDay.getMonth() + 1,
+                  day: selectedDay.getDate(),
+                })}
             </DialogTitle>
           </DialogHeader>
 
@@ -317,7 +324,7 @@ export default function ProfileCalendarPage() {
             <>
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {selectedDayItems.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">予定はありません</p>
+                  <p className="text-sm text-muted-foreground">{t("calendar.empty")}</p>
                 ) : (
                   selectedDayItems.map((item) => {
                     const s = scheduleMap.get(item.id);
@@ -341,7 +348,7 @@ export default function ProfileCalendarPage() {
                             <div className="font-semibold">{item.title}</div>
                             <div className="text-xs text-muted-foreground">
                               {item.isAllDay
-                                ? "終日"
+                                ? t("calendar.allDay")
                                 : `${new Date(item.startAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} - ${new Date(item.endAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}`}
                             </div>
                             {s?.location && (
@@ -372,7 +379,7 @@ export default function ProfileCalendarPage() {
               <DialogFooter>
                 <Button onClick={openCreateForm}>
                   <Plus className="mr-2 h-4 w-4" />
-                  予定を追加
+                  {t("calendar.addSchedule")}
                 </Button>
               </DialogFooter>
             </>
@@ -380,11 +387,11 @@ export default function ProfileCalendarPage() {
             <>
               <div className="space-y-3">
                 <div>
-                  <Label>タイトル</Label>
+                  <Label>{t("calendar.form.title")}</Label>
                   <Input value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
                 <div>
-                  <Label>説明</Label>
+                  <Label>{t("calendar.form.description")}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -393,7 +400,7 @@ export default function ProfileCalendarPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label>開始</Label>
+                    <Label>{t("calendar.form.start")}</Label>
                     <Input
                       type="datetime-local"
                       value={startAtStr}
@@ -401,7 +408,7 @@ export default function ProfileCalendarPage() {
                     />
                   </div>
                   <div>
-                    <Label>終了</Label>
+                    <Label>{t("calendar.form.end")}</Label>
                     <Input
                       type="datetime-local"
                       value={endAtStr}
@@ -410,19 +417,19 @@ export default function ProfileCalendarPage() {
                   </div>
                 </div>
                 <div>
-                  <Label>場所</Label>
+                  <Label>{t("calendar.form.location")}</Label>
                   <Input value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={resetForm}>
-                  キャンセル
+                  {tCommon("cancel")}
                 </Button>
                 <Button
                   onClick={handleSave}
                   disabled={!title || !startAtStr || !endAtStr || createSchedule.isPending}
                 >
-                  保存
+                  {tCommon("save")}
                 </Button>
               </DialogFooter>
             </>

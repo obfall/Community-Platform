@@ -1,21 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMemberEvents, useMemberProjects } from "@/hooks/members/use-members";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, FolderKanban, Users } from "lucide-react";
 import type { UserEventItem, UserProjectItem } from "@/lib/api/types";
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_VARIANTS } from "@/lib/projects/project-status";
-
-const EVENT_STATUS_LABELS: Record<string, string> = {
-  draft: "下書き",
-  recruiting: "募集中",
-  closed: "締切",
-  canceled: "中止",
-  ended: "終了",
-};
+import { PROJECT_STATUS_VARIANTS } from "@/lib/projects/project-status";
 
 const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   recruiting: "default",
@@ -26,13 +19,16 @@ const EVENT_STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructi
 };
 
 export default function ProfileActivityPage() {
+  const t = useTranslations("profile");
+  const tEventStatus = useTranslations("enums.eventStatus");
+  const tProjectStatus = useTranslations("enums.projectStatus");
   const { user } = useAuth();
   const { data: events } = useMemberEvents(user?.id);
   const { data: projects } = useMemberProjects(user?.id);
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">アクティビティ</h2>
+      <h2 className="text-xl font-bold">{t("activity.title")}</h2>
 
       {/* サマリー */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -41,7 +37,7 @@ export default function ProfileActivityPage() {
             <CalendarDays className="h-8 w-8 text-muted-foreground" />
             <div>
               <p className="text-2xl font-bold">{events?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">参加イベント</p>
+              <p className="text-xs text-muted-foreground">{t("activity.eventsLabel")}</p>
             </div>
           </CardContent>
         </Card>
@@ -50,7 +46,7 @@ export default function ProfileActivityPage() {
             <FolderKanban className="h-8 w-8 text-muted-foreground" />
             <div>
               <p className="text-2xl font-bold">{projects?.length ?? 0}</p>
-              <p className="text-xs text-muted-foreground">参加プロジェクト</p>
+              <p className="text-xs text-muted-foreground">{t("activity.projectsLabel")}</p>
             </div>
           </CardContent>
         </Card>
@@ -61,13 +57,13 @@ export default function ProfileActivityPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            参加イベント
+            {t("activity.eventsLabel")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!events || events.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              参加イベントはありません
+              {t("activity.noEvents")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -92,7 +88,7 @@ export default function ProfileActivityPage() {
                     variant={EVENT_STATUS_VARIANTS[event.status] ?? "secondary"}
                     className="text-xs"
                   >
-                    {EVENT_STATUS_LABELS[event.status] ?? event.status}
+                    {tEventStatus.has(event.status) ? tEventStatus(event.status) : event.status}
                   </Badge>
                 </Link>
               ))}
@@ -106,13 +102,13 @@ export default function ProfileActivityPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
-            参加プロジェクト
+            {t("activity.projectsLabel")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!projects || projects.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              参加プロジェクトはありません
+              {t("activity.noProjects")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -139,7 +135,9 @@ export default function ProfileActivityPage() {
                     variant={PROJECT_STATUS_VARIANTS[project.status] ?? "secondary"}
                     className="text-xs"
                   >
-                    {PROJECT_STATUS_LABELS[project.status] ?? project.status}
+                    {tProjectStatus.has(project.status)
+                      ? tProjectStatus(project.status)
+                      : project.status}
                   </Badge>
                 </Link>
               ))}

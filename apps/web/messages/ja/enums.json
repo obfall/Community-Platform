@@ -2,8 +2,15 @@
   "role": {
     "admin": "管理者",
     "owner": "運営者",
+    "moderator": "モデレーター",
     "member": "メンバー",
     "visitor": "ビジター"
+  },
+  "gender": {
+    "male": "男性",
+    "female": "女性",
+    "other": "その他",
+    "prefer_not_to_say": "回答しない"
   },
   "occupation": {
     "company_employee": "会社員",

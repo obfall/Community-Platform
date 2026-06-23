@@ -1,0 +1,360 @@
+{
+  "nav": {
+    "profile": "プロフィール",
+    "activity": "アクティビティ",
+    "points": "ポイント",
+    "library": "マイライブラリー",
+    "tickets": "マイチケット",
+    "reservations": "マイ予約",
+    "tasks": "マイタスク",
+    "calendar": "カレンダー",
+    "memo": "メモ",
+    "settings": "個人設定",
+    "mainMenu": "メインメニュー",
+    "pointsLabel": "ポイント",
+    "home": "ホーム",
+    "myPage": "マイページ",
+    "editHeading": "プロフィール編集",
+    "publicInfoHeading": "公開情報編集",
+    "attributesHeading": "カスタム属性編集"
+  },
+  "view": {
+    "title": "プロフィール",
+    "pointsSuffix": "ポイント",
+    "joinedSuffix": "に参加",
+    "profileInfo": "プロフィール情報",
+    "edit": "編集",
+    "nameKana": "名前（カナ）",
+    "occupation": "職業",
+    "phone": "電話番号",
+    "birthday": "誕生日",
+    "gender": "性別",
+    "countryOfOrigin": "出身国",
+    "affiliations": "所属 / 部署 / 肩書",
+    "publicInfo": "公開情報",
+    "nickname": "ニックネーム",
+    "publicStatus": "公開ステータス",
+    "public": "公開",
+    "private": "非公開",
+    "location": "活動拠点",
+    "specialty": "専門分野",
+    "eventRole": "イベント役割",
+    "introduction": "自己紹介",
+    "interests": "興味分野"
+  },
+  "attributes": {
+    "title": "カスタム属性",
+    "edit": "編集"
+  },
+  "form": {
+    "title": "プロフィール",
+    "description": "個人情報を編集します",
+    "headerImage": "ヘッダー画像",
+    "uploadHeader": "ヘッダー画像をアップロード",
+    "headerHint": "JPEG, PNG, WebP（10MB以下）推奨サイズ: 1200x300px",
+    "avatarAlt": "プロフィール画像",
+    "changeImage": "画像を変更",
+    "avatarHint": "JPEG, PNG, WebP（5MB以下）",
+    "email": "メールアドレス",
+    "emailHintBefore": "変更は",
+    "emailHintLink": "個人設定",
+    "emailHintAfter": "から行えます",
+    "nameKana": "名前（カナ）",
+    "nameKanaPlaceholder": "ヤマダ タロウ",
+    "phone": "電話番号",
+    "phonePlaceholder": "090-1234-5678",
+    "birthday": "誕生日",
+    "gender": "性別",
+    "selectPlaceholder": "選択してください",
+    "occupation": "職業",
+    "affiliations": "所属 / 部署 / 肩書",
+    "add": "追加",
+    "organization": "所属",
+    "department": "部署",
+    "jobTitle": "肩書",
+    "organizationPlaceholder": "株式会社〇〇",
+    "departmentPlaceholder": "開発部",
+    "jobTitlePlaceholder": "エンジニア",
+    "countryOfOrigin": "出身国",
+    "countryPlaceholder": "日本",
+    "saving": "保存中...",
+    "headerUpdated": "ヘッダー画像を更新しました",
+    "avatarUpdated": "プロフィール画像を更新しました",
+    "uploadFailed": "画像のアップロードに失敗しました",
+    "selectImageFile": "画像ファイルを選択してください",
+    "maxSize10": "10MB 以下の画像を選択してください",
+    "maxSize5": "5MB 以下の画像を選択してください"
+  },
+  "publicInfoForm": {
+    "title": "公開情報",
+    "description": "他のメンバーに公開される情報を編集します",
+    "isPublicLabel": "プロフィールを公開",
+    "isPublicDescription": "有効にすると公開情報が他のメンバーに表示されます",
+    "nicknameLabel": "ニックネーム",
+    "nicknamePlaceholder": "表示名",
+    "nicknameKanaLabel": "ニックネーム（カナ）",
+    "nicknameKanaPlaceholder": "ヒョウジメイ",
+    "specialtyLabel": "専門分野",
+    "prefectureLabel": "活動拠点（都道府県）",
+    "prefecturePlaceholder": "東京都",
+    "cityLabel": "活動拠点（市区町村）",
+    "cityPlaceholder": "渋谷区",
+    "foreignCountryLabel": "活動拠点・外国（国）",
+    "foreignCountryPlaceholder": "国名",
+    "foreignCityLabel": "活動拠点・外国（都市）",
+    "foreignCityPlaceholder": "都市名",
+    "introductionLabel": "自己紹介",
+    "introductionPlaceholder": "他のメンバーに公開される自己紹介文",
+    "eventRoleLabel": "イベント役割",
+    "interestLabel": "興味分野",
+    "saving": "保存中...",
+    "specialtyCategories": {
+      "IT・テクノロジー": "IT・テクノロジー",
+      "IT・テクノロジー/Web開発": "Web開発",
+      "IT・テクノロジー/モバイル開発": "モバイル開発",
+      "IT・テクノロジー/AI・機械学習": "AI・機械学習",
+      "IT・テクノロジー/データサイエンス": "データサイエンス",
+      "IT・テクノロジー/セキュリティ": "セキュリティ",
+      "IT・テクノロジー/インフラ・クラウド": "インフラ・クラウド",
+      "ビジネス": "ビジネス",
+      "ビジネス/マーケティング": "マーケティング",
+      "ビジネス/経営・戦略": "経営・戦略",
+      "ビジネス/財務・会計": "財務・会計",
+      "ビジネス/人事・組織": "人事・組織",
+      "ビジネス/営業": "営業",
+      "ビジネス/コンサルティング": "コンサルティング",
+      "デザイン": "デザイン",
+      "デザイン/UI/UXデザイン": "UI/UXデザイン",
+      "デザイン/グラフィックデザイン": "グラフィックデザイン",
+      "デザイン/映像・動画": "映像・動画",
+      "デザイン/写真": "写真",
+      "教育": "教育",
+      "教育/語学教育": "語学教育",
+      "教育/プログラミング教育": "プログラミング教育",
+      "教育/幼児教育": "幼児教育",
+      "教育/学校教育": "学校教育",
+      "教育/社会人教育": "社会人教育",
+      "スポーツ": "スポーツ",
+      "スポーツ/サッカー": "サッカー",
+      "スポーツ/バスケットボール": "バスケットボール",
+      "スポーツ/テニス": "テニス",
+      "スポーツ/ヨガ・フィットネス": "ヨガ・フィットネス",
+      "スポーツ/ランニング": "ランニング",
+      "スポーツ/水泳": "水泳",
+      "スポーツ/武道": "武道",
+      "音楽・芸術": "音楽・芸術",
+      "音楽・芸術/楽器演奏": "楽器演奏",
+      "音楽・芸術/作曲・DTM": "作曲・DTM",
+      "音楽・芸術/絵画": "絵画",
+      "音楽・芸術/演劇": "演劇",
+      "音楽・芸術/ダンス": "ダンス",
+      "医療・健康": "医療・健康",
+      "医療・健康/医学": "医学",
+      "医療・健康/看護": "看護",
+      "医療・健康/薬学": "薬学",
+      "医療・健康/栄養学": "栄養学",
+      "医療・健康/メンタルヘルス": "メンタルヘルス",
+      "法律・政治": "法律・政治",
+      "法律・政治/法律": "法律",
+      "法律・政治/行政": "行政",
+      "法律・政治/国際関係": "国際関係",
+      "科学・研究": "科学・研究",
+      "科学・研究/物理学": "物理学",
+      "科学・研究/化学": "化学",
+      "科学・研究/生物学": "生物学",
+      "科学・研究/環境科学": "環境科学",
+      "ものづくり": "ものづくり",
+      "ものづくり/建築": "建築",
+      "ものづくり/製造": "製造",
+      "ものづくり/農業": "農業",
+      "ものづくり/料理": "料理"
+    }
+  },
+  "attributesForm": {
+    "title": "カスタム属性",
+    "description": "コミュニティ独自の項目を編集します",
+    "saving": "保存中...",
+    "selectPlaceholder": "選択..."
+  },
+  "points": {
+    "title": "ポイント",
+    "available": "利用可能",
+    "totalGranted": "累計獲得",
+    "totalUtilized": "累計利用",
+    "historyTitle": "ポイント履歴",
+    "empty": "ポイント履歴はありません"
+  },
+  "tickets": {
+    "title": "マイチケット",
+    "empty": "チケットはありません",
+    "status": {
+      "applied": "申込済",
+      "confirmed": "確定",
+      "attended": "参加済",
+      "no_show": "不参加"
+    }
+  },
+  "tasks": {
+    "title": "マイタスク",
+    "empty": "担当タスクはありません",
+    "due": "期限"
+  },
+  "activity": {
+    "title": "アクティビティ",
+    "eventsLabel": "参加イベント",
+    "projectsLabel": "参加プロジェクト",
+    "noEvents": "参加イベントはありません",
+    "noProjects": "参加プロジェクトはありません"
+  },
+  "reservations": {
+    "title": "マイ予約",
+    "venueSection": "会場予約",
+    "skillSection": "スキル予約",
+    "noVenueReservations": "会場予約はありません",
+    "noSkillBookings": "承認済のスキル予約はありません",
+    "requesterRole": "リクエスター",
+    "providerRole": "提供者",
+    "dateUndecided": "日時未定",
+    "status": {
+      "pending": "申請中",
+      "approved": "承認済",
+      "rejected": "却下",
+      "canceled": "キャンセル"
+    }
+  },
+  "library": {
+    "title": "マイライブラリー",
+    "validation": {
+      "titleRequired": "タイトルを入力してください"
+    },
+    "add": "追加",
+    "update": "更新",
+    "delete": "削除",
+    "saving": "保存中...",
+    "empty": "ライブラリーにアイテムはありません",
+    "authorPrefix": "著者: {author}",
+    "publishedAtPrefix": "出版日: {date}",
+    "pageCount": "{count}ページ",
+    "deleteConfirm": {
+      "title": "削除の確認",
+      "description": "「{title}」を削除しますか？ この操作は取り消せません。"
+    },
+    "dialog": {
+      "createTitle": "ライブラリーに追加",
+      "editTitle": "アイテムを編集"
+    },
+    "fields": {
+      "type": "タイプ",
+      "title": "タイトル",
+      "content": "内容",
+      "author": "著者",
+      "publishedAt": "出版日",
+      "pageCount": "ページ数",
+      "impression": "所感",
+      "status": "ステータス"
+    },
+    "placeholders": {
+      "title": "タイトルを入力",
+      "content": "概要・内容メモ",
+      "author": "著者名",
+      "impression": "感想・メモ"
+    },
+    "typeLabels": {
+      "book": "書籍",
+      "magazine": "雑誌",
+      "manga": "漫画",
+      "paper": "論文",
+      "document": "資料",
+      "other": "その他"
+    },
+    "statusLabels": {
+      "unread": "未読",
+      "reading": "読書中",
+      "completed": "完読",
+      "want": "入手したい",
+      "lending": "貸出中"
+    }
+  },
+  "calendar": {
+    "title": "カレンダー",
+    "filters": {
+      "schedules": "予定",
+      "reservations": "マイ予約",
+      "tasks": "マイタスク",
+      "tickets": "マイチケット",
+      "projectSchedules": "プロジェクトの予定"
+    },
+    "dialogDate": "{year}年{month}月{day}日",
+    "empty": "予定はありません",
+    "allDay": "終日",
+    "addSchedule": "予定を追加",
+    "deleteConfirm": "削除しますか?",
+    "form": {
+      "title": "タイトル",
+      "description": "説明",
+      "start": "開始",
+      "end": "終了",
+      "location": "場所"
+    }
+  },
+  "memo": {
+    "list": {
+      "title": "メモ",
+      "create": "作成",
+      "searchPlaceholder": "メモを検索...",
+      "category": "カテゴリ",
+      "allCategories": "すべて",
+      "addCategory": "カテゴリ追加",
+      "categoryName": "カテゴリ名",
+      "add": "追加",
+      "empty": "メモがありません"
+    },
+    "new": {
+      "title": "メモ作成",
+      "submit": "作成"
+    },
+    "edit": {
+      "title": "メモ編集",
+      "submit": "更新"
+    },
+    "detail": {
+      "notFound": "メモが見つかりません",
+      "deleteConfirm": "本当に削除しますか?",
+      "edit": "編集",
+      "delete": "削除",
+      "attachments": "添付ファイル"
+    },
+    "form": {
+      "basicInfo": "基本情報",
+      "titleLabel": "タイトル",
+      "body": "本文",
+      "category": "カテゴリ",
+      "uncategorized": "未分類",
+      "attachments": "添付ファイル"
+    }
+  },
+  "settings": {
+    "title": "個人設定",
+    "account": {
+      "title": "アカウント情報",
+      "email": "メールアドレス",
+      "password": "パスワード"
+    },
+    "form": {
+      "currentPassword": "現在のパスワード",
+      "newPassword": "新しいパスワード",
+      "confirmPassword": "新しいパスワード（確認）"
+    },
+    "validation": {
+      "currentRequired": "現在のパスワードを入力してください",
+      "newMinLength": "8文字以上で入力してください",
+      "confirmRequired": "確認用パスワードを入力してください",
+      "mismatch": "新しいパスワードが一致しません"
+    },
+    "changePasswordButton": "パスワードを変更",
+    "changeSubmit": "変更する",
+    "changing": "変更中...",
+    "changeSuccess": "パスワードを変更しました",
+    "changeError": "パスワードの変更に失敗しました"
+  }
+}

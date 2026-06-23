@@ -1,16 +1,12 @@
 "use client";
 
-// i18n 化方針: 本ファイル内のラベル・トースト・選択肢ラベルは現状ハードコード日本語のまま残している。
-// プロジェクト方針として「i18n は機能（ドメイン）単位で順次対応」としており、profile 機能は別フェーズで
-// messages/ja/profile.json + useTranslations("profile") への置換をまとめて行う予定。
-// 本ブランチのスコープは members 機能のみのため意図的に未対応。
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import { useMyProfile, useUpdatePublicInfo } from "@/hooks/profile/use-profile";
 import { useInterestCategories, useReplaceInterests } from "@/hooks/profile/use-interests";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 
+// 専門分野カテゴリ。label/children はラベルキーの末尾要素として使い、
+// 値（保存形式 "親/子"）は従来のラベル文字列のまま維持して互換性を保つ。
 const SPECIALTY_CATEGORIES = [
   {
     label: "IT・テクノロジー",
@@ -94,13 +92,13 @@ const SPECIALTY_CATEGORIES = [
   },
 ] as const;
 
-const EVENT_ROLE_OPTIONS = [
-  { value: "lecturer", label: "講師" },
-  { value: "mc", label: "司会" },
-  { value: "interpreter", label: "通訳" },
-  { value: "planner", label: "企画" },
-  { value: "panelist", label: "パネリスト" },
-  { value: "performer", label: "出演" },
+const EVENT_ROLE_VALUES = [
+  "lecturer",
+  "mc",
+  "interpreter",
+  "planner",
+  "panelist",
+  "performer",
 ] as const;
 
 const publicInfoSchema = z.object({
@@ -120,6 +118,10 @@ const publicInfoSchema = z.object({
 type PublicInfoFormValues = z.infer<typeof publicInfoSchema>;
 
 export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tEventRole = useTranslations("enums.eventRole");
+  const tSpecialty = useTranslations("profile.publicInfoForm.specialtyCategories");
   const router = useRouter();
   const { data: profileData, isLoading } = useMyProfile();
   const { data: interestCategories } = useInterestCategories();
@@ -187,7 +189,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          {tCommon("loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -195,8 +199,8 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>公開情報</CardTitle>
-        <CardDescription>他のメンバーに公開される情報を編集します</CardDescription>
+        <CardTitle>{t("publicInfoForm.title")}</CardTitle>
+        <CardDescription>{t("publicInfoForm.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -207,10 +211,8 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">プロフィールを公開</FormLabel>
-                    <FormDescription>
-                      有効にすると公開情報が他のメンバーに表示されます
-                    </FormDescription>
+                    <FormLabel className="text-base">{t("publicInfoForm.isPublicLabel")}</FormLabel>
+                    <FormDescription>{t("publicInfoForm.isPublicDescription")}</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -225,9 +227,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ニックネーム</FormLabel>
+                    <FormLabel>{t("publicInfoForm.nicknameLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="表示名" {...field} />
+                      <Input placeholder={t("publicInfoForm.nicknamePlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -239,9 +241,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="nicknameKana"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ニックネーム（カナ）</FormLabel>
+                    <FormLabel>{t("publicInfoForm.nicknameKanaLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="ヒョウジメイ" {...field} />
+                      <Input placeholder={t("publicInfoForm.nicknameKanaPlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -279,7 +281,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
 
                 return (
                   <FormItem>
-                    <FormLabel>専門分野</FormLabel>
+                    <FormLabel>{t("publicInfoForm.specialtyLabel")}</FormLabel>
                     <div className="space-y-3 rounded-md border p-4">
                       {SPECIALTY_CATEGORIES.map((cat) => (
                         <div key={cat.label}>
@@ -290,7 +292,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                               onCheckedChange={() => toggle(cat.label)}
                             />
                             <label htmlFor={`spec-${cat.label}`} className="text-sm font-medium">
-                              {cat.label}
+                              {tSpecialty(cat.label)}
                             </label>
                           </div>
                           {isCatOpen(cat.label) && (
@@ -305,7 +307,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                                       onCheckedChange={() => toggle(val)}
                                     />
                                     <label htmlFor={`spec-${val}`} className="text-sm font-normal">
-                                      {child}
+                                      {tSpecialty(`${cat.label}/${child}`)}
                                     </label>
                                   </div>
                                 );
@@ -327,9 +329,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="prefecture"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>活動拠点（都道府県）</FormLabel>
+                    <FormLabel>{t("publicInfoForm.prefectureLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="東京都" {...field} />
+                      <Input placeholder={t("publicInfoForm.prefecturePlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -341,9 +343,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>活動拠点（市区町村）</FormLabel>
+                    <FormLabel>{t("publicInfoForm.cityLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="渋谷区" {...field} />
+                      <Input placeholder={t("publicInfoForm.cityPlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -357,9 +359,12 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="foreignCountry"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>活動拠点・外国（国）</FormLabel>
+                    <FormLabel>{t("publicInfoForm.foreignCountryLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="国名" {...field} />
+                      <Input
+                        placeholder={t("publicInfoForm.foreignCountryPlaceholder")}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -371,9 +376,9 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 name="foreignCity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>活動拠点・外国（都市）</FormLabel>
+                    <FormLabel>{t("publicInfoForm.foreignCityLabel")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="都市名" {...field} />
+                      <Input placeholder={t("publicInfoForm.foreignCityPlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -386,10 +391,10 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
               name="introduction"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>自己紹介</FormLabel>
+                  <FormLabel>{t("publicInfoForm.introductionLabel")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="他のメンバーに公開される自己紹介文"
+                      placeholder={t("publicInfoForm.introductionPlaceholder")}
                       rows={4}
                       {...field}
                     />
@@ -404,22 +409,22 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
               name="eventRoles"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>イベント役割</FormLabel>
+                  <FormLabel>{t("publicInfoForm.eventRoleLabel")}</FormLabel>
                   <div className="flex flex-wrap gap-4">
-                    {EVENT_ROLE_OPTIONS.map((opt) => (
-                      <div key={opt.value} className="flex items-center gap-2">
+                    {EVENT_ROLE_VALUES.map((value) => (
+                      <div key={value} className="flex items-center gap-2">
                         <Checkbox
-                          id={`event-role-${opt.value}`}
-                          checked={field.value.includes(opt.value)}
+                          id={`event-role-${value}`}
+                          checked={field.value.includes(value)}
                           onCheckedChange={(checked) => {
                             const next = checked
-                              ? [...field.value, opt.value]
-                              : field.value.filter((v) => v !== opt.value);
+                              ? [...field.value, value]
+                              : field.value.filter((v) => v !== value);
                             field.onChange(next);
                           }}
                         />
-                        <label htmlFor={`event-role-${opt.value}`} className="text-sm font-normal">
-                          {opt.label}
+                        <label htmlFor={`event-role-${value}`} className="text-sm font-normal">
+                          {tEventRole(value)}
                         </label>
                       </div>
                     ))}
@@ -434,7 +439,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
               name="interestCategoryIds"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>興味分野</FormLabel>
+                  <FormLabel>{t("publicInfoForm.interestLabel")}</FormLabel>
                   <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border p-4">
                     {(interestCategories ?? []).map((cat) => (
                       <div key={cat.id} className="flex items-center gap-2">
@@ -461,12 +466,12 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
 
             <div className="flex gap-2">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "保存中..." : "保存"}
+                {isSubmitting ? t("publicInfoForm.saving") : tCommon("save")}
               </Button>
               {returnTo && (
                 <Link href={returnTo}>
                   <Button type="button" variant="outline">
-                    戻る
+                    {tCommon("back")}
                   </Button>
                 </Link>
               )}

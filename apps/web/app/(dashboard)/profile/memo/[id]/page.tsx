@@ -3,6 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemoDetail, useDeleteMemo } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,21 +12,25 @@ import { ArrowLeft, Pencil, Trash2, Paperclip } from "lucide-react";
 
 export default function MemoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { data, isLoading } = useMemoDetail(id);
   const deleteMemo = useDeleteMemo();
 
   const handleDelete = () => {
-    if (confirm("本当に削除しますか?")) {
+    if (confirm(t("memo.detail.deleteConfirm"))) {
       deleteMemo.mutate(id, { onSuccess: () => router.push("/profile/memo") });
     }
   };
 
   if (isLoading) {
-    return <div className="py-12 text-center text-muted-foreground">読み込み中...</div>;
+    return <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>;
   }
   if (!data) {
-    return <div className="py-12 text-center text-muted-foreground">メモが見つかりません</div>;
+    return (
+      <div className="py-12 text-center text-muted-foreground">{t("memo.detail.notFound")}</div>
+    );
   }
 
   return (
@@ -40,12 +45,12 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
           <Link href={`/memo/${id}/edit`}>
             <Button variant="outline" size="sm">
               <Pencil className="mr-2 h-4 w-4" />
-              編集
+              {t("memo.detail.edit")}
             </Button>
           </Link>
           <Button variant="destructive" size="sm" onClick={handleDelete}>
             <Trash2 className="mr-2 h-4 w-4" />
-            削除
+            {t("memo.detail.delete")}
           </Button>
         </div>
       </div>
@@ -59,7 +64,7 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
           )}
           {data.attachments && data.attachments.length > 0 && (
             <div className="space-y-2 border-t pt-4">
-              <h3 className="text-sm font-semibold">添付ファイル</h3>
+              <h3 className="text-sm font-semibold">{t("memo.detail.attachments")}</h3>
               {data.attachments.map((a) => (
                 <a
                   key={a.id}

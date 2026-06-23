@@ -1,13 +1,9 @@
 "use client";
 
-// i18n 化方針: 本ファイル内のラベル・トースト・選択肢ラベルは現状ハードコード日本語のまま残している。
-// プロジェクト方針として「i18n は機能（ドメイン）単位で順次対応」としており、profile 機能は別フェーズで
-// messages/ja/profile.json + useTranslations("profile") への置換をまとめて行う予定。
-// 本ブランチのスコープは members 機能のみのため意図的に未対応。
-
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,13 +36,14 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
 
-const OCCUPATION_OPTIONS = [
-  { value: "company_employee", label: "会社員" },
-  { value: "student", label: "学生" },
-  { value: "self_employed", label: "自営業" },
-  { value: "homemaker", label: "主婦" },
-  { value: "unemployed", label: "無職" },
-  { value: "other", label: "その他" },
+// ラベルは enums.occupation から解決する（profile.json/enums.json）。
+const OCCUPATION_VALUES = [
+  "company_employee",
+  "student",
+  "self_employed",
+  "homemaker",
+  "unemployed",
+  "other",
 ] as const;
 
 const affiliationSchema = z.object({
@@ -68,6 +65,10 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm({ returnTo }: { returnTo?: string }) {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tOccupation = useTranslations("enums.occupation");
+  const tGender = useTranslations("enums.gender");
   const router = useRouter();
   const { user } = useAuth();
   const { data: profileData, isLoading } = useMyProfile();
@@ -85,20 +86,20 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
-      toast.success("ヘッダー画像を更新しました");
+      toast.success(t("form.headerUpdated"));
     },
-    onError: () => toast.error("画像のアップロードに失敗しました"),
+    onError: () => toast.error(t("form.uploadFailed")),
   });
 
   const handleHeaderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("画像ファイルを選択してください");
+      toast.error(t("form.selectImageFile"));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("10MB 以下の画像を選択してください");
+      toast.error(t("form.maxSize10"));
       return;
     }
     headerUpload.mutate(file);
@@ -117,20 +118,20 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", "me", "profile"] });
-      toast.success("プロフィール画像を更新しました");
+      toast.success(t("form.avatarUpdated"));
     },
-    onError: () => toast.error("画像のアップロードに失敗しました"),
+    onError: () => toast.error(t("form.uploadFailed")),
   });
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("画像ファイルを選択してください");
+      toast.error(t("form.selectImageFile"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("5MB 以下の画像を選択してください");
+      toast.error(t("form.maxSize5"));
       return;
     }
     avatarUpload.mutate(file);
@@ -210,7 +211,9 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          {tCommon("loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -218,15 +221,15 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>プロフィール</CardTitle>
-        <CardDescription>個人情報を編集します</CardDescription>
+        <CardTitle>{t("form.title")}</CardTitle>
+        <CardDescription>{t("form.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* ヘッダー画像 */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">ヘッダー画像</Label>
+              <Label className="text-sm font-medium">{t("form.headerImage")}</Label>
               <input
                 ref={headerInputRef}
                 type="file"
@@ -239,7 +242,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={profileData.profile.headerImageUrl}
-                    alt="ヘッダー画像"
+                    alt={t("form.headerImage")}
                     className="h-40 w-full rounded-lg object-cover"
                   />
                   {headerUpload.isPending && (
@@ -280,14 +283,12 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                   ) : (
                     <div className="text-center text-muted-foreground">
                       <ImagePlus className="mx-auto mb-2 h-8 w-8" />
-                      <p className="text-sm">ヘッダー画像をアップロード</p>
+                      <p className="text-sm">{t("form.uploadHeader")}</p>
                     </div>
                   )}
                 </button>
               )}
-              <p className="text-xs text-muted-foreground">
-                JPEG, PNG, WebP（10MB以下）推奨サイズ: 1200x300px
-              </p>
+              <p className="text-xs text-muted-foreground">{t("form.headerHint")}</p>
             </div>
 
             {/* アバター */}
@@ -296,7 +297,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 <Avatar className="h-32 w-32">
                   <AvatarImage
                     src={profileData?.profile?.avatarUrl ?? undefined}
-                    alt="プロフィール画像"
+                    alt={t("form.avatarAlt")}
                   />
                   <AvatarFallback className="text-3xl">
                     {profileData?.name?.slice(0, 2) ?? "?"}
@@ -324,22 +325,22 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                   disabled={avatarUpload.isPending}
                 >
                   <Camera className="mr-2 h-4 w-4" />
-                  画像を変更
+                  {t("form.changeImage")}
                 </Button>
-                <p className="mt-1 text-xs text-muted-foreground">JPEG, PNG, WebP（5MB以下）</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t("form.avatarHint")}</p>
               </div>
             </div>
 
             {/* メールアドレス（読み取り専用） */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">メールアドレス</Label>
+              <Label className="text-sm font-medium">{t("form.email")}</Label>
               <Input value={user?.email ?? ""} disabled className="bg-muted" />
               <p className="text-xs text-muted-foreground">
-                変更は
+                {t("form.emailHintBefore")}
                 <Link href="/profile/settings" className="text-primary hover:underline">
-                  個人設定
+                  {t("form.emailHintLink")}
                 </Link>
-                から行えます
+                {t("form.emailHintAfter")}
               </p>
             </div>
 
@@ -348,9 +349,9 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
               name="nameKana"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>名前（カナ）</FormLabel>
+                  <FormLabel>{t("form.nameKana")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="ヤマダ タロウ" {...field} />
+                    <Input placeholder={t("form.nameKanaPlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -363,9 +364,9 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>電話番号</FormLabel>
+                    <FormLabel>{t("form.phone")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="090-1234-5678" {...field} />
+                      <Input placeholder={t("form.phonePlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -377,7 +378,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                 name="birthday"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>誕生日</FormLabel>
+                    <FormLabel>{t("form.birthday")}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -392,18 +393,20 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
               name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>性別</FormLabel>
+                  <FormLabel>{t("form.gender")}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="選択してください" />
+                        <SelectValue placeholder={t("form.selectPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="male">男性</SelectItem>
-                      <SelectItem value="female">女性</SelectItem>
-                      <SelectItem value="other">その他</SelectItem>
-                      <SelectItem value="prefer_not_to_say">回答しない</SelectItem>
+                      <SelectItem value="male">{tGender("male")}</SelectItem>
+                      <SelectItem value="female">{tGender("female")}</SelectItem>
+                      <SelectItem value="other">{tGender("other")}</SelectItem>
+                      <SelectItem value="prefer_not_to_say">
+                        {tGender("prefer_not_to_say")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -417,18 +420,18 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
               name="occupation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>職業</FormLabel>
+                  <FormLabel>{t("form.occupation")}</FormLabel>
                   <FormControl>
                     <RadioGroup
                       value={field.value}
                       onValueChange={field.onChange}
                       className="flex flex-wrap gap-4"
                     >
-                      {OCCUPATION_OPTIONS.map((opt) => (
-                        <div key={opt.value} className="flex items-center gap-2">
-                          <RadioGroupItem value={opt.value} id={`occupation-${opt.value}`} />
-                          <Label htmlFor={`occupation-${opt.value}`} className="font-normal">
-                            {opt.label}
+                      {OCCUPATION_VALUES.map((value) => (
+                        <div key={value} className="flex items-center gap-2">
+                          <RadioGroupItem value={value} id={`occupation-${value}`} />
+                          <Label htmlFor={`occupation-${value}`} className="font-normal">
+                            {tOccupation(value)}
                           </Label>
                         </div>
                       ))}
@@ -442,7 +445,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
             {/* 所属・部署・肩書 */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">所属 / 部署 / 肩書</Label>
+                <Label className="text-sm font-medium">{t("form.affiliations")}</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -450,7 +453,7 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                   onClick={() => append({ organizationName: "", department: "", jobTitle: "" })}
                 >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  追加
+                  {t("form.add")}
                 </Button>
               </div>
               {fields.map((field, index) => (
@@ -461,9 +464,11 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                       name={`affiliations.${index}.organizationName`}
                       render={({ field }) => (
                         <FormItem>
-                          {index === 0 && <FormLabel className="text-xs">所属</FormLabel>}
+                          {index === 0 && (
+                            <FormLabel className="text-xs">{t("form.organization")}</FormLabel>
+                          )}
                           <FormControl>
-                            <Input placeholder="株式会社〇〇" {...field} />
+                            <Input placeholder={t("form.organizationPlaceholder")} {...field} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -473,9 +478,11 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                       name={`affiliations.${index}.department`}
                       render={({ field }) => (
                         <FormItem>
-                          {index === 0 && <FormLabel className="text-xs">部署</FormLabel>}
+                          {index === 0 && (
+                            <FormLabel className="text-xs">{t("form.department")}</FormLabel>
+                          )}
                           <FormControl>
-                            <Input placeholder="開発部" {...field} />
+                            <Input placeholder={t("form.departmentPlaceholder")} {...field} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -485,9 +492,11 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
                       name={`affiliations.${index}.jobTitle`}
                       render={({ field }) => (
                         <FormItem>
-                          {index === 0 && <FormLabel className="text-xs">肩書</FormLabel>}
+                          {index === 0 && (
+                            <FormLabel className="text-xs">{t("form.jobTitle")}</FormLabel>
+                          )}
                           <FormControl>
-                            <Input placeholder="エンジニア" {...field} />
+                            <Input placeholder={t("form.jobTitlePlaceholder")} {...field} />
                           </FormControl>
                         </FormItem>
                       )}
@@ -513,9 +522,9 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
               name="countryOfOrigin"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>出身国</FormLabel>
+                  <FormLabel>{t("form.countryOfOrigin")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="日本" {...field} />
+                    <Input placeholder={t("form.countryPlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -524,12 +533,12 @@ export function ProfileForm({ returnTo }: { returnTo?: string }) {
 
             <div className="flex gap-2">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "保存中..." : "保存"}
+                {isSubmitting ? t("form.saving") : tCommon("save")}
               </Button>
               {returnTo && (
                 <Link href={returnTo}>
                   <Button type="button" variant="outline">
-                    戻る
+                    {tCommon("back")}
                   </Button>
                 </Link>
               )}

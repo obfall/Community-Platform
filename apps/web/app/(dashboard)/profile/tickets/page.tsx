@@ -1,18 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMyTickets } from "@/hooks/profile/use-tickets";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Ticket, CalendarDays, MapPin, Monitor } from "lucide-react";
 import type { MyTicketItem } from "@/lib/api/types";
-
-const STATUS_LABELS: Record<string, string> = {
-  applied: "申込済",
-  confirmed: "確定",
-  attended: "参加済",
-  no_show: "不参加",
-};
 
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   applied: "secondary",
@@ -22,18 +16,21 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
 };
 
 export default function ProfileTicketsPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("profile.tickets.status");
   const { data: tickets, isLoading } = useMyTickets();
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">マイチケット</h2>
+      <h2 className="text-xl font-bold">{t("tickets.title")}</h2>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : !tickets || tickets.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Ticket className="mx-auto mb-4 h-12 w-12" />
-          <p>チケットはありません</p>
+          <p>{t("tickets.empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -80,7 +77,7 @@ export default function ProfileTicketsPage() {
                       variant={STATUS_VARIANTS[item.status] ?? "secondary"}
                       className="shrink-0 text-xs"
                     >
-                      {STATUS_LABELS[item.status] ?? item.status}
+                      {tStatus.has(item.status) ? tStatus(item.status) : item.status}
                     </Badge>
                   </div>
                 </CardContent>

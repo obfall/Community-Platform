@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMyAttributes, useSetMyAttributes } from "@/hooks/settings/use-member-attributes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,12 +19,15 @@ import {
 import type { UserAttributeValue } from "@/lib/api/types";
 
 export function SelfAttributesForm() {
+  const tCommon = useTranslations("common");
   const { data: attributes, isLoading } = useMyAttributes();
 
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          {tCommon("loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -35,6 +39,8 @@ export function SelfAttributesForm() {
 }
 
 function SelfAttributesFormInner({ attributes }: { attributes: UserAttributeValue[] }) {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const setMutation = useSetMyAttributes();
 
@@ -64,8 +70,8 @@ function SelfAttributesFormInner({ attributes }: { attributes: UserAttributeValu
   return (
     <Card>
       <CardHeader>
-        <CardTitle>カスタム属性</CardTitle>
-        <CardDescription>コミュニティ独自の項目を編集します</CardDescription>
+        <CardTitle>{t("attributesForm.title")}</CardTitle>
+        <CardDescription>{t("attributesForm.description")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {attributes.map((attr) => (
@@ -80,10 +86,10 @@ function SelfAttributesFormInner({ attributes }: { attributes: UserAttributeValu
         ))}
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push("/profile")}>
-            キャンセル
+            {tCommon("cancel")}
           </Button>
           <Button onClick={handleSave} disabled={setMutation.isPending}>
-            {setMutation.isPending ? "保存中..." : "保存"}
+            {setMutation.isPending ? t("attributesForm.saving") : tCommon("save")}
           </Button>
         </div>
       </CardContent>
@@ -100,6 +106,7 @@ function AttributeField({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const t = useTranslations("profile");
   switch (attr.type) {
     case "text":
       return <Input value={value} onChange={(e) => onChange(e.target.value)} />;
@@ -111,7 +118,7 @@ function AttributeField({
       return (
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger>
-            <SelectValue placeholder="選択..." />
+            <SelectValue placeholder={t("attributesForm.selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {attr.options?.map((opt) => (

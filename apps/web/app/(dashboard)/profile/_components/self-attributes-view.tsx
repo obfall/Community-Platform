@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Pencil } from "lucide-react";
 import { useMyAttributes } from "@/hooks/settings/use-member-attributes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import type { UserAttributeValue } from "@/lib/api/types";
 
 export function SelfAttributesView() {
+  const t = useTranslations("profile");
   const { data: attributes, isLoading } = useMyAttributes();
 
   if (isLoading) return null;
@@ -19,11 +21,11 @@ export function SelfAttributesView() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>カスタム属性</CardTitle>
+        <CardTitle>{t("attributes.title")}</CardTitle>
         <Link href="/profile/attributes">
           <Button size="sm" variant="outline">
             <Pencil className="mr-2 h-4 w-4" />
-            編集
+            {t("attributes.edit")}
           </Button>
         </Link>
       </CardHeader>
@@ -40,16 +42,17 @@ export function SelfAttributesView() {
 }
 
 function AttributeValueDisplay({ attr }: { attr: UserAttributeValue }) {
+  const tCommon = useTranslations("common");
   const value = attr.value;
 
   if (value === null || value === "") {
-    return <p className="text-muted-foreground">未設定</p>;
+    return <p className="text-muted-foreground">{tCommon("notSet")}</p>;
   }
 
   if (attr.type === "multi_select") {
     const items = safeParseStringArray(value);
     if (items === null) return <p>{value}</p>;
-    if (items.length === 0) return <p className="text-muted-foreground">未設定</p>;
+    if (items.length === 0) return <p className="text-muted-foreground">{tCommon("notSet")}</p>;
     return (
       <div className="flex flex-wrap gap-1.5">
         {items.map((item) => (

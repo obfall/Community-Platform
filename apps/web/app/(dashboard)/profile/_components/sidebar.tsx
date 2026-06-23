@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile } from "@/hooks/profile/use-profile";
@@ -13,15 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Star } from "lucide-react";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "運営者",
-  admin: "管理者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
 export function ProfileSidebar() {
   const pathname = usePathname();
+  const t = useTranslations("profile");
+  const tRole = useTranslations("enums.role");
   const { user } = useAuth();
   const { data: profileData } = useMyProfile();
   const { data: pointSummary } = usePointSummary();
@@ -49,7 +45,7 @@ export function ProfileSidebar() {
           )}
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          {item.label}
+          {t(`nav.${item.labelKey}`)}
         </Link>
       );
     });
@@ -63,7 +59,7 @@ export function ProfileSidebar() {
           className="mb-2 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          メインメニュー
+          {t("nav.mainMenu")}
         </Link>
 
         {/* ユーザー情報 */}
@@ -78,7 +74,7 @@ export function ProfileSidebar() {
               <p className="truncate text-xs text-sidebar-foreground/60">@{publicInfo.nickname}</p>
             )}
             <Badge variant="secondary" className="mt-0.5 text-xs">
-              {ROLE_LABELS[user?.role ?? ""] ?? user?.role}
+              {user?.role && tRole.has(user.role) ? tRole(user.role) : user?.role}
             </Badge>
           </div>
         </div>
@@ -87,7 +83,7 @@ export function ProfileSidebar() {
         <div className="mb-3 flex items-center justify-between rounded-md bg-sidebar-accent/30 px-3 py-2">
           <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60">
             <Star className="h-3.5 w-3.5" />
-            ポイント
+            {t("nav.pointsLabel")}
           </div>
           <span className="text-sm font-bold text-sidebar-foreground">
             {pointSummary?.availablePoints?.toLocaleString() ?? 0}

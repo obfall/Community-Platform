@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useMyReservations } from "@/hooks/profile/use-reservations";
 import { useSkillBookings } from "@/hooks/skills/use-skills";
 import { useAuth } from "@/hooks/auth/use-auth";
@@ -8,13 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarCheck, Clock, GraduationCap, MapPin } from "lucide-react";
 import type { MyReservationItem, SkillBooking } from "@/lib/api/types";
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "申請中",
-  approved: "承認済",
-  rejected: "却下",
-  canceled: "キャンセル",
-};
 
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "secondary",
@@ -42,6 +36,9 @@ function formatSkillDateTime(iso: string) {
 }
 
 export default function ProfileReservationsPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tStatus = useTranslations("profile.reservations.status");
   const { user } = useAuth();
   const { data: reservations, isLoading } = useMyReservations();
   const { data: bookings, isLoading: isBookingsLoading } = useSkillBookings();
@@ -53,16 +50,16 @@ export default function ProfileReservationsPage() {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold">マイ予約</h2>
+      <h2 className="text-xl font-bold">{t("reservations.title")}</h2>
 
       <section className="space-y-3">
-        <h3 className="text-base font-semibold">会場予約</h3>
+        <h3 className="text-base font-semibold">{t("reservations.venueSection")}</h3>
         {isLoading ? (
-          <div className="py-6 text-center text-muted-foreground">読み込み中...</div>
+          <div className="py-6 text-center text-muted-foreground">{tCommon("loading")}</div>
         ) : !reservations || reservations.length === 0 ? (
           <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
             <CalendarCheck className="mx-auto mb-2 h-8 w-8" />
-            <p>会場予約はありません</p>
+            <p>{t("reservations.noVenueReservations")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -96,7 +93,7 @@ export default function ProfileReservationsPage() {
                       variant={STATUS_VARIANTS[item.status] ?? "secondary"}
                       className="shrink-0 text-xs"
                     >
-                      {STATUS_LABELS[item.status] ?? item.status}
+                      {tStatus.has(item.status) ? tStatus(item.status) : item.status}
                     </Badge>
                   </div>
                 </CardContent>
@@ -107,20 +104,22 @@ export default function ProfileReservationsPage() {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-base font-semibold">スキル予約</h3>
+        <h3 className="text-base font-semibold">{t("reservations.skillSection")}</h3>
         {isBookingsLoading ? (
-          <div className="py-6 text-center text-muted-foreground">読み込み中...</div>
+          <div className="py-6 text-center text-muted-foreground">{tCommon("loading")}</div>
         ) : approvedSkillBookings.length === 0 ? (
           <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
             <GraduationCap className="mx-auto mb-2 h-8 w-8" />
-            <p>承認済のスキル予約はありません</p>
+            <p>{t("reservations.noSkillBookings")}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {approvedSkillBookings.map((b: SkillBooking) => {
               const isProvider = b.providerUserId === user?.id;
               const counterpart = isProvider ? b.requester : b.provider;
-              const roleLabel = isProvider ? "リクエスター" : "提供者";
+              const roleLabel = isProvider
+                ? t("reservations.requesterRole")
+                : t("reservations.providerRole");
               return (
                 <Link key={b.id} href={`/skills/bookings/${b.id}`}>
                   <Card className="transition-shadow hover:shadow-md">
@@ -135,12 +134,14 @@ export default function ProfileReservationsPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <CalendarCheck className="h-3 w-3" />
-                              {b.scheduledAt ? formatSkillDateTime(b.scheduledAt) : "日時未定"}
+                              {b.scheduledAt
+                                ? formatSkillDateTime(b.scheduledAt)
+                                : t("reservations.dateUndecided")}
                             </div>
                           </div>
                         </div>
                         <Badge variant="default" className="shrink-0 text-xs">
-                          承認済
+                          {t("reservations.status.approved")}
                         </Badge>
                       </div>
                     </CardContent>
