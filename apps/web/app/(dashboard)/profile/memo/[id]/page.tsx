@@ -8,7 +8,13 @@ import { useMemoDetail, useDeleteMemo } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pencil, Trash2, Paperclip } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Pencil, Trash2, Paperclip, MoreHorizontal } from "lucide-react";
 
 export default function MemoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -41,18 +47,28 @@ export default function MemoDetailPage({ params }: { params: Promise<{ id: strin
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div className="flex gap-2">
-          <Link href={`/memo/${id}/edit`}>
-            <Button variant="outline" size="sm">
-              <Pencil className="mr-2 h-4 w-4" />
-              {t("memo.detail.edit")}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
-          </Link>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t("memo.detail.delete")}
-          </Button>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/profile/memo/${id}/edit`}>
+                <Pencil className="mr-2 h-3.5 w-3.5" />
+                {t("memo.detail.edit")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={handleDelete}
+            >
+              <Trash2 className="mr-2 h-3.5 w-3.5" />
+              {t("memo.detail.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Card>

@@ -123,7 +123,7 @@ function Form({ id, initial }: { id: string; initial: MemoDetail }) {
             <Label>{t("memo.form.attachments")}</Label>
             <FileUploadList value={files} onChange={setFiles} fileCategory="general" />
           </div>
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-center gap-2 pt-4">
             <Link href={`/profile/memo/${id}`}>
               <Button variant="outline">{tCommon("cancel")}</Button>
             </Link>

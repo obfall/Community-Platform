@@ -1,6 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/test-utils";
+
+// Radix UI（DropdownMenu）が参照する API は jsdom 未実装のため polyfill する
+beforeAll(() => {
+  globalThis.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+  Element.prototype.scrollIntoView ??= () => {};
+  Element.prototype.hasPointerCapture ??= () => false;
+  Element.prototype.releasePointerCapture ??= () => {};
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -56,21 +69,44 @@ describe("MemoDetailPage（詳細）", () => {
   });
 
   describe("詳細表示", () => {
-    it("タイトル・本文と編集／削除ボタンが表示される", () => {
-      setHooks({
-        data: {
-          id: "m1",
-          title: "週次メモ",
-          body: "議事録の内容",
-          category: null,
-          attachments: [],
-        },
-      });
+    const sampleMemo = {
+      id: "m1",
+      title: "週次メモ",
+      body: "議事録の内容",
+      category: null,
+      attachments: [],
+    };
+
+    function openMenu() {
+      const trigger = screen
+        .getAllByRole("button")
+        .find((b) => b.getAttribute("aria-haspopup") === "menu");
+      return userEvent.click(trigger!);
+    }
+
+    it("タイトル・本文が表示される", () => {
+      setHooks({ data: sampleMemo });
       renderWithProviders(<MemoDetailPage params={syncParams({ id: "m1" })} />);
       expect(screen.getByText("週次メモ")).toBeInTheDocument();
       expect(screen.getByText("議事録の内容")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /編集/ })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /削除/ })).toBeInTheDocument();
+    });
+
+    it("三点メニューを開くと『編集』『削除』項目が表示される", async () => {
+      setHooks({ data: sampleMemo });
+      renderWithProviders(<MemoDetailPage params={syncParams({ id: "m1" })} />);
+      await openMenu();
+      expect(screen.getByRole("menuitem", { name: /編集/ })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: /削除/ })).toBeInTheDocument();
+    });
+
+    it("編集リンクが /profile/memo/{id}/edit を指す（404 回帰防止）", async () => {
+      setHooks({ data: sampleMemo });
+      renderWithProviders(<MemoDetailPage params={syncParams({ id: "m1" })} />);
+      await openMenu();
+      expect(screen.getByRole("menuitem", { name: /編集/ })).toHaveAttribute(
+        "href",
+        "/profile/memo/m1/edit",
+      );
     });
   });
 });
