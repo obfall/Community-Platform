@@ -98,6 +98,61 @@ describe("PublicInfoForm（公開情報フォーム）", () => {
     });
   });
 
+  describe("専門分野（大項目チェックで子を全選択）", () => {
+    it("初期表示では中項目は表示されず大項目のみが並ぶ", () => {
+      setupMocks({ profile: baseProfile });
+      renderWithProviders(<PublicInfoForm />);
+
+      expect(screen.getByRole("checkbox", { name: "IT・テクノロジー" })).toBeInTheDocument();
+      expect(screen.queryByRole("checkbox", { name: "Web開発" })).not.toBeInTheDocument();
+    });
+
+    it("大項目をチェックすると配下の中項目が全てチェックされて表示される", async () => {
+      setupMocks({ profile: baseProfile });
+      renderWithProviders(<PublicInfoForm />);
+
+      await userEvent.click(screen.getByRole("checkbox", { name: "IT・テクノロジー" }));
+
+      const parent = screen.getByRole("checkbox", { name: "IT・テクノロジー" });
+      expect(parent).toHaveAttribute("aria-checked", "true");
+      expect(screen.getByRole("checkbox", { name: "Web開発" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      expect(screen.getByRole("checkbox", { name: "モバイル開発" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    });
+
+    it("中項目を一部だけ外すと大項目は indeterminate（aria-checked=mixed）になる", async () => {
+      setupMocks({ profile: baseProfile });
+      renderWithProviders(<PublicInfoForm />);
+
+      await userEvent.click(screen.getByRole("checkbox", { name: "IT・テクノロジー" }));
+      await userEvent.click(screen.getByRole("checkbox", { name: "Web開発" }));
+
+      expect(screen.getByRole("checkbox", { name: "IT・テクノロジー" })).toHaveAttribute(
+        "aria-checked",
+        "mixed",
+      );
+    });
+
+    it("全選択状態で大項目を再度クリックすると全て解除され中項目が閉じる", async () => {
+      setupMocks({ profile: baseProfile });
+      renderWithProviders(<PublicInfoForm />);
+
+      await userEvent.click(screen.getByRole("checkbox", { name: "IT・テクノロジー" }));
+      await userEvent.click(screen.getByRole("checkbox", { name: "IT・テクノロジー" }));
+
+      expect(screen.getByRole("checkbox", { name: "IT・テクノロジー" })).toHaveAttribute(
+        "aria-checked",
+        "false",
+      );
+      expect(screen.queryByRole("checkbox", { name: "Web開発" })).not.toBeInTheDocument();
+    });
+  });
+
   describe("送信", () => {
     it("保存ボタンを押すと更新と興味分野更新の mutate が呼ばれる", async () => {
       const mutateAsync = vi.fn().mockResolvedValue(undefined);

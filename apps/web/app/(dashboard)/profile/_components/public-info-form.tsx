@@ -267,22 +267,40 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
               render={({ field }) => {
                 const selected = new Set(field.value);
 
-                const hasChild = (cat: string) =>
-                  SPECIALTY_CATEGORIES.find((c) => c.label === cat)?.children.some((ch) =>
-                    selected.has(`${cat}/${ch}`),
-                  );
+                type SpecialtyCategory = (typeof SPECIALTY_CATEGORIES)[number];
+                const childValues = (cat: SpecialtyCategory) =>
+                  cat.children.map((ch) => `${cat.label}/${ch}`);
 
-                const isCatOpen = (cat: string) => selected.has(cat) || !!hasChild(cat);
+                const selectedChildCount = (cat: SpecialtyCategory) =>
+                  childValues(cat).filter((v) => selected.has(v)).length;
 
-                const toggle = (value: string) => {
+                // 親の状態: 全選択 = true, 一部選択 = "indeterminate", 未選択 = false
+                const parentState = (cat: SpecialtyCategory): boolean | "indeterminate" => {
+                  const count = selectedChildCount(cat);
+                  if (count === 0) return false;
+                  if (count === cat.children.length) return true;
+                  return "indeterminate";
+                };
+
+                // 子がひとつでも選択されていれば中項目を展開表示する
+                const isCatOpen = (cat: SpecialtyCategory) => selectedChildCount(cat) > 0;
+
+                // 親トグル: 全選択 ↔ 全解除
+                const toggleParent = (cat: SpecialtyCategory) => {
+                  const next = new Set(selected);
+                  const values = childValues(cat);
+                  if (values.every((v) => next.has(v))) {
+                    values.forEach((v) => next.delete(v));
+                  } else {
+                    values.forEach((v) => next.add(v));
+                  }
+                  field.onChange(Array.from(next));
+                };
+
+                const toggleChild = (value: string) => {
                   const next = new Set(selected);
                   if (next.has(value)) {
                     next.delete(value);
-                    // 親カテゴリを外したら子も外す
-                    const cat = SPECIALTY_CATEGORIES.find((c) => c.label === value);
-                    if (cat) {
-                      cat.children.forEach((ch) => next.delete(`${value}/${ch}`));
-                    }
                   } else {
                     next.add(value);
                   }
@@ -298,14 +316,14 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                           <div className="flex items-center gap-2">
                             <Checkbox
                               id={`spec-${cat.label}`}
-                              checked={isCatOpen(cat.label)}
-                              onCheckedChange={() => toggle(cat.label)}
+                              checked={parentState(cat)}
+                              onCheckedChange={() => toggleParent(cat)}
                             />
                             <label htmlFor={`spec-${cat.label}`} className="text-sm font-medium">
                               {tSpecialty(cat.label)}
                             </label>
                           </div>
-                          {isCatOpen(cat.label) && (
+                          {isCatOpen(cat) && (
                             <div className="ml-6 mt-2 flex flex-wrap gap-x-4 gap-y-2">
                               {cat.children.map((child) => {
                                 const val = `${cat.label}/${child}`;
@@ -314,7 +332,7 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                                     <Checkbox
                                       id={`spec-${val}`}
                                       checked={selected.has(val)}
-                                      onCheckedChange={() => toggle(val)}
+                                      onCheckedChange={() => toggleChild(val)}
                                     />
                                     <label htmlFor={`spec-${val}`} className="text-sm font-normal">
                                       {tSpecialty(`${cat.label}/${child}`)}
