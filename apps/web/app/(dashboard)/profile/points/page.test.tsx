@@ -1,14 +1,26 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
+
+import ProfilePointsPage from "./page";
+
+// NOTE: ポイント機能は仕様未確定のため「準備中」表示。仕様確定後、
+// 下部にコメントアウトで残した旧テストを page.tsx の元実装と一緒に復活させること。
+describe("ProfilePointsPage（ポイント）", () => {
+  it("準備中表示になっている", () => {
+    renderWithProviders(<ProfilePointsPage />);
+    expect(screen.getByText("準備中です")).toBeInTheDocument();
+  });
+});
+
+/* ===== 仕様確定までコメントアウト（元テスト） =====
+import { vi } from "vitest";
+import { usePointSummary, usePointHistory } from "@/hooks/points/use-points";
 
 vi.mock("@/hooks/points/use-points", () => ({
   usePointSummary: vi.fn(),
   usePointHistory: vi.fn(),
 }));
-
-import ProfilePointsPage from "./page";
-import { usePointSummary, usePointHistory } from "@/hooks/points/use-points";
 
 function setMocks(opts: { summary?: unknown; history?: unknown } = {}) {
   vi.mocked(usePointSummary).mockReturnValue({ data: opts.summary } as never);
@@ -58,3 +70,4 @@ describe("ProfilePointsPage（ポイント）", () => {
     });
   });
 });
+===== 元テストここまで ===== */

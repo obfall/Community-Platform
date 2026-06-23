@@ -1,6 +1,30 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Card, CardContent } from "@/components/ui/card";
+import { Star } from "lucide-react";
+
+// NOTE: ポイント機能は仕様未確定のため、一旦「準備中」表示にしている。
+// 仕様確定後、下部にコメントアウトで残した元実装を復活させること。
+export default function ProfilePointsPage() {
+  const t = useTranslations("profile");
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold">{t("points.title")}</h2>
+
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+          <Star className="h-10 w-10 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">準備中です</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ===== 仕様確定までコメントアウト（元実装） =====
+import { useTranslations } from "next-intl";
 import { usePointSummary, usePointHistory } from "@/hooks/points/use-points";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
@@ -15,7 +39,7 @@ export default function ProfilePointsPage() {
     <div className="space-y-6">
       <h2 className="text-xl font-bold">{t("points.title")}</h2>
 
-      {/* サマリー */}
+      {/* サマリー *\/}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="p-4 text-center">
@@ -43,7 +67,7 @@ export default function ProfilePointsPage() {
         </Card>
       </div>
 
-      {/* 履歴 */}
+      {/* 履歴 *\/}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -83,3 +107,4 @@ export default function ProfilePointsPage() {
     </div>
   );
 }
+===== 元実装ここまで ===== */

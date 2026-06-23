@@ -498,7 +498,11 @@ export class UsersService {
     await this.ensureUserExists(userId);
 
     const participants = await this.prisma.eventParticipant.findMany({
-      where: { userId, status: { not: "canceled" } },
+      where: {
+        userId,
+        status: { not: "canceled" },
+        event: { deletedAt: null },
+      },
       select: {
         status: true,
         appliedAt: true,
@@ -529,7 +533,7 @@ export class UsersService {
     await this.ensureUserExists(userId);
 
     const memberships = await this.prisma.projectMember.findMany({
-      where: { userId, status: "active" },
+      where: { userId, status: "active", project: { deletedAt: null } },
       select: {
         role: true,
         joinedAt: true,
@@ -557,7 +561,11 @@ export class UsersService {
 
   async findUserTickets(userId: string) {
     const participants = await this.prisma.eventParticipant.findMany({
-      where: { userId, status: { not: "canceled" } },
+      where: {
+        userId,
+        status: { not: "canceled" },
+        event: { deletedAt: null },
+      },
       select: {
         id: true,
         quantity: true,
