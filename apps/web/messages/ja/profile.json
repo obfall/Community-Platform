@@ -1,7 +1,8 @@
 {
   "validation": {
     "kanaOnly": "全角カタカナで入力してください",
-    "prefectureInvalid": "有効な都道府県を選択してください"
+    "prefectureInvalid": "有効な都道府県を選択してください",
+    "phoneInvalid": "電話番号はハイフンなしの半角数字10〜11桁で入力してください"
   },
   "nav": {
     "profile": "プロフィール",
@@ -66,7 +67,7 @@
     "nameKana": "名前（カナ）",
     "nameKanaPlaceholder": "ヤマダ タロウ",
     "phone": "電話番号",
-    "phonePlaceholder": "090-1234-5678",
+    "phonePlaceholder": "09012345678",
     "birthday": "誕生日",
     "gender": "性別",
     "selectPlaceholder": "選択してください",

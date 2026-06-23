@@ -8,7 +8,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
-import { KANA_PATTERN } from "@community-platform/shared";
+import { KANA_PATTERN, PHONE_PATTERN } from "@community-platform/shared";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/profile/use-profile";
@@ -61,7 +61,12 @@ function buildProfileSchema(t: (key: string) => string) {
       .regex(KANA_PATTERN, t("validation.kanaOnly"))
       .optional()
       .or(z.literal("")),
-    phone: z.string().max(20).optional().or(z.literal("")),
+    phone: z
+      .string()
+      .max(20)
+      .regex(PHONE_PATTERN, t("validation.phoneInvalid"))
+      .optional()
+      .or(z.literal("")),
     birthday: z.string().optional().or(z.literal("")),
     gender: z.string().optional().or(z.literal("")),
     occupation: z.string().optional().or(z.literal("")),
