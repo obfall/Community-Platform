@@ -231,6 +231,7 @@
     },
     "add": "追加",
     "update": "更新",
+    "edit": "編集",
     "delete": "削除",
     "saving": "保存中...",
     "empty": "ライブラリーにアイテムはありません",
@@ -253,7 +254,8 @@
       "publishedAt": "出版日",
       "pageCount": "ページ数",
       "impression": "所感",
-      "status": "ステータス"
+      "status": "ステータス",
+      "attachment": "添付ファイル"
     },
     "placeholders": {
       "title": "タイトルを入力",

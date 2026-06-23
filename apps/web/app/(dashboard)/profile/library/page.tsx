@@ -28,8 +28,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -38,7 +43,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { BookOpen, Plus, Pencil, Trash2 } from "lucide-react";
+import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
+import {
+  BookOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Paperclip,
+  FileIcon,
+  X,
+} from "lucide-react";
 import type { LibraryItem } from "@/lib/api/types";
 
 const TYPE_VALUES = ["book", "magazine", "manga", "paper", "document", "other"] as const;
@@ -79,6 +94,9 @@ export default function ProfileLibraryPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LibraryItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LibraryItem | null>(null);
+  // 添付ファイルは DB 上 fileId 1 件のみ。フォーム外の state で単一ファイルを管理する。
+  const [attachedFile, setAttachedFile] = useState<UploadedFileItem | null>(null);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema),
@@ -96,6 +114,7 @@ export default function ProfileLibraryPage() {
 
   const openCreate = () => {
     setEditingItem(null);
+    setAttachedFile(null);
     form.reset({
       type: "book",
       title: "",
@@ -111,6 +130,16 @@ export default function ProfileLibraryPage() {
 
   const openEdit = (item: LibraryItem) => {
     setEditingItem(item);
+    setAttachedFile(
+      item.file
+        ? {
+            fileId: item.file.id,
+            url: item.file.publicUrl,
+            name: item.file.originalName,
+            contentType: "",
+          }
+        : null,
+    );
     form.reset({
       type: item.type,
       title: item.title,
@@ -132,6 +161,8 @@ export default function ProfileLibraryPage() {
       publishedAt: values.publishedAt || undefined,
       pageCount: values.pageCount ?? undefined,
       impression: values.impression || undefined,
+      // null を送ると添付を解除（更新時）。未添付の新規作成時も null で問題ない。
+      fileId: attachedFile?.fileId ?? null,
     };
 
     if (editingItem) {
@@ -196,50 +227,77 @@ export default function ProfileLibraryPage() {
                       <p>{t("library.pageCount", { count: item.pageCount })}</p>
                     )}
                   </div>
+                  {item.file && (
+                    <a
+                      href={item.file.publicUrl ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                    >
+                      <Paperclip className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{item.file.originalName}</span>
+                    </a>
+                  )}
                   {item.impression && (
                     <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                       {item.impression}
                     </p>
                   )}
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                <div className="shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t("library.deleteConfirm.title")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t("library.deleteConfirm.description", { title: item.title })}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMutation.mutate(item.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {t("library.delete")}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(item)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        {t("library.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(item)}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        {t("library.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* 削除確認 */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("library.deleteConfirm.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("library.deleteConfirm.description", { title: deleteTarget?.title ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget.id, {
+                    onSuccess: () => setDeleteTarget(null),
+                  });
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("library.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 追加・編集ダイアログ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -414,6 +472,53 @@ export default function ProfileLibraryPage() {
                   </FormItem>
                 )}
               />
+
+              {/* 添付ファイル（DB 上は単一。1 件添付済みのときは追加 UI を隠す） */}
+              <div className="space-y-2">
+                <Label>{t("library.fields.attachment")}</Label>
+                {attachedFile ? (
+                  <div className="flex items-center gap-3 rounded-md border p-2 text-sm">
+                    {attachedFile.contentType.startsWith("image/") && attachedFile.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={attachedFile.url}
+                        alt={attachedFile.name}
+                        className="h-10 w-10 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded">
+                        <FileIcon className="text-muted-foreground h-5 w-5" />
+                      </div>
+                    )}
+                    {attachedFile.url ? (
+                      <a
+                        href={attachedFile.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 truncate hover:underline"
+                      >
+                        {attachedFile.name}
+                      </a>
+                    ) : (
+                      <span className="flex-1 truncate">{attachedFile.name}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setAttachedFile(null)}
+                      className="text-muted-foreground hover:text-destructive rounded p-1 hover:bg-muted"
+                      aria-label={t("library.delete")}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <FileUploadList
+                    value={[]}
+                    onChange={(files) => files[0] && setAttachedFile(files[0])}
+                    fileCategory="document"
+                  />
+                )}
+              </div>
 
               <Button type="submit" className="w-full" disabled={isPending}>
                 {isPending

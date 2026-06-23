@@ -695,7 +695,8 @@ export interface CreateLibraryItemInput {
   pageCount?: number;
   impression?: string;
   status?: LibraryItem["status"];
-  fileId?: string;
+  // null で添付を解除（更新時）。未添付の新規作成でも null を許容。
+  fileId?: string | null;
 }
 
 export type UpdateLibraryItemInput = Partial<CreateLibraryItemInput>;
