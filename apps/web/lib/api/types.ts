@@ -127,8 +127,6 @@ export interface UserPublicInfo {
   specialty: string | null;
   prefecture: string | null;
   city: string | null;
-  foreignCountry: string | null;
-  foreignCity: string | null;
   introduction: string | null;
   eventRole: string | null;
   publicStatus: "public" | "private";
@@ -198,8 +196,6 @@ export interface UpdatePublicInfoInput {
   specialty?: string;
   prefecture?: string;
   city?: string;
-  foreignCountry?: string;
-  foreignCity?: string;
   introduction?: string;
   eventRole?: string;
   publicStatus?: "public" | "private";

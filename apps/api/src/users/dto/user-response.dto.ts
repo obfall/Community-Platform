@@ -40,8 +40,6 @@ class PublicInfoDto {
   @ApiPropertyOptional() specialty?: string | null;
   @ApiPropertyOptional() prefecture?: string | null;
   @ApiPropertyOptional() city?: string | null;
-  @ApiPropertyOptional() foreignCountry?: string | null;
-  @ApiPropertyOptional() foreignCity?: string | null;
   @ApiPropertyOptional() introduction?: string | null;
   @ApiPropertyOptional() eventRole?: string | null;
   @ApiProperty() publicStatus!: string;

@@ -114,8 +114,6 @@ function buildPublicInfoSchema(t: (key: string) => string) {
     specialties: z.array(z.string()),
     prefecture: z.string().max(50).optional().or(z.literal("")),
     city: z.string().max(100).optional().or(z.literal("")),
-    foreignCountry: z.string().max(100).optional().or(z.literal("")),
-    foreignCity: z.string().max(100).optional().or(z.literal("")),
     introduction: z.string().optional().or(z.literal("")),
     eventRoles: z.array(z.string()),
     interestCategoryIds: z.array(z.string()),
@@ -147,8 +145,6 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
       specialties: [],
       prefecture: "",
       city: "",
-      foreignCountry: "",
-      foreignCity: "",
       introduction: "",
       eventRoles: [],
       interestCategoryIds: [],
@@ -165,8 +161,6 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
         specialties: p?.specialty ? p.specialty.split(",") : [],
         prefecture: p?.prefecture ?? "",
         city: p?.city ?? "",
-        foreignCountry: p?.foreignCountry ?? "",
-        foreignCity: p?.foreignCity ?? "",
         introduction: p?.introduction ?? "",
         eventRoles: p?.eventRole ? p.eventRole.split(",") : [],
         interestCategoryIds: profileData.interests.map((i) => i.categoryId),
@@ -374,39 +368,6 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                     <FormLabel>{t("publicInfoForm.cityLabel")}</FormLabel>
                     <FormControl>
                       <Input placeholder={t("publicInfoForm.cityPlaceholder")} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="foreignCountry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("publicInfoForm.foreignCountryLabel")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("publicInfoForm.foreignCountryPlaceholder")}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="foreignCity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("publicInfoForm.foreignCityLabel")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t("publicInfoForm.foreignCityPlaceholder")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -66,14 +66,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ id: str
   const isPublic = member.publicInfo?.publicStatus === "public";
   const publicInfo = isPublic ? member.publicInfo : null;
   const isOwnProfile = user?.id === member.id;
-  const location = [
-    publicInfo?.prefecture,
-    publicInfo?.city,
-    publicInfo?.foreignCountry,
-    publicInfo?.foreignCity,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const location = [publicInfo?.prefecture, publicInfo?.city].filter(Boolean).join(" ");
 
   const introduction = publicInfo?.introduction ?? null;
 

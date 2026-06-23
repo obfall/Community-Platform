@@ -240,8 +240,6 @@ export class UsersService {
             specialty: true,
             prefecture: true,
             city: true,
-            foreignCountry: true,
-            foreignCity: true,
             introduction: true,
             eventRole: true,
             publicStatus: true,

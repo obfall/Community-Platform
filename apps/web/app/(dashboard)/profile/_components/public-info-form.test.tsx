@@ -62,8 +62,6 @@ const baseProfile = {
     specialty: "",
     prefecture: "",
     city: "",
-    foreignCountry: "",
-    foreignCity: "",
     introduction: "",
     eventRole: "",
     publicStatus: "private",

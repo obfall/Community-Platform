@@ -35,18 +35,6 @@ export class UpdatePublicInfoDto {
   @MaxLength(100)
   city?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  foreignCountry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  foreignCity?: string;
-
   @ApiPropertyOptional({ description: "HTML形式の自己紹介" })
   @IsOptional()
   @IsString()

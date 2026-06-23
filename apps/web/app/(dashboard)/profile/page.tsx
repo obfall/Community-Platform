@@ -25,14 +25,7 @@ export default function MyPage() {
 
   const profile = profileData?.profile;
   const publicInfo = profileData?.publicInfo;
-  const location = [
-    publicInfo?.prefecture,
-    publicInfo?.city,
-    publicInfo?.foreignCountry,
-    publicInfo?.foreignCity,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const location = [publicInfo?.prefecture, publicInfo?.city].filter(Boolean).join(" ");
 
   return (
     <div className="space-y-6">
