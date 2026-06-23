@@ -1,6 +1,7 @@
 {
   "validation": {
-    "kanaOnly": "全角カタカナで入力してください"
+    "kanaOnly": "全角カタカナで入力してください",
+    "prefectureInvalid": "有効な都道府県を選択してください"
   },
   "nav": {
     "profile": "プロフィール",
@@ -99,7 +100,8 @@
     "nicknameKanaPlaceholder": "ヒョウジメイ",
     "specialtyLabel": "専門分野",
     "prefectureLabel": "活動拠点（都道府県）",
-    "prefecturePlaceholder": "東京都",
+    "prefecturePlaceholder": "都道府県を選択",
+    "prefectureNone": "未選択",
     "cityLabel": "活動拠点（市区町村）",
     "cityPlaceholder": "渋谷区",
     "introductionLabel": "自己紹介",

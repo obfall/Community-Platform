@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
-import { KANA_PATTERN } from "@community-platform/shared";
+import { KANA_PATTERN, PREFECTURES } from "@community-platform/shared";
 import { useTranslations } from "next-intl";
 import { useMyProfile, useUpdatePublicInfo } from "@/hooks/profile/use-profile";
 import { useInterestCategories, useReplaceInterests } from "@/hooks/profile/use-interests";
@@ -24,6 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
 // 専門分野カテゴリ。label/children はラベルキーの末尾要素として使い、
@@ -93,6 +100,10 @@ const SPECIALTY_CATEGORIES = [
   },
 ] as const;
 
+// 都道府県の「未選択」を表す内部値。Radix Select は空文字の値を許可しないため、
+// 空文字（=未選択）の代わりにこのセンチネルを使い、onChange で空文字へ戻す。
+const PREFECTURE_NONE = "__none__";
+
 const EVENT_ROLE_VALUES = [
   "lecturer",
   "mc",
@@ -112,7 +123,11 @@ function buildPublicInfoSchema(t: (key: string) => string) {
       .optional()
       .or(z.literal("")),
     specialties: z.array(z.string()),
-    prefecture: z.string().max(50).optional().or(z.literal("")),
+    prefecture: z
+      .string()
+      .refine((v) => v === "" || (PREFECTURES as readonly string[]).includes(v), {
+        message: t("validation.prefectureInvalid"),
+      }),
     city: z.string().max(100).optional().or(z.literal("")),
     introduction: z.string().optional().or(z.literal("")),
     eventRoles: z.array(z.string()),
@@ -352,9 +367,26 @@ export function PublicInfoForm({ returnTo }: { returnTo?: string }) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t("publicInfoForm.prefectureLabel")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t("publicInfoForm.prefecturePlaceholder")} {...field} />
-                    </FormControl>
+                    <Select
+                      value={field.value || PREFECTURE_NONE}
+                      onValueChange={(v) => field.onChange(v === PREFECTURE_NONE ? "" : v)}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={t("publicInfoForm.prefecturePlaceholder")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={PREFECTURE_NONE}>
+                          {t("publicInfoForm.prefectureNone")}
+                        </SelectItem>
+                        {PREFECTURES.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

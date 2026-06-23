@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString, Matches, MaxLength } from "class-validator";
-import { KANA_PATTERN } from "@community-platform/shared";
+import { IsEnum, IsIn, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { KANA_PATTERN, PREFECTURES } from "@community-platform/shared";
 import type { PublicStatus } from "@prisma/client";
 
 export class UpdatePublicInfoDto {
@@ -23,10 +23,9 @@ export class UpdatePublicInfoDto {
   @MaxLength(200)
   specialty?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: PREFECTURES })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
+  @IsIn(PREFECTURES, { message: "活動拠点（都道府県）は有効な都道府県を選択してください" })
   prefecture?: string;
 
   @ApiPropertyOptional()
