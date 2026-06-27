@@ -86,6 +86,11 @@ export default function ProfileCalendarPage() {
     setShowForm(false);
   };
 
+  const closeDialog = () => {
+    setDialogOpen(false);
+    resetForm();
+  };
+
   const calendarItems = useMemo<CalendarItem[]>(() => {
     const scheduleItems: CalendarItem[] = showSchedules
       ? (schedules ?? []).map((s) => ({
@@ -237,9 +242,9 @@ export default function ProfileCalendarPage() {
       location: location || undefined,
     };
     if (editingId) {
-      updateSchedule.mutate({ id: editingId, data: payload }, { onSuccess: () => resetForm() });
+      updateSchedule.mutate({ id: editingId, data: payload }, { onSuccess: () => closeDialog() });
     } else {
-      createSchedule.mutate(payload, { onSuccess: () => resetForm() });
+      createSchedule.mutate(payload, { onSuccess: () => closeDialog() });
     }
   };
 

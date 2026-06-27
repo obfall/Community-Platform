@@ -8,10 +8,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
+// 作成 mutation の mutate は onSuccess を即時に呼び、保存成功フローを再現する
+const createMutate = vi.fn((_payload, opts?: { onSuccess?: () => void }) => opts?.onSuccess?.());
+
 // カレンダーに集約される各データソースの hook をモック
 vi.mock("@/hooks/calendar/use-calendar", () => ({
   useSchedules: vi.fn(() => ({ data: [] })),
-  useCreateSchedule: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useCreateSchedule: vi.fn(() => ({ mutate: createMutate, isPending: false })),
   useUpdateSchedule: vi.fn(() => ({ mutate: vi.fn() })),
   useDeleteSchedule: vi.fn(() => ({ mutate: vi.fn() })),
 }));
@@ -75,6 +78,19 @@ describe("ProfileCalendarPage（マイカレンダー）", () => {
       await user.click(screen.getByRole("button", { name: "予定を追加" }));
       expect(screen.getByText("タイトル")).toBeInTheDocument();
       expect(screen.getByText("場所")).toBeInTheDocument();
+    });
+
+    it("予定を保存するとダイアログが閉じてカレンダー表示に戻る", async () => {
+      const user = (await import("@testing-library/user-event")).default;
+      renderPage();
+      await user.click(screen.getByTestId("day-cell"));
+      await user.click(screen.getByRole("button", { name: "予定を追加" }));
+      // タイトルを入力（保存ボタンの活性化に必須）。textbox の先頭がタイトル入力
+      await user.type(screen.getAllByRole("textbox")[0], "打ち合わせ");
+      await user.click(screen.getByRole("button", { name: "保存" }));
+      // onSuccess → closeDialog でダイアログが閉じ、日付タイトルが消える
+      expect(createMutate).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText("2026年6月23日")).not.toBeInTheDocument();
     });
   });
 });
