@@ -608,7 +608,7 @@ export class UsersService {
 
   async findUserReservations(userId: string) {
     return this.prisma.reservation.findMany({
-      where: { userId },
+      where: { userId, status: { not: "canceled" } },
       select: {
         id: true,
         title: true,

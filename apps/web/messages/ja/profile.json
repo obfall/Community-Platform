@@ -237,6 +237,27 @@
       "approved": "承認済",
       "rejected": "却下",
       "canceled": "キャンセル"
+    },
+    "venueDetail": {
+      "title": "予約詳細",
+      "note": "備考",
+      "createdAt": "予約日時",
+      "viewVenue": "会場ページを見る",
+      "close": "閉じる",
+      "cancel": "予約をキャンセル",
+      "confirmTitle": "予約をキャンセルしますか？",
+      "confirmDescription": "この操作は取り消せません。キャンセルすると、この予約は一覧から削除されます。",
+      "confirmAction": "キャンセルする",
+      "confirmBack": "戻る"
+    },
+    "skillDetail": {
+      "title": "スキル予約詳細",
+      "price": "料金",
+      "duration": "所要時間",
+      "durationValue": "{minutes}分",
+      "message": "メッセージ",
+      "viewDetail": "予約詳細を見る",
+      "close": "閉じる"
     }
   },
   "library": {
