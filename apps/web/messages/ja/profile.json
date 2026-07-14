@@ -214,7 +214,16 @@
   "tasks": {
     "title": "マイタスク",
     "empty": "担当タスクはありません",
-    "due": "期限"
+    "due": "期限",
+    "detail": {
+      "title": "タスク詳細",
+      "project": "プロジェクト",
+      "requestedDate": "依頼日",
+      "dueDate": "期限",
+      "description": "詳細",
+      "viewTasks": "タスク一覧を見る",
+      "close": "閉じる"
+    }
   },
   "activity": {
     "title": "アクティビティ",
@@ -234,6 +243,7 @@
     "dateUndecided": "日時未定",
     "status": {
       "pending": "申請中",
+      "confirmed": "確定",
       "approved": "承認済",
       "rejected": "却下",
       "canceled": "キャンセル"

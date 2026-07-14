@@ -16,6 +16,9 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { UsersService } from "./users.service";
 import {
   UserListQueryDto,
+  MyTicketsQueryDto,
+  MyReservationsQueryDto,
+  MyTasksQueryDto,
   UpdateProfileDto,
   UpdatePublicInfoDto,
   UpdateInterestsDto,
@@ -49,20 +52,20 @@ export class UsersController {
 
   @Get("me/tickets")
   @ApiOperation({ summary: "自分のチケット一覧" })
-  getMyTickets(@CurrentUser("id") userId: string) {
-    return this.usersService.findUserTickets(userId);
+  getMyTickets(@CurrentUser("id") userId: string, @Query() query: MyTicketsQueryDto) {
+    return this.usersService.findUserTickets(userId, query);
   }
 
   @Get("me/reservations")
   @ApiOperation({ summary: "自分の予約一覧" })
-  getMyReservations(@CurrentUser("id") userId: string) {
-    return this.usersService.findUserReservations(userId);
+  getMyReservations(@CurrentUser("id") userId: string, @Query() query: MyReservationsQueryDto) {
+    return this.usersService.findUserReservations(userId, query);
   }
 
   @Get("me/tasks")
   @ApiOperation({ summary: "自分の担当タスク一覧" })
-  getMyTasks(@CurrentUser("id") userId: string) {
-    return this.usersService.findUserTasks(userId);
+  getMyTasks(@CurrentUser("id") userId: string, @Query() query: MyTasksQueryDto) {
+    return this.usersService.findUserTasks(userId, query);
   }
 
   @Get("me/library")

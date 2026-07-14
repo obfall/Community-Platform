@@ -9,9 +9,9 @@ import {
   useUpdateSchedule,
   useDeleteSchedule,
 } from "@/hooks/calendar/use-calendar";
-import { useMyReservations } from "@/hooks/profile/use-reservations";
-import { useMyTasks } from "@/hooks/profile/use-tasks";
-import { useMyTickets } from "@/hooks/profile/use-tickets";
+import { useAllMyReservations } from "@/hooks/profile/use-reservations";
+import { useAllMyTasks } from "@/hooks/profile/use-tasks";
+import { useAllMyTickets } from "@/hooks/profile/use-tickets";
 import { useMyProjectSchedules } from "@/hooks/profile/use-project-calendar";
 import { useSkillBookings } from "@/hooks/skills/use-skills";
 import { useAuth } from "@/hooks/auth/use-auth";
@@ -47,9 +47,9 @@ export default function ProfileCalendarPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: schedules } = useSchedules();
-  const { data: reservations } = useMyReservations();
-  const { data: tasks } = useMyTasks();
-  const { data: tickets } = useMyTickets();
+  const { data: reservations } = useAllMyReservations();
+  const { data: tasks } = useAllMyTasks();
+  const { data: tickets } = useAllMyTickets();
   const { data: projectSchedules } = useMyProjectSchedules();
   const { data: skillBookings } = useSkillBookings();
   const createSchedule = useCreateSchedule();

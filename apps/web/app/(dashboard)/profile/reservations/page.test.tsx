@@ -65,6 +65,27 @@ const sampleSkillBooking = {
   provider: { name: "山田 太郎" },
 };
 
+// useInfiniteQuery の返り値形（pages 配列）に配列データを包む。
+function asInfinite(data: unknown) {
+  if (data === undefined) return undefined;
+  return {
+    pages: [
+      {
+        data,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    ],
+    pageParams: [1],
+  };
+}
+
 function setResult(opts: {
   reservations?: unknown;
   isLoading?: boolean;
@@ -73,8 +94,11 @@ function setResult(opts: {
 }) {
   const cancelMutate = vi.fn();
   vi.mocked(useMyReservations).mockReturnValue({
-    data: opts.reservations,
+    data: asInfinite(opts.reservations),
     isLoading: opts.isLoading ?? false,
+    hasNextPage: false,
+    fetchNextPage: vi.fn(),
+    isFetchingNextPage: false,
   } as never);
   vi.mocked(useSkillBookings).mockReturnValue({
     data: opts.bookings,
@@ -113,9 +137,10 @@ describe("ProfileReservationsPage（マイ予約）", () => {
     it("予約タイトルとステータスラベルが表示される", () => {
       setResult({ reservations: [sampleVenue], bookings: [] });
       renderWithProviders(<ProfileReservationsPage />);
-      expect(screen.getByText("定例ミーティング")).toBeInTheDocument();
+      // カード内のバッジで確認（「申請中」は絞り込みタブにも出るためカードにスコープする）
+      const card = screen.getByRole("button", { name: /定例ミーティング/ });
       // reservations.status.pending = 「申請中」
-      expect(screen.getByText("申請中")).toBeInTheDocument();
+      expect(within(card).getByText("申請中")).toBeInTheDocument();
     });
 
     it("ダイアログを開く前は一覧に備考を表示しない", () => {

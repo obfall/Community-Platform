@@ -19,13 +19,13 @@ vi.mock("@/hooks/calendar/use-calendar", () => ({
   useDeleteSchedule: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 vi.mock("@/hooks/profile/use-reservations", () => ({
-  useMyReservations: vi.fn(() => ({ data: [] })),
+  useAllMyReservations: vi.fn(() => ({ data: [] })),
 }));
 vi.mock("@/hooks/profile/use-tasks", () => ({
-  useMyTasks: vi.fn(() => ({ data: [] })),
+  useAllMyTasks: vi.fn(() => ({ data: [] })),
 }));
 vi.mock("@/hooks/profile/use-tickets", () => ({
-  useMyTickets: vi.fn(() => ({ data: [] })),
+  useAllMyTickets: vi.fn(() => ({ data: [] })),
 }));
 vi.mock("@/hooks/profile/use-project-calendar", () => ({
   useMyProjectSchedules: vi.fn(() => ({ data: [] })),
@@ -86,7 +86,7 @@ describe("ProfileCalendarPage（マイカレンダー）", () => {
       await user.click(screen.getByTestId("day-cell"));
       await user.click(screen.getByRole("button", { name: "予定を追加" }));
       // タイトルを入力（保存ボタンの活性化に必須）。textbox の先頭がタイトル入力
-      await user.type(screen.getAllByRole("textbox")[0], "打ち合わせ");
+      await user.type(screen.getAllByRole("textbox")[0]!, "打ち合わせ");
       await user.click(screen.getByRole("button", { name: "保存" }));
       // onSuccess → closeDialog でダイアログが閉じ、日付タイトルが消える
       expect(createMutate).toHaveBeenCalledTimes(1);

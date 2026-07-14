@@ -6,6 +6,7 @@ vi.mock("@/lib/api/profile", () => ({
   profileApi: {
     getMyTickets: vi.fn(),
   },
+  fetchAllPaginated: vi.fn(),
 }));
 
 import { useMyTickets } from "./use-tickets";
@@ -16,8 +17,8 @@ describe("マイチケット hooks", () => {
     vi.clearAllMocks();
   });
 
-  describe("useMyTickets: マイチケット一覧取得", () => {
-    it("profileApi.getMyTickets が呼ばれ、データが返る", async () => {
+  describe("useMyTickets: マイチケット一覧取得（ページング）", () => {
+    it("profileApi.getMyTickets が page 指定で呼ばれ、1ページ目のデータが返る", async () => {
       const tickets = [
         {
           id: "p1",
@@ -37,14 +38,45 @@ describe("マイチケット hooks", () => {
           appliedAt: "2026-06-01T00:00:00Z",
         },
       ];
-      vi.mocked(profileApi.getMyTickets).mockResolvedValue(tickets);
+      vi.mocked(profileApi.getMyTickets).mockResolvedValue({
+        data: tickets,
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
 
       const { wrapper } = createHookWrapper();
       const { result } = renderHook(() => useMyTickets(), { wrapper });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(result.current.data).toEqual(tickets);
-      expect(profileApi.getMyTickets).toHaveBeenCalled();
+      expect(result.current.data?.pages[0]?.data).toEqual(tickets);
+      expect(result.current.hasNextPage).toBe(false);
+      expect(profileApi.getMyTickets).toHaveBeenCalledWith({ page: 1, status: undefined });
+    });
+
+    it("status を渡すとフィルタ値が API に伝わる", async () => {
+      vi.mocked(profileApi.getMyTickets).mockResolvedValue({
+        data: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      });
+
+      const { wrapper } = createHookWrapper();
+      const { result } = renderHook(() => useMyTickets("attended"), { wrapper });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(profileApi.getMyTickets).toHaveBeenCalledWith({ page: 1, status: "attended" });
     });
   });
 });

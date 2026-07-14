@@ -14,7 +14,33 @@ import type {
   LibraryItem,
   CreateLibraryItemInput,
   UpdateLibraryItemInput,
+  PaginatedResponse,
 } from "./types";
+
+// マイページ一覧（チケット/予約/タスク）共通のクエリ。
+// status は各エンドポイントで許可値が異なるため、ここでは緩く string で受ける。
+export interface MyListQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+// ページングされた一覧を全ページ取得して結合する（カレンダー等、全件が必要な箇所向け）。
+// 万一 meta が壊れても無限ループしないよう最大ページ数でガードする。
+export async function fetchAllPaginated<T>(
+  fetchPage: (page: number) => Promise<PaginatedResponse<T>>,
+  maxPages = 100,
+): Promise<T[]> {
+  const all: T[] = [];
+  let page = 1;
+  for (let i = 0; i < maxPages; i++) {
+    const res = await fetchPage(page);
+    all.push(...res.data);
+    if (!res.meta.hasNextPage) break;
+    page += 1;
+  }
+  return all;
+}
 
 // 自分自身（/users/me/...）に対する操作と user-library を扱う API クライアント。
 // app/(dashboard)/profile/ 配下のページ・hooks から参照する。
@@ -49,12 +75,18 @@ export const profileApi = {
   replaceInterests: (categoryIds: string[]) =>
     apiClient.put<UserInterestItem[]>("/users/me/interests", { categoryIds }).then((r) => r.data),
 
-  getMyTickets: () => apiClient.get<MyTicketItem[]>("/users/me/tickets").then((r) => r.data),
+  getMyTickets: (params?: MyListQuery) =>
+    apiClient
+      .get<PaginatedResponse<MyTicketItem>>("/users/me/tickets", { params })
+      .then((r) => r.data),
 
-  getMyReservations: () =>
-    apiClient.get<MyReservationItem[]>("/users/me/reservations").then((r) => r.data),
+  getMyReservations: (params?: MyListQuery) =>
+    apiClient
+      .get<PaginatedResponse<MyReservationItem>>("/users/me/reservations", { params })
+      .then((r) => r.data),
 
-  getMyTasks: () => apiClient.get<MyTaskItem[]>("/users/me/tasks").then((r) => r.data),
+  getMyTasks: (params?: MyListQuery) =>
+    apiClient.get<PaginatedResponse<MyTaskItem>>("/users/me/tasks", { params }).then((r) => r.data),
 
   getMyProjectSchedules: () =>
     apiClient.get<MyProjectScheduleItem[]>("/users/me/project-schedules").then((r) => r.data),

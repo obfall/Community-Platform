@@ -51,11 +51,35 @@ const sampleTicket = {
   ticket: { id: "t1", ticketName: "一般チケット", price: 1000, currency: "JPY" },
 };
 
+// useInfiniteQuery の返り値形（pages 配列）に配列データを包む。
+function asInfinite(data: unknown) {
+  if (data === undefined) return undefined;
+  return {
+    pages: [
+      {
+        data,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+    ],
+    pageParams: [1],
+  };
+}
+
 function setupMocks(opts: { data?: unknown; isLoading?: boolean } = {}) {
   const cancelMutate = vi.fn();
   vi.mocked(useMyTickets).mockReturnValue({
-    data: opts.data,
+    data: asInfinite(opts.data),
     isLoading: opts.isLoading ?? false,
+    hasNextPage: false,
+    fetchNextPage: vi.fn(),
+    isFetchingNextPage: false,
   } as never);
   vi.mocked(useCancelParticipation).mockReturnValue({
     mutate: cancelMutate,

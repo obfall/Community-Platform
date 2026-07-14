@@ -30,17 +30,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { SelectField } from "@/components/select-field";
 import { CalendarCheck, Clock, GraduationCap, MapPin } from "lucide-react";
 import type { MyReservationItem, SkillBooking } from "@/lib/api/types";
 
+const STATUS_OPTIONS = ["pending", "confirmed"] as const;
+
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "secondary",
+  confirmed: "default",
   approved: "default",
   rejected: "destructive",
   canceled: "outline",
 };
 
-const CANCELABLE_STATUSES = ["pending", "approved"];
+const CANCELABLE_STATUSES = ["pending", "confirmed", "approved"];
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ja-JP", {
@@ -85,11 +89,21 @@ export default function ProfileReservationsPage() {
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("profile.reservations.status");
   const { user } = useAuth();
-  const { data: reservations, isLoading } = useMyReservations();
+  const [venueStatus, setVenueStatus] = useState("all");
+  const {
+    data: reservationsData,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useMyReservations(venueStatus === "all" ? undefined : venueStatus);
   const { data: bookings, isLoading: isBookingsLoading } = useSkillBookings();
 
   const [selectedVenue, setSelectedVenue] = useState<MyReservationItem | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<SkillBooking | null>(null);
+
+  const reservations = reservationsData?.pages.flatMap((p) => p.data) ?? [];
+  const venueStatusOptions = STATUS_OPTIONS.map((s) => ({ value: s, label: tStatus(s) }));
 
   const approvedSkillBookings = (bookings ?? []).filter(
     (b) =>
@@ -102,52 +116,75 @@ export default function ProfileReservationsPage() {
 
       <section className="space-y-3">
         <h3 className="text-base font-semibold">{t("reservations.venueSection")}</h3>
+
+        <SelectField
+          value={venueStatus}
+          onChange={setVenueStatus}
+          options={venueStatusOptions}
+          includeAll
+          className="w-44"
+        />
+
         {isLoading ? (
           <div className="py-6 text-center text-muted-foreground">{tCommon("loading")}</div>
-        ) : !reservations || reservations.length === 0 ? (
+        ) : reservations.length === 0 ? (
           <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
             <CalendarCheck className="mx-auto mb-2 h-8 w-8" />
             <p>{t("reservations.noVenueReservations")}</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {reservations.map((item: MyReservationItem) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setSelectedVenue(item)}
-                className="w-full text-left"
-              >
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {item.title ?? item.space.name}
-                        </p>
-                        <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 shrink-0" />
-                            {item.space.venue.name} / {item.space.name}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CalendarCheck className="h-3 w-3 shrink-0" />
-                            {formatDate(item.startAt)}
+          <>
+            <div className="space-y-3">
+              {reservations.map((item: MyReservationItem) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedVenue(item)}
+                  className="w-full text-left"
+                >
+                  <Card className="transition-shadow hover:shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">
+                            {item.title ?? item.space.name}
+                          </p>
+                          <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {item.space.venue.name} / {item.space.name}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CalendarCheck className="h-3 w-3 shrink-0" />
+                              {formatDate(item.startAt)}
+                            </div>
                           </div>
                         </div>
+                        <Badge
+                          variant={STATUS_VARIANTS[item.status] ?? "secondary"}
+                          className="shrink-0 text-xs"
+                        >
+                          {tStatus.has(item.status) ? tStatus(item.status) : item.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant={STATUS_VARIANTS[item.status] ?? "secondary"}
-                        className="shrink-0 text-xs"
-                      >
-                        {tStatus.has(item.status) ? tStatus(item.status) : item.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </button>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
+            </div>
+
+            {hasNextPage && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? tCommon("loading") : tCommon("loadMore")}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </section>
 

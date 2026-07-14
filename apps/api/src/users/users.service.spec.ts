@@ -17,6 +17,9 @@ describe("UsersService", () => {
     userAffiliation: { deleteMany: jest.Mock; createMany: jest.Mock; findMany: jest.Mock };
     refreshToken: { updateMany: jest.Mock };
     category: { findMany: jest.Mock };
+    projectTaskAssignee: { findMany: jest.Mock; count: jest.Mock };
+    eventParticipant: { findMany: jest.Mock; count: jest.Mock };
+    reservation: { findMany: jest.Mock; count: jest.Mock };
     $transaction: jest.Mock;
     $queryRaw: jest.Mock;
   };
@@ -53,6 +56,18 @@ describe("UsersService", () => {
       refreshToken: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       category: {
         findMany: jest.fn().mockResolvedValue([]),
+      },
+      projectTaskAssignee: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      eventParticipant: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      reservation: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
       $transaction: jest.fn().mockImplementation(async (ops) => Promise.all(ops)),
       $queryRaw: jest.fn().mockResolvedValue([]),
@@ -454,6 +469,90 @@ describe("UsersService", () => {
             }),
           ],
         }),
+      );
+    });
+  });
+
+  describe("findUserTasks: 担当タスク一覧（ページング + ステータス絞り込み）", () => {
+    it("status 未指定なら task の絞り込みなしで page/limit（skip/take）と {data, meta} が返る", async () => {
+      const result = await service.findUserTasks("u1", { page: 2, limit: 10 });
+
+      expect(prismaMock.projectTaskAssignee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "u1" },
+          skip: 10,
+          take: 10,
+          orderBy: [{ task: { status: "asc" } }, { task: { createdAt: "desc" } }],
+        }),
+      );
+      expect(prismaMock.projectTaskAssignee.count).toHaveBeenCalledWith({
+        where: { userId: "u1" },
+      });
+      expect(result).toEqual({
+        data: [],
+        meta: expect.objectContaining({ page: 2, limit: 10, hasNextPage: false }),
+      });
+    });
+
+    it("status 指定時は task.status で where 絞り込みされる", async () => {
+      await service.findUserTasks("u1", { status: "in_progress" });
+
+      expect(prismaMock.projectTaskAssignee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "u1", task: { is: { status: "in_progress" } } },
+        }),
+      );
+    });
+
+    it("許可外の status は無視され、絞り込みなしになる", async () => {
+      await service.findUserTasks("u1", { status: "bogus" });
+
+      expect(prismaMock.projectTaskAssignee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: "u1" } }),
+      );
+    });
+  });
+
+  describe("findUserTickets: チケット一覧（ページング + ステータス絞り込み）", () => {
+    it("status 未指定なら canceled 除外 + ステータス順で取得する", async () => {
+      await service.findUserTickets("u1");
+
+      expect(prismaMock.eventParticipant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "u1", status: { not: "canceled" }, event: { deletedAt: null } },
+          orderBy: [{ status: "asc" }, { event: { startAt: "desc" } }],
+        }),
+      );
+    });
+
+    it("status 指定時はその status で完全一致絞り込みされる", async () => {
+      await service.findUserTickets("u1", { status: "attended" });
+
+      expect(prismaMock.eventParticipant.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "u1", status: "attended", event: { deletedAt: null } },
+        }),
+      );
+    });
+  });
+
+  describe("findUserReservations: 会場予約一覧（ページング + ステータス絞り込み）", () => {
+    it("status 未指定なら canceled 除外 + ステータス順で取得する", async () => {
+      await service.findUserReservations("u1");
+
+      expect(prismaMock.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "u1", status: { not: "canceled" } },
+          orderBy: [{ status: "asc" }, { startAt: "desc" }],
+        }),
+      );
+    });
+
+    it("status 指定時はその status で完全一致絞り込みされる", async () => {
+      await service.findUserReservations("u1", { status: "confirmed" });
+
+      expect(prismaMock.reservation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: "u1", status: "confirmed" } }),
       );
     });
   });
