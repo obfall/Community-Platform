@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Menu, LogOut, LayoutDashboard, Bell, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useUnreadCount } from "@/hooks/notifications/use-notifications";
@@ -35,6 +36,7 @@ interface HeaderProps {
 
 export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
   const router = useRouter();
+  const t = useTranslations("header");
   const { user, logout } = useAuth();
   const { data: unreadData } = useUnreadCount();
   const { data: settings } = useAppSettings();
@@ -75,11 +77,11 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
-            <span className="sr-only">メニュー</span>
+            <span className="sr-only">{t("menu")}</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
-          <SheetTitle className="sr-only">ナビゲーション</SheetTitle>
+          <SheetTitle className="sr-only">{t("navigation")}</SheetTitle>
           <div className="flex h-14 items-center border-b px-4">
             {logoUrl ? (
               <Image
@@ -134,7 +136,7 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
       <Button variant="ghost" size="icon" asChild>
         <Link href="/faq">
           <HelpCircle className="h-5 w-5" />
-          <span className="sr-only">FAQ</span>
+          <span className="sr-only">{t("faq")}</span>
         </Link>
       </Button>
 
@@ -143,11 +145,9 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         <Link href="/notifications">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
+            <span className="absolute right-0 top-0 h-3 w-3 rounded-full bg-destructive" />
           )}
-          <span className="sr-only">通知</span>
+          <span className="sr-only">{t("notifications")}</span>
         </Link>
       </Button>
 
@@ -171,13 +171,13 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
           <DropdownMenuItem asChild>
             <Link href="/profile" className="cursor-pointer">
               <LayoutDashboard className="mr-2 h-4 w-4" />
-              マイページ
+              {t("myPage")}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
-            ログアウト
+            {t("logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

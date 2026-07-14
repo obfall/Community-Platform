@@ -25,56 +25,78 @@ import {
 
 export interface NavItem {
   featureKey: string;
-  label: string;
+  /** header 名前空間の翻訳キー（例: "nav.news"）。表示は sidebar 側で t() する */
+  labelKey: string;
   href: string;
   icon: LucideIcon;
   roles?: string[];
 }
 
 export interface AdminNavItem {
-  label: string;
+  /** header 名前空間の翻訳キー（例: "admin.communitySettings"） */
+  labelKey: string;
   href: string;
   icon: LucideIcon;
   featureKey?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { featureKey: "news", label: "ホーム", href: "/dashboard", icon: Home },
-  { featureKey: "member", label: "メンバー", href: "/members", icon: Users },
-  { featureKey: "board", label: "掲示板", href: "/board", icon: MessageSquare },
-  { featureKey: "event", label: "イベント", href: "/events", icon: CalendarDays },
-  { featureKey: "chat", label: "チャット", href: "/chat", icon: MessageCircle },
-  { featureKey: "project", label: "プロジェクト", href: "/projects", icon: FolderKanban },
-  { featureKey: "video", label: "動画", href: "/videos", icon: Video },
-  { featureKey: "album", label: "アルバム", href: "/albums", icon: Image },
-  { featureKey: "content", label: "コンテンツ", href: "/content", icon: FileText },
-  { featureKey: "ec_shop", label: "EC・ショップ", href: "/shop", icon: ShoppingBag },
-  { featureKey: "skill_share", label: "スキルシェア", href: "/skills", icon: Share2 },
+  { featureKey: "news", labelKey: "nav.news", href: "/dashboard", icon: Home },
+  { featureKey: "member", labelKey: "nav.member", href: "/members", icon: Users },
+  { featureKey: "board", labelKey: "nav.board", href: "/board", icon: MessageSquare },
+  { featureKey: "event", labelKey: "nav.event", href: "/events", icon: CalendarDays },
+  { featureKey: "chat", labelKey: "nav.chat", href: "/chat", icon: MessageCircle },
+  { featureKey: "project", labelKey: "nav.project", href: "/projects", icon: FolderKanban },
+  { featureKey: "video", labelKey: "nav.video", href: "/videos", icon: Video },
+  { featureKey: "album", labelKey: "nav.album", href: "/albums", icon: Image },
+  { featureKey: "content", labelKey: "nav.content", href: "/content", icon: FileText },
+  { featureKey: "ec_shop", labelKey: "nav.ec_shop", href: "/shop", icon: ShoppingBag },
+  { featureKey: "skill_share", labelKey: "nav.skill_share", href: "/skills", icon: Share2 },
   {
     featureKey: "orientation",
-    label: "オリエンテーション",
+    labelKey: "nav.orientation",
     href: "/orientation",
     icon: GraduationCap,
     roles: ["admin", "owner"],
   },
-  { featureKey: "venue", label: "施設・会場", href: "/venues", icon: MapPin },
+  { featureKey: "venue", labelKey: "nav.venue", href: "/venues", icon: MapPin },
 ];
 
 /** コミュニティ管理メニュー（owner 以上） */
 export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
-  { label: "コミュニティ設定", href: "/settings/community", icon: Settings },
-  { label: "メンバー管理", href: "/settings/members", icon: UserCog, featureKey: "member" },
-  { label: "動画管理", href: "/videos/manage", icon: Video, featureKey: "video" },
-  { label: "EC管理", href: "/shop/manage", icon: ShoppingBag, featureKey: "ec_shop" },
-  { label: "ポイント管理", href: "/points", icon: Star, featureKey: "point" },
-  { label: "アンケート管理", href: "/surveys", icon: ClipboardList, featureKey: "survey" },
-  { label: "配信", href: "/broadcasts", icon: Mail, featureKey: "mail_campaign" },
-  { label: "アナリティクス", href: "/analytics", icon: BarChart3, featureKey: "analytics" },
-  { label: "利用履歴", href: "/usage-history", icon: Bookmark, featureKey: "usage_history" },
-  { label: "モデレーション", href: "/moderation", icon: Shield, featureKey: "moderation" },
+  { labelKey: "admin.communitySettings", href: "/settings/community", icon: Settings },
+  {
+    labelKey: "admin.memberManagement",
+    href: "/settings/members",
+    icon: UserCog,
+    featureKey: "member",
+  },
+  { labelKey: "admin.videoManagement", href: "/videos/manage", icon: Video, featureKey: "video" },
+  {
+    labelKey: "admin.ecManagement",
+    href: "/shop/manage",
+    icon: ShoppingBag,
+    featureKey: "ec_shop",
+  },
+  { labelKey: "admin.pointManagement", href: "/points", icon: Star, featureKey: "point" },
+  {
+    labelKey: "admin.surveyManagement",
+    href: "/surveys",
+    icon: ClipboardList,
+    featureKey: "survey",
+  },
+  { labelKey: "admin.broadcast", href: "/broadcasts", icon: Mail, featureKey: "mail_campaign" },
+  { labelKey: "admin.analytics", href: "/analytics", icon: BarChart3, featureKey: "analytics" },
+  {
+    labelKey: "admin.usageHistory",
+    href: "/usage-history",
+    icon: Bookmark,
+    featureKey: "usage_history",
+  },
+  { labelKey: "admin.moderation", href: "/moderation", icon: Shield, featureKey: "moderation" },
 ];
 
 /** システム管理メニュー（admin のみ） */
 export const SYSTEM_ADMIN_ITEMS: AdminNavItem[] = [
-  { label: "システム設定", href: "/settings/system", icon: Shield },
+  { labelKey: "admin.systemSettings", href: "/settings/system", icon: Shield },
 ];

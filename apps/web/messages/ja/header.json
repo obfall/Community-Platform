@@ -1,0 +1,40 @@
+{
+  "menu": "メニュー",
+  "navigation": "ナビゲーション",
+  "faq": "FAQ",
+  "notifications": "通知",
+  "myPage": "マイページ",
+  "logout": "ログアウト",
+  "nav": {
+    "news": "ホーム",
+    "member": "メンバー",
+    "board": "掲示板",
+    "event": "イベント",
+    "chat": "チャット",
+    "project": "プロジェクト",
+    "video": "動画",
+    "album": "アルバム",
+    "content": "コンテンツ",
+    "ec_shop": "EC・ショップ",
+    "skill_share": "スキルシェア",
+    "orientation": "オリエンテーション",
+    "venue": "施設・会場"
+  },
+  "group": {
+    "communityAdmin": "コミュニティ管理",
+    "systemAdmin": "システム管理"
+  },
+  "admin": {
+    "communitySettings": "コミュニティ設定",
+    "memberManagement": "メンバー管理",
+    "videoManagement": "動画管理",
+    "ecManagement": "EC管理",
+    "pointManagement": "ポイント管理",
+    "surveyManagement": "アンケート管理",
+    "broadcast": "配信",
+    "analytics": "アナリティクス",
+    "usageHistory": "利用履歴",
+    "moderation": "モデレーション",
+    "systemSettings": "システム設定"
+  }
+}

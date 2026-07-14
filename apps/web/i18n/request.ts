@@ -10,6 +10,7 @@ import { getRequestConfig } from "next-intl/server";
 // 下記の NAMESPACES 配列に追加するだけで済む。
 const NAMESPACES = [
   "common",
+  "header",
   "enums",
   "members",
   "board",
