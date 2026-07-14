@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useFeatures } from "@/hooks/settings/use-features";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const t = useTranslations("header");
   const { user } = useAuth();
   const { data: features } = useFeatures();
 
@@ -25,14 +27,14 @@ export function Sidebar() {
   const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
   const isSystemAdmin = user?.role === "admin";
 
-  const renderNavGroup = (label: string, items: typeof COMMUNITY_ADMIN_ITEMS) => {
+  const renderNavGroup = (labelKey: string, items: typeof COMMUNITY_ADMIN_ITEMS) => {
     const visible = items.filter((item) => !item.featureKey || enabledKeys.has(item.featureKey));
     if (visible.length === 0) return null;
     return (
       <>
         <Separator className="my-3" />
         <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-          {label}
+          {t(labelKey)}
         </p>
         {visible.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -48,7 +50,7 @@ export function Sidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
@@ -60,7 +62,7 @@ export function Sidebar() {
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-1 p-3">
         <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-          メニュー
+          {t("menu")}
         </p>
         {visibleItems.map((item) => {
           const isActive =
@@ -77,14 +79,14 @@ export function Sidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1">{item.label}</span>
+              <span className="flex-1">{t(item.labelKey)}</span>
               {item.featureKey === "chat" && <ChatUnreadBadge />}
             </Link>
           );
         })}
 
-        {isOwnerOrAdmin && renderNavGroup("コミュニティ管理", COMMUNITY_ADMIN_ITEMS)}
-        {isSystemAdmin && renderNavGroup("システム管理", SYSTEM_ADMIN_ITEMS)}
+        {isOwnerOrAdmin && renderNavGroup("group.communityAdmin", COMMUNITY_ADMIN_ITEMS)}
+        {isSystemAdmin && renderNavGroup("group.systemAdmin", SYSTEM_ADMIN_ITEMS)}
       </div>
     </ScrollArea>
   );
