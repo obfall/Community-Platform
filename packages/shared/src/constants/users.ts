@@ -6,7 +6,9 @@
  * 氏名カナ・ニックネームカナの入力許可文字パターン。
  * 全角カタカナ（ァ-ヶ）・長音符（ー）・全角/半角スペースのみ許可する。
  * 空文字も許可する（任意項目のため）。
+ * 文字クラス内の全角スペース（U+3000）は意図的な許可文字のため lint 抑制する。
  */
+// eslint-disable-next-line no-irregular-whitespace
 export const KANA_PATTERN = /^[ァ-ヶー　 ]*$/;
 
 /**
