@@ -4,7 +4,12 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import {
+  Prisma,
+  type ParticipantStatus,
+  type ReservationStatus,
+  type VideoTaskStatus,
+} from "@prisma/client";
 import { PrismaService } from "@/prisma/prisma.service";
 import {
   buildPaginationMeta,
@@ -23,6 +28,29 @@ import type { UpdateAffiliationsDto } from "./dto/update-affiliations.dto";
 import type { UpdateUserRoleDto } from "./dto/update-user-role.dto";
 import type { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 import type { UpdateUserEmailDto } from "./dto/update-user-email.dto";
+
+/**
+ * マイページ一覧（チケット/予約/タスク）のステータス絞り込みで許可する値。
+ * キャンセル相当（canceled）はそもそも一覧から除外しているためタブに含めない。
+ */
+const TICKET_STATUS_FILTERS = ["applied", "attended", "no_show"] as const;
+const RESERVATION_STATUS_FILTERS = ["pending", "confirmed"] as const;
+const TASK_STATUS_FILTERS = ["not_started", "in_progress", "completed"] as const;
+
+/** allowed に含まれる場合のみ値を返す（不正値・未指定は undefined）。 */
+function pickStatus<T extends string>(
+  allowed: readonly T[],
+  value: string | undefined,
+): T | undefined {
+  return value && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
+}
+
+/** マイページ一覧 API 共通のクエリ（ページング + ステータス絞り込み）。 */
+interface MyListQuery {
+  page?: number | string;
+  limit?: number | string;
+  status?: string;
+}
 
 @Injectable()
 export class UsersService {
@@ -240,8 +268,6 @@ export class UsersService {
             specialty: true,
             prefecture: true,
             city: true,
-            foreignCountry: true,
-            foreignCity: true,
             introduction: true,
             eventRole: true,
             publicStatus: true,
@@ -500,7 +526,11 @@ export class UsersService {
     await this.ensureUserExists(userId);
 
     const participants = await this.prisma.eventParticipant.findMany({
-      where: { userId, status: { not: "canceled" } },
+      where: {
+        userId,
+        status: { not: "canceled" },
+        event: { deletedAt: null },
+      },
       select: {
         status: true,
         appliedAt: true,
@@ -531,7 +561,7 @@ export class UsersService {
     await this.ensureUserExists(userId);
 
     const memberships = await this.prisma.projectMember.findMany({
-      where: { userId, status: "active" },
+      where: { userId, status: "active", project: { deletedAt: null } },
       select: {
         role: true,
         joinedAt: true,
@@ -557,92 +587,140 @@ export class UsersService {
     }));
   }
 
-  async findUserTickets(userId: string) {
-    const participants = await this.prisma.eventParticipant.findMany({
-      where: { userId, status: { not: "canceled" } },
-      select: {
-        id: true,
-        quantity: true,
-        status: true,
-        paymentStatus: true,
-        appliedAt: true,
-        ticket: {
-          select: {
-            id: true,
-            ticketName: true,
-            price: true,
-            currency: true,
-          },
-        },
-        event: {
-          select: {
-            id: true,
-            title: true,
-            startAt: true,
-            endAt: true,
-            status: true,
-            venueName: true,
-            locationType: true,
-          },
-        },
-      },
-      orderBy: { event: { startAt: "desc" } },
-    });
+  async findUserTickets(userId: string, query: MyListQuery = {}) {
+    const { page, limit, skip } = extractPagination(query);
+    const statusFilter = pickStatus<ParticipantStatus>(TICKET_STATUS_FILTERS, query.status);
+    const where: Prisma.EventParticipantWhereInput = {
+      userId,
+      status: statusFilter ?? { not: "canceled" },
+      event: { deletedAt: null },
+    };
 
-    return participants.map((p) => ({
-      id: p.id,
-      event: p.event,
-      ticket: p.ticket,
-      quantity: p.quantity,
-      status: p.status,
-      paymentStatus: p.paymentStatus,
-      appliedAt: p.appliedAt,
-    }));
+    const [participants, total] = await this.prisma.$transaction([
+      this.prisma.eventParticipant.findMany({
+        where,
+        select: {
+          id: true,
+          quantity: true,
+          status: true,
+          paymentStatus: true,
+          appliedAt: true,
+          ticket: {
+            select: {
+              id: true,
+              ticketName: true,
+              price: true,
+              currency: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              title: true,
+              startAt: true,
+              endAt: true,
+              status: true,
+              venueName: true,
+              locationType: true,
+            },
+          },
+        },
+        // ステータス順（applied→attended→no_show）→ 同ステータス内は開催日時の新しい順
+        orderBy: [{ status: "asc" }, { event: { startAt: "desc" } }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.eventParticipant.count({ where }),
+    ]);
+
+    return {
+      data: participants.map((p) => ({
+        id: p.id,
+        event: p.event,
+        ticket: p.ticket,
+        quantity: p.quantity,
+        status: p.status,
+        paymentStatus: p.paymentStatus,
+        appliedAt: p.appliedAt,
+      })),
+      meta: buildPaginationMeta(total, page, limit),
+    };
   }
 
-  async findUserReservations(userId: string) {
-    return this.prisma.reservation.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        title: true,
-        startAt: true,
-        endAt: true,
-        status: true,
-        note: true,
-        createdAt: true,
-        space: {
-          select: {
-            id: true,
-            name: true,
-            venue: { select: { id: true, name: true } },
+  async findUserReservations(userId: string, query: MyListQuery = {}) {
+    const { page, limit, skip } = extractPagination(query);
+    const statusFilter = pickStatus<ReservationStatus>(RESERVATION_STATUS_FILTERS, query.status);
+    const where: Prisma.ReservationWhereInput = {
+      userId,
+      status: statusFilter ?? { not: "canceled" },
+    };
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.reservation.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          startAt: true,
+          endAt: true,
+          status: true,
+          note: true,
+          createdAt: true,
+          space: {
+            select: {
+              id: true,
+              name: true,
+              venue: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-      orderBy: { startAt: "desc" },
-    });
+        // ステータス順（pending→confirmed）→ 同ステータス内は開始日時の新しい順
+        orderBy: [{ status: "asc" }, { startAt: "desc" }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.reservation.count({ where }),
+    ]);
+
+    return { data, meta: buildPaginationMeta(total, page, limit) };
   }
 
-  async findUserTasks(userId: string) {
-    const assignments = await this.prisma.projectTaskAssignee.findMany({
-      where: { userId },
-      include: {
-        task: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            status: true,
-            dueDate: true,
-            requestedDate: true,
-            project: { select: { id: true, name: true } },
+  async findUserTasks(userId: string, query: MyListQuery = {}) {
+    const { page, limit, skip } = extractPagination(query);
+    const statusFilter = pickStatus<VideoTaskStatus>(TASK_STATUS_FILTERS, query.status);
+    const where: Prisma.ProjectTaskAssigneeWhereInput = {
+      userId,
+      ...(statusFilter ? { task: { is: { status: statusFilter } } } : {}),
+    };
+
+    const [assignments, total] = await this.prisma.$transaction([
+      this.prisma.projectTaskAssignee.findMany({
+        where,
+        include: {
+          task: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              status: true,
+              dueDate: true,
+              requestedDate: true,
+              project: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-      orderBy: { task: { createdAt: "desc" } },
-    });
+        // ステータス順（未着手→進行中→完了）→ 同ステータス内は作成日の新しい順
+        orderBy: [{ task: { status: "asc" } }, { task: { createdAt: "desc" } }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.projectTaskAssignee.count({ where }),
+    ]);
 
-    return assignments.map((a) => a.task);
+    return {
+      data: assignments.map((a) => a.task),
+      meta: buildPaginationMeta(total, page, limit),
+    };
   }
 
   async findUserProjectSchedules(userId: string) {

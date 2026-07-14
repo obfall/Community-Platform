@@ -1,12 +1,14 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsDateString, IsEnum, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { KANA_PATTERN, PHONE_PATTERN } from "@community-platform/shared";
 import type { Gender } from "@prisma/client";
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: "ハイフンなしの半角数字 10〜11 桁" })
   @IsOptional()
   @IsString()
   @MaxLength(20)
+  @Matches(PHONE_PATTERN, { message: "電話番号はハイフンなしの半角数字10〜11桁で入力してください" })
   phone?: string;
 
   @ApiPropertyOptional({ description: "ISO 8601 日付文字列" })
@@ -18,6 +20,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @Matches(KANA_PATTERN, { message: "名前（カナ）は全角カタカナで入力してください" })
   nameKana?: string;
 
   @ApiPropertyOptional({ enum: ["male", "female", "other", "prefer_not_to_say"] })

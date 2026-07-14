@@ -127,8 +127,6 @@ export interface UserPublicInfo {
   specialty: string | null;
   prefecture: string | null;
   city: string | null;
-  foreignCountry: string | null;
-  foreignCity: string | null;
   introduction: string | null;
   eventRole: string | null;
   publicStatus: "public" | "private";
@@ -198,8 +196,6 @@ export interface UpdatePublicInfoInput {
   specialty?: string;
   prefecture?: string;
   city?: string;
-  foreignCountry?: string;
-  foreignCity?: string;
   introduction?: string;
   eventRole?: string;
   publicStatus?: "public" | "private";
@@ -699,7 +695,8 @@ export interface CreateLibraryItemInput {
   pageCount?: number;
   impression?: string;
   status?: LibraryItem["status"];
-  fileId?: string;
+  // null で添付を解除（更新時）。未添付の新規作成でも null を許容。
+  fileId?: string | null;
 }
 
 export type UpdateLibraryItemInput = Partial<CreateLibraryItemInput>;

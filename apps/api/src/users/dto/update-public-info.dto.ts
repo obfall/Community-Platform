@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsEnum, IsIn, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { KANA_PATTERN, PREFECTURES } from "@community-platform/shared";
 import type { PublicStatus } from "@prisma/client";
 
 export class UpdatePublicInfoDto {
@@ -13,6 +14,7 @@ export class UpdatePublicInfoDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
+  @Matches(KANA_PATTERN, { message: "ニックネーム（カナ）は全角カタカナで入力してください" })
   nicknameKana?: string;
 
   @ApiPropertyOptional()
@@ -21,10 +23,9 @@ export class UpdatePublicInfoDto {
   @MaxLength(200)
   specialty?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: PREFECTURES })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
+  @IsIn(PREFECTURES, { message: "活動拠点（都道府県）は有効な都道府県を選択してください" })
   prefecture?: string;
 
   @ApiPropertyOptional()
@@ -32,18 +33,6 @@ export class UpdatePublicInfoDto {
   @IsString()
   @MaxLength(100)
   city?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  foreignCountry?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  foreignCity?: string;
 
   @ApiPropertyOptional({ description: "HTML形式の自己紹介" })
   @IsOptional()

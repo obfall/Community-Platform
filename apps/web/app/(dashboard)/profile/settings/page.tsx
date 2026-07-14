@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { authApi } from "@/lib/api/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,27 +24,31 @@ import { Separator } from "@/components/ui/separator";
 
 // --- パスワード変更 ---
 
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "現在のパスワードを入力してください"),
-    newPassword: z.string().min(8, "8文字以上で入力してください"),
-    confirmPassword: z.string().min(1, "確認用パスワードを入力してください"),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "新しいパスワードが一致しません",
-    path: ["confirmPassword"],
-  });
+function createPasswordSchema(t: (key: string) => string) {
+  return z
+    .object({
+      currentPassword: z.string().min(1, t("settings.validation.currentRequired")),
+      newPassword: z.string().min(8, t("settings.validation.newMinLength")),
+      confirmPassword: z.string().min(1, t("settings.validation.confirmRequired")),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t("settings.validation.mismatch"),
+      path: ["confirmPassword"],
+    });
+}
 
-type PasswordFormValues = z.infer<typeof passwordSchema>;
+type PasswordFormValues = z.infer<ReturnType<typeof createPasswordSchema>>;
 
 export default function ProfileSettingsPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const { user } = useAuth();
 
   // --- パスワード変更 ---
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(createPasswordSchema(t)),
     defaultValues: {
       currentPassword: "",
       newPassword: "",
@@ -55,11 +60,11 @@ export default function ProfileSettingsPage() {
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       authApi.changePassword(data),
     onSuccess: () => {
-      toast.success("パスワードを変更しました");
+      toast.success(t("settings.changeSuccess"));
       passwordForm.reset();
       setIsChangingPassword(false);
     },
-    onError: () => toast.error("パスワードの変更に失敗しました"),
+    onError: () => toast.error(t("settings.changeError")),
   });
 
   async function onPasswordSubmit(values: PasswordFormValues) {
@@ -71,21 +76,21 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">個人設定</h2>
+      <h2 className="text-xl font-bold">{t("settings.title")}</h2>
 
       {/* アカウント情報 */}
       <Card>
         <CardHeader>
-          <CardTitle>アカウント情報</CardTitle>
+          <CardTitle>{t("settings.account.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium">メールアドレス</p>
+            <p className="text-sm font-medium">{t("settings.account.email")}</p>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
           <Separator />
           <div className="space-y-1">
-            <p className="text-sm font-medium">パスワード</p>
+            <p className="text-sm font-medium">{t("settings.account.password")}</p>
             {isChangingPassword ? (
               <Form {...passwordForm}>
                 <form
@@ -97,7 +102,7 @@ export default function ProfileSettingsPage() {
                     name="currentPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>現在のパスワード</FormLabel>
+                        <FormLabel>{t("settings.form.currentPassword")}</FormLabel>
                         <FormControl>
                           <Input type="password" {...field} />
                         </FormControl>
@@ -110,7 +115,7 @@ export default function ProfileSettingsPage() {
                     name="newPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>新しいパスワード</FormLabel>
+                        <FormLabel>{t("settings.form.newPassword")}</FormLabel>
                         <FormControl>
                           <Input type="password" {...field} />
                         </FormControl>
@@ -123,7 +128,7 @@ export default function ProfileSettingsPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>新しいパスワード（確認）</FormLabel>
+                        <FormLabel>{t("settings.form.confirmPassword")}</FormLabel>
                         <FormControl>
                           <Input type="password" {...field} />
                         </FormControl>
@@ -133,7 +138,9 @@ export default function ProfileSettingsPage() {
                   />
                   <div className="flex gap-2">
                     <Button type="submit" size="sm" disabled={changePassword.isPending}>
-                      {changePassword.isPending ? "変更中..." : "変更する"}
+                      {changePassword.isPending
+                        ? t("settings.changing")
+                        : t("settings.changeSubmit")}
                     </Button>
                     <Button
                       type="button"
@@ -144,14 +151,14 @@ export default function ProfileSettingsPage() {
                         passwordForm.reset();
                       }}
                     >
-                      キャンセル
+                      {tCommon("cancel")}
                     </Button>
                   </div>
                 </form>
               </Form>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setIsChangingPassword(true)}>
-                パスワードを変更
+                {t("settings.changePasswordButton")}
               </Button>
             )}
           </div>

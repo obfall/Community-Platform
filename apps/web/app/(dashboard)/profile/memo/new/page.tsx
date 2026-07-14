@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCreateMemo, useMemoCategories } from "@/hooks/memo/use-memo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
 
 export default function MemoNewPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const createMemo = useCreateMemo();
   const { data: categories } = useMemoCategories();
@@ -49,20 +52,20 @@ export default function MemoNewPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">メモ作成</h1>
+        <h1 className="text-2xl font-bold">{t("memo.new.title")}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>基本情報</CardTitle>
+          <CardTitle>{t("memo.form.basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>タイトル</Label>
+            <Label>{t("memo.form.titleLabel")}</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
           </div>
           <div>
-            <Label>本文</Label>
+            <Label>{t("memo.form.body")}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -70,7 +73,7 @@ export default function MemoNewPage() {
             />
           </div>
           <div>
-            <Label>カテゴリ</Label>
+            <Label>{t("memo.form.category")}</Label>
             <Select
               value={categoryId ?? "none"}
               onValueChange={(v) => setCategoryId(v === "none" ? undefined : v)}
@@ -79,7 +82,7 @@ export default function MemoNewPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">未分類</SelectItem>
+                <SelectItem value="none">{t("memo.form.uncategorized")}</SelectItem>
                 {(categories ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
@@ -89,16 +92,16 @@ export default function MemoNewPage() {
             </Select>
           </div>
           <div>
-            <Label>添付ファイル</Label>
+            <Label>{t("memo.form.attachments")}</Label>
             <FileUploadList value={files} onChange={setFiles} fileCategory="general" />
           </div>
           <div className="flex justify-end gap-2 pt-4">
             <Link href="/profile/memo">
-              <Button variant="outline">キャンセル</Button>
+              <Button variant="outline">{tCommon("cancel")}</Button>
             </Link>
             <Button onClick={handleSubmit} disabled={!title || createMemo.isPending}>
               {createMemo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              作成
+              {t("memo.new.submit")}
             </Button>
           </div>
         </CardContent>

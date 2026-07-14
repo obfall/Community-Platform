@@ -48,6 +48,10 @@ export {
   // Projects
   MAX_PROJECT_TAGS,
   MAX_PROJECT_TAG_LENGTH,
+  // Users
+  KANA_PATTERN,
+  PHONE_PATTERN,
+  PREFECTURES,
   // Videos
   MAX_VIDEO_TITLE_LENGTH,
   MAX_VIDEO_TASK_TITLE_LENGTH,
@@ -62,3 +66,4 @@ export {
   VIDEO_PASSWORD_LENGTH,
   VIDEO_WATCH_COMPLETION_THRESHOLD,
 } from "./constants";
+export type { Prefecture } from "./constants";

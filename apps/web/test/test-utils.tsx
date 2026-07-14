@@ -16,6 +16,7 @@ import skillsMessages from "@/messages/ja/skills.json";
 import venuesMessages from "@/messages/ja/venues.json";
 import notificationsMessages from "@/messages/ja/notifications.json";
 import shopMessages from "@/messages/ja/shop.json";
+import profileMessages from "@/messages/ja/profile.json";
 
 const messages = {
   common: commonMessages,
@@ -32,6 +33,7 @@ const messages = {
   venues: venuesMessages,
   notifications: notificationsMessages,
   shop: shopMessages,
+  profile: profileMessages,
 };
 
 /**

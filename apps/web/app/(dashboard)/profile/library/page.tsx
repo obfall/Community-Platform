@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import {
   useMyLibrary,
   useCreateLibraryItem,
@@ -27,8 +28,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -37,33 +43,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { BookOpen, Plus, Pencil, Trash2 } from "lucide-react";
+import { FileUploadList, type UploadedFileItem } from "@/components/file-upload-list";
+import {
+  BookOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Paperclip,
+  FileIcon,
+  X,
+} from "lucide-react";
 import type { LibraryItem } from "@/lib/api/types";
 
-const TYPE_OPTIONS = [
-  { value: "book", label: "書籍" },
-  { value: "magazine", label: "雑誌" },
-  { value: "manga", label: "漫画" },
-  { value: "paper", label: "論文" },
-  { value: "document", label: "資料" },
-  { value: "other", label: "その他" },
-] as const;
+const TYPE_VALUES = ["book", "magazine", "manga", "paper", "document", "other"] as const;
 
-const STATUS_OPTIONS = [
-  { value: "unread", label: "未読" },
-  { value: "reading", label: "読書中" },
-  { value: "completed", label: "完読" },
-  { value: "want", label: "入手したい" },
-  { value: "lending", label: "貸出中" },
-] as const;
-
-const TYPE_LABELS: Record<string, string> = Object.fromEntries(
-  TYPE_OPTIONS.map((o) => [o.value, o.label]),
-);
-
-const STATUS_LABELS: Record<string, string> = Object.fromEntries(
-  STATUS_OPTIONS.map((o) => [o.value, o.label]),
-);
+const STATUS_VALUES = ["unread", "reading", "completed", "want", "lending"] as const;
 
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   unread: "outline",
@@ -73,20 +68,25 @@ const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "des
   lending: "destructive",
 };
 
-const itemSchema = z.object({
-  type: z.enum(["book", "magazine", "manga", "paper", "document", "other"]),
-  title: z.string().min(1, "タイトルを入力してください").max(200),
-  content: z.string().optional().or(z.literal("")),
-  author: z.string().max(200).optional().or(z.literal("")),
-  publishedAt: z.string().optional().or(z.literal("")),
-  pageCount: z.number().int().min(0).optional(),
-  impression: z.string().optional().or(z.literal("")),
-  status: z.enum(["unread", "reading", "completed", "want", "lending"]),
-});
+// バリデーションメッセージを i18n キーで解決するため、t を受け取るファクトリにする。
+const createItemSchema = (t: (key: string) => string) =>
+  z.object({
+    type: z.enum(["book", "magazine", "manga", "paper", "document", "other"]),
+    title: z.string().min(1, t("library.validation.titleRequired")).max(200),
+    content: z.string().optional().or(z.literal("")),
+    author: z.string().max(200).optional().or(z.literal("")),
+    publishedAt: z.string().optional().or(z.literal("")),
+    pageCount: z.number().int().min(0).optional(),
+    impression: z.string().optional().or(z.literal("")),
+    status: z.enum(["unread", "reading", "completed", "want", "lending"]),
+  });
 
-type ItemFormValues = z.infer<typeof itemSchema>;
+type ItemFormValues = z.infer<ReturnType<typeof createItemSchema>>;
 
 export default function ProfileLibraryPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const itemSchema = createItemSchema(t);
   const { data: items, isLoading } = useMyLibrary();
   const createMutation = useCreateLibraryItem();
   const updateMutation = useUpdateLibraryItem();
@@ -94,6 +94,9 @@ export default function ProfileLibraryPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LibraryItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LibraryItem | null>(null);
+  // 添付ファイルは DB 上 fileId 1 件のみ。フォーム外の state で単一ファイルを管理する。
+  const [attachedFile, setAttachedFile] = useState<UploadedFileItem | null>(null);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema),
@@ -111,6 +114,7 @@ export default function ProfileLibraryPage() {
 
   const openCreate = () => {
     setEditingItem(null);
+    setAttachedFile(null);
     form.reset({
       type: "book",
       title: "",
@@ -126,6 +130,16 @@ export default function ProfileLibraryPage() {
 
   const openEdit = (item: LibraryItem) => {
     setEditingItem(item);
+    setAttachedFile(
+      item.file
+        ? {
+            fileId: item.file.id,
+            url: item.file.publicUrl,
+            name: item.file.originalName,
+            contentType: "",
+          }
+        : null,
+    );
     form.reset({
       type: item.type,
       title: item.title,
@@ -147,6 +161,8 @@ export default function ProfileLibraryPage() {
       publishedAt: values.publishedAt || undefined,
       pageCount: values.pageCount ?? undefined,
       impression: values.impression || undefined,
+      // null を送ると添付を解除（更新時）。未添付の新規作成時も null で問題ない。
+      fileId: attachedFile?.fileId ?? null,
     };
 
     if (editingItem) {
@@ -162,19 +178,19 @@ export default function ProfileLibraryPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">マイライブラリー</h2>
+        <h2 className="text-xl font-bold">{t("library.title")}</h2>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          追加
+          {t("library.add")}
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="py-12 text-center text-muted-foreground">読み込み中...</div>
+        <div className="py-12 text-center text-muted-foreground">{tCommon("loading")}</div>
       ) : !items || items.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <BookOpen className="mx-auto mb-4 h-12 w-12" />
-          <p>ライブラリーにアイテムはありません</p>
+          <p>{t("library.empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -184,61 +200,71 @@ export default function ProfileLibraryPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {TYPE_LABELS[item.type] ?? item.type}
+                      {t.has(`library.typeLabels.${item.type}`)
+                        ? t(`library.typeLabels.${item.type}`)
+                        : item.type}
                     </Badge>
                     <Badge
                       variant={STATUS_VARIANTS[item.status] ?? "secondary"}
                       className="text-xs"
                     >
-                      {STATUS_LABELS[item.status] ?? item.status}
+                      {t.has(`library.statusLabels.${item.status}`)
+                        ? t(`library.statusLabels.${item.status}`)
+                        : item.status}
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm font-semibold">{item.title}</p>
                   <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {item.author && <p>著者: {item.author}</p>}
+                    {item.author && <p>{t("library.authorPrefix", { author: item.author })}</p>}
                     {item.publishedAt && (
-                      <p>出版日: {new Date(item.publishedAt).toLocaleDateString("ja-JP")}</p>
+                      <p>
+                        {t("library.publishedAtPrefix", {
+                          date: new Date(item.publishedAt).toLocaleDateString("ja-JP"),
+                        })}
+                      </p>
                     )}
-                    {item.pageCount != null && <p>{item.pageCount}ページ</p>}
+                    {item.pageCount != null && (
+                      <p>{t("library.pageCount", { count: item.pageCount })}</p>
+                    )}
                   </div>
+                  {item.file && (
+                    <a
+                      href={item.file.publicUrl ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary mt-2 inline-flex items-center gap-1 text-xs hover:underline"
+                    >
+                      <Paperclip className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{item.file.originalName}</span>
+                    </a>
+                  )}
                   {item.impression && (
                     <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                       {item.impression}
                     </p>
                   )}
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                <div className="shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>削除の確認</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          「{item.title}」を削除しますか？ この操作は取り消せません。
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMutation.mutate(item.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          削除
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEdit(item)}>
+                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                        {t("library.edit")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeleteTarget(item)}
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        {t("library.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
@@ -246,11 +272,40 @@ export default function ProfileLibraryPage() {
         </div>
       )}
 
+      {/* 削除確認 */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("library.deleteConfirm.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("library.deleteConfirm.description", { title: deleteTarget?.title ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget.id, {
+                    onSuccess: () => setDeleteTarget(null),
+                  });
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("library.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 追加・編集ダイアログ */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingItem ? "アイテムを編集" : "ライブラリーに追加"}</DialogTitle>
+            <DialogTitle>
+              {editingItem ? t("library.dialog.editTitle") : t("library.dialog.createTitle")}
+            </DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -260,18 +315,18 @@ export default function ProfileLibraryPage() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>タイプ</FormLabel>
+                    <FormLabel>{t("library.fields.type")}</FormLabel>
                     <FormControl>
                       <RadioGroup
                         value={field.value}
                         onValueChange={field.onChange}
                         className="flex flex-wrap gap-4"
                       >
-                        {TYPE_OPTIONS.map((opt) => (
-                          <div key={opt.value} className="flex items-center gap-2">
-                            <RadioGroupItem value={opt.value} id={`type-${opt.value}`} />
-                            <Label htmlFor={`type-${opt.value}`} className="font-normal">
-                              {opt.label}
+                        {TYPE_VALUES.map((value) => (
+                          <div key={value} className="flex items-center gap-2">
+                            <RadioGroupItem value={value} id={`type-${value}`} />
+                            <Label htmlFor={`type-${value}`} className="font-normal">
+                              {t(`library.typeLabels.${value}`)}
                             </Label>
                           </div>
                         ))}
@@ -288,9 +343,9 @@ export default function ProfileLibraryPage() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>タイトル</FormLabel>
+                    <FormLabel>{t("library.fields.title")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="タイトルを入力" {...field} />
+                      <Input placeholder={t("library.placeholders.title")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -303,9 +358,13 @@ export default function ProfileLibraryPage() {
                 name="content"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>内容</FormLabel>
+                    <FormLabel>{t("library.fields.content")}</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="概要・内容メモ" rows={3} {...field} />
+                      <Textarea
+                        placeholder={t("library.placeholders.content")}
+                        rows={3}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -318,9 +377,9 @@ export default function ProfileLibraryPage() {
                 name="author"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>著者</FormLabel>
+                    <FormLabel>{t("library.fields.author")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="著者名" {...field} />
+                      <Input placeholder={t("library.placeholders.author")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -334,7 +393,7 @@ export default function ProfileLibraryPage() {
                   name="publishedAt"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>出版日</FormLabel>
+                      <FormLabel>{t("library.fields.publishedAt")}</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -349,7 +408,7 @@ export default function ProfileLibraryPage() {
                   name="pageCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>ページ数</FormLabel>
+                      <FormLabel>{t("library.fields.pageCount")}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -373,9 +432,13 @@ export default function ProfileLibraryPage() {
                 name="impression"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>所感</FormLabel>
+                    <FormLabel>{t("library.fields.impression")}</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="感想・メモ" rows={3} {...field} />
+                      <Textarea
+                        placeholder={t("library.placeholders.impression")}
+                        rows={3}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -388,18 +451,18 @@ export default function ProfileLibraryPage() {
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ステータス</FormLabel>
+                    <FormLabel>{t("library.fields.status")}</FormLabel>
                     <FormControl>
                       <RadioGroup
                         value={field.value}
                         onValueChange={field.onChange}
                         className="flex flex-wrap gap-4"
                       >
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div key={opt.value} className="flex items-center gap-2">
-                            <RadioGroupItem value={opt.value} id={`status-${opt.value}`} />
-                            <Label htmlFor={`status-${opt.value}`} className="font-normal">
-                              {opt.label}
+                        {STATUS_VALUES.map((value) => (
+                          <div key={value} className="flex items-center gap-2">
+                            <RadioGroupItem value={value} id={`status-${value}`} />
+                            <Label htmlFor={`status-${value}`} className="font-normal">
+                              {t(`library.statusLabels.${value}`)}
                             </Label>
                           </div>
                         ))}
@@ -410,8 +473,59 @@ export default function ProfileLibraryPage() {
                 )}
               />
 
+              {/* 添付ファイル（DB 上は単一。1 件添付済みのときは追加 UI を隠す） */}
+              <div className="space-y-2">
+                <Label>{t("library.fields.attachment")}</Label>
+                {attachedFile ? (
+                  <div className="flex items-center gap-3 rounded-md border p-2 text-sm">
+                    {attachedFile.contentType.startsWith("image/") && attachedFile.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={attachedFile.url}
+                        alt={attachedFile.name}
+                        className="h-10 w-10 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded">
+                        <FileIcon className="text-muted-foreground h-5 w-5" />
+                      </div>
+                    )}
+                    {attachedFile.url ? (
+                      <a
+                        href={attachedFile.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 truncate hover:underline"
+                      >
+                        {attachedFile.name}
+                      </a>
+                    ) : (
+                      <span className="flex-1 truncate">{attachedFile.name}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setAttachedFile(null)}
+                      className="text-muted-foreground hover:text-destructive rounded p-1 hover:bg-muted"
+                      aria-label={t("library.delete")}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <FileUploadList
+                    value={[]}
+                    onChange={(files) => files[0] && setAttachedFile(files[0])}
+                    fileCategory="document"
+                  />
+                )}
+              </div>
+
               <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? "保存中..." : editingItem ? "更新" : "追加"}
+                {isPending
+                  ? t("library.saving")
+                  : editingItem
+                    ? t("library.update")
+                    : t("library.add")}
               </Button>
             </form>
           </Form>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/auth/use-auth";
 import { useMyProfile } from "@/hooks/profile/use-profile";
 import { usePointSummary } from "@/hooks/points/use-points";
@@ -11,50 +12,24 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Star, Pencil, CalendarDays } from "lucide-react";
 import { SelfAttributesView } from "./_components/self-attributes-view";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "運営者",
-  admin: "管理者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
-const OCCUPATION_LABELS: Record<string, string> = {
-  company_employee: "会社員",
-  student: "学生",
-  self_employed: "自営業",
-  homemaker: "主婦",
-  unemployed: "無職",
-  other: "その他",
-};
-
-const EVENT_ROLE_LABELS: Record<string, string> = {
-  lecturer: "講師",
-  mc: "司会",
-  interpreter: "通訳",
-  planner: "企画",
-  panelist: "パネリスト",
-  performer: "出演",
-};
-
 export default function MyPage() {
+  const t = useTranslations("profile");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
+  const tOccupation = useTranslations("enums.occupation");
+  const tGender = useTranslations("enums.gender");
+  const tEventRole = useTranslations("enums.eventRole");
   const { user } = useAuth();
   const { data: profileData } = useMyProfile();
   const { data: pointSummary } = usePointSummary();
 
   const profile = profileData?.profile;
   const publicInfo = profileData?.publicInfo;
-  const location = [
-    publicInfo?.prefecture,
-    publicInfo?.city,
-    publicInfo?.foreignCountry,
-    publicInfo?.foreignCity,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const location = [publicInfo?.prefecture, publicInfo?.city].filter(Boolean).join(" ");
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold">プロフィール</h2>
+      <h2 className="text-xl font-bold">{t("view.title")}</h2>
 
       {/* ヒーロー（基本情報） */}
       <Card className="overflow-hidden py-0">
@@ -79,13 +54,15 @@ export default function MyPage() {
             <div className="mt-3 text-center">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <h1 className="text-2xl font-bold">{user?.name}</h1>
-                <Badge variant="secondary">{ROLE_LABELS[user?.role ?? ""] ?? user?.role}</Badge>
+                <Badge variant="secondary">
+                  {user?.role && tRole.has(user.role) ? tRole(user.role) : user?.role}
+                </Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
               <div className="mt-2 flex items-center justify-center gap-3 text-sm text-muted-foreground">
                 <Star className="h-4 w-4" />
                 <span className="font-medium">
-                  {pointSummary?.availablePoints?.toLocaleString() ?? 0} ポイント
+                  {pointSummary?.availablePoints?.toLocaleString() ?? 0} {t("view.pointsSuffix")}
                 </span>
                 <span>|</span>
                 <CalendarDays className="h-4 w-4" />
@@ -95,7 +72,7 @@ export default function MyPage() {
                     month: "long",
                     day: "numeric",
                   })}
-                  に参加
+                  {t("view.joinedSuffix")}
                 </span>
               </div>
             </div>
@@ -106,63 +83,62 @@ export default function MyPage() {
       {/* プロフィール情報 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>プロフィール情報</CardTitle>
+          <CardTitle>{t("view.profileInfo")}</CardTitle>
           <Link href="/profile/edit">
             <Button variant="outline" size="sm">
               <Pencil className="mr-2 h-4 w-4" />
-              編集
+              {t("view.edit")}
             </Button>
           </Link>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs text-muted-foreground">名前（カナ）</p>
-              <p>{profile?.nameKana || "未設定"}</p>
+              <p className="text-xs text-muted-foreground">{t("view.nameKana")}</p>
+              <p>{profile?.nameKana || tCommon("notSet")}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">職業</p>
+              <p className="text-xs text-muted-foreground">{t("view.occupation")}</p>
               <p>
                 {profile?.occupation
-                  ? (OCCUPATION_LABELS[profile.occupation] ?? profile.occupation)
-                  : "未設定"}
+                  ? tOccupation.has(profile.occupation)
+                    ? tOccupation(profile.occupation)
+                    : profile.occupation
+                  : tCommon("notSet")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">電話番号</p>
-              <p>{profile?.phone || "未設定"}</p>
+              <p className="text-xs text-muted-foreground">{t("view.phone")}</p>
+              <p>{profile?.phone || tCommon("notSet")}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">誕生日</p>
+              <p className="text-xs text-muted-foreground">{t("view.birthday")}</p>
               <p>
                 {profile?.birthday
                   ? new Date(profile.birthday).toLocaleDateString("ja-JP")
-                  : "未設定"}
+                  : tCommon("notSet")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">性別</p>
+              <p className="text-xs text-muted-foreground">{t("view.gender")}</p>
               <p>
                 {profile?.gender
-                  ? ({
-                      male: "男性",
-                      female: "女性",
-                      other: "その他",
-                      prefer_not_to_say: "回答しない",
-                    }[profile.gender] ?? profile.gender)
-                  : "未設定"}
+                  ? tGender.has(profile.gender)
+                    ? tGender(profile.gender)
+                    : profile.gender
+                  : tCommon("notSet")}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">出身国</p>
-              <p>{profile?.countryOfOrigin || "未設定"}</p>
+              <p className="text-xs text-muted-foreground">{t("view.countryOfOrigin")}</p>
+              <p>{profile?.countryOfOrigin || tCommon("notSet")}</p>
             </div>
           </div>
 
           {/* 所属 */}
           {profileData?.affiliations && profileData.affiliations.length > 0 && (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">所属 / 部署 / 肩書</p>
+              <p className="mb-2 text-xs text-muted-foreground">{t("view.affiliations")}</p>
               <div className="space-y-2">
                 {profileData.affiliations.map((aff) => (
                   <p key={aff.id} className="text-sm">
@@ -180,29 +156,29 @@ export default function MyPage() {
       {/* 公開情報 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>公開情報</CardTitle>
+          <CardTitle>{t("view.publicInfo")}</CardTitle>
           <Link href="/profile/public-info">
             <Button variant="outline" size="sm">
               <Pencil className="mr-2 h-4 w-4" />
-              編集
+              {t("view.edit")}
             </Button>
           </Link>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs text-muted-foreground">ニックネーム</p>
+              <p className="text-xs text-muted-foreground">{t("view.nickname")}</p>
               <p>
-                {publicInfo?.nickname || "未設定"}
+                {publicInfo?.nickname || tCommon("notSet")}
                 {publicInfo?.nicknameKana && (
                   <span className="ml-1 text-muted-foreground">({publicInfo.nicknameKana})</span>
                 )}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">公開ステータス</p>
+              <p className="text-xs text-muted-foreground">{t("view.publicStatus")}</p>
               <Badge variant={publicInfo?.publicStatus === "public" ? "default" : "secondary"}>
-                {publicInfo?.publicStatus === "public" ? "公開" : "非公開"}
+                {publicInfo?.publicStatus === "public" ? t("view.public") : t("view.private")}
               </Badge>
             </div>
           </div>
@@ -210,7 +186,7 @@ export default function MyPage() {
           {/* 活動拠点 */}
           {location && (
             <div>
-              <p className="mb-1 text-xs text-muted-foreground">活動拠点</p>
+              <p className="mb-1 text-xs text-muted-foreground">{t("view.location")}</p>
               <p className="flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                 {location}
@@ -221,7 +197,7 @@ export default function MyPage() {
           {/* 専門分野 */}
           {publicInfo?.specialty && (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">専門分野</p>
+              <p className="mb-2 text-xs text-muted-foreground">{t("view.specialty")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {publicInfo.specialty.split(",").map((s) => {
                   const label = s.includes("/") ? s.split("/")[1] : s;
@@ -238,11 +214,11 @@ export default function MyPage() {
           {/* イベント役割 */}
           {publicInfo?.eventRole && (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">イベント役割</p>
+              <p className="mb-2 text-xs text-muted-foreground">{t("view.eventRole")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {publicInfo.eventRole.split(",").map((r) => (
                   <Badge key={r} variant="outline" className="text-xs">
-                    {EVENT_ROLE_LABELS[r] ?? r}
+                    {tEventRole.has(r) ? tEventRole(r) : r}
                   </Badge>
                 ))}
               </div>
@@ -252,7 +228,7 @@ export default function MyPage() {
           {/* 自己紹介 */}
           {publicInfo?.introduction && (
             <div>
-              <p className="mb-1 text-xs text-muted-foreground">自己紹介</p>
+              <p className="mb-1 text-xs text-muted-foreground">{t("view.introduction")}</p>
               <p className="whitespace-pre-wrap">{publicInfo.introduction}</p>
             </div>
           )}
@@ -260,7 +236,7 @@ export default function MyPage() {
           {/* 興味分野 */}
           {profileData?.interests && profileData.interests.length > 0 && (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">興味分野</p>
+              <p className="mb-2 text-xs text-muted-foreground">{t("view.interests")}</p>
               <div className="flex flex-wrap gap-2">
                 {profileData.interests.map((interest) => (
                   <Badge key={interest.id} variant="outline">
