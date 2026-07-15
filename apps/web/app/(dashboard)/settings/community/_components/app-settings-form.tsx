@@ -25,14 +25,12 @@ type AppSettingsFormValues = {
   site_name: string;
   site_description: string;
   allow_registration: boolean;
-  default_language: string;
 };
 
 const FORM_KEYS = new Set<keyof AppSettingsFormValues>([
   "site_name",
   "site_description",
   "allow_registration",
-  "default_language",
 ]);
 
 export function AppSettingsForm() {
@@ -45,7 +43,6 @@ export function AppSettingsForm() {
     site_name: z.string().min(1, t("app.siteName.required")),
     site_description: z.string().min(1, t("app.siteDescription.required")),
     allow_registration: z.boolean(),
-    default_language: z.string().min(1, t("app.defaultLanguage.required")),
   });
 
   const form = useForm<AppSettingsFormValues>({
@@ -54,7 +51,6 @@ export function AppSettingsForm() {
       site_name: "",
       site_description: "",
       allow_registration: true,
-      default_language: "ja",
     },
   });
 
@@ -165,20 +161,6 @@ export function AppSettingsForm() {
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="default_language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("app.defaultLanguage.label")}</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />

@@ -46,11 +46,11 @@ const FONT_OPTIONS = [
 const FONT_VALUES = new Set<string>(FONT_OPTIONS.map((opt) => opt.value));
 
 const designSchema = z.object({
-  logo_url: z.string(),
   favicon_url: z.string(),
   primary_color: z.string(),
   accent_color: z.string(),
   header_bg_color: z.string(),
+  header_text_color: z.string(),
   sidebar_bg_color: z.string(),
   sidebar_accent_color: z.string(),
   font_family: z.string(),
@@ -59,22 +59,22 @@ const designSchema = z.object({
 type DesignFormValues = z.infer<typeof designSchema>;
 
 const DESIGN_KEYS = [
-  "logo_url",
   "favicon_url",
   "primary_color",
   "accent_color",
   "header_bg_color",
+  "header_text_color",
   "sidebar_bg_color",
   "sidebar_accent_color",
   "font_family",
 ] as const satisfies readonly (keyof DesignFormValues)[];
 
 const DEFAULT_VALUES: DesignFormValues = {
-  logo_url: "",
   favicon_url: "",
   primary_color: DEFAULT_PRIMARY,
   accent_color: DEFAULT_ACCENT,
   header_bg_color: "",
+  header_text_color: "",
   sidebar_bg_color: "",
   sidebar_accent_color: "",
   font_family: "",
@@ -91,7 +91,6 @@ export function DesignSettingsForm() {
   const { data: settings, isLoading } = useAppSettings();
   const updateMutation = useUpdateAppSetting({ silent: true });
 
-  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -114,7 +113,7 @@ export function DesignSettingsForm() {
 
   const handleUpload = async (
     file: File,
-    fieldName: "logo_url" | "favicon_url",
+    fieldName: "favicon_url",
     setUploading: (v: boolean) => void,
   ) => {
     if (!file.type.startsWith("image/")) {
@@ -190,17 +189,6 @@ export function DesignSettingsForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(persist)} className="space-y-6">
             <LogoField
-              label={t("design.logo.label")}
-              hint={t("design.logo.hint")}
-              url={values.logo_url}
-              uploading={uploadingLogo}
-              onUpload={(f) => handleUpload(f, "logo_url", setUploadingLogo)}
-              onClear={() => form.setValue("logo_url", "", { shouldDirty: true })}
-              previewClassName="h-16 w-auto"
-              inputId="logo-upload"
-            />
-
-            <LogoField
               label={t("design.favicon.label")}
               hint={t("design.favicon.hint")}
               url={values.favicon_url}
@@ -246,22 +234,40 @@ export function DesignSettingsForm() {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="header_bg_color"
-              render={({ field }) => (
-                <FormItem>
-                  <ColorField
-                    id="header-bg-color"
-                    label={t("design.headerBg.label")}
-                    description={t("design.headerBg.description")}
-                    value={field.value}
-                    onChange={field.onChange}
-                    clearable
-                  />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="header_bg_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="header-bg-color"
+                      label={t("design.headerBg.label")}
+                      description={t("design.headerBg.description")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      clearable
+                    />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="header_text_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="header-text-color"
+                      label={t("design.logoText.label")}
+                      description={t("design.logoText.description")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      clearable
+                    />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="space-y-3 rounded-lg border p-4">
               <p className="text-sm font-medium">{t("design.sidebar.title")}</p>
@@ -520,7 +526,9 @@ function PreviewPanel({ values }: { values: DesignFormValues }) {
         className="-mx-4 -mt-1 border-b px-4 py-2 text-sm font-bold"
         style={{
           backgroundColor: values.header_bg_color || undefined,
-          color: values.header_bg_color ? getContrastForeground(values.header_bg_color) : undefined,
+          color:
+            values.header_text_color ||
+            (values.header_bg_color ? getContrastForeground(values.header_bg_color) : undefined),
         }}
       >
         {t("header")}

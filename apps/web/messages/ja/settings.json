@@ -35,10 +35,6 @@
       "allowRegistration": {
         "label": "新規登録を許可",
         "description": "無効にすると新規ユーザーが登録できなくなります"
-      },
-      "defaultLanguage": {
-        "label": "デフォルト言語",
-        "required": "言語を入力してください"
       }
     },
     "design": {
@@ -63,10 +59,6 @@
         "sansJp": "Noto Sans JP（ゴシック）",
         "serifJp": "Noto Serif JP（明朝）"
       },
-      "logo": {
-        "label": "ロゴ画像",
-        "hint": "空欄の場合はサイト名がテキストで表示されます (最大 5MB)"
-      },
       "favicon": {
         "label": "ファビコン",
         "hint": "ブラウザタブに表示される小さなアイコン (最大 5MB、推奨 32x32 以上)"
@@ -81,7 +73,11 @@
       },
       "headerBg": {
         "label": "ヘッダー背景色",
-        "description": "文字色は背景の明度から自動で白/黒が選ばれます"
+        "description": "サイト名（ロゴ）の背景に使われる色"
+      },
+      "logoText": {
+        "label": "ロゴ文字色",
+        "description": "サイト名（ロゴ）の文字色。空欄の場合はヘッダーの自動文字色が使われます"
       },
       "sidebar": {
         "title": "サイドバー"
