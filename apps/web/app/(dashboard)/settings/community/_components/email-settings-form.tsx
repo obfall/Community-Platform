@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -41,14 +42,12 @@ const DEFAULT_WELCOME_BODY = `{{user_name}} 様
 
 ご登録メールアドレス: {{email}}`;
 
-const emailSettingsSchema = z.object({
-  email_from_name: z.string().min(1, "差出人名を入力してください"),
-  email_reply_to: z.email("有効なメールアドレスを入力してください"),
-  email_welcome_subject: z.string().min(1, "件名を入力してください"),
-  email_welcome_body: z.string().min(1, "本文を入力してください"),
-});
-
-type EmailSettingsFormValues = z.infer<typeof emailSettingsSchema>;
+type EmailSettingsFormValues = {
+  email_from_name: string;
+  email_reply_to: string;
+  email_welcome_subject: string;
+  email_welcome_body: string;
+};
 
 const FORM_KEYS = [
   "email_from_name",
@@ -65,9 +64,17 @@ const DEFAULT_VALUES: EmailSettingsFormValues = {
 };
 
 export function EmailSettingsForm() {
+  const t = useTranslations("settings.community");
   const { data: settings, isLoading } = useAppSettings();
   const updateMutation = useUpdateAppSetting({ silent: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const emailSettingsSchema = z.object({
+    email_from_name: z.string().min(1, t("email.fromName.required")),
+    email_reply_to: z.email(t("email.replyTo.invalid")),
+    email_welcome_subject: z.string().min(1, t("email.subject.required")),
+    email_welcome_body: z.string().min(1, t("email.body.required")),
+  });
 
   const form = useForm<EmailSettingsFormValues>({
     resolver: zodResolver(emailSettingsSchema),
@@ -94,14 +101,15 @@ export function EmailSettingsForm() {
       ).map((key) => updateMutation.mutateAsync({ key, data: { value: values[key] } }));
 
       if (promises.length === 0) {
-        toast.info("変更はありません");
+        toast.info(t("common.noChanges"));
         return;
       }
       const results = await Promise.allSettled(promises);
       const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed === 0) toast.success("メール設定を保存しました");
-      else if (failed < results.length) toast.warning(`${failed}件の項目の保存に失敗しました`);
-      else toast.error("保存に失敗しました");
+      if (failed === 0) toast.success(t("email.saved"));
+      else if (failed < results.length)
+        toast.warning(t("common.partialSaveFailed", { count: failed }));
+      else toast.error(t("common.saveFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -118,7 +126,9 @@ export function EmailSettingsForm() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          {t("common.loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -126,10 +136,8 @@ export function EmailSettingsForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>メール設定</CardTitle>
-        <CardDescription>
-          メール送信時の差出人情報と、メンバー登録完了メールの内容を設定します
-        </CardDescription>
+        <CardTitle>{t("email.title")}</CardTitle>
+        <CardDescription>{t("email.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -139,11 +147,11 @@ export function EmailSettingsForm() {
               name="email_from_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>差出人名</FormLabel>
+                  <FormLabel>{t("email.fromName.label")}</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription>受信者のメールソフトに表示される送信者名</FormDescription>
+                  <FormDescription>{t("email.fromName.description")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -154,11 +162,11 @@ export function EmailSettingsForm() {
               name="email_reply_to"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>返信先アドレス</FormLabel>
+                  <FormLabel>{t("email.replyTo.label")}</FormLabel>
                   <FormControl>
                     <Input type="email" {...field} />
                   </FormControl>
-                  <FormDescription>受信者が返信した際の宛先アドレス</FormDescription>
+                  <FormDescription>{t("email.replyTo.description")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -166,12 +174,12 @@ export function EmailSettingsForm() {
 
             <div className="space-y-4 rounded-lg border p-4">
               <div>
-                <h3 className="text-sm font-medium">メンバー登録完了メール</h3>
+                <h3 className="text-sm font-medium">{t("email.welcome.title")}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  新規メンバー登録時に送信されるメールの件名と本文を設定します
+                  {t("email.welcome.description")}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  利用可能な変数:{" "}
+                  {t("email.welcome.variables")}
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     {"{{site_name}}"}
                   </code>{" "}
@@ -190,11 +198,11 @@ export function EmailSettingsForm() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>件名</FormLabel>
+                      <FormLabel>{t("email.subject.label")}</FormLabel>
                       <ResetButton
-                        label="件名を初期化"
-                        title="件名を初期化しますか？"
-                        description="件名がデフォルト値に戻ります。保存ボタンを押すまで反映されません。"
+                        label={t("email.subject.resetLabel")}
+                        title={t("email.subject.resetTitle")}
+                        description={t("email.subject.resetDescription")}
                         onConfirm={resetSubjectToDefault}
                       />
                     </div>
@@ -212,11 +220,11 @@ export function EmailSettingsForm() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel>本文</FormLabel>
+                      <FormLabel>{t("email.body.label")}</FormLabel>
                       <ResetButton
-                        label="本文を初期化"
-                        title="本文を初期化しますか？"
-                        description="本文がデフォルト値に戻ります。保存ボタンを押すまで反映されません。"
+                        label={t("email.body.resetLabel")}
+                        title={t("email.body.resetTitle")}
+                        description={t("email.body.resetDescription")}
                         onConfirm={resetBodyToDefault}
                       />
                     </div>
@@ -231,7 +239,7 @@ export function EmailSettingsForm() {
 
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSubmitting ? "保存中..." : "保存"}
+              {isSubmitting ? t("common.saving") : t("common.save")}
             </Button>
           </form>
         </Form>
@@ -248,6 +256,7 @@ interface ResetButtonProps {
 }
 
 function ResetButton({ label, title, description, onConfirm }: ResetButtonProps) {
+  const t = useTranslations("settings.community");
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -264,8 +273,8 @@ function ResetButton({ label, title, description, onConfirm }: ResetButtonProps)
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>初期化する</AlertDialogAction>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{t("common.resetConfirm")}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

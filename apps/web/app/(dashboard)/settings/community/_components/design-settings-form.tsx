@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { filesApi } from "@/lib/api/files";
 import { getContrastForeground } from "@/lib/utils/color";
@@ -38,18 +39,18 @@ const DEFAULT_ACCENT = "#f5f5f5";
 const COLOR_EMPTY_FALLBACK = "#cccccc";
 
 const FONT_OPTIONS = [
-  { label: "デフォルト（システム）", value: "" },
-  { label: "Noto Sans JP（ゴシック）", value: "var(--font-noto-sans-jp)" },
-  { label: "Noto Serif JP（明朝）", value: "var(--font-noto-serif-jp)" },
-];
-const FONT_VALUES = new Set(FONT_OPTIONS.map((opt) => opt.value));
+  { labelKey: "default", value: "" },
+  { labelKey: "sansJp", value: "var(--font-noto-sans-jp)" },
+  { labelKey: "serifJp", value: "var(--font-noto-serif-jp)" },
+] as const;
+const FONT_VALUES = new Set<string>(FONT_OPTIONS.map((opt) => opt.value));
 
 const designSchema = z.object({
-  logo_url: z.string(),
   favicon_url: z.string(),
   primary_color: z.string(),
   accent_color: z.string(),
   header_bg_color: z.string(),
+  header_text_color: z.string(),
   sidebar_bg_color: z.string(),
   sidebar_accent_color: z.string(),
   font_family: z.string(),
@@ -58,22 +59,22 @@ const designSchema = z.object({
 type DesignFormValues = z.infer<typeof designSchema>;
 
 const DESIGN_KEYS = [
-  "logo_url",
   "favicon_url",
   "primary_color",
   "accent_color",
   "header_bg_color",
+  "header_text_color",
   "sidebar_bg_color",
   "sidebar_accent_color",
   "font_family",
 ] as const satisfies readonly (keyof DesignFormValues)[];
 
 const DEFAULT_VALUES: DesignFormValues = {
-  logo_url: "",
   favicon_url: "",
   primary_color: DEFAULT_PRIMARY,
   accent_color: DEFAULT_ACCENT,
   header_bg_color: "",
+  header_text_color: "",
   sidebar_bg_color: "",
   sidebar_accent_color: "",
   font_family: "",
@@ -86,10 +87,10 @@ const RESET_VALUES: DesignFormValues = {
 };
 
 export function DesignSettingsForm() {
+  const t = useTranslations("settings.community");
   const { data: settings, isLoading } = useAppSettings();
   const updateMutation = useUpdateAppSetting({ silent: true });
 
-  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -112,15 +113,15 @@ export function DesignSettingsForm() {
 
   const handleUpload = async (
     file: File,
-    fieldName: "logo_url" | "favicon_url",
+    fieldName: "favicon_url",
     setUploading: (v: boolean) => void,
   ) => {
     if (!file.type.startsWith("image/")) {
-      toast.error("画像ファイルを選択してください");
+      toast.error(t("design.errors.notImage"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("5MB を超えるファイルはアップロードできません");
+      toast.error(t("design.errors.tooLarge"));
       return;
     }
     setUploading(true);
@@ -129,12 +130,12 @@ export function DesignSettingsForm() {
       if (result.publicUrl) {
         form.setValue(fieldName, result.publicUrl, { shouldDirty: true });
       } else {
-        toast.error("URL が取得できませんでした");
+        toast.error(t("design.errors.noUrl"));
       }
     } catch (err) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "アップロードに失敗しました";
+        t("design.errors.uploadFailed");
       toast.error(msg);
     } finally {
       setUploading(false);
@@ -149,14 +150,15 @@ export function DesignSettingsForm() {
         (key) => (settings.find((s) => s.key === key)?.value ?? "") !== targetValues[key],
       ).map((key) => updateMutation.mutateAsync({ key, data: { value: targetValues[key] } }));
       if (promises.length === 0) {
-        toast.info("変更はありません");
+        toast.info(t("common.noChanges"));
         return;
       }
       const results = await Promise.allSettled(promises);
       const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed === 0) toast.success("デザイン設定を保存しました");
-      else if (failed < results.length) toast.warning(`${failed}件の項目の保存に失敗しました`);
-      else toast.error("保存に失敗しました");
+      if (failed === 0) toast.success(t("design.saved"));
+      else if (failed < results.length)
+        toast.warning(t("common.partialSaveFailed", { count: failed }));
+      else toast.error(t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -170,7 +172,9 @@ export function DesignSettingsForm() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          {t("common.loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -178,26 +182,15 @@ export function DesignSettingsForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>デザイン設定</CardTitle>
-        <CardDescription>サイトのロゴ・カラー・フォントをカスタマイズします</CardDescription>
+        <CardTitle>{t("design.title")}</CardTitle>
+        <CardDescription>{t("design.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(persist)} className="space-y-6">
             <LogoField
-              label="ロゴ画像"
-              hint="空欄の場合はサイト名がテキストで表示されます (最大 5MB)"
-              url={values.logo_url}
-              uploading={uploadingLogo}
-              onUpload={(f) => handleUpload(f, "logo_url", setUploadingLogo)}
-              onClear={() => form.setValue("logo_url", "", { shouldDirty: true })}
-              previewClassName="h-16 w-auto"
-              inputId="logo-upload"
-            />
-
-            <LogoField
-              label="ファビコン"
-              hint="ブラウザタブに表示される小さなアイコン (最大 5MB、推奨 32x32 以上)"
+              label={t("design.favicon.label")}
+              hint={t("design.favicon.hint")}
               url={values.favicon_url}
               uploading={uploadingFavicon}
               onUpload={(f) => handleUpload(f, "favicon_url", setUploadingFavicon)}
@@ -214,8 +207,8 @@ export function DesignSettingsForm() {
                   <FormItem>
                     <ColorField
                       id="primary-color"
-                      label="プライマリーカラー"
-                      description="ボタン・バッジ・リンクなど、主要なアクションや強調表示に使われるメインカラー"
+                      label={t("design.primaryColor.label")}
+                      description={t("design.primaryColor.description")}
                       value={field.value}
                       onChange={field.onChange}
                       placeholder={DEFAULT_PRIMARY}
@@ -230,8 +223,8 @@ export function DesignSettingsForm() {
                   <FormItem>
                     <ColorField
                       id="accent-color"
-                      label="アクセントカラー"
-                      description="メニューやボタンにマウスを乗せたとき・選択したときに表示されるハイライト色"
+                      label={t("design.accentColor.label")}
+                      description={t("design.accentColor.description")}
                       value={field.value}
                       onChange={field.onChange}
                       placeholder={DEFAULT_ACCENT}
@@ -241,25 +234,43 @@ export function DesignSettingsForm() {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="header_bg_color"
-              render={({ field }) => (
-                <FormItem>
-                  <ColorField
-                    id="header-bg-color"
-                    label="ヘッダー背景色"
-                    description="文字色は背景の明度から自動で白/黒が選ばれます"
-                    value={field.value}
-                    onChange={field.onChange}
-                    clearable
-                  />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="header_bg_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="header-bg-color"
+                      label={t("design.headerBg.label")}
+                      description={t("design.headerBg.description")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      clearable
+                    />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="header_text_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <ColorField
+                      id="header-text-color"
+                      label={t("design.logoText.label")}
+                      description={t("design.logoText.description")}
+                      value={field.value}
+                      onChange={field.onChange}
+                      clearable
+                    />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="space-y-3 rounded-lg border p-4">
-              <p className="text-sm font-medium">サイドバー</p>
+              <p className="text-sm font-medium">{t("design.sidebar.title")}</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -268,8 +279,8 @@ export function DesignSettingsForm() {
                     <FormItem>
                       <ColorField
                         id="sidebar-bg-color"
-                        label="サイドバー背景色"
-                        description="文字色は自動"
+                        label={t("design.sidebarBg.label")}
+                        description={t("design.sidebarBg.description")}
                         value={field.value}
                         onChange={field.onChange}
                         clearable
@@ -284,8 +295,8 @@ export function DesignSettingsForm() {
                     <FormItem>
                       <ColorField
                         id="sidebar-accent-color"
-                        label="サイドバー選択時背景色"
-                        description="hover / 選択時のハイライト色"
+                        label={t("design.sidebarAccent.label")}
+                        description={t("design.sidebarAccent.description")}
                         value={field.value}
                         onChange={field.onChange}
                         clearable
@@ -305,7 +316,7 @@ export function DesignSettingsForm() {
                   : "__default__";
                 return (
                   <FormItem>
-                    <Label htmlFor="font-family">フォント</Label>
+                    <Label htmlFor="font-family">{t("design.font.label")}</Label>
                     <Select
                       value={selectValue}
                       onValueChange={(v) => field.onChange(v === "__default__" ? "" : v)}
@@ -319,7 +330,9 @@ export function DesignSettingsForm() {
                             key={opt.value || "__default__"}
                             value={opt.value || "__default__"}
                           >
-                            <span style={{ fontFamily: opt.value || undefined }}>{opt.label}</span>
+                            <span style={{ fontFamily: opt.value || undefined }}>
+                              {t(`design.fonts.${opt.labelKey}`)}
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -335,25 +348,27 @@ export function DesignSettingsForm() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button type="button" variant="outline" disabled={saving}>
-                    初期化
+                    {t("design.reset")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>デザイン設定を初期化しますか？</AlertDialogTitle>
+                    <AlertDialogTitle>{t("design.resetDialog.title")}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      すべてのデザイン設定がデフォルトに戻ります。この操作は取り消せません。
+                      {t("design.resetDialog.description")}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReset}>初期化する</AlertDialogAction>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset}>
+                      {t("common.resetConfirm")}
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                保存
+                {t("common.save")}
               </Button>
             </div>
           </form>
@@ -384,6 +399,7 @@ function LogoField({
   previewClassName,
   inputId,
 }: LogoFieldProps) {
+  const t = useTranslations("settings.community.design");
   return (
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
@@ -396,7 +412,7 @@ function LogoField({
             type="button"
             onClick={onClear}
             className="absolute -right-2 -top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-            aria-label="削除"
+            aria-label={t("remove")}
           >
             <X className="h-3 w-3" />
           </button>
@@ -422,7 +438,7 @@ function LogoField({
               ) : (
                 <Upload className="mr-2 h-4 w-4" />
               )}
-              アップロード
+              {t("upload")}
             </span>
           </Button>
         </label>
@@ -450,6 +466,7 @@ function ColorField({
   placeholder,
   clearable,
 }: ColorFieldProps) {
+  const t = useTranslations("settings.community.design");
   const colorValue = /^#[0-9a-f]{6}$/i.test(value) ? value : COLOR_EMPTY_FALLBACK;
   return (
     <div className="space-y-2">
@@ -461,7 +478,7 @@ function ColorField({
             onClick={() => onChange("")}
             className="text-xs text-muted-foreground hover:text-foreground hover:underline"
           >
-            デフォルトに戻す
+            {t("resetToDefault")}
           </button>
         )}
       </div>
@@ -473,15 +490,15 @@ function ColorField({
           value={colorValue}
           onChange={(e) => onChange(e.target.value)}
           className="h-10 w-16 cursor-pointer p-1"
-          aria-label={`${label}のカラーピッカー`}
+          aria-label={t("colorPicker", { label })}
         />
         <Input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder ?? "空欄でデフォルト"}
+          placeholder={placeholder ?? t("colorPlaceholder")}
           className="font-mono"
-          aria-label={`${label}のHEX値`}
+          aria-label={t("hexValue", { label })}
         />
       </div>
     </div>
@@ -489,6 +506,7 @@ function ColorField({
 }
 
 function PreviewPanel({ values }: { values: DesignFormValues }) {
+  const t = useTranslations("settings.community.design.preview");
   const primaryBg = values.primary_color || DEFAULT_PRIMARY;
   const primaryFg = getContrastForeground(primaryBg);
   const accentBg = values.accent_color || DEFAULT_ACCENT;
@@ -503,33 +521,33 @@ function PreviewPanel({ values }: { values: DesignFormValues }) {
         fontFamily: values.font_family || undefined,
       }}
     >
-      <p className="text-sm font-medium">プレビュー</p>
+      <p className="text-sm font-medium">{t("title")}</p>
       <div
         className="-mx-4 -mt-1 border-b px-4 py-2 text-sm font-bold"
         style={{
           backgroundColor: values.header_bg_color || undefined,
-          color: values.header_bg_color ? getContrastForeground(values.header_bg_color) : undefined,
+          color:
+            values.header_text_color ||
+            (values.header_bg_color ? getContrastForeground(values.header_bg_color) : undefined),
         }}
       >
-        ヘッダーのサンプル
+        {t("header")}
       </div>
-      <p className="text-sm">
-        これは本文のサンプルテキストです。あいうえおカタカナ漢字 ABCDEabcde 12345
-      </p>
+      <p className="text-sm">{t("body")}</p>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           className="rounded px-3 py-1.5 text-sm font-medium"
           style={{ backgroundColor: primaryBg, color: primaryFg }}
         >
-          プライマリーボタン
+          {t("primaryButton")}
         </button>
         <button
           type="button"
           className="rounded px-3 py-1.5 text-sm font-medium"
           style={{ backgroundColor: accentBg, color: accentFg }}
         >
-          メニュー項目（hover時）
+          {t("menuItem")}
         </button>
       </div>
       <div
@@ -541,13 +559,13 @@ function PreviewPanel({ values }: { values: DesignFormValues }) {
             : undefined,
         }}
       >
-        <p className="mb-1 text-xs opacity-60">サイドバー</p>
-        <div className="rounded px-2 py-1 text-sm">通常の項目</div>
+        <p className="mb-1 text-xs opacity-60">{t("sidebar")}</p>
+        <div className="rounded px-2 py-1 text-sm">{t("normalItem")}</div>
         <div
           className="rounded px-2 py-1 text-sm font-medium"
           style={{ backgroundColor: sidebarAccentBg, color: sidebarAccentFg }}
         >
-          選択中の項目
+          {t("selectedItem")}
         </div>
       </div>
     </div>

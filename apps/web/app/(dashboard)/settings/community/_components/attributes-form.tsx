@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   useMemberAttributes,
@@ -43,15 +44,10 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MemberAttribute } from "@/lib/api/types";
 
-const TYPE_LABELS: Record<string, string> = {
-  text: "テキスト",
-  number: "数値",
-  date: "日付",
-  select: "単一選択",
-  multi_select: "複数選択",
-};
+const ATTRIBUTE_TYPES = ["text", "number", "date", "select", "multi_select"] as const;
 
 export function AttributesForm() {
+  const t = useTranslations("settings.community");
   const { data: attributes, isLoading } = useMemberAttributes();
   const createAttr = useCreateMemberAttribute();
   const updateAttr = useUpdateMemberAttribute();
@@ -113,27 +109,27 @@ export function AttributesForm() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>カスタム属性</CardTitle>
-          <CardDescription>メンバーに割り当てるコミュニティ独自の項目を管理します</CardDescription>
+          <CardTitle>{t("attributes.title")}</CardTitle>
+          <CardDescription>{t("attributes.description")}</CardDescription>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          新規追加
+          {t("attributes.addNew")}
         </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="py-12 text-center text-muted-foreground">読み込み中...</p>
+          <p className="py-12 text-center text-muted-foreground">{t("common.loading")}</p>
         ) : !attributes?.length ? (
-          <p className="py-12 text-center text-muted-foreground">カスタム属性がありません</p>
+          <p className="py-12 text-center text-muted-foreground">{t("attributes.empty")}</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>属性名</TableHead>
-                <TableHead>タイプ</TableHead>
-                <TableHead>編集権限</TableHead>
-                <TableHead>選択肢</TableHead>
+                <TableHead>{t("attributes.columns.name")}</TableHead>
+                <TableHead>{t("attributes.columns.type")}</TableHead>
+                <TableHead>{t("attributes.columns.permission")}</TableHead>
+                <TableHead>{t("attributes.columns.options")}</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
@@ -142,11 +138,17 @@ export function AttributesForm() {
                 <TableRow key={attr.id}>
                   <TableCell className="font-medium">{attr.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{TYPE_LABELS[attr.type] ?? attr.type}</Badge>
+                    <Badge variant="outline">
+                      {(ATTRIBUTE_TYPES as readonly string[]).includes(attr.type)
+                        ? t(`attributes.types.${attr.type}`)
+                        : attr.type}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={attr.isSelfEditable ? "default" : "outline"}>
-                      {attr.isSelfEditable ? "本人編集可" : "運営のみ"}
+                      {attr.isSelfEditable
+                        ? t("attributes.selfEditable")
+                        : t("attributes.adminOnly")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -165,15 +167,17 @@ export function AttributesForm() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>属性を削除しますか？</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              {t("attributes.deleteDialog.title")}
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              「{attr.name}」を削除すると、全メンバーのこの属性値も削除されます。
+                              {t("attributes.deleteDialog.description", { name: attr.name })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                             <AlertDialogAction onClick={() => deleteAttr.mutate(attr.id)}>
-                              削除する
+                              {t("attributes.deleteDialog.confirm")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -189,41 +193,43 @@ export function AttributesForm() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingAttr ? "属性を編集" : "新規属性"}</DialogTitle>
+              <DialogTitle>
+                {editingAttr ? t("attributes.editTitle") : t("attributes.createTitle")}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>属性名</Label>
+                <Label>{t("attributes.nameLabel")}</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="例: 入会動機"
+                  placeholder={t("attributes.namePlaceholder")}
                 />
               </div>
               {!editingAttr && (
                 <div>
-                  <Label>タイプ（変更不可）</Label>
+                  <Label>{t("attributes.typeLabel")}</Label>
                   <Select value={type} onValueChange={setType}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="text">テキスト</SelectItem>
-                      <SelectItem value="number">数値</SelectItem>
-                      <SelectItem value="date">日付</SelectItem>
-                      <SelectItem value="select">単一選択</SelectItem>
-                      <SelectItem value="multi_select">複数選択</SelectItem>
+                      {ATTRIBUTE_TYPES.map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {t(`attributes.types.${v}`)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
               {(type === "select" || type === "multi_select") && (
                 <div>
-                  <Label>選択肢（カンマ区切り）</Label>
+                  <Label>{t("attributes.optionsLabel")}</Label>
                   <Input
                     value={optionsText}
                     onChange={(e) => setOptionsText(e.target.value)}
-                    placeholder="例: 初級, 中級, 上級"
+                    placeholder={t("attributes.optionsPlaceholder")}
                   />
                 </div>
               )}
@@ -232,14 +238,14 @@ export function AttributesForm() {
                   checked={isSelfEditable}
                   onCheckedChange={(v) => setIsSelfEditable(v === true)}
                 />
-                メンバー自身も編集可
+                {t("attributes.selfEditableCheckbox")}
               </label>
               <Button
                 onClick={handleSave}
                 disabled={!name || createAttr.isPending || updateAttr.isPending}
                 className="w-full"
               >
-                {editingAttr ? "更新" : "作成"}
+                {editingAttr ? t("attributes.update") : t("attributes.create")}
               </Button>
             </div>
           </DialogContent>

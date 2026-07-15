@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -43,7 +42,6 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
   const unreadCount = unreadData?.count ?? 0;
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const logoUrl = settings?.find((s) => s.key === "logo_url")?.value ?? "";
   const siteName = settings?.find((s) => s.key === "site_name")?.value ?? "Community Platform";
 
   const handleLogout = async () => {
@@ -61,7 +59,10 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
     : "?";
 
   const headerBg = settings?.find((s) => s.key === "header_bg_color")?.value ?? "";
-  const headerText = headerBg ? getContrastForeground(headerBg) : "";
+  // header_text_color はロゴ（サイト名）テキスト専用の色。未指定ならロゴも下記の自動色に従う。
+  const logoTextColor = settings?.find((s) => s.key === "header_text_color")?.value ?? "";
+  // ヘッダー全体の文字色は背景色から自動でコントラスト色を算出する。
+  const headerAutoText = headerBg ? getContrastForeground(headerBg) : "";
 
   return (
     <header
@@ -69,7 +70,7 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         headerBg ? "" : "bg-background text-foreground"
       }`}
       style={{
-        ...(headerBg && { backgroundColor: headerBg, color: headerText }),
+        ...(headerBg && { backgroundColor: headerBg, color: headerAutoText }),
       }}
     >
       {/* モバイル: ハンバーガーメニュー */}
@@ -83,19 +84,12 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         <SheetContent side="left" className="w-64 p-0">
           <SheetTitle className="sr-only">{t("navigation")}</SheetTitle>
           <div className="flex h-14 items-center border-b px-4">
-            {logoUrl ? (
-              <Image
-                src={logoUrl}
-                alt={siteName}
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain"
-                priority
-                unoptimized
-              />
-            ) : (
-              <span className="font-bold">{siteName}</span>
-            )}
+            <span
+              className="font-bold"
+              style={logoTextColor ? { color: logoTextColor } : undefined}
+            >
+              {siteName}
+            </span>
           </div>
           <div onClick={() => setMobileOpen(false)} className="min-h-0 flex-1">
             {eventId ? (
@@ -113,21 +107,9 @@ export function Header({ eventId, projectId, isProfile, isShop }: HeaderProps) {
         </SheetContent>
       </Sheet>
 
-      {/* ロゴ */}
+      {/* ロゴ（サイト名） */}
       <Link href="/dashboard" className="flex items-center gap-2 font-bold">
-        {logoUrl ? (
-          <Image
-            src={logoUrl}
-            alt={siteName}
-            width={120}
-            height={32}
-            className="h-8 w-auto object-contain"
-            priority
-            unoptimized
-          />
-        ) : (
-          <span>{siteName}</span>
-        )}
+        <span style={logoTextColor ? { color: logoTextColor } : undefined}>{siteName}</span>
       </Link>
 
       <div className="flex-1" />

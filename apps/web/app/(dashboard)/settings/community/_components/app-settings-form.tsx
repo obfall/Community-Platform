@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod/v4";
+import { useTranslations } from "next-intl";
 import { useAppSettings, useUpdateAppSetting } from "@/hooks/settings/use-app-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,26 +21,29 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-const appSettingsSchema = z.object({
-  site_name: z.string().min(1, "サイト名を入力してください"),
-  site_description: z.string().min(1, "サイト説明を入力してください"),
-  allow_registration: z.boolean(),
-  default_language: z.string().min(1, "言語を入力してください"),
-});
-
-type AppSettingsFormValues = z.infer<typeof appSettingsSchema>;
+type AppSettingsFormValues = {
+  site_name: string;
+  site_description: string;
+  allow_registration: boolean;
+};
 
 const FORM_KEYS = new Set<keyof AppSettingsFormValues>([
   "site_name",
   "site_description",
   "allow_registration",
-  "default_language",
 ]);
 
 export function AppSettingsForm() {
+  const t = useTranslations("settings.community");
   const { data: settings, isLoading } = useAppSettings();
   const updateMutation = useUpdateAppSetting({ silent: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const appSettingsSchema = z.object({
+    site_name: z.string().min(1, t("app.siteName.required")),
+    site_description: z.string().min(1, t("app.siteDescription.required")),
+    allow_registration: z.boolean(),
+  });
 
   const form = useForm<AppSettingsFormValues>({
     resolver: zodResolver(appSettingsSchema),
@@ -47,7 +51,6 @@ export function AppSettingsForm() {
       site_name: "",
       site_description: "",
       allow_registration: true,
-      default_language: "ja",
     },
   });
 
@@ -83,14 +86,15 @@ export function AppSettingsForm() {
         }
       }
       if (promises.length === 0) {
-        toast.info("変更はありません");
+        toast.info(t("common.noChanges"));
         return;
       }
       const results = await Promise.allSettled(promises);
       const failed = results.filter((r) => r.status === "rejected").length;
-      if (failed === 0) toast.success("基本設定を保存しました");
-      else if (failed < results.length) toast.warning(`${failed}件の項目の保存に失敗しました`);
-      else toast.error("保存に失敗しました");
+      if (failed === 0) toast.success(t("app.saved"));
+      else if (failed < results.length)
+        toast.warning(t("common.partialSaveFailed", { count: failed }));
+      else toast.error(t("common.saveFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +103,9 @@ export function AppSettingsForm() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">読み込み中...</CardContent>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          {t("common.loading")}
+        </CardContent>
       </Card>
     );
   }
@@ -107,8 +113,8 @@ export function AppSettingsForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>基本設定</CardTitle>
-        <CardDescription>コミュニティの基本情報を設定します</CardDescription>
+        <CardTitle>{t("app.title")}</CardTitle>
+        <CardDescription>{t("app.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -118,11 +124,11 @@ export function AppSettingsForm() {
               name="site_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>サイト名</FormLabel>
+                  <FormLabel>{t("app.siteName.label")}</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription>コミュニティの表示名</FormDescription>
+                  <FormDescription>{t("app.siteName.description")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -133,13 +139,11 @@ export function AppSettingsForm() {
               name="site_description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>サイト説明</FormLabel>
+                  <FormLabel>{t("app.siteDescription.label")}</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Google 検索結果やSNSシェア時に表示される説明文（画面上には直接表示されません）
-                  </FormDescription>
+                  <FormDescription>{t("app.siteDescription.description")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -151,10 +155,8 @@ export function AppSettingsForm() {
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">新規登録を許可</FormLabel>
-                    <FormDescription>
-                      無効にすると新規ユーザーが登録できなくなります
-                    </FormDescription>
+                    <FormLabel className="text-base">{t("app.allowRegistration.label")}</FormLabel>
+                    <FormDescription>{t("app.allowRegistration.description")}</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -163,22 +165,8 @@ export function AppSettingsForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="default_language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>デフォルト言語</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "保存中..." : "保存"}
+              {isSubmitting ? t("common.saving") : t("common.save")}
             </Button>
           </form>
         </Form>

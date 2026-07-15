@@ -121,9 +121,14 @@ export class MemberAttributesService {
     await this.cache.invalidate(CACHE_PREFIX);
   }
 
-  /** ユーザーの属性値一覧 */
-  async getUserAttributes(userId: string) {
+  /**
+   * ユーザーの属性値一覧
+   * @param selfEditableOnly true の場合、メンバー編集可（isSelfEditable=true）の属性のみ返す。
+   *   本人向けエンドポイントで管理者専用属性を漏らさないために使用する。
+   */
+  async getUserAttributes(userId: string, selfEditableOnly = false) {
     const attributes = await this.prisma.memberAttribute.findMany({
+      where: selfEditableOnly ? { isSelfEditable: true } : undefined,
       orderBy: { sortOrder: "asc" },
     });
 
@@ -219,7 +224,7 @@ export class MemberAttributesService {
       }),
     );
 
-    return this.getUserAttributes(userId);
+    return this.getUserAttributes(userId, true);
   }
 
   /** CSV エクスポート用データ取得 */

@@ -130,7 +130,7 @@ export class UserAttributesController {
   @Get("me/attributes")
   @ApiOperation({ summary: "自分の属性値一覧" })
   getMyAttributes(@CurrentUser("id") userId: string) {
-    return this.service.getUserAttributes(userId);
+    return this.service.getUserAttributes(userId, true);
   }
 
   @Patch("me/attributes")
