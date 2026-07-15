@@ -1,0 +1,186 @@
+{
+  "community": {
+    "title": "コミュニティ設定",
+    "description": "コミュニティの基本設定を管理します",
+    "tabs": {
+      "general": "基本設定",
+      "design": "デザイン",
+      "email": "メール",
+      "attributes": "カスタム属性"
+    },
+    "common": {
+      "loading": "読み込み中...",
+      "save": "保存",
+      "saving": "保存中...",
+      "cancel": "キャンセル",
+      "noChanges": "変更はありません",
+      "saveFailed": "保存に失敗しました",
+      "partialSaveFailed": "{count}件の項目の保存に失敗しました",
+      "resetConfirm": "初期化する"
+    },
+    "app": {
+      "title": "基本設定",
+      "description": "コミュニティの基本情報を設定します",
+      "saved": "基本設定を保存しました",
+      "siteName": {
+        "label": "サイト名",
+        "description": "コミュニティの表示名",
+        "required": "サイト名を入力してください"
+      },
+      "siteDescription": {
+        "label": "サイト説明",
+        "description": "Google 検索結果やSNSシェア時に表示される説明文（画面上には直接表示されません）",
+        "required": "サイト説明を入力してください"
+      },
+      "allowRegistration": {
+        "label": "新規登録を許可",
+        "description": "無効にすると新規ユーザーが登録できなくなります"
+      },
+      "defaultLanguage": {
+        "label": "デフォルト言語",
+        "required": "言語を入力してください"
+      }
+    },
+    "design": {
+      "title": "デザイン設定",
+      "description": "サイトのロゴ・カラー・フォントをカスタマイズします",
+      "saved": "デザイン設定を保存しました",
+      "upload": "アップロード",
+      "remove": "削除",
+      "resetToDefault": "デフォルトに戻す",
+      "colorPlaceholder": "空欄でデフォルト",
+      "colorPicker": "{label}のカラーピッカー",
+      "hexValue": "{label}のHEX値",
+      "reset": "初期化",
+      "errors": {
+        "notImage": "画像ファイルを選択してください",
+        "tooLarge": "5MB を超えるファイルはアップロードできません",
+        "noUrl": "URL が取得できませんでした",
+        "uploadFailed": "アップロードに失敗しました"
+      },
+      "fonts": {
+        "default": "デフォルト（システム）",
+        "sansJp": "Noto Sans JP（ゴシック）",
+        "serifJp": "Noto Serif JP（明朝）"
+      },
+      "logo": {
+        "label": "ロゴ画像",
+        "hint": "空欄の場合はサイト名がテキストで表示されます (最大 5MB)"
+      },
+      "favicon": {
+        "label": "ファビコン",
+        "hint": "ブラウザタブに表示される小さなアイコン (最大 5MB、推奨 32x32 以上)"
+      },
+      "primaryColor": {
+        "label": "プライマリーカラー",
+        "description": "ボタン・バッジ・リンクなど、主要なアクションや強調表示に使われるメインカラー"
+      },
+      "accentColor": {
+        "label": "アクセントカラー",
+        "description": "メニューやボタンにマウスを乗せたとき・選択したときに表示されるハイライト色"
+      },
+      "headerBg": {
+        "label": "ヘッダー背景色",
+        "description": "文字色は背景の明度から自動で白/黒が選ばれます"
+      },
+      "sidebar": {
+        "title": "サイドバー"
+      },
+      "sidebarBg": {
+        "label": "サイドバー背景色",
+        "description": "文字色は自動"
+      },
+      "sidebarAccent": {
+        "label": "サイドバー選択時背景色",
+        "description": "hover / 選択時のハイライト色"
+      },
+      "font": {
+        "label": "フォント"
+      },
+      "resetDialog": {
+        "title": "デザイン設定を初期化しますか？",
+        "description": "すべてのデザイン設定がデフォルトに戻ります。この操作は取り消せません。"
+      },
+      "preview": {
+        "title": "プレビュー",
+        "header": "ヘッダーのサンプル",
+        "body": "これは本文のサンプルテキストです。あいうえおカタカナ漢字 ABCDEabcde 12345",
+        "primaryButton": "プライマリーボタン",
+        "menuItem": "メニュー項目（hover時）",
+        "sidebar": "サイドバー",
+        "normalItem": "通常の項目",
+        "selectedItem": "選択中の項目"
+      }
+    },
+    "email": {
+      "title": "メール設定",
+      "description": "メール送信時の差出人情報と、メンバー登録完了メールの内容を設定します",
+      "saved": "メール設定を保存しました",
+      "fromName": {
+        "label": "差出人名",
+        "description": "受信者のメールソフトに表示される送信者名",
+        "required": "差出人名を入力してください"
+      },
+      "replyTo": {
+        "label": "返信先アドレス",
+        "description": "受信者が返信した際の宛先アドレス",
+        "invalid": "有効なメールアドレスを入力してください"
+      },
+      "welcome": {
+        "title": "メンバー登録完了メール",
+        "description": "新規メンバー登録時に送信されるメールの件名と本文を設定します",
+        "variables": "利用可能な変数: "
+      },
+      "subject": {
+        "label": "件名",
+        "required": "件名を入力してください",
+        "resetLabel": "件名を初期化",
+        "resetTitle": "件名を初期化しますか？",
+        "resetDescription": "件名がデフォルト値に戻ります。保存ボタンを押すまで反映されません。"
+      },
+      "body": {
+        "label": "本文",
+        "required": "本文を入力してください",
+        "resetLabel": "本文を初期化",
+        "resetTitle": "本文を初期化しますか？",
+        "resetDescription": "本文がデフォルト値に戻ります。保存ボタンを押すまで反映されません。"
+      }
+    },
+    "attributes": {
+      "title": "カスタム属性",
+      "description": "メンバーに割り当てるコミュニティ独自の項目を管理します",
+      "addNew": "新規追加",
+      "empty": "カスタム属性がありません",
+      "selfEditable": "本人編集可",
+      "adminOnly": "運営のみ",
+      "editTitle": "属性を編集",
+      "createTitle": "新規属性",
+      "nameLabel": "属性名",
+      "namePlaceholder": "例: 入会動機",
+      "typeLabel": "タイプ（変更不可）",
+      "optionsLabel": "選択肢（カンマ区切り）",
+      "optionsPlaceholder": "例: 初級, 中級, 上級",
+      "selfEditableCheckbox": "メンバー自身も編集可",
+      "update": "更新",
+      "create": "作成",
+      "types": {
+        "text": "テキスト",
+        "number": "数値",
+        "date": "日付",
+        "select": "単一選択",
+        "multi_select": "複数選択"
+      },
+      "columns": {
+        "name": "属性名",
+        "type": "タイプ",
+        "permission": "編集権限",
+        "options": "選択肢"
+      },
+      "deleteDialog": {
+        "title": "属性を削除しますか？",
+        "description": "「{name}」を削除すると、全メンバーのこの属性値も削除されます。",
+        "confirm": "削除する"
+      }
+    }
+  }
+}

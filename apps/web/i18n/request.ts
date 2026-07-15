@@ -27,6 +27,7 @@ const NAMESPACES = [
   "notifications",
   "shop",
   "profile",
+  "settings",
 ] as const;
 
 export default getRequestConfig(async () => {
