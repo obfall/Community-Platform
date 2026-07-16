@@ -96,7 +96,7 @@ export function useSetUserAttributes() {
 
 export function useExportMembersCsv() {
   return useMutation({
-    mutationFn: () => usersApi.exportCsv(),
+    mutationFn: (params?: UserListQuery) => usersApi.exportCsv(params),
     onSuccess: (data) => {
       const blob = new Blob([data as BlobPart], { type: "text/csv; charset=utf-8" });
       const url = URL.createObjectURL(blob);

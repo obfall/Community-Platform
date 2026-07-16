@@ -8,24 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HighlightedText } from "@/components/highlighted-text";
 import { cn } from "@/lib/utils";
 import type { UserListItem } from "@/lib/api/types";
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  admin: "管理者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "有効",
-  suspended: "停止中",
-  withdrawn: "退会済み",
-};
 
 const STATUS_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
@@ -40,12 +28,17 @@ interface MembersTableProps {
 }
 
 export function MembersTable({ users, isLoading, onSelectUser }: MembersTableProps) {
+  const t = useTranslations("settings.members");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
+  const tStatus = useTranslations("enums.userStatus");
+
   if (isLoading) {
-    return <p className="py-8 text-center text-muted-foreground">読み込み中...</p>;
+    return <p className="py-8 text-center text-muted-foreground">{tCommon("loading")}</p>;
   }
 
   if (users.length === 0) {
-    return <p className="py-8 text-center text-muted-foreground">メンバーが見つかりません</p>;
+    return <p className="py-8 text-center text-muted-foreground">{t("empty")}</p>;
   }
 
   return (
@@ -53,11 +46,11 @@ export function MembersTable({ users, isLoading, onSelectUser }: MembersTablePro
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>メンバー</TableHead>
-            <TableHead>メール</TableHead>
-            <TableHead>ロール</TableHead>
-            <TableHead>ステータス</TableHead>
-            <TableHead>登録日</TableHead>
+            <TableHead>{t("table.member")}</TableHead>
+            <TableHead>{t("table.email")}</TableHead>
+            <TableHead>{t("table.role")}</TableHead>
+            <TableHead>{t("table.status")}</TableHead>
+            <TableHead>{t("table.createdAt")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,11 +82,13 @@ export function MembersTable({ users, isLoading, onSelectUser }: MembersTablePro
                 </TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{ROLE_LABELS[user.role] ?? user.role}</Badge>
+                  <Badge variant="secondary">
+                    {tRole.has(user.role) ? tRole(user.role) : user.role}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANTS[user.status] ?? "outline"}>
-                    {STATUS_LABELS[user.status] ?? user.status}
+                    {tStatus.has(user.status) ? tStatus(user.status) : user.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">

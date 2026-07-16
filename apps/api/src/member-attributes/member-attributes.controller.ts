@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
@@ -18,6 +19,8 @@ import type { Response } from "express";
 import { Roles } from "@/common/decorators/roles.decorator";
 import { CurrentUser } from "@/common/decorators";
 import { RolesGuard } from "@/common/guards";
+import { UsersService } from "@/users/users.service";
+import { UserListQueryDto } from "@/users/dto/user-list-query.dto";
 import { MemberAttributesService } from "./member-attributes.service";
 import { CreateMemberAttributeDto } from "./dto/create-member-attribute.dto";
 import { UpdateMemberAttributeDto } from "./dto/update-member-attribute.dto";
@@ -74,34 +77,30 @@ export class MemberAttributesController {
 @ApiTags("User Attributes")
 @ApiBearerAuth()
 export class UserAttributesController {
-  constructor(private readonly service: MemberAttributesService) {}
+  constructor(
+    private readonly service: MemberAttributesService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Get("export/csv")
-  @ApiOperation({ summary: "メンバー CSV エクスポート" })
+  @ApiOperation({ summary: "メンバー CSV エクスポート（一覧の絞り込み条件を反映）" })
   @UseGuards(RolesGuard)
   @Roles("admin", "owner")
-  async exportCsv(@Res({ passthrough: true }) res: Response) {
-    const { attributes, users } = await this.service.getExportData();
+  async exportCsv(@Query() query: UserListQueryDto, @Res({ passthrough: true }) res: Response) {
+    // 一覧画面と同じ絞り込み（検索・ロール・ステータス）を反映して出力する。
+    const users = await this.usersService.findAllForExport(query);
 
-    // ヘッダー行
-    const fixedHeaders = ["名前", "メール", "ロール", "ステータス", "ランク", "登録日"];
-    const attrHeaders = attributes.map((a) => a.name);
-    const headers = [...fixedHeaders, ...attrHeaders];
+    // ヘッダー行（ランク・カスタム属性列は出力しない）
+    const headers = ["名前", "メール", "ロール", "ステータス", "登録日"];
 
     // データ行
-    const rows = users.map((user) => {
-      const valueMap = new Map(user.attributeValues.map((v) => [v.attributeId, v.value]));
-      const fixedCols = [
-        user.name,
-        user.email,
-        user.role,
-        user.status,
-        user.rank?.name ?? "",
-        user.createdAt.toISOString().split("T")[0],
-      ];
-      const attrCols = attributes.map((a) => valueMap.get(a.id) ?? "");
-      return [...fixedCols, ...attrCols];
-    });
+    const rows = users.map((user) => [
+      user.name,
+      user.email,
+      user.role,
+      user.status,
+      user.createdAt.toISOString().split("T")[0],
+    ]);
 
     // CSV 生成（UTF-8 BOM 付き）
     const escapeCsv = (val: string) => {

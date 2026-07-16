@@ -6,6 +6,11 @@
     "member": "メンバー",
     "visitor": "ビジター"
   },
+  "userStatus": {
+    "active": "有効",
+    "suspended": "停止中",
+    "withdrawn": "退会済み"
+  },
   "gender": {
     "male": "男性",
     "female": "女性",

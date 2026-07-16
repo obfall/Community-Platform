@@ -157,6 +157,95 @@ describe("UsersService", () => {
     });
   });
 
+  describe("findAllForExport: CSV エクスポート用の絞り込み取得", () => {
+    it("検索なしなら通常経路（findMany）で取得し、pgroonga（$queryRaw）は使わない", async () => {
+      await service.findAllForExport({});
+      expect(prismaMock.user.findMany).toHaveBeenCalled();
+      expect(prismaMock.$queryRaw).not.toHaveBeenCalled();
+    });
+
+    it("ステータス未指定なら有効・停止中のみ（退会済みを除外）で絞り込む", async () => {
+      await service.findAllForExport({});
+      const call = prismaMock.user.findMany.mock.calls[0]?.[0];
+      expect(call.where).toEqual(
+        expect.objectContaining({
+          deletedAt: null,
+          status: { in: ["active", "suspended"] },
+        }),
+      );
+    });
+
+    it("ステータス指定時はその値で絞り込む（退会済みも出力できる）", async () => {
+      await service.findAllForExport({ status: "withdrawn" });
+      const call = prismaMock.user.findMany.mock.calls[0]?.[0];
+      expect(call.where).toEqual(expect.objectContaining({ status: "withdrawn" }));
+    });
+
+    it("ロール指定時は role で絞り込む", async () => {
+      await service.findAllForExport({ role: "admin" });
+      const call = prismaMock.user.findMany.mock.calls[0]?.[0];
+      expect(call.where).toEqual(expect.objectContaining({ role: "admin" }));
+    });
+
+    it("ページングせず（skip/take なし）、登録日昇順・必要カラムのみ取得する", async () => {
+      await service.findAllForExport({ page: 3, limit: 20 });
+      const call = prismaMock.user.findMany.mock.calls[0]?.[0];
+      expect(call.skip).toBeUndefined();
+      expect(call.take).toBeUndefined();
+      expect(call.orderBy).toEqual({ createdAt: "asc" });
+      expect(call.select).toEqual({
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      });
+    });
+
+    it("検索ありなら pgroonga（$queryRaw）で対象 ID を集約する（1 回のみ）", async () => {
+      prismaMock.$queryRaw.mockResolvedValueOnce([{ id: "u1" }]);
+      await service.findAllForExport({ search: "田中" });
+      // 一覧のような total/highlight クエリは発行しない
+      expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    });
+
+    it("検索の matched が空なら user.findMany を呼ばず空配列を返す", async () => {
+      prismaMock.$queryRaw.mockResolvedValueOnce([]);
+      const result = await service.findAllForExport({ search: "存在しない" });
+      expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it("検索でマッチした ID を使って user.findMany で取得し、その結果を返す", async () => {
+      prismaMock.$queryRaw.mockResolvedValueOnce([{ id: "u1" }, { id: "u2" }]);
+      const rows = [
+        {
+          name: "田中",
+          email: "t@example.com",
+          role: "member",
+          status: "active",
+          createdAt: new Date(),
+        },
+      ];
+      prismaMock.user.findMany.mockResolvedValueOnce(rows);
+
+      const result = await service.findAllForExport({ search: "田中" });
+
+      const call = prismaMock.user.findMany.mock.calls[0]?.[0];
+      expect(call.where).toEqual({ id: { in: ["u1", "u2"] } });
+      expect(call.orderBy).toEqual({ createdAt: "asc" });
+      expect(result).toEqual(rows);
+    });
+
+    it("検索時の絞り込み（status / role）が pgroonga SQL の values に乗る", async () => {
+      prismaMock.$queryRaw.mockResolvedValueOnce([]);
+      await service.findAllForExport({ search: "田中", status: "active", role: "member" });
+      const matchedCall = prismaMock.$queryRaw.mock.calls[0]?.[0];
+      expect(matchedCall.values).toContain("active");
+      expect(matchedCall.values).toContain("member");
+    });
+  });
+
   describe("findInterestCategories: 興味分野カテゴリ一覧", () => {
     it("scope=user_interest かつ isActive=true で絞り込み、sortOrder 昇順で取得する", async () => {
       const sample = [
