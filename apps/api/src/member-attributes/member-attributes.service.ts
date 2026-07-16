@@ -226,22 +226,4 @@ export class MemberAttributesService {
 
     return this.getUserAttributes(userId, true);
   }
-
-  /** CSV エクスポート用データ取得 */
-  async getExportData() {
-    const attributes = await this.prisma.memberAttribute.findMany({
-      orderBy: { sortOrder: "asc" },
-    });
-
-    const users = await this.prisma.user.findMany({
-      where: { deletedAt: null },
-      include: {
-        rank: { select: { name: true } },
-        attributeValues: true,
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    return { attributes, users };
-  }
 }

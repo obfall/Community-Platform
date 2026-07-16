@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   useUser,
   useUpdateUserRole,
@@ -48,20 +49,6 @@ import {
 } from "@/components/ui/select";
 import type { UserAttributeValue } from "@/lib/api/types";
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: "オーナー",
-  admin: "管理者",
-  moderator: "モデレーター",
-  member: "メンバー",
-};
-
-const GENDER_LABELS: Record<string, string> = {
-  male: "男性",
-  female: "女性",
-  other: "その他",
-  prefer_not_to_say: "回答しない",
-};
-
 interface MemberDetailDialogProps {
   userId: string | undefined;
   open: boolean;
@@ -69,6 +56,10 @@ interface MemberDetailDialogProps {
 }
 
 export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailDialogProps) {
+  const t = useTranslations("settings.members.detail");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
+  const tGender = useTranslations("enums.gender");
   const { data: user, isLoading } = useUser(userId);
 
   const initials = user?.name
@@ -84,10 +75,12 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
-          <DialogTitle>メンバー詳細</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
-        {isLoading && <p className="py-8 text-center text-muted-foreground">読み込み中...</p>}
+        {isLoading && (
+          <p className="py-8 text-center text-muted-foreground">{tCommon("loading")}</p>
+        )}
 
         {user && (
           <div className="space-y-4">
@@ -100,7 +93,9 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                 <p className="text-lg font-bold">{user.name}</p>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
                 <div className="mt-1 flex gap-2">
-                  <Badge variant="secondary">{ROLE_LABELS[user.role] ?? user.role}</Badge>
+                  <Badge variant="secondary">
+                    {tRole.has(user.role) ? tRole(user.role) : user.role}
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -111,18 +106,18 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
 
             <Tabs defaultValue="detail">
               <TabsList>
-                <TabsTrigger value="detail">詳細</TabsTrigger>
-                <TabsTrigger value="attributes">カスタム属性</TabsTrigger>
+                <TabsTrigger value="detail">{t("tabs.detail")}</TabsTrigger>
+                <TabsTrigger value="attributes">{t("tabs.attributes")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="detail" className="space-y-6 pt-2">
                 {/* プロフィール */}
                 {user.profile && (
-                  <Section title="プロフィール">
-                    <InfoRow label="名前（カナ）" value={user.profile.nameKana} />
-                    <InfoRow label="電話番号" value={user.profile.phone} />
+                  <Section title={t("sections.profile")}>
+                    <InfoRow label={t("fields.nameKana")} value={user.profile.nameKana} />
+                    <InfoRow label={t("fields.phone")} value={user.profile.phone} />
                     <InfoRow
-                      label="誕生日"
+                      label={t("fields.birthday")}
                       value={
                         user.profile.birthday
                           ? new Date(user.profile.birthday).toLocaleDateString("ja-JP")
@@ -130,32 +125,37 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                       }
                     />
                     <InfoRow
-                      label="性別"
+                      label={t("fields.gender")}
                       value={
                         user.profile.gender
-                          ? (GENDER_LABELS[user.profile.gender] ?? user.profile.gender)
+                          ? tGender.has(user.profile.gender)
+                            ? tGender(user.profile.gender)
+                            : user.profile.gender
                           : null
                       }
                     />
-                    <InfoRow label="職業" value={user.profile.occupation} />
-                    <InfoRow label="出身国" value={user.profile.countryOfOrigin} />
+                    <InfoRow label={t("fields.occupation")} value={user.profile.occupation} />
+                    <InfoRow
+                      label={t("fields.countryOfOrigin")}
+                      value={user.profile.countryOfOrigin}
+                    />
                   </Section>
                 )}
 
                 {/* 公開情報 */}
                 {user.publicInfo && (
-                  <Section title="公開情報">
-                    <InfoRow label="ニックネーム" value={user.publicInfo.nickname} />
-                    <InfoRow label="専門分野" value={user.publicInfo.specialty} />
-                    <InfoRow label="都道府県" value={user.publicInfo.prefecture} />
-                    <InfoRow label="市区町村" value={user.publicInfo.city} />
-                    <InfoRow label="イベント役割" value={user.publicInfo.eventRole} />
+                  <Section title={t("sections.public")}>
+                    <InfoRow label={t("fields.nickname")} value={user.publicInfo.nickname} />
+                    <InfoRow label={t("fields.specialty")} value={user.publicInfo.specialty} />
+                    <InfoRow label={t("fields.prefecture")} value={user.publicInfo.prefecture} />
+                    <InfoRow label={t("fields.city")} value={user.publicInfo.city} />
+                    <InfoRow label={t("fields.eventRole")} value={user.publicInfo.eventRole} />
                   </Section>
                 )}
 
                 {/* 所属 */}
                 {user.affiliations.length > 0 && (
-                  <Section title="所属">
+                  <Section title={t("sections.affiliations")}>
                     {user.affiliations.map((aff) => (
                       <div key={aff.id} className="text-sm">
                         <p className="font-medium">{aff.organizationName}</p>
@@ -166,7 +166,9 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  登録日: {new Date(user.createdAt).toLocaleDateString("ja-JP")}
+                  {t("registeredAt", {
+                    date: new Date(user.createdAt).toLocaleDateString("ja-JP"),
+                  })}
                 </p>
               </TabsContent>
 
@@ -182,6 +184,10 @@ export function MemberDetailDialog({ userId, open, onOpenChange }: MemberDetailD
 }
 
 function MemberActions({ user }: { user: UserDetail }) {
+  const t = useTranslations("settings.members.detail");
+  const tCommon = useTranslations("common");
+  const tRole = useTranslations("enums.role");
+  const tStatus = useTranslations("enums.userStatus");
   const { user: currentUser } = useAuth();
   const updateRole = useUpdateUserRole();
   const updateStatus = useUpdateUserStatus();
@@ -208,36 +214,36 @@ function MemberActions({ user }: { user: UserDetail }) {
     <div className="space-y-3 rounded-md border p-3">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">ロール</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("roleLabel")}</label>
           <Select value={role} onValueChange={setRole}>
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="owner">オーナー</SelectItem>
-              <SelectItem value="admin">管理者</SelectItem>
-              <SelectItem value="member">メンバー</SelectItem>
-              <SelectItem value="visitor">ビジター</SelectItem>
+              <SelectItem value="owner">{tRole("owner")}</SelectItem>
+              <SelectItem value="admin">{tRole("admin")}</SelectItem>
+              <SelectItem value="member">{tRole("member")}</SelectItem>
+              <SelectItem value="visitor">{tRole("visitor")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">ステータス</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("statusLabel")}</label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="active">有効</SelectItem>
-              <SelectItem value="suspended">停止</SelectItem>
-              <SelectItem value="withdrawn">退会</SelectItem>
+              <SelectItem value="active">{tStatus("active")}</SelectItem>
+              <SelectItem value="suspended">{tStatus("suspended")}</SelectItem>
+              <SelectItem value="withdrawn">{tStatus("withdrawn")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <Button size="sm" disabled={!isDirty || isSaving} onClick={handleSave} className="ml-auto">
-          保存
+          {tCommon("save")}
         </Button>
       </div>
 
@@ -247,21 +253,20 @@ function MemberActions({ user }: { user: UserDetail }) {
             <AlertDialogTrigger asChild>
               <Button size="sm" variant="outline" disabled={forceReset.isPending}>
                 <KeyRound className="mr-2 h-3.5 w-3.5" />
-                パスワード強制リセット
+                {t("forcePasswordReset")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>パスワードを強制リセットしますか？</AlertDialogTitle>
+                <AlertDialogTitle>{t("resetDialog.title")}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {user.name} さん（{user.email}）にパスワードリセットメールを送信します。
-                  既存のリセットリンクは無効になります。
+                  {t("resetDialog.description", { name: user.name, email: user.email })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => forceReset.mutate(user.id)}>
-                  送信する
+                  {t("resetDialog.confirm")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -269,7 +274,7 @@ function MemberActions({ user }: { user: UserDetail }) {
 
           <Button size="sm" variant="outline" onClick={() => setEmailDialogOpen(true)}>
             <Mail className="mr-2 h-3.5 w-3.5" />
-            メールアドレス変更
+            {t("changeEmail")}
           </Button>
 
           <EmailChangeDialog user={user} open={emailDialogOpen} onOpenChange={setEmailDialogOpen} />
@@ -288,6 +293,8 @@ function EmailChangeDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations("settings.members.detail.emailDialog");
+  const tCommon = useTranslations("common");
   const updateEmail = useUpdateUserEmail();
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
@@ -325,17 +332,17 @@ function EmailChangeDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>メールアドレス変更</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="text-sm">
-            <p className="text-muted-foreground">現在のメールアドレス</p>
+            <p className="text-muted-foreground">{t("current")}</p>
             <p className="font-medium">{user.email}</p>
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="new-email">新しいメールアドレス</Label>
+            <Label htmlFor="new-email">{t("newLabel")}</Label>
             <Input
               id="new-email"
               type="email"
@@ -346,7 +353,7 @@ function EmailChangeDialog({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="confirm-email">確認用</Label>
+            <Label htmlFor="confirm-email">{t("confirmLabel")}</Label>
             <Input
               id="confirm-email"
               type="email"
@@ -355,25 +362,21 @@ function EmailChangeDialog({
               placeholder="new@example.com"
             />
             {confirmEmail && !isMatch && (
-              <p className="text-xs text-destructive">メールアドレスが一致しません</p>
+              <p className="text-xs text-destructive">{t("mismatch")}</p>
             )}
           </div>
 
-          {isSame && email && (
-            <p className="text-xs text-destructive">現在のメールアドレスと同じです</p>
-          )}
+          {isSame && email && <p className="text-xs text-destructive">{t("sameAsCurrent")}</p>}
 
-          <p className="text-xs text-muted-foreground">
-            変更後、対象ユーザーのセッションは全て無効化されます。
-          </p>
+          <p className="text-xs text-muted-foreground">{t("notice")}</p>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            キャンセル
+            {tCommon("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            変更する
+            {t("submit")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -382,6 +385,8 @@ function EmailChangeDialog({
 }
 
 function AttributesForm({ userId }: { userId: string }) {
+  const t = useTranslations("settings.members.detail.attributes");
+  const tCommon = useTranslations("common");
   const { data: attributes, isLoading } = useUserAttributes(userId);
   const setAttributes = useSetUserAttributes();
   const [values, setValues] = useState<Record<string, string | null>>({});
@@ -398,13 +403,9 @@ function AttributesForm({ userId }: { userId: string }) {
   }
 
   if (isLoading)
-    return <p className="py-4 text-center text-sm text-muted-foreground">読み込み中...</p>;
+    return <p className="py-4 text-center text-sm text-muted-foreground">{tCommon("loading")}</p>;
   if (!attributes?.length)
-    return (
-      <p className="py-4 text-center text-sm text-muted-foreground">
-        カスタム属性が定義されていません
-      </p>
-    );
+    return <p className="py-4 text-center text-sm text-muted-foreground">{t("empty")}</p>;
 
   const handleSave = () => {
     const items = Object.entries(values).map(([attributeId, value]) => ({
@@ -427,7 +428,7 @@ function AttributesForm({ userId }: { userId: string }) {
         </div>
       ))}
       <Button onClick={handleSave} disabled={setAttributes.isPending} className="w-full">
-        保存
+        {t("save")}
       </Button>
     </div>
   );
@@ -442,6 +443,7 @@ function AttributeField({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const t = useTranslations("settings.members.detail.attributes");
   switch (attr.type) {
     case "text":
       return <Input value={value} onChange={(e) => onChange(e.target.value)} />;
@@ -453,7 +455,7 @@ function AttributeField({
       return (
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger>
-            <SelectValue placeholder="選択..." />
+            <SelectValue placeholder={t("selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {attr.options?.map((opt) => (

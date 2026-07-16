@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +19,9 @@ interface MembersFilterProps {
 }
 
 export function MembersFilter({ query, onQueryChange }: MembersFilterProps) {
+  const t = useTranslations("settings.members.filter");
+  const tRole = useTranslations("enums.role");
+  const tStatus = useTranslations("enums.userStatus");
   const [searchInput, setSearchInput] = useState(query.search ?? "");
 
   useEffect(() => {
@@ -32,7 +36,7 @@ export function MembersFilter({ query, onQueryChange }: MembersFilterProps) {
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="名前で検索..."
+          placeholder={t("searchPlaceholder")}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           className="pl-9"
@@ -43,14 +47,14 @@ export function MembersFilter({ query, onQueryChange }: MembersFilterProps) {
         onValueChange={(v) => onQueryChange({ role: v === "all" ? undefined : v })}
       >
         <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="ロール" />
+          <SelectValue placeholder={t("rolePlaceholder")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">すべてのロール</SelectItem>
-          <SelectItem value="owner">オーナー</SelectItem>
-          <SelectItem value="admin">管理者</SelectItem>
-          <SelectItem value="member">メンバー</SelectItem>
-          <SelectItem value="visitor">ビジター</SelectItem>
+          <SelectItem value="all">{t("allRoles")}</SelectItem>
+          <SelectItem value="owner">{tRole("owner")}</SelectItem>
+          <SelectItem value="admin">{tRole("admin")}</SelectItem>
+          <SelectItem value="member">{tRole("member")}</SelectItem>
+          <SelectItem value="visitor">{tRole("visitor")}</SelectItem>
         </SelectContent>
       </Select>
       <Select
@@ -58,13 +62,13 @@ export function MembersFilter({ query, onQueryChange }: MembersFilterProps) {
         onValueChange={(v) => onQueryChange({ status: v === "all" ? undefined : v })}
       >
         <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="ステータス" />
+          <SelectValue placeholder={t("statusPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">すべて</SelectItem>
-          <SelectItem value="active">有効</SelectItem>
-          <SelectItem value="suspended">停止中</SelectItem>
-          <SelectItem value="withdrawn">退会済み</SelectItem>
+          <SelectItem value="all">{t("allStatuses")}</SelectItem>
+          <SelectItem value="active">{tStatus("active")}</SelectItem>
+          <SelectItem value="suspended">{tStatus("suspended")}</SelectItem>
+          <SelectItem value="withdrawn">{tStatus("withdrawn")}</SelectItem>
         </SelectContent>
       </Select>
     </div>

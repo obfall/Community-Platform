@@ -68,10 +68,54 @@ export class UsersService {
     return this.findAllStandard(query);
   }
 
-  private async findAllStandard(query: UserListQueryDto) {
-    const { page, limit, skip } = extractPagination(query);
+  /**
+   * CSV エクスポート用に、一覧と同じ絞り込み（検索・ロール・ステータス）を適用した
+   * 全マッチユーザーを返す（ページングなし）。並び順は登録日昇順で固定。
+   */
+  async findAllForExport(query: UserListQueryDto) {
+    const select = {
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    } satisfies Prisma.UserSelect;
 
-    const where: Prisma.UserWhereInput = {
+    const escaped = query.search ? escapePgroongaQuery(query.search) : "";
+    if (escaped) {
+      const { status, roleFilter } = this.buildPgroongaFilters(query);
+      const matchedSource = this.pgroongaMatchedSource(escaped);
+      const matched = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        WITH matched AS (${matchedSource})
+        SELECT u.id
+        FROM matched m
+        JOIN users u ON u.id = m.user_id
+        WHERE u.deleted_at IS NULL
+          AND ${status}
+          ${roleFilter}
+        GROUP BY u.id
+      `);
+      if (matched.length === 0) return [];
+      return this.prisma.user.findMany({
+        where: { id: { in: matched.map((m) => m.id) } },
+        select,
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    return this.prisma.user.findMany({
+      where: this.buildUserListWhere(query),
+      select,
+      orderBy: { createdAt: "asc" },
+    });
+  }
+
+  /**
+   * メンバー一覧の絞り込み条件（検索なしの標準クエリ用）。
+   * ステータス未指定時は有効・停止中のみ（退会済みは除外）。CSV エクスポートでも再利用する。
+   */
+  private buildUserListWhere(query: UserListQueryDto): Prisma.UserWhereInput {
+    return {
       deletedAt: null,
       ...(query.status
         ? { status: query.status }
@@ -79,6 +123,12 @@ export class UsersService {
       ...(query.role && { role: query.role }),
       ...(query.excludeAdmin && { role: { not: "admin" } }),
     };
+  }
+
+  private async findAllStandard(query: UserListQueryDto) {
+    const { page, limit, skip } = extractPagination(query);
+
+    const where = this.buildUserListWhere(query);
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -100,9 +150,11 @@ export class UsersService {
    * user_affiliations.{organization_name,title,role_description}
    * を UNION で横断検索し、user_id ごとに最大スコアでソート。
    */
-  private async searchByPgroonga(query: UserListQueryDto, escaped: string) {
-    const { page, limit, offset } = extractPagination(query);
-
+  /**
+   * pgroonga 検索の絞り込み条件（ステータス・ロール）を SQL 断片で返す。
+   * 検索版一覧・count・CSV エクスポートで共有し、条件のドリフトを防ぐ。
+   */
+  private buildPgroongaFilters(query: UserListQueryDto) {
     const status = query.status
       ? Prisma.sql`u.status = ${query.status}::"UserStatus"`
       : Prisma.sql`u.status IN ('active'::"UserStatus", 'suspended'::"UserStatus")`;
@@ -111,12 +163,17 @@ export class UsersService {
       : query.excludeAdmin
         ? Prisma.sql`AND u.role <> 'admin'::"UserRole"`
         : Prisma.empty;
+    return { status, roleFilter };
+  }
 
-    // 4 テーブルのマッチを user_id 軸で集約するためのサブクエリ。
-    // UNION ALL（重複行を残す）にし、検索版は GROUP BY で MAX(score) に集約、
-    // count 版は COUNT(DISTINCT user_id) で重複排除する。両者で同じソースを使うことで
-    // 公開条件・カラム構成のドリフトを防ぐ（保守時の片側修正事故の防止）。
-    const matchedSource = Prisma.sql`
+  /**
+   * 4 テーブルのマッチを user_id 軸で集約するためのサブクエリ。
+   * UNION ALL（重複行を残す）にし、検索版は GROUP BY で MAX(score) に集約、
+   * count 版は COUNT(DISTINCT user_id) で重複排除する。両者で同じソースを使うことで
+   * 公開条件・カラム構成のドリフトを防ぐ（保守時の片側修正事故の防止）。
+   */
+  private pgroongaMatchedSource(escaped: string) {
+    return Prisma.sql`
       SELECT id AS user_id, pgroonga_score(tableoid, ctid) AS score
         FROM users WHERE name &@~ ${escaped} AND deleted_at IS NULL
       UNION ALL
@@ -137,6 +194,13 @@ export class UsersService {
           coalesce(role_description, '')
         ] &@~ ${escaped}
     `;
+  }
+
+  private async searchByPgroonga(query: UserListQueryDto, escaped: string) {
+    const { page, limit, offset } = extractPagination(query);
+
+    const { status, roleFilter } = this.buildPgroongaFilters(query);
+    const matchedSource = this.pgroongaMatchedSource(escaped);
 
     const matched = await this.prisma.$queryRaw<Array<{ id: string; score: number }>>(Prisma.sql`
       WITH matched AS (${matchedSource})

@@ -178,5 +178,75 @@
         "confirm": "削除する"
       }
     }
+  },
+  "members": {
+    "title": "メンバー管理",
+    "description": "コミュニティのメンバーを管理します",
+    "exportCsv": "CSV エクスポート",
+    "empty": "メンバーが見つかりません",
+    "filter": {
+      "searchPlaceholder": "名前で検索...",
+      "rolePlaceholder": "ロール",
+      "allRoles": "すべてのロール",
+      "statusPlaceholder": "ステータス",
+      "allStatuses": "すべて"
+    },
+    "table": {
+      "member": "メンバー",
+      "email": "メール",
+      "role": "ロール",
+      "status": "ステータス",
+      "createdAt": "登録日"
+    },
+    "detail": {
+      "title": "メンバー詳細",
+      "tabs": {
+        "detail": "詳細",
+        "attributes": "カスタム属性"
+      },
+      "roleLabel": "ロール",
+      "statusLabel": "ステータス",
+      "forcePasswordReset": "パスワード強制リセット",
+      "changeEmail": "メールアドレス変更",
+      "registeredAt": "登録日: {date}",
+      "sections": {
+        "profile": "プロフィール",
+        "public": "公開情報",
+        "affiliations": "所属"
+      },
+      "fields": {
+        "nameKana": "名前（カナ）",
+        "phone": "電話番号",
+        "birthday": "誕生日",
+        "gender": "性別",
+        "occupation": "職業",
+        "countryOfOrigin": "出身国",
+        "nickname": "ニックネーム",
+        "specialty": "専門分野",
+        "prefecture": "都道府県",
+        "city": "市区町村",
+        "eventRole": "イベント役割"
+      },
+      "resetDialog": {
+        "title": "パスワードを強制リセットしますか？",
+        "description": "{name} さん（{email}）にパスワードリセットメールを送信します。既存のリセットリンクは無効になります。",
+        "confirm": "送信する"
+      },
+      "emailDialog": {
+        "title": "メールアドレス変更",
+        "current": "現在のメールアドレス",
+        "newLabel": "新しいメールアドレス",
+        "confirmLabel": "確認用",
+        "mismatch": "メールアドレスが一致しません",
+        "sameAsCurrent": "現在のメールアドレスと同じです",
+        "notice": "変更後、対象ユーザーのセッションは全て無効化されます。",
+        "submit": "変更する"
+      },
+      "attributes": {
+        "empty": "カスタム属性が定義されていません",
+        "selectPlaceholder": "選択...",
+        "save": "保存"
+      }
+    }
   }
 }

@@ -39,7 +39,8 @@ export const usersApi = {
       .patch<UserAttributeValue[]>(`/users/${id}/attributes`, { values })
       .then((r) => r.data),
 
-  exportCsv: () => apiClient.get("/users/export/csv", { responseType: "blob" }).then((r) => r.data),
+  exportCsv: (params?: UserListQuery) =>
+    apiClient.get("/users/export/csv", { params, responseType: "blob" }).then((r) => r.data),
 
   getUserEvents: (id: string) =>
     apiClient.get<UserEventItem[]>(`/users/${id}/events`).then((r) => r.data),
