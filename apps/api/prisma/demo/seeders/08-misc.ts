@@ -1,11 +1,5 @@
 import type {
   PrismaClient,
-  ReportTargetType,
-  ReportCategory,
-  ReportStatus,
-  ModerationActionType,
-  BannedWordMatchType,
-  BannedWordAction,
   ScheduleVisibility,
   ScheduleSourceType,
   UserLibraryType,
@@ -81,24 +75,6 @@ const FAQ_ARTICLES: Array<{ category: string; title: string; body: string }> = [
   },
   { category: "操作", title: "通知設定の変更方法", body: "設定画面の「通知」から変更可能です。" },
   { category: "その他", title: "お問合せ先", body: "support@test.com までご連絡ください。" },
-];
-
-const BANNED_WORDS: Array<{
-  word: string;
-  matchType: BannedWordMatchType;
-  action: BannedWordAction;
-  replacement?: string;
-}> = [
-  { word: "badword1", matchType: "exact", action: "block" },
-  { word: "badword2", matchType: "partial", action: "flag" },
-  { word: "badword3", matchType: "exact", action: "replace", replacement: "***" },
-  { word: "spam", matchType: "partial", action: "flag" },
-  { word: "scam", matchType: "exact", action: "block" },
-  { word: "test[0-9]+", matchType: "regex", action: "flag" },
-  { word: "禁止単語1", matchType: "exact", action: "block" },
-  { word: "禁止単語2", matchType: "partial", action: "replace", replacement: "[削除済]" },
-  { word: "violence", matchType: "partial", action: "flag" },
-  { word: "hate", matchType: "partial", action: "flag" },
 ];
 
 async function getDemoUsers(prisma: PrismaClient): Promise<UserSummary[]> {
@@ -193,87 +169,6 @@ async function seedSchedules(prisma: PrismaClient, users: UserSummary[]): Promis
   await prisma.schedule.createMany({ data: rows });
 }
 
-async function seedModeration(prisma: PrismaClient, users: UserSummary[]): Promise<void> {
-  // BannedWords
-  await prisma.bannedWord.createMany({
-    data: BANNED_WORDS.map((w) => ({
-      word: w.word,
-      matchType: w.matchType,
-      action: w.action,
-      replacement: w.replacement ?? null,
-    })),
-  });
-
-  // ContentReports + ModerationActions
-  const reporters = users.filter((u) => u.status === "active" && u.role !== "visitor");
-  const moderators = users.filter((u) => u.role === "admin" || u.role === "owner");
-  if (reporters.length === 0 || moderators.length === 0) return;
-
-  const targetTypes: ReportTargetType[] = [
-    "board_post",
-    "board_comment",
-    "chat_message",
-    "product",
-    "skill_listing",
-    "user",
-  ];
-  const categories: ReportCategory[] = [
-    "spam",
-    "inappropriate",
-    "harassment",
-    "copyright",
-    "misinformation",
-    "other",
-  ];
-  const statuses: ReportStatus[] = ["pending", "reviewing", "resolved", "dismissed"];
-  const actionTypes: ModerationActionType[] = [
-    "content_hide",
-    "content_delete",
-    "user_warn",
-    "user_suspend",
-    "report_dismiss",
-  ];
-
-  for (let i = 0; i < 8; i++) {
-    const reporter = pick(reporters);
-    const targetType = pick(targetTypes);
-    const status = pick(statuses);
-    const category = pick(categories);
-    const assignedTo = status === "pending" || rand() < 0.3 ? null : pick(moderators);
-
-    const report = await prisma.contentReport.create({
-      data: {
-        reporterUserId: reporter.id,
-        targetType,
-        targetId: reporter.id, // dummy target id
-        category,
-        description: "不適切な内容と判断し通報いたしました。",
-        status,
-        assignedToUserId: assignedTo?.id ?? null,
-        resolvedAt:
-          status === "resolved" || status === "dismissed" ? daysAgo(randInt(1, 20)) : null,
-      },
-      select: { id: true, status: true },
-    });
-
-    // ModerationAction for resolved/dismissed reports
-    if ((status === "resolved" || status === "dismissed") && rand() < 0.8) {
-      const moderator = pick(moderators);
-      const actionType = status === "dismissed" ? "report_dismiss" : pick(actionTypes);
-      await prisma.moderationAction.create({
-        data: {
-          reportId: report.id,
-          moderatorUserId: moderator.id,
-          actionType,
-          targetType: String(targetType),
-          targetId: reporter.id,
-          reason: "通報内容を確認の上、対応いたしました。",
-        },
-      });
-    }
-  }
-}
-
 async function seedOrientation(prisma: PrismaClient, users: UserSummary[]): Promise<void> {
   const pages = [
     { title: "ようこそ！", body: "コミュニティへようこそ。" },
@@ -350,9 +245,6 @@ export async function seedMisc(prisma: PrismaClient): Promise<void> {
 
   console.log("  [08-misc] schedules");
   await seedSchedules(prisma, users);
-
-  console.log("  [08-misc] moderation (banned words / reports / actions)");
-  await seedModeration(prisma, users);
 
   console.log("  [08-misc] orientation (pages / completions)");
   await seedOrientation(prisma, users);
