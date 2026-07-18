@@ -1892,45 +1892,6 @@ export interface Schedule {
   createdAt: string;
 }
 
-// --- Moderation ---
-export interface ContentReport {
-  id: string;
-  reporterUserId: string;
-  reporter: { id: string; name: string };
-  targetType: string;
-  targetId: string;
-  category: string;
-  description: string | null;
-  status: string;
-  assignedTo: { id: string; name: string } | null;
-  resolvedAt: string | null;
-  createdAt: string;
-}
-
-export interface ModerationActionItem {
-  id: string;
-  actionType: string;
-  targetType: string;
-  targetId: string;
-  reason: string | null;
-  notes: string | null;
-  moderator: { id: string; name: string };
-  createdAt: string;
-}
-
-export interface ContentReportDetail extends ContentReport {
-  actions: ModerationActionItem[];
-}
-
-export interface BannedWord {
-  id: string;
-  word: string;
-  matchType: string;
-  action: string;
-  replacement: string | null;
-  isActive: boolean;
-}
-
 // --- Orientation ---
 export interface OrientationPage {
   id: string;

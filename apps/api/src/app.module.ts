@@ -38,7 +38,6 @@ import { ContentsModule } from "./contents/contents.module";
 import { FaqModule } from "./faq/faq.module";
 import { MemosModule } from "./memos/memos.module";
 import { SchedulesModule } from "./schedules/schedules.module";
-import { ModerationModule } from "./moderation/moderation.module";
 import { OrientationModule } from "./orientation/orientation.module";
 import { UserLibraryModule } from "./user-library/user-library.module";
 import { UsageHistoryModule } from "./usage-history/usage-history.module";
@@ -233,9 +232,6 @@ import { validateEnv } from "./config/env.config";
 
     // Schedules
     SchedulesModule,
-
-    // Moderation
-    ModerationModule,
 
     // Orientation
     OrientationModule,

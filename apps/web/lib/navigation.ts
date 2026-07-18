@@ -93,7 +93,6 @@ export const COMMUNITY_ADMIN_ITEMS: AdminNavItem[] = [
     icon: Bookmark,
     featureKey: "usage_history",
   },
-  { labelKey: "admin.moderation", href: "/moderation", icon: Shield, featureKey: "moderation" },
 ];
 
 /** システム管理メニュー（admin のみ） */

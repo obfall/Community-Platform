@@ -42,11 +42,6 @@ async function truncateDemoData(prisma: PrismaClient): Promise<void> {
   // Schedules
   await prisma.schedule.deleteMany({});
 
-  // Moderation
-  await prisma.moderationAction.deleteMany({});
-  await prisma.contentReport.deleteMany({});
-  await prisma.bannedWord.deleteMany({});
-
   // Orientation
   await prisma.orientationCompletion.deleteMany({});
   await prisma.orientationPage.deleteMany({});

@@ -67,13 +67,6 @@ async function main() {
       sortOrder: 6,
     },
     {
-      featureKey: "moderation",
-      featureName: "モデレーション",
-      category: "common" as const,
-      description: "コンテンツ検査・削除",
-      sortOrder: 7,
-    },
-    {
       featureKey: "usage_history",
       featureName: "利用履歴管理",
       category: "common" as const,
